@@ -38,6 +38,7 @@ void Dodo::SetKeyBinds()
     QShortcut *kb_prev_page = new QShortcut(QKeySequence("k"), this, [=]() {
         this->GotoPage(-1);
     });
+
 }
 
 void Dodo::GotoPage(int pinterval)
