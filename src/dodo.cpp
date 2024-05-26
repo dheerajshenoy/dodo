@@ -2,9 +2,13 @@
 
 Dodo::Dodo(QWidget *parent)
 {
-    m_layout->addWidget(m_label);
+    //m_layout->addWidget(m_label);
+    m_layout->addWidget(m_gview);
+    m_gview->setScene(m_gscene);
+    m_gscene->addWidget(m_label);
+
     m_widget->setLayout(m_layout);
-    m_layout->setAlignment(Qt::AlignmentFlag::AlignCenter);
+    m_label->setAlignment(Qt::AlignmentFlag::AlignCenter);
     this->setCentralWidget(m_widget);
     INIT_PDF();
     SetKeyBinds();
@@ -15,11 +19,11 @@ Dodo::Dodo(QWidget *parent)
 void Dodo::SetKeyBinds()
 {
     QShortcut *kb_zoomin = new QShortcut(QKeySequence("="), this, [=]() {
-        this->Zoom(+5);
+        this->Zoom(+10);
     });
 
     QShortcut *kb_zoomout = new QShortcut(QKeySequence("-"), this, [=]() {
-        this->Zoom(-5);
+        this->Zoom(-10);
     });
 
     QShortcut *kb_zoomreset = new QShortcut(QKeySequence("+"), this, [=]() {
@@ -43,7 +47,9 @@ void Dodo::SetKeyBinds()
 
 void Dodo::GotoPage(int pinterval)
 {
-    if (m_page_number + pinterval > m_page_count)
+    // Check for out of bounds
+    if (m_page_number + pinterval > m_page_count - 1 ||
+        m_page_number + pinterval < 0)
     {
         return;
     }

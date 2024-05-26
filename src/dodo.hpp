@@ -10,7 +10,10 @@
 #include <qt6/QtGui/QRgb>
 #include <qt6/QtGui/QImage>
 #include <qt6/QtGui/QColor>
+#include <qt6/QtWidgets/QGraphicsItem>
+#include <qt6/QtWidgets/QGraphicsScene>
 #include <string>
+#include "gv.cpp"
 
 class Dodo : public QMainWindow {
 
@@ -36,8 +39,11 @@ private:
     std::string m_filename = "/home/neo/test.pdf";
 	fz_matrix m_ctm;
 	int m_x, m_y;
+    QGraphicsScene *m_gscene = new QGraphicsScene();
+    gv *m_gview = new gv(m_gscene);
 
     QLabel *m_label = new QLabel();
+
     QVBoxLayout *m_layout = new QVBoxLayout();
     QWidget *m_widget = new QWidget();
 };

@@ -23,6 +23,8 @@ LIBS += -lmupdf
 
 # Input
 SOURCES += src/dodo.cpp \
-            src/main.cpp
+            src/main.cpp \
+            src/gv.cpp
 
-HEADERS += src/dodo.hpp
+HEADERS += src/dodo.hpp \
+            src/gv.hpp
