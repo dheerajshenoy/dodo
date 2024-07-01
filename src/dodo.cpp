@@ -1,53 +1,83 @@
 #include "dodo.hpp"
 #include <mupdf/fitz/geometry.h>
+#include <mupdf/fitz/write-pixmap.h>
 
 Dodo::Dodo(int argc, char** argv, QWidget *parent)
 {
     //m_layout->addWidget(m_label);
-    /*m_layout->addWidget(m_gview);*/
-    /*m_gview->setScene(m_gscene);*/
-    /*m_gscene->addWidget(m_label);*/
-    m_layout->addWidget(m_label);
+    m_layout->addWidget(m_scrollarea);
+    m_layout->addWidget(m_statusbar);
+    m_scrollarea->setWidget(m_label);
 
     m_widget->setLayout(m_layout);
+    m_scrollarea->setAlignment(Qt::AlignmentFlag::AlignCenter);
     m_label->setAlignment(Qt::AlignmentFlag::AlignCenter);
-
+    m_scrollarea->setWidgetResizable(true);
     this->setCentralWidget(m_widget);
+
     INIT_PDF();
     SetKeyBinds();
-    /*Open("/home/neo/test.pdf", 15);*/
     this->show();
 
-    /*qDebug() << argv[1];*/
     if (argc > 1)
         Open(QString(argv[1]));
 }
 
 void Dodo::SetKeyBinds()
 {
-    QShortcut *kb_zoomin = new QShortcut(QKeySequence("="), this, [=]() {
+    QShortcut *kb_zoomin = new QShortcut(QKeySequence("="), this, [&]() {
         this->Zoom(+10);
     });
 
-    QShortcut *kb_zoomout = new QShortcut(QKeySequence("-"), this, [=]() {
+    QShortcut *kb_zoomout = new QShortcut(QKeySequence("-"), this, [&]() {
         this->Zoom(-10);
     });
 
-    QShortcut *kb_zoomreset = new QShortcut(QKeySequence("+"), this, [=]() {
+    QShortcut *kb_zoomreset = new QShortcut(QKeySequence("+"), this, [&]() {
         this->ZoomReset();
     });
 
-    QShortcut *kb_open = new QShortcut(QKeySequence("Ctrl+o"), this, [=]() {
+    QShortcut *kb_open = new QShortcut(QKeySequence("Ctrl+o"), this, [&]() {
         QString filename = QFileDialog::getOpenFileName(this, "Open file", nullptr, "PDF Files (*.pdf);;");
         this->Open(filename);
     });
 
-    QShortcut *kb_next_page = new QShortcut(QKeySequence("j"), this, [=]() {
+    QShortcut *kb_next_page = new QShortcut(QKeySequence("Shift+j"), this, [&]() {
         this->GotoPage(1);
     });
 
-    QShortcut *kb_prev_page = new QShortcut(QKeySequence("k"), this, [=]() {
+
+    QShortcut *kb_prev_page = new QShortcut(QKeySequence("Shift+k"), this, [&]() {
         this->GotoPage(-1);
+    });
+
+    QShortcut *kb_scroll_down = new QShortcut(QKeySequence("j"), this, [&]() {
+        this->ScrollVertical(1);
+    });
+
+    QShortcut *kb_scroll_up = new QShortcut(QKeySequence("k"), this, [&]() {
+        this->ScrollVertical(-1);
+    });
+
+    QShortcut *kb_scroll_left = new QShortcut(QKeySequence("h"), this, [&]() {
+        this->ScrollHorizontal(-1);
+    });
+
+    QShortcut *kb_scroll_right = new QShortcut(QKeySequence("l"), this, [&]() {
+        this->ScrollHorizontal(1);
+    });
+
+    QShortcut *kb_rotate_clock = new QShortcut(QKeySequence(","), this, [&]() {
+        this->Rotate(90);
+    });
+
+
+    QShortcut *kb_rotate_anticlock = new QShortcut(QKeySequence("."), this, [&]() {
+        this->Rotate(-90);
+    });
+
+    QShortcut *kb_reset_view = new QShortcut(QKeySequence("Shift+R"), this, [&]() {
+        this->ResetView();
     });
 
 }
@@ -62,19 +92,21 @@ void Dodo::GotoPage(int pinterval)
     }
 
     m_page_number += pinterval;
+    m_statusbar->SetCurrentPage(m_page_number);
     Render();
 }
 
 void Dodo::Render()
 {
+
     m_ctm = fz_scale(m_zoom / 100, m_zoom / 100);
     m_ctm = fz_pre_rotate(m_ctm, m_rotate);
 
-    /* Render page to an RGB pixmap. */
+    // Render page to an RGB pixmap.
     fz_try(m_ctx)
     {
-        m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_page_number, m_ctm, fz_device_rgb(m_ctx), 0);
-        QImage img(m_pix->samples, m_pix->w, m_pix->h, m_pix->stride, QImage::Format_RGB888);
+        m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_page_number, m_ctm, fz_device_rgb(m_ctx), 1);
+        QImage img(m_pix->samples, m_pix->w, m_pix->h, QImage::Format_RGBA8888, nullptr, m_pix->samples);
         m_label->setPixmap(QPixmap::fromImage(img));
     }
     fz_catch(m_ctx)
@@ -85,7 +117,6 @@ void Dodo::Render()
         return;
     }
 }
-
 void Dodo::ZoomReset()
 {
     m_zoom = 100.0f;
@@ -94,6 +125,8 @@ void Dodo::ZoomReset()
 
 void Dodo::Zoom(float r)
 {
+    if (m_zoom + r <= 0) return;
+
     m_zoom += r;
     Render();
 }
@@ -106,7 +139,7 @@ bool Dodo::INIT_PDF()
 bool Dodo::Open(QString filename, int page_number)
 {
     m_ctx = fz_new_context(NULL, NULL, FZ_STORE_UNLIMITED);
-
+    
     /* Create a context to hold the exception stack and various caches. */
     if (!m_ctx)
     {
@@ -129,12 +162,11 @@ bool Dodo::Open(QString filename, int page_number)
         return false;
     }
     
-
-    m_filename = filename.toStdString();
+    m_filename = QString::fromStdString(filename.toStdString());
 
     fz_try(m_ctx)
     {
-        m_doc = fz_open_document(m_ctx, m_filename.c_str());
+        m_doc = fz_open_document(m_ctx, m_filename.toStdString().c_str());
     }
 
     fz_catch(m_ctx)
@@ -186,29 +218,14 @@ bool Dodo::Open(QString filename, int page_number)
             exit(0);
         }
 
-
-        fz_matrix transform = fz_identity;
-        fz_rotate(m_rotate);
-        fz_pre_scale(transform, m_zoom, m_zoom);
-
+        m_ctm = fz_scale(m_zoom / 100.0f, m_zoom / 100.0f);
+        m_ctm = fz_rotate(m_rotate);
 
         // get transformed page size
-        fz_rect bounds;
-        fz_bound_page(m_ctx, page);
-        fz_transform_rect(bounds, transform);
-        fz_round_rect(bounds);
 
-        m_pix =fz_new_pixmap_from_page_number(m_ctx, m_doc, m_page_number, transform, fz_device_bgr(m_ctx), 1);
+        m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_page_number, m_ctm, fz_device_rgb(m_ctx), 1);
 
-        auto samples = fz_pixmap_samples(m_ctx, m_pix);
-        auto width = fz_pixmap_width(m_ctx, m_pix);
-        auto height = fz_pixmap_height(m_ctx, m_pix);
-
-        unsigned char *copied_samples = NULL;
-
-        copied_samples = samples;
-
-        m_image = QImage(copied_samples, width, height, QImage::Format_RGBA8888, NULL, copied_samples);
+        m_image = QImage(m_pix->samples, m_pix->w, m_pix->h, QImage::Format_RGBA8888);
         m_label->setPixmap(QPixmap::fromImage(m_image));
         m_label->resize(m_label->sizeHint());
     }
@@ -220,8 +237,52 @@ bool Dodo::Open(QString filename, int page_number)
         return false;
     }
 
+    m_statusbar->SetFileName(m_filename);
+    m_statusbar->SetFilePageCount(m_page_count);
+    m_statusbar->SetCurrentPage(page_number);
+
     return true;
 }
+
+void Dodo::Rotate(float angle)
+{
+    m_rotate += angle;
+    m_rotate=(float)((int)m_rotate % 360); 
+
+    this->Render();
+}
+
+void Dodo::ResetView()
+{
+    m_rotate = 0.0f;
+    m_zoom = 100.0f;
+
+    this->Render();
+}
+
+void Dodo::ScrollVertical(int direction)
+{
+    if (direction == 1)
+    {
+        m_vscroll->setValue(m_vscroll->value() + 30);
+        /*m_scrollarea->scroll(0, -m_scroll_len);*/
+    } else {
+        m_vscroll->setValue(m_vscroll->value() - 30);
+    }
+}
+
+void Dodo::ScrollHorizontal(int direction)
+{
+
+    if (direction == 1)
+    {
+        m_hscroll->setValue(m_hscroll->value() + 30);
+        /*m_scrollarea->scroll(0, -m_scroll_len);*/
+    } else {
+        m_hscroll->setValue(m_hscroll->value() - 30);
+    }
+}
+
 
 Dodo::~Dodo()
 {
@@ -235,4 +296,5 @@ Dodo::~Dodo()
 
     if (m_ctx)
         fz_drop_context(m_ctx);
+
 }
