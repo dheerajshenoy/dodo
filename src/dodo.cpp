@@ -1,19 +1,26 @@
 #include "dodo.hpp"
+#include <mupdf/fitz/geometry.h>
 
-Dodo::Dodo(QWidget *parent)
+Dodo::Dodo(int argc, char** argv, QWidget *parent)
 {
     //m_layout->addWidget(m_label);
-    m_layout->addWidget(m_gview);
-    m_gview->setScene(m_gscene);
-    m_gscene->addWidget(m_label);
+    /*m_layout->addWidget(m_gview);*/
+    /*m_gview->setScene(m_gscene);*/
+    /*m_gscene->addWidget(m_label);*/
+    m_layout->addWidget(m_label);
 
     m_widget->setLayout(m_layout);
     m_label->setAlignment(Qt::AlignmentFlag::AlignCenter);
+
     this->setCentralWidget(m_widget);
     INIT_PDF();
     SetKeyBinds();
-    Open("/home/neo/test.pdf", 15);
+    /*Open("/home/neo/test.pdf", 15);*/
     this->show();
+
+    /*qDebug() << argv[1];*/
+    if (argc > 1)
+        Open(QString(argv[1]));
 }
 
 void Dodo::SetKeyBinds()
@@ -98,13 +105,13 @@ bool Dodo::INIT_PDF()
 
 bool Dodo::Open(QString filename, int page_number)
 {
-
     m_ctx = fz_new_context(NULL, NULL, FZ_STORE_UNLIMITED);
 
     /* Create a context to hold the exception stack and various caches. */
     if (!m_ctx)
     {
         fprintf(stderr, "cannot create mupdf context\n");
+        qFatal("Cannot create mupdf context");
         return false;
     }
 
@@ -117,17 +124,19 @@ bool Dodo::Open(QString filename, int page_number)
     {
         fz_report_error(m_ctx);
         fprintf(stderr, "cannot register document handlers: %s", fz_caught_message(m_ctx));
+        qFatal("Cannot register document handlers");
         fz_drop_context(m_ctx);
         return false;
     }
+    
 
     m_filename = filename.toStdString();
 
-    // Open the document
     fz_try(m_ctx)
     {
         m_doc = fz_open_document(m_ctx, m_filename.c_str());
     }
+
     fz_catch(m_ctx)
     {
         fprintf(stderr, "cannot open document: %s\n", fz_caught_message(m_ctx));
@@ -167,9 +176,41 @@ bool Dodo::Open(QString filename, int page_number)
     /* Render page to an RGB pixmap. */
     fz_try(m_ctx)
     {
-        m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_page_number, m_ctm, fz_device_rgb(m_ctx), 0);
-        QImage img(m_pix->samples, m_pix->w, m_pix->h, m_pix->stride, QImage::Format_RGB888);
-        m_label->setPixmap(QPixmap::fromImage(img));
+        /*m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_page_number, m_ctm, fz_device_rgb(m_ctx), 0);*/
+        fz_page *page = fz_load_page(m_ctx, m_doc, 0);
+    
+        if (!page)
+        {
+    
+            fz_drop_page(m_ctx, page);
+            exit(0);
+        }
+
+
+        fz_matrix transform = fz_identity;
+        fz_rotate(m_rotate);
+        fz_pre_scale(transform, m_zoom, m_zoom);
+
+
+        // get transformed page size
+        fz_rect bounds;
+        fz_bound_page(m_ctx, page);
+        fz_transform_rect(bounds, transform);
+        fz_round_rect(bounds);
+
+        m_pix =fz_new_pixmap_from_page_number(m_ctx, m_doc, m_page_number, transform, fz_device_bgr(m_ctx), 1);
+
+        auto samples = fz_pixmap_samples(m_ctx, m_pix);
+        auto width = fz_pixmap_width(m_ctx, m_pix);
+        auto height = fz_pixmap_height(m_ctx, m_pix);
+
+        unsigned char *copied_samples = NULL;
+
+        copied_samples = samples;
+
+        m_image = QImage(copied_samples, width, height, QImage::Format_RGBA8888, NULL, copied_samples);
+        m_label->setPixmap(QPixmap::fromImage(m_image));
+        m_label->resize(m_label->sizeHint());
     }
     fz_catch(m_ctx)
     {
@@ -185,7 +226,13 @@ bool Dodo::Open(QString filename, int page_number)
 Dodo::~Dodo()
 {
     /* Clean up. */
-    fz_drop_pixmap(m_ctx, m_pix);
-    fz_drop_document(m_ctx, m_doc);
-    fz_drop_context(m_ctx);
+
+    if (m_pix)
+        fz_drop_pixmap(m_ctx, m_pix);
+
+    if (m_doc)
+        fz_drop_document(m_ctx, m_doc);
+
+    if (m_ctx)
+        fz_drop_context(m_ctx);
 }

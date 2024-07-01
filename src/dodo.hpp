@@ -18,7 +18,7 @@
 class Dodo : public QMainWindow {
 
 public:
-    Dodo(QWidget *parent = nullptr);
+    Dodo(int argc, char **argv, QWidget *parent = nullptr);
     ~Dodo();
     bool Open(QString filename, int page_number = 0);
     bool INIT_PDF();
@@ -40,6 +40,7 @@ private:
 	fz_matrix m_ctm;
 	int m_x, m_y;
     QGraphicsScene *m_gscene = new QGraphicsScene();
+    QImage m_image;
     gv *m_gview = new gv(m_gscene);
 
     QLabel *m_label = new QLabel();

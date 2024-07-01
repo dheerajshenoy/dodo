@@ -3,7 +3,7 @@
 int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
-    Dodo d;
+    Dodo d(argc, argv);
 
     app.exec();
 }

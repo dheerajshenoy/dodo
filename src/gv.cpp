@@ -2,7 +2,6 @@
 
 void gv::wheelEvent(QWheelEvent *e)
 {
-
     if (e->angleDelta().y() > 0)
     {
         scale(scaleFactor, scaleFactor);
