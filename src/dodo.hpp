@@ -8,10 +8,11 @@
 #include <qt6/QtWidgets/QLabel>
 #include <qt6/QtGui/QRgb>
 #include <qt6/QtGui/QImage>
+#include <qt6/QtGui/QPainter>
+#include <qt6/QtGui/QPen>
 #include <qt6/QtGui/QColor>
 #include <qt6/QtWidgets/QScrollArea>
 #include <qt6/QtWidgets/QScrollBar>
-#include <string>
 #include <mupdf/fitz.h>
 #include <mupdf/fitz/geometry.h>
 #include "statusbar.hpp"
@@ -34,6 +35,7 @@ public:
     void SetKeyBinds();
     void ScrollVertical(int direction, int amount);
     void ScrollHorizontal(int direction, int amount);
+    int SearchText(QString text);
     void Zoom(float rate);
     void ZoomReset();
     
@@ -44,7 +46,10 @@ private:
     fz_pixmap *m_pix;
     fz_page *m_page;
     fz_device *m_dev;
-    int m_page_number = 1, m_page_count = -1, m_scroll_len = 10;
+
+    int m_cur_page_num = 1, m_page_count = -1, m_scroll_len = 10, m_search_count = -1;
+    int HIT_MAX_COUNT = 1000;
+
     float m_zoom = 100.0f, m_rotate = 0.0f;
     QString m_filename;
     fz_matrix m_ctm = fz_identity;

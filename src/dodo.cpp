@@ -1,5 +1,6 @@
 #include "dodo.hpp"
 #include <mupdf/fitz/geometry.h>
+#include <mupdf/fitz/util.h>
 #include <mupdf/fitz/write-pixmap.h>
 
 Dodo::Dodo(int argc, char** argv, QWidget *parent)
@@ -22,6 +23,7 @@ Dodo::Dodo(int argc, char** argv, QWidget *parent)
 
     if (argc > 1)
         Open(QString(argv[1]));
+
 }
 
 void Dodo::FitToWidth()
@@ -144,14 +146,14 @@ void Dodo::SetKeyBinds()
 void Dodo::GotoPage(int pinterval)
 {
     // Check for out of bounds
-    if (m_page_number + pinterval > m_page_count - 1 ||
-        m_page_number + pinterval < 0)
+    if (m_cur_page_num + pinterval > m_page_count - 1 ||
+        m_cur_page_num + pinterval < 0)
     {
         return;
     }
 
-    m_page_number += pinterval;
-    m_statusbar->SetCurrentPage(m_page_number);
+    m_cur_page_num += pinterval;
+    m_statusbar->SetCurrentPage(m_cur_page_num);
     Render();
 }
 
@@ -164,9 +166,9 @@ void Dodo::Render()
     // Render page to an RGB pixmap.
     fz_try(m_ctx)
     {
-        m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_page_number, m_ctm, fz_device_rgb(m_ctx), 1);
-        QImage img(m_pix->samples, m_pix->w, m_pix->h, QImage::Format_RGBA8888, nullptr, m_pix->samples);
-        m_label->setPixmap(QPixmap::fromImage(img));
+        m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_cur_page_num, m_ctm, fz_device_rgb(m_ctx), 1);
+        m_image = QImage(m_pix->samples, m_pix->w, m_pix->h, QImage::Format_RGBA8888, nullptr, m_pix->samples);
+        m_label->setPixmap(QPixmap::fromImage(m_image));
     }
     fz_catch(m_ctx)
     {
@@ -175,6 +177,9 @@ void Dodo::Render()
         fz_drop_context(m_ctx);
         exit(0);
     }
+
+    SearchText("Lorem");
+
 }
 void Dodo::ZoomReset()
 {
@@ -257,7 +262,7 @@ bool Dodo::Open(QString filename, int page_number)
         return false;
     }
 
-    m_page_number = page_number;
+    m_cur_page_num = page_number;
 
     /* Compute a transformation matrix for the zoom and rotation desired. */
     /* The default resolution without scaling is 72 dpi. */
@@ -282,7 +287,7 @@ bool Dodo::Open(QString filename, int page_number)
 
         // get transformed page size
 
-        m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_page_number, m_ctm, fz_device_rgb(m_ctx), 1);
+        m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_cur_page_num, m_ctm, fz_device_rgb(m_ctx), 1);
 
         m_image = QImage(m_pix->samples, m_pix->w, m_pix->h, QImage::Format_RGBA8888);
         m_label->setPixmap(QPixmap::fromImage(m_image));
@@ -299,6 +304,9 @@ bool Dodo::Open(QString filename, int page_number)
     m_statusbar->SetFileName(m_filename);
     m_statusbar->SetFilePageCount(m_page_count);
     m_statusbar->SetCurrentPage(page_number);
+
+
+    qDebug() << SearchText("Lorem");
 
     return true;
 }
@@ -341,6 +349,86 @@ void Dodo::ScrollHorizontal(int direction, int amount)
     }
 }
 
+int Dodo::SearchText(QString text)
+{
+    int hit_max = HIT_MAX_COUNT;
+    fz_quad hit_box[HIT_MAX_COUNT];
+    int *hit_mark[HIT_MAX_COUNT];
+
+    m_search_count = fz_search_page_number(m_ctx, m_doc, m_cur_page_num, text.toLatin1().data(), *hit_mark, hit_box, hit_max);
+
+    if (m_search_count > 0)
+    {
+        for(int i=0; i < m_search_count; i++)
+        {
+            QPainter painter(&m_image);
+            double width,height;
+            double label_x,label_y;
+            double label_width,label_height;
+
+            //using pen to hide the border of the rect to used with the qpainter
+            QPen pen;
+            pen.setStyle(Qt::NoPen);
+            painter.setPen(pen);
+
+            //calculating the width and heigth or the search text
+            width = hit_box[i].lr.x - hit_box[i].ul.x;
+            height = hit_box[i].lr.y - hit_box[i].ul.y;
+
+            qDebug() << width << height;
+
+            //calculation the x and y cordinate where qpainter will be set
+            if(m_rotate==0)
+            {
+                label_x = hit_box[i].ll.x * m_zoom;
+                label_y = hit_box[i].ul.y * m_zoom;
+                label_width = width * m_zoom;
+                label_height = height * m_zoom;
+            }
+
+            else if(m_rotate == 90 || m_rotate == -270)//if rotated clockwise or anti clockwise
+            {
+                label_width = height * m_zoom;
+                label_height = width * m_zoom;
+
+                label_x = m_label->width() - hit_box[i].ul.y * m_zoom - label_width;
+                label_y = hit_box[i].ul.x * m_zoom;
+
+            }
+
+            else if(m_rotate == 180 || m_rotate == -180)//if rotated clockwise or anti clockwise
+            {
+                label_x = m_label->width() - hit_box[i].ul.x * m_zoom - width * m_zoom;
+                label_y = m_label->height() - hit_box[i].ul.y * m_zoom - height * m_zoom;
+                label_width = width * m_zoom;
+                label_height = height  * m_zoom;
+            }
+
+            else if(m_rotate == 270 || m_rotate == -90)//if rotated clockwise or anti clockwise
+            {
+                label_width= height * m_zoom;
+                label_height = width * m_zoom;
+                label_x = hit_box[i].ul.y * m_zoom;
+                label_y = m_label->height() - hit_box[i].ul.x * m_zoom - label_height;
+            }
+
+
+            QRectF rect(label_x, label_y, label_width, label_height);
+
+            painter.begin(this);
+            painter.drawRect(rect);
+            painter.fillRect(rect, QBrush(QColor(255, 0, 0, 128)));
+
+            painter.end();
+        }
+
+        m_label->setPixmap(QPixmap::fromImage(m_image));
+        qDebug() << "DD";
+
+    }
+
+    return m_search_count;
+}
 
 Dodo::~Dodo()
 {
