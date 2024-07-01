@@ -21,16 +21,19 @@ class Dodo : public QMainWindow {
 public:
     Dodo(int argc, char **argv, QWidget *parent = nullptr);
     ~Dodo();
+
+    void FitToWidth();
+    void FitToHeight();
+    void FitToWindow();
     void GotoPage(int pinterval);
     bool INIT_PDF();
     bool Open(QString filename, int page_number = 0);
     void Render();
-    void Render2();
     void Rotate(float angle);
     void ResetView();
     void SetKeyBinds();
-    void ScrollVertical(int direction);
-    void ScrollHorizontal(int direction);
+    void ScrollVertical(int direction, int amount);
+    void ScrollHorizontal(int direction, int amount);
     void Zoom(float rate);
     void ZoomReset();
     

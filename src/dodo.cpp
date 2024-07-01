@@ -9,6 +9,7 @@ Dodo::Dodo(int argc, char** argv, QWidget *parent)
     m_layout->addWidget(m_statusbar);
     m_scrollarea->setWidget(m_label);
 
+    /*m_label->setSizePolicy( QSizePolicy::Ignored, QSizePolicy::Ignored );*/
     m_widget->setLayout(m_layout);
     m_scrollarea->setAlignment(Qt::AlignmentFlag::AlignCenter);
     m_label->setAlignment(Qt::AlignmentFlag::AlignCenter);
@@ -21,6 +22,52 @@ Dodo::Dodo(int argc, char** argv, QWidget *parent)
 
     if (argc > 1)
         Open(QString(argv[1]));
+}
+
+void Dodo::FitToWidth()
+{
+    /*swaping pix_width and pix_width when pdf is rotated either 90,-90,-270,270 degrees
+     * in this case, as the pdf is rotated,the pdf hight and widht will interchange
+     */
+    float tem_pix_height=0.0f,tem_pix_width=0.0f;
+    if(m_rotate==90 || m_rotate==-270 || m_rotate==270||m_rotate==-90)
+    {
+        tem_pix_height=m_pix->w;
+        tem_pix_width=m_pix->h;
+
+        m_pix->h=tem_pix_height;
+        m_pix->w=tem_pix_width;
+
+    }
+
+    //calculating the m_scale value for which page width fits the window hight
+    float window_width=this->width();
+    float scale=window_width - 200;
+    scale=scale/m_pix->w;
+
+    m_zoom = int(scale * 100);
+
+    qDebug() << m_zoom;
+
+    //checking if previous page had any string to search and then searching same string on the current page.
+    Render();
+
+    /*restoring the pix_height and pix_width value back to the original as the fitting is done now.*/
+    if(m_rotate==90 || m_rotate==-270 || m_rotate==270||m_rotate==-90)
+    {
+        m_pix->h=tem_pix_width;
+        m_pix->w=tem_pix_height;
+    }
+}
+
+void Dodo::FitToHeight()
+{
+
+}
+
+void Dodo::FitToWindow()
+{
+
 }
 
 void Dodo::SetKeyBinds()
@@ -52,19 +99,27 @@ void Dodo::SetKeyBinds()
     });
 
     QShortcut *kb_scroll_down = new QShortcut(QKeySequence("j"), this, [&]() {
-        this->ScrollVertical(1);
+        this->ScrollVertical(1, 30);
+    });
+
+    QShortcut *kb_scroll_down_more = new QShortcut(QKeySequence("Ctrl+d"), this, [&]() {
+        this->ScrollVertical(1, 300);
     });
 
     QShortcut *kb_scroll_up = new QShortcut(QKeySequence("k"), this, [&]() {
-        this->ScrollVertical(-1);
+        this->ScrollVertical(-1, 30);
+    });
+
+    QShortcut *kb_scroll_up_more = new QShortcut(QKeySequence("Ctrl+u"), this, [&]() {
+        this->ScrollVertical(-1, 300);
     });
 
     QShortcut *kb_scroll_left = new QShortcut(QKeySequence("h"), this, [&]() {
-        this->ScrollHorizontal(-1);
+        this->ScrollHorizontal(-1, 30);
     });
 
     QShortcut *kb_scroll_right = new QShortcut(QKeySequence("l"), this, [&]() {
-        this->ScrollHorizontal(1);
+        this->ScrollHorizontal(1, 30);
     });
 
     QShortcut *kb_rotate_clock = new QShortcut(QKeySequence(","), this, [&]() {
@@ -78,6 +133,10 @@ void Dodo::SetKeyBinds()
 
     QShortcut *kb_reset_view = new QShortcut(QKeySequence("Shift+R"), this, [&]() {
         this->ResetView();
+    });
+
+    QShortcut *kb_fit_width = new QShortcut(QKeySequence("w"), this, [&]() {
+        this->FitToWidth();
     });
 
 }
@@ -114,7 +173,7 @@ void Dodo::Render()
         fprintf(stderr, "cannot render page: %s\n", fz_caught_message(m_ctx));
         fz_drop_document(m_ctx, m_doc);
         fz_drop_context(m_ctx);
-        return;
+        exit(0);
     }
 }
 void Dodo::ZoomReset()
@@ -227,7 +286,7 @@ bool Dodo::Open(QString filename, int page_number)
 
         m_image = QImage(m_pix->samples, m_pix->w, m_pix->h, QImage::Format_RGBA8888);
         m_label->setPixmap(QPixmap::fromImage(m_image));
-        m_label->resize(m_label->sizeHint());
+        /*m_label->resize(m_label->sizeHint());*/
     }
     fz_catch(m_ctx)
     {
@@ -260,26 +319,25 @@ void Dodo::ResetView()
     this->Render();
 }
 
-void Dodo::ScrollVertical(int direction)
+void Dodo::ScrollVertical(int direction, int amount)
 {
     if (direction == 1)
     {
-        m_vscroll->setValue(m_vscroll->value() + 30);
+        m_vscroll->setValue(m_vscroll->value() + amount);
         /*m_scrollarea->scroll(0, -m_scroll_len);*/
     } else {
-        m_vscroll->setValue(m_vscroll->value() - 30);
+        m_vscroll->setValue(m_vscroll->value() - amount);
     }
 }
 
-void Dodo::ScrollHorizontal(int direction)
+void Dodo::ScrollHorizontal(int direction, int amount)
 {
 
     if (direction == 1)
     {
-        m_hscroll->setValue(m_hscroll->value() + 30);
-        /*m_scrollarea->scroll(0, -m_scroll_len);*/
+        m_hscroll->setValue(m_hscroll->value() + amount);
     } else {
-        m_hscroll->setValue(m_hscroll->value() - 30);
+        m_hscroll->setValue(m_hscroll->value() - amount);
     }
 }
 
