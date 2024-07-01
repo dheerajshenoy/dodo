@@ -6,11 +6,13 @@ StatusBar::StatusBar(QWidget *parent)
     this->setLayout(m_layout);
 
     m_msg_label->hide();
-
     m_layout->addWidget(m_msg_label);
     m_layout->addWidget(m_label_filename, 1);
     m_layout->addWidget(m_label_cur_page_number);
     m_layout->addWidget(m_label_filepagecount);
+
+    m_layout->addWidget(m_label_cur_search_index);
+    m_layout->addWidget(m_label_search_count);
 
     this->setFixedHeight(30);
 
@@ -39,6 +41,16 @@ void StatusBar::SetFilePageCount(int count)
 void StatusBar::SetCurrentPage(int p)
 {
     m_label_cur_page_number->setText(QString::number(p + 1));
+}
+
+void StatusBar::SetTotalSearchCount(int c)
+{
+    m_label_search_count->setText(QString::number(c));
+}
+
+void StatusBar::SetCurrentSearchIndex(int i)
+{
+    m_label_cur_search_index->setText(QString::number(i));
 }
 
 StatusBar::~StatusBar()

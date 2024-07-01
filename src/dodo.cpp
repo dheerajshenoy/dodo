@@ -9,6 +9,9 @@ Dodo::Dodo(int argc, char** argv, QWidget *parent)
     //m_layout->addWidget(m_label);
     m_layout->addWidget(m_scrollarea);
     m_layout->addWidget(m_statusbar);
+
+    m_commandbar->hide();
+    m_layout->addWidget(m_commandbar);
     m_scrollarea->setWidget(m_label);
 
     /*m_label->setSizePolicy( QSizePolicy::Ignored, QSizePolicy::Ignored );*/
@@ -18,12 +21,21 @@ Dodo::Dodo(int argc, char** argv, QWidget *parent)
     m_scrollarea->setWidgetResizable(true);
     this->setCentralWidget(m_widget);
 
+    connect(m_commandbar, &CommandBar::searchMode, this, [&](QString searchText) {
+        Dodo::SearchText(searchText);
+    });
+
+    connect(m_commandbar, &CommandBar::searchClear, this, [&]() {
+        Dodo::SearchReset();
+    });
+
     INIT_PDF();
     SetKeyBinds();
     this->show();
 
     if (argc > 1)
         Open(QString(argv[1]));
+
 
 }
 
@@ -142,6 +154,10 @@ void Dodo::SetKeyBinds()
         this->FitToWidth();
     });
 
+    QShortcut *kb_search = new QShortcut(QKeySequence("/"), this, [&]() {
+        m_commandbar->Search();
+    });
+
 }
 
 void Dodo::GotoPage(int pinterval)
@@ -169,7 +185,11 @@ void Dodo::Render()
     {
         m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_cur_page_num, m_ctm, fz_device_rgb(m_ctx), 1);
         m_image = QImage(m_pix->samples, m_pix->w, m_pix->h, QImage::Format_RGBA8888, nullptr, m_pix->samples);
-        m_label->setPixmap(QPixmap::fromImage(m_image));
+        if (!m_search_text.isNull() && !m_search_text.isEmpty())
+        {
+            SearchText(m_search_text);
+        }
+        else m_label->setPixmap(QPixmap::fromImage(m_image));
     }
     fz_catch(m_ctx)
     {
@@ -177,14 +197,6 @@ void Dodo::Render()
         fz_drop_document(m_ctx, m_doc);
         fz_drop_context(m_ctx);
         exit(0);
-    }
-
-    try {
-    SearchText("Lorem");
-    }
-    catch(std::exception e)
-    {
-        qDebug() << e.what();
     }
 
 }
@@ -333,8 +345,6 @@ bool Dodo::Open(QString filename, int page_number)
     m_statusbar->SetCurrentPage(page_number);
 
 
-    qDebug() << SearchText("Lorem");
-
     return true;
 }
 
@@ -376,18 +386,32 @@ void Dodo::ScrollHorizontal(int direction, int amount)
     }
 }
 
+int Dodo::TotalSearchCount(QString text)
+{
+    int search_count = 0;
+
+    for(int i=0; i < m_page_count; i++)
+        search_count += fz_search_page_number(m_ctx, m_doc, i, text.toLatin1().data(), nullptr, nullptr, HIT_MAX_COUNT);
+
+    return search_count;
+}
+
 int Dodo::SearchText(QString text)
 {
-    fz_quad hit_box[HIT_MAX_COUNT];
-    int *hit_mark[HIT_MAX_COUNT];
 
-    m_search_count = fz_search_page_number(m_ctx, m_doc, m_cur_page_num, text.toLatin1().data(), *hit_mark, hit_box, HIT_MAX_COUNT);
+    m_search_text = text;
+    m_g_image = m_image;
+    /*m_statusbar->SetTotalSearchCount(TotalSearchCount(text));*/
+    fz_quad hit_box[HIT_MAX_COUNT];
+    /*int *hit_mark[HIT_MAX_COUNT];*/
+
+    m_search_count = fz_search_page_number(m_ctx, m_doc, m_cur_page_num, text.toLatin1().data(), nullptr, hit_box, HIT_MAX_COUNT);
 
     if (m_search_count > 0)
     {
         for(int i=0; i < m_search_count; i++)
         {
-            QPainter painter(&m_image);
+            QPainter painter(&m_g_image);
             double width,height;
             double label_x,label_y;
             double label_width,label_height;
@@ -447,10 +471,34 @@ int Dodo::SearchText(QString text)
             painter.end();
         }
 
-        m_label->setPixmap(QPixmap::fromImage(m_image));
+        m_label->setPixmap(QPixmap::fromImage(m_g_image));
     }
 
     return m_search_count;
+}
+
+void Dodo::SearchReset()
+{
+    qDebug() << "DD";
+    m_search_count = 0;
+    m_search_index = -1;
+    m_search_text = "";
+    Render();
+}
+
+void Dodo::Search_Goto_Next()
+{
+    if (m_search_index >= m_search_count) return;
+
+    m_search_index++;
+}
+
+void Dodo::Search_Goto_Prev()
+{
+    if (m_search_index <= 0) return;
+
+    m_search_index--;
+
 }
 
 Dodo::~Dodo()
