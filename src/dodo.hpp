@@ -13,6 +13,7 @@
 #include <qt6/QtGui/QColor>
 #include <qt6/QtWidgets/QScrollArea>
 #include <qt6/QtWidgets/QScrollBar>
+#include <qt6/QtWidgets/QInputDialog>
 #include <mupdf/fitz.h>
 #include <mupdf/fitz/geometry.h>
 #include "statusbar.hpp"
@@ -38,7 +39,8 @@ public:
     int SearchText(QString text);
     void Zoom(float rate);
     void ZoomReset();
-    
+    void HandlePassword();
+
 private:
 
     fz_context *m_ctx;
@@ -49,6 +51,7 @@ private:
 
     int m_cur_page_num = 1, m_page_count = -1, m_scroll_len = 10, m_search_count = -1;
     int HIT_MAX_COUNT = 1000;
+
 
     float m_zoom = 100.0f, m_rotate = 0.0f;
     QString m_filename;

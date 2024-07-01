@@ -1,4 +1,5 @@
 #include "dodo.hpp"
+#include <locale>
 #include <mupdf/fitz/geometry.h>
 #include <mupdf/fitz/util.h>
 #include <mupdf/fitz/write-pixmap.h>
@@ -178,7 +179,13 @@ void Dodo::Render()
         exit(0);
     }
 
+    try {
     SearchText("Lorem");
+    }
+    catch(std::exception e)
+    {
+        qDebug() << e.what();
+    }
 
 }
 void Dodo::ZoomReset()
@@ -239,6 +246,26 @@ bool Dodo::Open(QString filename, int page_number)
         fz_drop_context(m_ctx);
         fz_drop_document(m_ctx, m_doc);
         return false;
+    }
+
+
+    if (fz_needs_password(m_ctx, m_doc))
+    {
+        bool ok;
+
+        QString password;
+
+        do {
+
+
+            QInputDialog get_password(this);
+            password = QInputDialog::getText(this, tr("Enter Password"), tr("Password"), QLineEdit::Normal, "", &ok);
+
+            if (!ok)
+                exit(0);
+
+        } while (!fz_authenticate_password(m_ctx, m_doc, password.toLatin1().data()));
+
     }
 
     // Count the number of pages
@@ -351,11 +378,10 @@ void Dodo::ScrollHorizontal(int direction, int amount)
 
 int Dodo::SearchText(QString text)
 {
-    int hit_max = HIT_MAX_COUNT;
     fz_quad hit_box[HIT_MAX_COUNT];
     int *hit_mark[HIT_MAX_COUNT];
 
-    m_search_count = fz_search_page_number(m_ctx, m_doc, m_cur_page_num, text.toLatin1().data(), *hit_mark, hit_box, hit_max);
+    m_search_count = fz_search_page_number(m_ctx, m_doc, m_cur_page_num, text.toLatin1().data(), *hit_mark, hit_box, HIT_MAX_COUNT);
 
     if (m_search_count > 0)
     {
@@ -375,10 +401,8 @@ int Dodo::SearchText(QString text)
             width = hit_box[i].lr.x - hit_box[i].ul.x;
             height = hit_box[i].lr.y - hit_box[i].ul.y;
 
-            qDebug() << width << height;
-
             //calculation the x and y cordinate where qpainter will be set
-            if(m_rotate==0)
+            if(m_rotate == 0)
             {
                 label_x = hit_box[i].ll.x * m_zoom;
                 label_y = hit_box[i].ul.y * m_zoom;
@@ -393,7 +417,6 @@ int Dodo::SearchText(QString text)
 
                 label_x = m_label->width() - hit_box[i].ul.y * m_zoom - label_width;
                 label_y = hit_box[i].ul.x * m_zoom;
-
             }
 
             else if(m_rotate == 180 || m_rotate == -180)//if rotated clockwise or anti clockwise
@@ -412,19 +435,19 @@ int Dodo::SearchText(QString text)
                 label_y = m_label->height() - hit_box[i].ul.x * m_zoom - label_height;
             }
 
+            label_width /= 100.0f;
+            label_height /= 100.0f;
+            label_x /= 100.0f;
+            label_y /= 100.0f;
 
             QRectF rect(label_x, label_y, label_width, label_height);
 
-            painter.begin(this);
             painter.drawRect(rect);
             painter.fillRect(rect, QBrush(QColor(255, 0, 0, 128)));
-
             painter.end();
         }
 
         m_label->setPixmap(QPixmap::fromImage(m_image));
-        qDebug() << "DD";
-
     }
 
     return m_search_count;
