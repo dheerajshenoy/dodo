@@ -1,4 +1,5 @@
 #include "dodo.hpp"
+#include <mupdf/pdf.h>
 
 Dodo::Dodo(int argc, char** argv, QWidget *parent)
 {
@@ -391,8 +392,16 @@ int Dodo::TotalSearchCount(QString text)
 {
     int search_count = 0;
 
-    for(int i=0; i < m_page_count; i++)
-        search_count += fz_search_page_number(m_ctx, m_doc, i, text.toLatin1().data(), nullptr, nullptr, HIT_MAX_COUNT);
+
+    // Iterate through each page
+    for (int i = 0; i < m_page_count; ++i) {
+
+        // Search for the text
+        int count = fz_search_page_number(m_ctx, m_doc, i, text.toLatin1().data(), nullptr, nullptr, HIT_MAX_COUNT);
+
+        // Add to total count
+        search_count += count;
+    }
 
     return search_count;
 }
@@ -525,6 +534,36 @@ void Dodo::PrevPage()
 int Dodo::GetCurrentPage()
 {
     return m_cur_page_num;
+}
+
+void Dodo::Search_Highlight_Next_Item()
+{
+
+}
+
+void Dodo::Search_Highlight_Prev_Item()
+{
+
+}
+
+void Dodo::SetAnnotColor(const QColor color)
+{
+    m_annot_color = color;
+}
+
+QColor Dodo::GetAnnotColor()
+{
+    return m_annot_color;
+}
+
+void Dodo::SetAnnotType(AnnotType type)
+{
+    m_annot_type = type;
+}
+
+AnnotType Dodo::GetAnnotType()
+{
+    return m_annot_type;
 }
 
 Dodo::~Dodo()

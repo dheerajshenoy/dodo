@@ -18,6 +18,13 @@
 #include "statusbar.hpp"
 #include "commandbar.hpp"
 
+enum AnnotType
+{
+    UNDERLINE,
+    HIGHLIGHT,
+    STRIKETHROUGH,
+};
+
 class Dodo : public QMainWindow {
 
 public:
@@ -53,6 +60,14 @@ public:
     void GotoFirstPage();
     void GotoLastPage();
     int GetCurrentPage();
+    void Search_Highlight_Next_Item();
+    void Search_Highlight_Prev_Item();
+
+    void SetAnnotColor(const QColor color);
+    QColor GetAnnotColor();
+    void SetAnnotType(AnnotType type);
+    AnnotType GetAnnotType();
+
 
 private:
 
@@ -83,4 +98,6 @@ private:
     QWidget *m_widget = new QWidget();
     StatusBar *m_statusbar = new StatusBar();
     CommandBar *m_commandbar = new CommandBar();
+    QColor m_annot_color;
+    AnnotType m_annot_type;
 };
