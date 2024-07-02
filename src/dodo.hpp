@@ -48,6 +48,11 @@ public:
     void SearchReset();
     void Search_Goto_Next();
     void Search_Goto_Prev();
+    void NextPage();
+    void PrevPage();
+    void GotoFirstPage();
+    void GotoLastPage();
+    int GetCurrentPage();
 
 private:
 

@@ -1,8 +1,4 @@
 #include "dodo.hpp"
-#include <locale>
-#include <mupdf/fitz/geometry.h>
-#include <mupdf/fitz/util.h>
-#include <mupdf/fitz/write-pixmap.h>
 
 Dodo::Dodo(int argc, char** argv, QWidget *parent)
 {
@@ -12,13 +8,13 @@ Dodo::Dodo(int argc, char** argv, QWidget *parent)
 
     m_commandbar->hide();
     m_layout->addWidget(m_commandbar);
-    m_scrollarea->setWidget(m_label);
 
-    /*m_label->setSizePolicy( QSizePolicy::Ignored, QSizePolicy::Ignored );*/
-    m_widget->setLayout(m_layout);
+    m_scrollarea->setWidget(m_label);
     m_scrollarea->setAlignment(Qt::AlignmentFlag::AlignCenter);
-    m_label->setAlignment(Qt::AlignmentFlag::AlignCenter);
     m_scrollarea->setWidgetResizable(true);
+
+    m_widget->setLayout(m_layout);
+    m_label->setAlignment(Qt::AlignmentFlag::AlignCenter);
     this->setCentralWidget(m_widget);
 
     connect(m_commandbar, &CommandBar::searchMode, this, [&](QString searchText) {
@@ -99,18 +95,27 @@ void Dodo::SetKeyBinds()
         this->ZoomReset();
     });
 
+
+    QShortcut *kb_goto_top = new QShortcut(QKeySequence("g,g"), this, [&]() {
+        this->GotoFirstPage();
+    });
+
+    QShortcut *kb_goto_bottom = new QShortcut(QKeySequence("Shift+g"), this, [&]() {
+        this->GotoLastPage();
+    });
+
     QShortcut *kb_open = new QShortcut(QKeySequence("Ctrl+o"), this, [&]() {
         QString filename = QFileDialog::getOpenFileName(this, "Open file", nullptr, "PDF Files (*.pdf);;");
         this->Open(filename);
     });
 
     QShortcut *kb_next_page = new QShortcut(QKeySequence("Shift+j"), this, [&]() {
-        this->GotoPage(1);
+        this->NextPage();
     });
 
 
     QShortcut *kb_prev_page = new QShortcut(QKeySequence("Shift+k"), this, [&]() {
-        this->GotoPage(-1);
+        this->PrevPage();
     });
 
     QShortcut *kb_scroll_down = new QShortcut(QKeySequence("j"), this, [&]() {
@@ -160,23 +165,19 @@ void Dodo::SetKeyBinds()
 
 }
 
-void Dodo::GotoPage(int pinterval)
+void Dodo::GotoPage(int pagenum)
 {
     // Check for out of bounds
-    if (m_cur_page_num + pinterval > m_page_count - 1 ||
-        m_cur_page_num + pinterval < 0)
-    {
+    if (pagenum > m_page_count - 1 || pagenum < 0)
         return;
-    }
 
-    m_cur_page_num += pinterval;
+    m_cur_page_num = pagenum;
     m_statusbar->SetCurrentPage(m_cur_page_num);
     Render();
 }
 
 void Dodo::Render()
 {
-
     m_ctm = fz_scale(m_zoom / 100, m_zoom / 100);
     m_ctm = fz_pre_rotate(m_ctm, m_rotate);
 
@@ -222,7 +223,7 @@ bool Dodo::INIT_PDF()
 bool Dodo::Open(QString filename, int page_number)
 {
     m_ctx = fz_new_context(NULL, NULL, FZ_STORE_UNLIMITED);
-    
+
     /* Create a context to hold the exception stack and various caches. */
     if (!m_ctx)
     {
@@ -244,7 +245,7 @@ bool Dodo::Open(QString filename, int page_number)
         fz_drop_context(m_ctx);
         return false;
     }
-    
+
     m_filename = QString::fromStdString(filename.toStdString());
 
     fz_try(m_ctx)
@@ -313,10 +314,10 @@ bool Dodo::Open(QString filename, int page_number)
     {
         /*m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_page_number, m_ctm, fz_device_rgb(m_ctx), 0);*/
         fz_page *page = fz_load_page(m_ctx, m_doc, 0);
-    
+
         if (!page)
         {
-    
+
             fz_drop_page(m_ctx, page);
             exit(0);
         }
@@ -499,6 +500,31 @@ void Dodo::Search_Goto_Prev()
 
     m_search_index--;
 
+}
+
+void Dodo::GotoLastPage()
+{
+    GotoPage(m_page_count - 1);
+}
+
+void Dodo::GotoFirstPage()
+{
+    GotoPage(0);
+}
+
+void Dodo::NextPage()
+{
+    GotoPage(GetCurrentPage() + 1);
+}
+
+void Dodo::PrevPage()
+{
+    GotoPage(GetCurrentPage() - 1);
+}
+
+int Dodo::GetCurrentPage()
+{
+    return m_cur_page_num;
 }
 
 Dodo::~Dodo()
