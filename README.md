@@ -9,5 +9,6 @@ PDF Reader written in C++ using MuPDF library
 - [x] Basic search
 - [x] Command Bar
 - [x] Search and unsearch
+- [x] First and last page navigation
 - [ ] Total search count
 - [ ] Cache
