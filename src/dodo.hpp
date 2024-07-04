@@ -14,6 +14,8 @@
 #include <qt6/QtWidgets/QScrollArea>
 #include <qt6/QtWidgets/QScrollBar>
 #include <qt6/QtWidgets/QInputDialog>
+#include <qt6/QtWidgets/QMenu>
+#include <qt6/QtWidgets/QMenuBar>
 #include <mupdf/fitz.h>
 #include "statusbar.hpp"
 #include "commandbar.hpp"
@@ -31,13 +33,13 @@ public:
     Dodo(int argc, char **argv, QWidget *parent = nullptr);
     ~Dodo();
 
+    void Annotate();
     void FitToWidth();
     void FitToHeight();
     void FitToWindow();
     void GotoPage(int pinterval);
-    bool INIT_PDF();
     bool Open(QString filename, int page_number = 0);
-    void Render();
+    void Render(float dpi = -1);
     void Rotate(float angle);
     void ResetView();
     void Reset();
@@ -50,6 +52,11 @@ public:
     int SearchText(QString text);
     void Zoom(float rate);
     void ZoomReset();
+    void HandleMenubar();
+    void HandleActions();
+    void HandleFileMenuActions();
+    void HandleEditMenuActions();
+    void HandleViewMenuActions();
     void HandlePassword();
     int TotalSearchCount(QString text);
     void SearchReset();
@@ -84,7 +91,7 @@ private:
         m_search_index = -1;
     int HIT_MAX_COUNT = 1000;
 
-    float m_zoom = 100.0f, m_rotate = 0.0f;
+    float m_zoom = 1.0f, m_rotate = 0.0f;
     QString m_filename,
             m_search_text;
     fz_matrix m_ctm = fz_identity;
@@ -99,5 +106,13 @@ private:
     StatusBar *m_statusbar = new StatusBar();
     CommandBar *m_commandbar = new CommandBar();
     QColor m_annot_color;
-    AnnotType m_annot_type;
+    AnnotType m_annot_type = AnnotType::HIGHLIGHT;
+    bool m_is_annotate_active = false;
+
+    QMenuBar *m_menubar;
+    QMenu *m_menu__file, *m_menu__edit, *m_menu__view, *m_menu__tools, *m_menu__about;
+
+    QAction *m_action__file_open, *m_action__file_open_recents,
+            *m_action__file_properties, *m_action__file_close,
+            *m_action__file_quit;
 };

@@ -7,7 +7,7 @@
 enum Mode {
     VIEW_MODE,
     COMMAND_MODE,
-    SEARCH_MODE
+    SEARCH_MODE,
 };
 
 class CommandBar : public QWidget {

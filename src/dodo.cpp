@@ -1,5 +1,7 @@
 #include "dodo.hpp"
 #include <mupdf/pdf.h>
+#include <mupdf/pdf/annot.h>
+#include <mupdf/pdf/document.h>
 
 Dodo::Dodo(int argc, char** argv, QWidget *parent)
 {
@@ -26,13 +28,13 @@ Dodo::Dodo(int argc, char** argv, QWidget *parent)
         Dodo::SearchReset();
     });
 
-    INIT_PDF();
+    HandleMenubar();
+    HandleActions();
     SetKeyBinds();
     this->show();
 
     if (argc > 1)
         Open(QString(argv[1]));
-
 
 }
 
@@ -57,9 +59,7 @@ void Dodo::FitToWidth()
     float scale=window_width - 200;
     scale=scale/m_pix->w;
 
-    m_zoom = int(scale * 100);
-
-    qDebug() << m_zoom;
+    m_zoom = int(scale);
 
     //checking if previous page had any string to search and then searching same string on the current page.
     Render();
@@ -85,17 +85,16 @@ void Dodo::FitToWindow()
 void Dodo::SetKeyBinds()
 {
     QShortcut *kb_zoomin = new QShortcut(QKeySequence("="), this, [&]() {
-        this->Zoom(+10);
+        this->Zoom(0.3);
     });
 
     QShortcut *kb_zoomout = new QShortcut(QKeySequence("-"), this, [&]() {
-        this->Zoom(-10);
+        this->Zoom(-0.3);
     });
 
     QShortcut *kb_zoomreset = new QShortcut(QKeySequence("+"), this, [&]() {
         this->ZoomReset();
     });
-
 
     QShortcut *kb_goto_top = new QShortcut(QKeySequence("g,g"), this, [&]() {
         this->GotoFirstPage();
@@ -113,7 +112,6 @@ void Dodo::SetKeyBinds()
     QShortcut *kb_next_page = new QShortcut(QKeySequence("Shift+j"), this, [&]() {
         this->NextPage();
     });
-
 
     QShortcut *kb_prev_page = new QShortcut(QKeySequence("Shift+k"), this, [&]() {
         this->PrevPage();
@@ -147,7 +145,6 @@ void Dodo::SetKeyBinds()
         this->Rotate(90);
     });
 
-
     QShortcut *kb_rotate_anticlock = new QShortcut(QKeySequence("."), this, [&]() {
         this->Rotate(-90);
     });
@@ -177,16 +174,53 @@ void Dodo::GotoPage(int pagenum)
     Render();
 }
 
-void Dodo::Render()
+void Dodo::Render(float dpi)
 {
-    m_ctm = fz_scale(m_zoom / 100, m_zoom / 100);
-    m_ctm = fz_pre_rotate(m_ctm, m_rotate);
+
+    if (dpi != -1)
+    {
+        m_zoom = dpi / 72;
+        m_ctm = fz_pre_scale(m_ctm, m_zoom, m_zoom);
+    }
+
+    else {
+        m_ctm = fz_scale(m_zoom, m_zoom);
+        m_ctm = fz_pre_rotate(m_ctm, m_rotate);
+    }
+
+    m_page = fz_load_page(m_ctx, m_doc, m_cur_page_num);
+    if (!m_page)
+    {
+        qFatal("Could not load page! Exiting");
+        fz_drop_page(m_ctx, m_page);
+        exit(-1);
+    }
+
+    fz_rect bounds = fz_bound_page(m_ctx, m_page);
+    bounds = fz_transform_rect(bounds, m_ctm);
+    fz_irect bbox = fz_round_rect(bounds);
+
+    float w = bbox.x1 - bbox.x0;
+    float h = bbox.y1 - bbox.y0;
+
+    w *= m_zoom;
+    h *= m_zoom;
 
     // Render page to an RGB pixmap.
     fz_try(m_ctx)
     {
-        m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_cur_page_num, m_ctm, fz_device_rgb(m_ctx), 1);
-        m_image = QImage(m_pix->samples, m_pix->w, m_pix->h, QImage::Format_RGBA8888, nullptr, m_pix->samples);
+        /*m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_cur_page_num, m_ctm, fz_device_rgb(m_ctx), 1);*/
+        m_pix = fz_new_pixmap(m_ctx, fz_device_rgb(m_ctx), w, h, nullptr, 1);
+        /*m_pix = fz_new_pixmap_with_bbox(m_ctx, fz_device_rgb(m_ctx), bbox, nullptr, 1);*/
+        fz_clear_pixmap_with_value(m_ctx, m_pix, 0xff);
+        fz_device *dev = fz_new_draw_device(m_ctx, m_ctm, m_pix);
+        fz_run_page(m_ctx, m_page, dev, m_ctm, nullptr);
+        fz_drop_device(m_ctx, dev);
+
+        m_image = QImage(m_pix->samples, w, h, m_pix->stride, QImage::Format_RGBA8888);
+
+        m_label->setFixedSize(m_image.size());
+
         if (!m_search_text.isNull() && !m_search_text.isEmpty())
         {
             SearchText(m_search_text);
@@ -200,11 +234,14 @@ void Dodo::Render()
         fz_drop_context(m_ctx);
         exit(0);
     }
+    
+    fz_drop_page(m_ctx, m_page);
+    fz_drop_pixmap(m_ctx, m_pix);
 
 }
 void Dodo::ZoomReset()
 {
-    m_zoom = 100.0f;
+    m_zoom = 1.0f;
     Render();
 }
 
@@ -216,11 +253,6 @@ void Dodo::Zoom(float r)
     Render();
 }
 
-bool Dodo::INIT_PDF()
-{
-    return true;
-}
-
 bool Dodo::Open(QString filename, int page_number)
 {
     m_ctx = fz_new_context(NULL, NULL, FZ_STORE_UNLIMITED);
@@ -230,6 +262,7 @@ bool Dodo::Open(QString filename, int page_number)
     {
         fprintf(stderr, "cannot create mupdf context\n");
         qFatal("Cannot create mupdf context");
+        fz_drop_context(m_ctx);
         return false;
     }
 
@@ -262,7 +295,6 @@ bool Dodo::Open(QString filename, int page_number)
         return false;
     }
 
-
     if (fz_needs_password(m_ctx, m_doc))
     {
         bool ok;
@@ -270,14 +302,11 @@ bool Dodo::Open(QString filename, int page_number)
         QString password;
 
         do {
-
-
             QInputDialog get_password(this);
             password = QInputDialog::getText(this, tr("Enter Password"), tr("Password"), QLineEdit::Normal, "", &ok);
 
             if (!ok)
                 exit(0);
-
         } while (!fz_authenticate_password(m_ctx, m_doc, password.toLatin1().data()));
 
     }
@@ -304,48 +333,12 @@ bool Dodo::Open(QString filename, int page_number)
     }
 
     m_cur_page_num = page_number;
-
-    /* Compute a transformation matrix for the zoom and rotation desired. */
-    /* The default resolution without scaling is 72 dpi. */
-    m_ctm = fz_scale(m_zoom / 100, m_zoom / 100);
-    m_ctm = fz_pre_rotate(m_ctm, m_rotate);
-
-    /* Render page to an RGB pixmap. */
-    fz_try(m_ctx)
-    {
-        /*m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_page_number, m_ctm, fz_device_rgb(m_ctx), 0);*/
-        fz_page *page = fz_load_page(m_ctx, m_doc, 0);
-
-        if (!page)
-        {
-
-            fz_drop_page(m_ctx, page);
-            exit(0);
-        }
-
-        m_ctm = fz_scale(m_zoom / 100.0f, m_zoom / 100.0f);
-        m_ctm = fz_rotate(m_rotate);
-
-        // get transformed page size
-
-        m_pix = fz_new_pixmap_from_page_number(m_ctx, m_doc, m_cur_page_num, m_ctm, fz_device_rgb(m_ctx), 1);
-
-        m_image = QImage(m_pix->samples, m_pix->w, m_pix->h, QImage::Format_RGBA8888);
-        m_label->setPixmap(QPixmap::fromImage(m_image));
-        /*m_label->resize(m_label->sizeHint());*/
-    }
-    fz_catch(m_ctx)
-    {
-        fprintf(stderr, "cannot render page: %s\n", fz_caught_message(m_ctx));
-        fz_drop_document(m_ctx, m_doc);
-        fz_drop_context(m_ctx);
-        return false;
-    }
-
     m_statusbar->SetFileName(m_filename);
     m_statusbar->SetFilePageCount(m_page_count);
     m_statusbar->SetCurrentPage(page_number);
 
+    Render();
+    Annotate();
 
     return true;
 }
@@ -361,7 +354,7 @@ void Dodo::Rotate(float angle)
 void Dodo::ResetView()
 {
     m_rotate = 0.0f;
-    m_zoom = 100.0f;
+    m_zoom = 1.0f;
 
     this->Render();
 }
@@ -469,11 +462,6 @@ int Dodo::SearchText(QString text)
                 label_y = m_label->height() - hit_box[i].ul.x * m_zoom - label_height;
             }
 
-            label_width /= 100.0f;
-            label_height /= 100.0f;
-            label_x /= 100.0f;
-            label_y /= 100.0f;
-
             QRectF rect(label_x, label_y, label_width, label_height);
 
             painter.drawRect(rect);
@@ -546,6 +534,31 @@ void Dodo::Search_Highlight_Prev_Item()
 
 }
 
+void Dodo::Annotate()
+{
+    pdf_page *page = pdf_load_page(m_ctx, (pdf_document*) m_doc, m_cur_page_num);
+
+    switch(m_annot_type)
+    {
+        case AnnotType::HIGHLIGHT:
+            {
+                fz_point a = {206, 69} , b = {291, 69};
+                pdf_annot *annot = pdf_create_annot(m_ctx, page, pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
+
+                /*qDebug() << pdf_annot_contents(m_ctx, annot);*/
+            }
+            break;
+
+        case AnnotType::UNDERLINE:
+            break;
+
+        case AnnotType::STRIKETHROUGH:
+            break;
+
+
+    }
+}
+
 void Dodo::SetAnnotColor(const QColor color)
 {
     m_annot_color = color;
@@ -564,6 +577,57 @@ void Dodo::SetAnnotType(AnnotType type)
 AnnotType Dodo::GetAnnotType()
 {
     return m_annot_type;
+}
+
+void Dodo::HandleMenubar()
+{
+
+    m_menubar = new QMenuBar();
+    m_menu__file = new QMenu("File");
+    m_menu__edit = new QMenu("Edit");
+    m_menu__view = new QMenu("View");
+    m_menu__tools = new QMenu("Tools");
+    m_menu__about = new QMenu("About");
+
+    m_menubar->addMenu(m_menu__file);
+    m_menubar->addMenu(m_menu__edit);
+    m_menubar->addMenu(m_menu__view);
+    m_menubar->addMenu(m_menu__tools);
+    m_menubar->addMenu(m_menu__about);
+
+    this->setMenuBar(m_menubar);
+
+}
+
+void Dodo::HandleActions()
+{
+    HandleFileMenuActions();
+    HandleEditMenuActions();
+    HandleViewMenuActions();
+}
+
+void Dodo::HandleFileMenuActions()
+{
+    m_action__file_open = new QAction("Open");
+    m_action__file_open_recents = new QAction("Open Recent");
+    m_action__file_properties = new QAction("Properties");
+    m_action__file_close = new QAction("Open Recent");
+    m_action__file_quit = new QAction("Quit");
+
+    m_menu__file->addAction(m_action__file_open);
+    m_menu__file->addAction(m_action__file_open_recents);
+    m_menu__file->addAction(m_action__file_properties);
+    m_menu__file->addAction(m_action__file_close);
+    m_menu__file->addAction(m_action__file_quit);
+}
+
+void Dodo::HandleEditMenuActions()
+{
+}
+
+void Dodo::HandleViewMenuActions()
+{
+
 }
 
 Dodo::~Dodo()

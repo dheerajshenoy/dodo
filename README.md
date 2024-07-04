@@ -12,3 +12,10 @@ PDF Reader written in C++ using MuPDF library
 - [x] First and last page navigation
 - [ ] Total search count
 - [ ] Cache
+- [ ] Annotation
+    - Underline
+    - Strike
+    - Highlight
+- [ ] Comment
+- [ ] Draw shape
+- [ ] Goto and highlight next and prev search item
