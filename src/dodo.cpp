@@ -13,11 +13,11 @@ Dodo::Dodo(int argc, char** argv, QWidget *parent)
     m_layout->addWidget(m_commandbar);
 
     m_scrollarea->setWidget(m_label);
-    m_scrollarea->setAlignment(Qt::AlignmentFlag::AlignCenter);
+    /*m_scrollarea->setAlignment(Qt::AlignmentFlag::AlignCenter);*/
+    /*m_label->setAlignment(Qt::AlignmentFlag::AlignCenter);*/
     m_scrollarea->setWidgetResizable(true);
 
     m_widget->setLayout(m_layout);
-    m_label->setAlignment(Qt::AlignmentFlag::AlignCenter);
     this->setCentralWidget(m_widget);
 
     connect(m_commandbar, &CommandBar::searchMode, this, [&](QString searchText) {
@@ -26,6 +26,10 @@ Dodo::Dodo(int argc, char** argv, QWidget *parent)
 
     connect(m_commandbar, &CommandBar::searchClear, this, [&]() {
         Dodo::SearchReset();
+    });
+
+    connect(m_label, &Label::HighlightRect, this, [&](QRect rect) {
+        HighlightRect(rect);
     });
 
     HandleMenubar();
@@ -43,33 +47,39 @@ void Dodo::FitToWidth()
     /*swaping pix_width and pix_width when pdf is rotated either 90,-90,-270,270 degrees
      * in this case, as the pdf is rotated,the pdf hight and widht will interchange
      */
+
+    m_fit_to_width_mode = !m_fit_to_width_mode;
+
     float tem_pix_height=0.0f,tem_pix_width=0.0f;
-    if(m_rotate==90 || m_rotate==-270 || m_rotate==270||m_rotate==-90)
-    {
-        tem_pix_height=m_pix->w;
-        tem_pix_width=m_pix->h;
-
-        m_pix->h=tem_pix_height;
-        m_pix->w=tem_pix_width;
-
-    }
+    /*if(m_rotate==90 || m_rotate==-270 || m_rotate==270 || m_rotate==-90)*/
+    /*{*/
+    /*    tem_pix_height=m_pix->w;*/
+    /*    tem_pix_width=m_pix->h;*/
+    /**/
+    /*    m_pix->h=tem_pix_height;*/
+    /*    m_pix->w=tem_pix_width;*/
+    /**/
+    /*}*/
 
     //calculating the m_scale value for which page width fits the window hight
-    float window_width=this->width();
-    float scale=window_width - 200;
-    scale=scale/m_pix->w;
-
-    m_zoom = int(scale);
+    /*float window_width=m_scrollarea->viewport()->width();*/
+    /*float scale = window_width - 0;*/
+    /**/
+    /*qDebug() << window_width << m_pix->w;*/
+    /*scale = scale / m_pix->w;*/
+    /**/
+    /*if (scale == m_zoom) return;*/
+    /*m_zoom = scale;*/
 
     //checking if previous page had any string to search and then searching same string on the current page.
-    Render();
-
-    /*restoring the pix_height and pix_width value back to the original as the fitting is done now.*/
-    if(m_rotate==90 || m_rotate==-270 || m_rotate==270||m_rotate==-90)
-    {
-        m_pix->h=tem_pix_width;
-        m_pix->w=tem_pix_height;
-    }
+    /*Render();*/
+    /**/
+    /*/*restoring the pix_height and pix_width value back to the original as the fitting is done now.*/
+    /*if(m_rotate==90 || m_rotate==-270 || m_rotate==270||m_rotate==-90)*/
+    /*{*/
+    /*    m_pix->h=tem_pix_width;*/
+    /*    m_pix->w=tem_pix_height;*/
+    /*}*/
 }
 
 void Dodo::FitToHeight()
@@ -177,9 +187,9 @@ void Dodo::GotoPage(int pagenum)
 void Dodo::Render(float dpi)
 {
 
-    if (dpi != -1)
+    if (dpi != 72.0)
     {
-        m_zoom = dpi / 72;
+        m_zoom = dpi / 72.0;
         m_ctm = fz_pre_scale(m_ctm, m_zoom, m_zoom);
     }
 
@@ -187,7 +197,7 @@ void Dodo::Render(float dpi)
         m_ctm = fz_scale(m_zoom, m_zoom);
         m_ctm = fz_pre_rotate(m_ctm, m_rotate);
     }
-
+    
     m_page = fz_load_page(m_ctx, m_doc, m_cur_page_num);
     if (!m_page)
     {
@@ -203,9 +213,14 @@ void Dodo::Render(float dpi)
     float w = bbox.x1 - bbox.x0;
     float h = bbox.y1 - bbox.y0;
 
+    /*if (m_fit_to_width_mode)*/
+    /*{*/
+    /*    m_zoom = m_scrollarea->viewport()->width() / w * (dpi / 72.0);*/
+    /*}*/
+
     w *= m_zoom;
     h *= m_zoom;
-
+    
     // Render page to an RGB pixmap.
     fz_try(m_ctx)
     {
@@ -215,29 +230,31 @@ void Dodo::Render(float dpi)
         fz_clear_pixmap_with_value(m_ctx, m_pix, 0xff);
         fz_device *dev = fz_new_draw_device(m_ctx, m_ctm, m_pix);
         fz_run_page(m_ctx, m_page, dev, m_ctm, nullptr);
+
+        fz_close_device(m_ctx, dev);
         fz_drop_device(m_ctx, dev);
 
         m_image = QImage(m_pix->samples, w, h, m_pix->stride, QImage::Format_RGBA8888);
-
-        m_label->setFixedSize(m_image.size());
+        /*m_image = QImage(m_pix->samples, m_pix->w, m_pix->h, m_pix->stride, QImage::Format_RGBA8888);*/
 
         if (!m_search_text.isNull() && !m_search_text.isEmpty())
         {
             SearchText(m_search_text);
         }
         else m_label->setPixmap(QPixmap::fromImage(m_image));
+        m_label->resize(m_label->sizeHint());
+        m_scrollarea->widget()->resize(m_image.size());
     }
     fz_catch(m_ctx)
     {
         fprintf(stderr, "cannot render page: %s\n", fz_caught_message(m_ctx));
         fz_drop_document(m_ctx, m_doc);
+        fz_drop_pixmap(m_ctx, m_pix);
         fz_drop_context(m_ctx);
         exit(0);
     }
     
-    fz_drop_page(m_ctx, m_page);
-    fz_drop_pixmap(m_ctx, m_pix);
-
+    //fz_drop_page(m_ctx, m_page);
 }
 void Dodo::ZoomReset()
 {
@@ -477,7 +494,6 @@ int Dodo::SearchText(QString text)
 
 void Dodo::SearchReset()
 {
-    qDebug() << "DD";
     m_search_count = 0;
     m_search_index = -1;
     m_search_text = "";
@@ -545,7 +561,6 @@ void Dodo::Annotate()
                 fz_point a = {206, 69} , b = {291, 69};
                 pdf_annot *annot = pdf_create_annot(m_ctx, page, pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
 
-                /*qDebug() << pdf_annot_contents(m_ctx, annot);*/
             }
             break;
 
@@ -630,6 +645,39 @@ void Dodo::HandleViewMenuActions()
 
 }
 
+void Dodo::HighlightRect(const QRect &rect)
+{
+    fz_quad quad = convertRectToQuad(rect);
+    const float color[] = { 1.0f, 1.0f, 0.0f, 0.75f };
+    pdf_annot *annot = pdf_create_annot(m_ctx, (pdf_page *) m_page, PDF_ANNOT_HIGHLIGHT);
+    pdf_set_annot_color(m_ctx, annot, 3, color);
+    pdf_set_annot_quad_points(m_ctx, annot, 8, &quad);
+
+    pdf_update_page(m_ctx, (pdf_page *) m_page);
+    Render();
+
+}
+
+
+fz_quad Dodo::convertRectToQuad(const QRect &rect)
+{
+    fz_quad quad;
+    
+    quad.ul.x = rect.topLeft().x() * m_zoom;
+    quad.ul.y = rect.topLeft().y() * m_zoom;
+
+    quad.ll.x = rect.bottomLeft().x() * m_zoom;
+    quad.ll.y = rect.bottomLeft().y() * m_zoom;
+
+    quad.ur.x = rect.topRight().x() * m_zoom;
+    quad.ur.y = rect.topRight().y() * m_zoom;
+
+    quad.lr.x = rect.bottomRight().x() * m_zoom;
+    quad.lr.y = rect.bottomRight().y() * m_zoom;
+
+    return quad;
+}
+
 Dodo::~Dodo()
 {
     /* Clean up. */
@@ -642,5 +690,9 @@ Dodo::~Dodo()
 
     if (m_ctx)
         fz_drop_context(m_ctx);
+
+
+    if (m_page)
+        fz_drop_page(m_ctx, m_page);
 
 }
