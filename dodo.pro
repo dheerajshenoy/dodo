@@ -24,9 +24,11 @@ LIBS += -lmupdf
 SOURCES += src/dodo.cpp \
             src/main.cpp \
             src/statusbar.cpp \
-            src/commandbar.cpp
+            src/commandbar.cpp \
+            src/label.cpp
 
 HEADERS += src/dodo.hpp \
             src/statusbar.hpp \
             src/result.hpp \
-            src/commandbar.hpp
+            src/commandbar.hpp \
+            src/label.hpp
