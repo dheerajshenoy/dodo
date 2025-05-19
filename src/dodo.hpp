@@ -23,6 +23,8 @@
 #include <QThreadPool>
 #include <QtConcurrent/QtConcurrent>
 #include <QFileDialog>
+#include <QMenuBar>
+#include <QMenu>
 
 #include "Panel.hpp"
 #include "toml.hpp"
@@ -55,6 +57,8 @@ private:
     void ScrollRight() noexcept;
     void ZoomIn() noexcept;
     void ZoomOut() noexcept;
+    void FitToWidth() noexcept;
+    void FitToHeight() noexcept;
 
     void renderPage(const int &pageno,
                     const float &dpi,
@@ -84,6 +88,18 @@ private:
 
     QCache<int, QPixmap> m_highResCache;
     QCache<int, QPixmap> m_pixmapCache;
+
+    void updateUiEnabledState() noexcept;
+
+    QAction *m_actionZoomIn = nullptr;
+    QAction *m_actionZoomOut = nullptr;
+    QAction *m_actionFitWidth = nullptr;
+    QAction *m_actionFitHeight = nullptr;
+
+    QAction *m_actionFirstPage = nullptr;
+    QAction *m_actionPrevPage = nullptr;
+    QAction *m_actionNextPage = nullptr;
+    QAction *m_actionLastPage = nullptr;
 
 
     QThreadPool tp;

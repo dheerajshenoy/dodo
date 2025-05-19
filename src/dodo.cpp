@@ -2,8 +2,8 @@
 
 dodo::dodo() noexcept
 {
-    initConfig();
     initGui();
+    initConfig();
     initKeybinds();
     // openFile("~/Downloads/test2.pdf");
     m_pixmapCache.setMaxCost(5);
@@ -101,7 +101,50 @@ void dodo::initGui() noexcept
     m_gview->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
 
     m_gview->setBackgroundBrush(QColor::fromString(m_default_bg));
+
+
+    // Menu Bar
+    QMenuBar *menubar = menuBar();
+
+    // --- File Menu ---
+    QMenu *fileMenu = menubar->addMenu("File");
+    fileMenu->addAction("Open...", QKeySequence("Ctrl+O"), this, &dodo::OpenFile);
+    fileMenu->addSeparator();
+    fileMenu->addAction("Quit", QKeySequence("Ctrl+Q"), this, &QMainWindow::close);
+
+    // --- View Menu ---
+    QMenu *viewMenu = menubar->addMenu("View");
+    m_actionZoomIn = viewMenu->addAction("Zoom In", QKeySequence("Ctrl++"), this, &dodo::ZoomIn);
+    m_actionZoomOut = viewMenu->addAction("Zoom Out", QKeySequence("Ctrl+-"), this, &dodo::ZoomOut);
+    viewMenu->addSeparator();
+    m_actionFitWidth = viewMenu->addAction("Fit to Width", this, &dodo::FitToWidth);
+    m_actionFitHeight = viewMenu->addAction("Fit to Height", this, &dodo::FitToHeight);
+
+    // --- Navigation Menu ---
+    QMenu *navMenu = menubar->addMenu("Navigation");
+    m_actionFirstPage = navMenu->addAction("First Page", QKeySequence("Home"), this, &dodo::FirstPage);
+    m_actionPrevPage = navMenu->addAction("Previous Page", QKeySequence("Left"), this, &dodo::PrevPage);
+    m_actionNextPage = navMenu->addAction("Next Page", QKeySequence("Right"), this, &dodo::NextPage);
+    m_actionLastPage = navMenu->addAction("Last Page", QKeySequence("End"), this, &dodo::LastPage);
+
+    updateUiEnabledState();
 }
+
+void dodo::updateUiEnabledState() noexcept
+{
+    const bool hasFile = m_document.get();
+
+    m_actionZoomIn->setEnabled(hasFile);
+    m_actionZoomOut->setEnabled(hasFile);
+    m_actionFitWidth->setEnabled(hasFile);
+    m_actionFitHeight->setEnabled(hasFile);
+
+    m_actionFirstPage->setEnabled(hasFile);
+    m_actionPrevPage->setEnabled(hasFile);
+    m_actionNextPage->setEnabled(hasFile);
+    m_actionLastPage->setEnabled(hasFile);
+}
+
 
 void dodo::OpenFile() noexcept
 {
@@ -305,4 +348,32 @@ void dodo::ScrollRight() noexcept
 {
     auto hscrollbar = m_gview->horizontalScrollBar();
     hscrollbar->setValue(hscrollbar->value() + 50);
+}
+
+void dodo::FitToHeight() noexcept
+{
+    if (!m_pix_item || m_pix_item->pixmap().isNull())
+        return;
+
+    int pixmapHeight = m_pix_item->pixmap().height();
+    int viewHeight = m_gview->viewport()->height();
+
+    qreal scale = static_cast<qreal>(viewHeight) / pixmapHeight;
+    m_gview->resetTransform();
+    m_gview->scale(scale, scale);
+    m_scale_factor = scale;
+}
+
+void dodo::FitToWidth() noexcept
+{
+    if (!m_pix_item || m_pix_item->pixmap().isNull())
+        return;
+
+    int pixmapWidth = m_pix_item->pixmap().width();
+    int viewWidth = m_gview->viewport()->width();
+
+    qreal scale = static_cast<qreal>(viewWidth) / pixmapWidth;
+    m_gview->resetTransform();
+    m_gview->scale(scale, scale);
+    m_scale_factor = scale;
 }
