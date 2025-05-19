@@ -10,15 +10,11 @@
 #include <QGraphicsPixmapItem>
 #include <QShortcut>
 #include <QKeySequence>
-
-#include <poppler/qt6/poppler-qt6.h>
-#include <poppler/qt6/poppler-link.h>
-
+#include <QStack>
 #include <QCache>
 #include <QScrollBar>
 #include <QPainter>
 #include <QThread>
-#include <vector>
 #include <QStandardPaths>
 #include <QDir>
 #include <QMap>
@@ -31,10 +27,16 @@
 #include <QGraphicsRectItem>
 #include <QInputDialog>
 
+#include <poppler/qt6/poppler-qt6.h>
+#include <poppler/qt6/poppler-link.h>
+
+#include <vector>
+
 #include "Panel.hpp"
 #include "toml.hpp"
 #include "RenderTask.hpp"
-#include "LinkItem.hpp"
+#include "GotoLinkItem.hpp"
+#include "BrowseLinkItem.hpp"
 
 class dodo : public QMainWindow {
 public:
@@ -50,10 +52,21 @@ private:
     void initConfig() noexcept;
     void initKeybinds() noexcept;
     void gotoPage(const int &pageno) noexcept;
+    void gotoPageInternal(const int &pageno) noexcept;
     void openFile(const QString &fileName) noexcept;
     void renderLinks() noexcept;
     void search(const QString &term) noexcept;
     void searchAll(const QString &term) noexcept;
+    void renderPage(const int &pageno,
+                    const float &dpi,
+                    const bool &lowQuality = true) noexcept;
+
+
+    bool isPrefetchPage(int page, int currentPage) noexcept;
+    void prefetchAround(int currentPage) noexcept;
+    void setupKeybinding(const std::string_view &action,
+                         const std::string &key) noexcept;
+
 
     // Interactive functions
     void OpenFile() noexcept;
@@ -73,17 +86,23 @@ private:
     void RotateClock() noexcept;
     void RotateAntiClock() noexcept;
     void Search() noexcept;
+    void Escape() noexcept;
+    void GoBackHistory() noexcept;
 
-    void renderPage(const int &pageno,
-                    const float &dpi,
-                    const bool &lowQuality = true) noexcept;
+    bool m_prefetch_enabled,
+    m_link_boundary_box_enabled,
+    m_suppressHistory;
 
+    int m_pageno = -1,
+    m_rotation = 0,
+    m_search_index = -1,
+    m_total_pages = 0,
+    m_search_match_count = 0,
+    m_search_hit_page = -1,
+    m_prefetch_distance,
+    m_page_history_limit;
 
-    bool isPrefetchPage(int page, int currentPage) noexcept;
-    void prefetchAround(int currentPage) noexcept;
-
-    int m_pageno = -1, m_rotation = 0, m_search_index = -1,
-    m_search_match_count = 0, m_search_hit_page = -1;
+    QList<int> m_page_history_list;
 
     Poppler::Page::SearchFlags m_search_flags = Poppler::Page::SearchFlag::NoSearchFlags;
 
@@ -95,12 +114,11 @@ private:
 
     QString m_default_bg;
 
-    float m_dpix = 300.0f,
-    m_dpiy = 300.0f,
-    m_total_pages = 0;
+    float m_dpix,
+    m_dpiy,
+    DPI_FRAC;
 
     const float LOW_DPI = 72.0;
-    float DPI_FRAC;
 
     void updateUiEnabledState() noexcept;
     QRectF mapPdfRectToScene(const QRectF& pdfRect,

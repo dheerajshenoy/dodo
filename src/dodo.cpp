@@ -1,15 +1,17 @@
 #include "dodo.hpp"
+#include "GotoLinkItem.hpp"
 
 dodo::dodo() noexcept
 {
     initGui();
     initConfig();
-    initKeybinds();
-    m_pixmapCache.setMaxCost(5);
     DPI_FRAC = m_dpix / LOW_DPI;
+    initKeybinds();
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    openFile("~/Downloads/basic-link-1.pdf");
+    openFile("~/Downloads/math.pdf");
     gotoPage(0);
+
+    m_page_history_list.reserve(m_page_history_limit);
 }
 
 dodo::~dodo() noexcept
@@ -23,33 +25,33 @@ void dodo::initConfig() noexcept
     auto toml = toml::parse_file(config_file_path.toStdString());
 
     auto ui = toml["ui"];
-    std::string theme         = ui["theme"].value_or("dark");
-    std::string accent_color  = ui["accent_color"].value_or("#3daee9");
-    bool show_toolbar         = ui["show_toolbar"].value_or(true);
-    bool show_statusbar       = ui["show_statusbar"].value_or(true);
-    bool fullscreen           = ui["fullscreen"].value_or(false);
-    double zoom_level         = ui["zoom_level"].value_or(1.0);
-    bool compact              = ui["compact"].value_or(false);
+    std::string theme = ui["theme"].value_or("dark");
+    std::string accent_color = ui["accent_color"].value_or("#3daee9");
+    bool show_toolbar = ui["show_toolbar"].value_or(true);
+    bool show_statusbar = ui["show_statusbar"].value_or(true);
+    bool fullscreen = ui["fullscreen"].value_or(false);
+    double zoom_level = ui["zoom_level"].value_or(1.0);
+    bool compact = ui["compact"].value_or(false);
+    m_link_boundary_box_enabled = ui["link_boundary_box"].value_or(false);
 
     auto rendering = toml["rendering"];
-    double dpi_x              = rendering["dpi_x"].value_or(144.0);
-    double dpi_y              = rendering["dpi_y"].value_or(144.0);
-    bool antialiasing         = rendering["antialiasing"].value_or(true);
-    int cache_pages           = rendering["cache_pages"].value_or(50);
+    m_dpix = rendering["dpix"].value_or(300.0);
+    m_dpiy = rendering["dpiy"].value_or(300.0);
+    int cache_pages = rendering["cache_pages"].value_or(50);
 
     auto behavior = toml["behavior"];
-    bool remember_last_page   = behavior["remember_last_page"].value_or(true);
-    std::string scroll_mode   = behavior["scroll_mode"].value_or("vertical");
-    bool enable_prefetch      = behavior["enable_prefetch"].value_or(true);
-    int prefetch_distance     = behavior["prefetch_distance"].value_or(2);
+    bool remember_last_page = behavior["remember_last_page"].value_or(true);
+    m_prefetch_enabled = behavior["enable_prefetch"].value_or(true);
+    m_prefetch_distance = behavior["prefetch_distance"].value_or(2);
+    m_page_history_limit = behavior["page_history"].value_or(100);
 
     auto keys = toml["keybindings"];
-    std::string next_page     = keys["next_page"].value_or("Right");
-    std::string prev_page     = keys["prev_page"].value_or("Left");
-    std::string zoom_in       = keys["zoom_in"].value_or("Ctrl+Plus");
-    std::string zoom_out      = keys["zoom_out"].value_or("Ctrl+Minus");
-    std::string toggle_fs     = keys["toggle_fullscreen"].value_or("F11");
-    std::string quit          = keys["quit"].value_or("Ctrl+Q");
+
+    for (auto &[action, value] : *keys.as_table())
+    {
+        if (value.is_value())
+            setupKeybinding(action.str(), value.value_or<std::string>(""));
+    }
 
     auto session = toml["session"];
     std::string last_file     = session["last_file"].value_or("");
@@ -60,17 +62,24 @@ void dodo::initConfig() noexcept
     if (compact)
     {
         m_layout->setContentsMargins(0, 0, 0, 0);
-        m_panel->layout()->setContentsMargins(0, 0, 0, 0);
+        // m_panel->layout()->setContentsMargins(0, 0, 0, 0);
+        m_panel->setContentsMargins(0, 0, 0, 0);
         this->setContentsMargins(0, 0, 0, 0);
     }
+
+    m_pixmapCache.setMaxCost(cache_pages);
+    m_highResCache.setMaxCost(cache_pages);
 }
 
 void dodo::initKeybinds() noexcept
 {
     std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
+
+        { "<escape>", [this]() { Escape(); } },
         { "/", [this]() { Search(); } },
         { "n", [this]() { nextHit(); } },
         { "Shift+n", [this]() { prevHit(); } },
+        { "Ctrl+o", [this]() { GoBackHistory(); } },
         { "o", [this]() { OpenFile(); } },
         { "j", [this]() { ScrollDown(); } },
         { "k", [this]() { ScrollUp(); } },
@@ -105,7 +114,6 @@ void dodo::initGui() noexcept
     // Setup graphics view
     m_gscene->addItem(m_pix_item);
     m_gview->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
-
     m_gview->setBackgroundBrush(QColor::fromString(m_default_bg));
 
 
@@ -114,24 +122,24 @@ void dodo::initGui() noexcept
 
     // --- File Menu ---
     QMenu *fileMenu = menubar->addMenu("File");
-    fileMenu->addAction("Open...", QKeySequence("Ctrl+O"), this, &dodo::OpenFile);
+    fileMenu->addAction("Open", this, &dodo::OpenFile);
     fileMenu->addSeparator();
-    fileMenu->addAction("Quit", QKeySequence("Ctrl+Q"), this, &QMainWindow::close);
+    fileMenu->addAction("Quit", this, &QMainWindow::close);
 
     // --- View Menu ---
     QMenu *viewMenu = menubar->addMenu("View");
-    m_actionZoomIn = viewMenu->addAction("Zoom In", QKeySequence("Ctrl++"), this, &dodo::ZoomIn);
-    m_actionZoomOut = viewMenu->addAction("Zoom Out", QKeySequence("Ctrl+-"), this, &dodo::ZoomOut);
+    m_actionZoomIn = viewMenu->addAction("Zoom In", this, &dodo::ZoomIn);
+    m_actionZoomOut = viewMenu->addAction("Zoom Out", this, &dodo::ZoomOut);
     viewMenu->addSeparator();
     m_actionFitWidth = viewMenu->addAction("Fit to Width", this, &dodo::FitToWidth);
     m_actionFitHeight = viewMenu->addAction("Fit to Height", this, &dodo::FitToHeight);
 
     // --- Navigation Menu ---
     QMenu *navMenu = menubar->addMenu("Navigation");
-    m_actionFirstPage = navMenu->addAction("First Page", QKeySequence("Home"), this, &dodo::FirstPage);
-    m_actionPrevPage = navMenu->addAction("Previous Page", QKeySequence("Left"), this, &dodo::PrevPage);
-    m_actionNextPage = navMenu->addAction("Next Page", QKeySequence("Right"), this, &dodo::NextPage);
-    m_actionLastPage = navMenu->addAction("Last Page", QKeySequence("End"), this, &dodo::LastPage);
+    m_actionFirstPage = navMenu->addAction("First Page\tg,g", this, &dodo::FirstPage);
+    m_actionPrevPage = navMenu->addAction("Previous Page\tShift+k", this, &dodo::PrevPage);
+    m_actionNextPage = navMenu->addAction("Next Page\tShift+j", this, &dodo::NextPage);
+    m_actionLastPage = navMenu->addAction("Last Page\tShift+g", this, &dodo::LastPage);
 
     updateUiEnabledState();
 }
@@ -229,7 +237,37 @@ void dodo::gotoPage(const int &pageno) noexcept
         return;
     }
 
+    if (pageno < 0 || pageno >= m_total_pages) {
+        qWarning("Page number %d out of range", pageno);
+        return;
+    }
+
+    if (pageno == m_pageno) {
+        return; // No-op
+    }
+
+    // boundary condition
+    if (!m_suppressHistory && m_pageno >= 0)
+    {
+        m_page_history_list.push_back(m_pageno);
+        if (m_page_history_list.size() > m_page_history_limit)
+            m_page_history_list.removeFirst();
+    }
+
+    gotoPageInternal(pageno);
+}
+
+void dodo::gotoPageInternal(const int &pageno) noexcept
+{
+
+    if (pageno < 0 || pageno >= m_total_pages)
+    {
+        qWarning("Page number %d out of range", pageno);
+        return;
+    }
+
     m_pageno = pageno;
+
 
     m_panel->setPageNo(m_pageno + 1);
     // TODO: Handle file content change detection
@@ -253,7 +291,10 @@ void dodo::gotoPage(const int &pageno) noexcept
 
     renderLinks();
 
-    prefetchAround(m_pageno);
+    if (m_prefetch_enabled)
+    {
+        prefetchAround(m_pageno);
+    }
 }
 
 void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
@@ -304,7 +345,7 @@ bool dodo::isPrefetchPage(int page, int currentPage) noexcept {
 }
 
 void dodo::prefetchAround(int currentPage) noexcept {
-    for (int offset = -1; offset <= 1; ++offset) {
+    for (int offset = -m_prefetch_distance; offset <= m_prefetch_distance; ++offset) {
         int page = currentPage + offset;
         if (page >= 0 && page < m_document->numPages()) {
             renderPage(page, LOW_DPI);
@@ -325,18 +366,12 @@ void dodo::LastPage() noexcept
 
 void dodo::NextPage() noexcept
 {
-    if (m_pageno < m_total_pages - 1)
-    {
-        gotoPage(m_pageno + 1);
-    }
+    gotoPage(m_pageno + 1);
 }
 
 void dodo::PrevPage() noexcept
 {
-    if (m_pageno > 0)
-    {
-        gotoPage(m_pageno - 1);
-    }
+    gotoPage(m_pageno - 1);
 }
 
 
@@ -430,8 +465,6 @@ QRectF dodo::mapPdfRectToScene(const QRectF& pdfRect,
     qreal width = pdfRect.width() * pageSizePoints.width() * scale;
     qreal height = -pdfRect.height() * pageSizePoints.height() * scale;
 
-    qDebug() << x << y << width << height;
-
     return QRectF(x, y, width, height);
 }
 
@@ -441,7 +474,6 @@ void dodo::renderLinks() noexcept
     auto page = m_document->page(m_pageno);
     auto links = page->links();
     QSizeF pageSizePoints = page->pageSizeF();
-    LinkItem *linkItem { nullptr };
 
     for (const auto &link : links)
     {
@@ -460,29 +492,33 @@ void dodo::renderLinks() noexcept
             case Poppler::Link::Goto:
                 {
                     auto gotoLink = static_cast<Poppler::LinkGoto*>(link.get());
-                    linkItem = new LinkItem(linkRectScene, gotoLink->fileName());
-                    break;
+                    GotoLinkItem *linkItem = new GotoLinkItem(linkRectScene,
+                                                                  gotoLink->destination());
+                    connect(linkItem, &GotoLinkItem::jumpToPageRequested, this, [&](int pageno) {
+                        gotoPage(pageno);
+                    });
+                    if (m_link_boundary_box_enabled)
+                        linkItem->setPen(QPen(Qt::red, 1));
+                    m_gscene->addItem(linkItem);
                 }
+                break;
 
             case Poppler::Link::Browse:
                 {
                     auto browseLink = static_cast<Poppler::LinkBrowse*>(link.get());
-                    linkItem = new LinkItem(linkRectScene, browseLink->url());
-                    break;
+                    BrowseLinkItem *linkItem = new BrowseLinkItem(linkRectScene,
+                                                                  browseLink->url());
+                    if (m_link_boundary_box_enabled)
+                        linkItem->setPen(QPen(Qt::red, 1));
+                    m_gscene->addItem(linkItem);
                 }
-
+                break;
 
             default:
                 qDebug() << "Link not yet implemented";
         }
 
 
-        linkItem->setFlag(QGraphicsItem::ItemIsSelectable, false);
-        linkItem->setAcceptHoverEvents(true);
-        // linkItem->setZValue(2.0);
-        linkItem->setToolTip(linkItem->Url());
-
-        m_gscene->addItem(linkItem);
     }
 
 }
@@ -521,7 +557,9 @@ void dodo::searchAll(const QString &term) noexcept
     m_last_search_term = term;
     m_searchRectMap.clear();
     m_search_index = -1;
+    m_search_match_count = 0;
 
+    clearHighlights();
 
     QFuture<void> future = QtConcurrent::run([=]() {
         QMap<int, QList<QRectF>> resultsMap;
@@ -531,7 +569,11 @@ void dodo::searchAll(const QString &term) noexcept
             auto results = page->search(term, m_search_flags);
 
             if (!results.isEmpty())
+            {
                 resultsMap[pageNum] = results;
+                m_search_match_count += results.length();
+                m_panel->setSearchCount(m_search_match_count);
+            }
         }
 
         QMetaObject::invokeMethod(this, [=]() {
@@ -542,10 +584,10 @@ void dodo::searchAll(const QString &term) noexcept
             }
         }, Qt::QueuedConnection);
 
-        m_searchWatcher.setFuture(future);
 
     });
 
+    m_searchWatcher.setFuture(future);
 }
 
 
@@ -560,6 +602,7 @@ void dodo::jumpToHit(int page, int index)
     m_search_hit_page = page;
 
     gotoPage(page);  // Render page
+    m_panel->setSearchIndex(index + 1);
 
     highlightSingleHit(page, m_searchRectMap[page][index]);
 }
@@ -603,6 +646,7 @@ void dodo::clearHighlights()
 void dodo::Search() noexcept
 {
     auto term = QInputDialog::getText(this, "Search", "Search for");
+    m_panel->setSearchMode(true);
     searchAll(term);
 }
 
@@ -645,5 +689,29 @@ void dodo::prevHit()
         int prevPage = pages[currentPageIdx - 1];
         int lastHitIndex = m_searchRectMap[prevPage].size() - 1;
         jumpToHit(prevPage, lastHitIndex);
+    }
+}
+
+void dodo::setupKeybinding(const std::string_view &action,
+                           const std::string &key) noexcept
+{
+    // TODO
+}
+
+void dodo::Escape() noexcept
+{
+    // TODO
+}
+
+void dodo::GoBackHistory() noexcept
+{
+    if (!m_page_history_list.isEmpty()) {
+        int lastPage = m_page_history_list.takeLast(); // Pop last page
+        qDebug() << lastPage << m_pageno;
+        m_suppressHistory = true;
+        gotoPage(lastPage);
+        m_suppressHistory = false;
+    } else {
+        qInfo("No page history available");
     }
 }
