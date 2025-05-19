@@ -43,11 +43,15 @@ void dodo::initGui() noexcept
     QWidget *widget = new QWidget();
     widget->setLayout(m_layout);
     m_layout->addWidget(m_gview);
+    m_layout->addWidget(m_panel);
     m_gview->setScene(m_gscene);
     this->setCentralWidget(widget);
 
     // Setup graphics view
     m_gscene->addItem(m_pix_item);
+    m_gview->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
+
+    m_gview->setBackgroundBrush(QColor::fromString(m_default_bg));
 }
 
 void dodo::openFile(const QString &fileName) noexcept
