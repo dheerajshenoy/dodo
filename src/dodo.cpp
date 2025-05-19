@@ -275,8 +275,7 @@ void dodo::nextPage() noexcept
 {
     if (m_pageno < m_total_pages - 1)
     {
-        m_pageno++;
-        gotoPage(m_pageno);
+        gotoPage(m_pageno + 1);
     }
 }
 
@@ -284,8 +283,7 @@ void dodo::prevPage() noexcept
 {
     if (m_pageno > 0)
     {
-        m_pageno--;
-        gotoPage(m_pageno);
+        gotoPage(m_pageno - 1);
     }
 }
 
