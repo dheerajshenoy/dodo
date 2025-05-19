@@ -13,7 +13,6 @@ add_executable(${PROJECT_NAME}
     src/dodo.cpp
     src/Panel.cpp
 
-    src/RenderWorker.hpp
     src/RenderTask.hpp
 )
 
