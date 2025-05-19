@@ -77,6 +77,7 @@ void dodo::initKeybinds() noexcept
         { "Shift+k", [this]() { PrevPage(); } },
         { "g,g", [this]() { FirstPage(); } },
         { "Shift+g", [this]() { LastPage(); } },
+        { "0", [this]() { ZoomReset(); } },
         { "=", [this]() { ZoomIn(); } },
         { "-", [this]() { ZoomOut(); } },
     };
@@ -188,6 +189,27 @@ void dodo::openFile(const QString &fileName) noexcept
     m_total_pages = m_document->numPages();
     m_panel->setTotalPageCount(m_total_pages);
     m_panel->setFileName(m_filename);
+
+    updateUiEnabledState();
+}
+
+
+void dodo::RotateClock() noexcept
+{
+    if (!m_pix_item)
+        return;
+
+    m_rotation = (m_rotation + 90) % 360;
+    m_pix_item->setRotation(m_rotation);
+}
+
+void dodo::RotateAntiClock() noexcept
+{
+    if (!m_pix_item)
+        return;
+
+    m_rotation = (m_rotation + 270) % 360;
+    m_pix_item->setRotation(m_rotation);
 }
 
 void dodo::gotoPage(const int &pageno) noexcept
@@ -315,6 +337,13 @@ void dodo::ZoomIn() noexcept
         m_scale_factor *= 1.1;
     }
 }
+
+void dodo::ZoomReset() noexcept
+{
+    m_scale_factor = 1.0;
+    m_gview->resetTransform();
+}
+
 
 void dodo::ZoomOut() noexcept
 {

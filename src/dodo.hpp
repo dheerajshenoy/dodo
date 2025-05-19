@@ -55,10 +55,13 @@ private:
     void ScrollUp() noexcept;
     void ScrollLeft() noexcept;
     void ScrollRight() noexcept;
+    void ZoomReset() noexcept;
     void ZoomIn() noexcept;
     void ZoomOut() noexcept;
     void FitToWidth() noexcept;
     void FitToHeight() noexcept;
+    void RotateClock() noexcept;
+    void RotateAntiClock() noexcept;
 
     void renderPage(const int &pageno,
                     const float &dpi,
@@ -68,7 +71,7 @@ private:
     bool isPrefetchPage(int page, int currentPage) noexcept;
     void prefetchAround(int currentPage) noexcept;
 
-    int m_pageno = -1;
+    int m_pageno = -1, m_rotation = 0;
 
     double m_scale_factor = 1.0f;
 
@@ -83,12 +86,6 @@ private:
     const float LOW_DPI = 72.0;
     float DPI_FRAC;
 
-    std::atomic<int> m_latestRequest = 0;
-    const int MAX_WORKERS = QThread::idealThreadCount(); // Or fixed number
-
-    QCache<int, QPixmap> m_highResCache;
-    QCache<int, QPixmap> m_pixmapCache;
-
     void updateUiEnabledState() noexcept;
 
     QAction *m_actionZoomIn = nullptr;
@@ -101,6 +98,8 @@ private:
     QAction *m_actionNextPage = nullptr;
     QAction *m_actionLastPage = nullptr;
 
+    QCache<int, QPixmap> m_highResCache,
+    m_pixmapCache;
 
     QThreadPool tp;
 
