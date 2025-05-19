@@ -16,6 +16,10 @@
 #include <QPainter>
 #include <QThread>
 #include <vector>
+#include <QStandardPaths>
+#include <QDir>
+#include <QMap>
+#include <QTimer>
 
 #include "Panel.hpp"
 #include "RenderWorker.hpp"
@@ -28,6 +32,7 @@ public:
 
 private:
     void initGui() noexcept;
+    void initConfig() noexcept;
     void initKeybinds() noexcept;
     void gotoPage(const int &pageno) noexcept;
     void openFile(const QString &fileName) noexcept;
@@ -40,11 +45,15 @@ private:
     void scrollUp() noexcept;
     void scrollLeft() noexcept;
     void scrollRight() noexcept;
-    void renderPage(const int &pageno) noexcept;
-    void prefetchPages(const std::vector<int> &pages) noexcept;
+    void renderPage(const int &pageno,
+                    const float &dpi,
+                    const bool &lowQuality = true) noexcept;
 
     void zoomIn() noexcept;
     void zoomOut() noexcept;
+
+    bool isPrefetchPage(int page, int currentPage) noexcept;
+    void prefetchAround(int currentPage) noexcept;
 
     int m_pageno = -1;
 
@@ -54,9 +63,17 @@ private:
 
     QString m_default_bg;
 
-    float m_dpi_x = 300.0f, m_dpi_y = 300.0f,
+    float m_dpix = 300.0f,
+    m_dpiy = 300.0f,
     m_total_pages = 0;
 
+    const float LOW_DPI = 72.0;
+    float DPI_FRAC;
+
+    std::atomic<int> m_latestRequest = 0;
+    const int MAX_WORKERS = QThread::idealThreadCount(); // Or fixed number
+
+    QCache<int, QPixmap> m_highResCache;
     QCache<int, QPixmap> m_pixmapCache;
 
     QString m_filename;
