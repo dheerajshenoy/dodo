@@ -9,22 +9,21 @@
 
 class LinkItem : public QGraphicsRectItem {
 public:
-    LinkItem(const QRectF& rect, const QString& url) : QGraphicsRectItem(rect), m_url(url) {
-        // setBrush(QColor(255, 0, 0, 50));
+    LinkItem(const QRectF& rect, const QString& link) :
+        QGraphicsRectItem(rect), m_link(link) {
+        setPen(Qt::NoPen);
         setBrush(Qt::transparent);
-        setPen(QPen(Qt::red, 1));
         setAcceptedMouseButtons(Qt::LeftButton);
         setCursor(Qt::PointingHandCursor);
+        setToolTip(link);
     }
 
-    inline QString Url() { return m_url; }
+    inline QString link() { return m_link; }
 
 protected:
-    void mousePressEvent(QGraphicsSceneMouseEvent*) override {
-        QDesktopServices::openUrl(QUrl(m_url));  // Open in browser
-    }
+    void mousePressEvent(QGraphicsSceneMouseEvent*) = 0;
 
 private:
-    QString m_url;
+    QString m_link;
 };
 
