@@ -14,7 +14,10 @@ add_executable(${PROJECT_NAME}
     src/Panel.cpp
 
     src/RenderTask.hpp
+
     src/LinkItem.hpp
+    src/BrowseLinkItem.hpp
+    src/GotoLinkItem.hpp
 )
 
 target_link_libraries(${PROJECT_NAME}

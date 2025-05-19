@@ -4,8 +4,6 @@
 A fast and minimal PDF reader.
 
 
-
-
 ## Features
 
 - Caching and pre-fetching pages for faster page rendering
