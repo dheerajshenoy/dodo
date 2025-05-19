@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(dodo)
+project(dodo VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_AUTOMOC ON)
@@ -24,3 +24,4 @@ target_link_libraries(${PROJECT_NAME}
     poppler-qt6
 )
 
+install(TARGETS ${PROJECT_NAME} DESTINATION bin)
