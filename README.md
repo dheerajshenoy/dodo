@@ -10,6 +10,7 @@ A fast and minimal PDF reader.
 - Vim-like keybindings
 - configured using TOML language
 - Faster search
+- Visited file location saving
 
 ## Dependencies
 
