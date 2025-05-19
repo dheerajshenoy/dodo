@@ -1,3 +1,5 @@
+#pragma once
+
 #include <QApplication>
 #include <QWidget>
 #include <QGraphicsView>
@@ -11,6 +13,13 @@
 #include <poppler/qt6/poppler-qt6.h>
 #include <QCache>
 #include <QScrollBar>
+#include <QPainter>
+#include <QThread>
+#include <vector>
+
+#include "Panel.hpp"
+#include "RenderWorker.hpp"
+#include "toml.hpp"
 
 class dodo : public QMainWindow {
 public:
@@ -31,6 +40,8 @@ private:
     void scrollUp() noexcept;
     void scrollLeft() noexcept;
     void scrollRight() noexcept;
+    void renderPage(const int &pageno) noexcept;
+    void prefetchPages(const std::vector<int> &pages) noexcept;
 
     void zoomIn() noexcept;
     void zoomOut() noexcept;
@@ -39,8 +50,11 @@ private:
 
     double m_scale_factor = 1.0f;
 
-    unsigned int m_dpi_x = 300,
-    m_dpi_y = 300,
+    Panel *m_panel = new Panel(this);
+
+    QString m_default_bg;
+
+    float m_dpi_x = 300.0f, m_dpi_y = 300.0f,
     m_total_pages = 0;
 
     QCache<int, QPixmap> m_pixmapCache;
