@@ -1,4 +1,6 @@
 #include "dodo.hpp"
+#include <poppler/qt6/poppler-link.h>
+#include <poppler/qt6/poppler-qt6.h>
 
 dodo::dodo() noexcept
 {
@@ -8,7 +10,8 @@ dodo::dodo() noexcept
     m_pixmapCache.setMaxCost(5);
     DPI_FRAC = m_dpix / LOW_DPI;
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    openFile("~/Downloads/test2.pdf");
+    openFile("~/Downloads/basic-link-1.pdf");
+    gotoPage(0);
 }
 
 dodo::~dodo() noexcept
@@ -247,7 +250,9 @@ void dodo::gotoPage(const int &pageno) noexcept
         }
     });
 
-    //prefetchAround(m_pageno);
+    renderLinks();
+
+    prefetchAround(m_pageno);
 }
 
 void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
@@ -410,4 +415,73 @@ void dodo::FitToWidth() noexcept
     m_gview->resetTransform();
     m_gview->scale(scale, scale);
     m_scale_factor = scale;
+}
+
+QRectF dodo::mapPdfRectToScene(const QRectF& pdfRect,
+                               const QSizeF& pageSizePoints,
+                               float dpi) noexcept
+{
+    const float scale = dpi / 72.0f;
+
+    // Flip Y-axis and scale to pixels
+    qreal x = (pdfRect.left() * pageSizePoints.width()) * scale;
+    qreal y = (pageSizePoints.height() * (pdfRect.top() + pdfRect.height())) * scale;
+    qreal width = pdfRect.width() * pageSizePoints.width() * scale;
+    qreal height = -pdfRect.height() * pageSizePoints.height() * scale;
+
+    qDebug() << x << y << width << height;
+
+    return QRectF(x, y, width, height);
+}
+
+void dodo::renderLinks() noexcept
+{
+    float scale = m_dpix / 72.0f;  // 72 points per inch standard
+    auto page = m_document->page(m_pageno);
+    auto links = page->links();
+    QSizeF pageSizePoints = page->pageSizeF();
+    LinkItem *linkItem { nullptr };
+
+    for (const auto &link : links)
+    {
+        QRectF rect = link->linkArea();  // In page coordinates
+        if (rect.isNull())
+            continue;
+
+
+        QRectF linkRectScene = mapPdfRectToScene(rect, pageSizePoints, m_dpix);
+
+        linkRectScene = QRectF(linkRectScene.topLeft(), linkRectScene.bottomRight());
+
+        switch(link->linkType())
+         {
+
+            case Poppler::Link::Goto:
+                {
+                    auto gotoLink = static_cast<Poppler::LinkGoto*>(link.get());
+                    linkItem = new LinkItem(linkRectScene, gotoLink->fileName());
+                    break;
+                }
+
+            case Poppler::Link::Browse:
+                {
+                    auto browseLink = static_cast<Poppler::LinkBrowse*>(link.get());
+                    linkItem = new LinkItem(linkRectScene, browseLink->url());
+                    break;
+                }
+
+
+            default:
+                qDebug() << "Link not yet implemented";
+        }
+
+
+        linkItem->setFlag(QGraphicsItem::ItemIsSelectable, false);
+        linkItem->setAcceptHoverEvents(true);
+        // linkItem->setZValue(2.0);
+        linkItem->setToolTip(linkItem->Url());
+
+        m_gscene->addItem(linkItem);
+    }
+
 }

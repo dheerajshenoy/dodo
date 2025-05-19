@@ -10,7 +10,10 @@
 #include <QGraphicsPixmapItem>
 #include <QShortcut>
 #include <QKeySequence>
+
 #include <poppler/qt6/poppler-qt6.h>
+#include <poppler/qt6/poppler-link.h>
+
 #include <QCache>
 #include <QScrollBar>
 #include <QPainter>
@@ -25,10 +28,12 @@
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QMenu>
+#include <QGraphicsRectItem>
 
 #include "Panel.hpp"
 #include "toml.hpp"
 #include "RenderTask.hpp"
+#include "LinkItem.hpp"
 
 class dodo : public QMainWindow {
 public:
@@ -44,6 +49,7 @@ private:
     void initKeybinds() noexcept;
     void gotoPage(const int &pageno) noexcept;
     void openFile(const QString &fileName) noexcept;
+    void renderLinks() noexcept;
 
     // Interactive functions
     void OpenFile() noexcept;
@@ -87,6 +93,9 @@ private:
     float DPI_FRAC;
 
     void updateUiEnabledState() noexcept;
+    QRectF mapPdfRectToScene(const QRectF& pdfRect,
+                                   const QSizeF& pageSizePoints,
+                                   float dpi) noexcept;
 
     QAction *m_actionZoomIn = nullptr;
     QAction *m_actionZoomOut = nullptr;

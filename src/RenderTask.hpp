@@ -1,3 +1,5 @@
+#pragma once
+
 #include <QRunnable>
 #include <poppler/qt6/poppler-qt6.h>
 #include <QImage>
