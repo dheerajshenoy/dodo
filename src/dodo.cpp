@@ -5,11 +5,10 @@ dodo::dodo() noexcept
     initGui();
     initConfig();
     initKeybinds();
-    // openFile("~/Downloads/test2.pdf");
     m_pixmapCache.setMaxCost(5);
     DPI_FRAC = m_dpix / LOW_DPI;
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    gotoPage(0);
+    openFile("~/Downloads/test2.pdf");
 }
 
 dodo::~dodo() noexcept
@@ -80,6 +79,8 @@ void dodo::initKeybinds() noexcept
         { "0", [this]() { ZoomReset(); } },
         { "=", [this]() { ZoomIn(); } },
         { "-", [this]() { ZoomOut(); } },
+        { "<", [this]() { RotateAntiClock(); } },
+        { ">", [this]() { RotateClock(); } },
     };
 
     for (const auto& [key, func] : shortcuts) {
@@ -201,6 +202,7 @@ void dodo::RotateClock() noexcept
 
     m_rotation = (m_rotation + 90) % 360;
     m_pix_item->setRotation(m_rotation);
+    m_gview->centerOn(m_pix_item);
 }
 
 void dodo::RotateAntiClock() noexcept
@@ -209,7 +211,10 @@ void dodo::RotateAntiClock() noexcept
         return;
 
     m_rotation = (m_rotation + 270) % 360;
-    m_pix_item->setRotation(m_rotation);
+    // m_pix_item->setRotation(m_rotation);
+    m_pix_item->setTransformOriginPoint(m_pix_item->boundingRect().center());
+    m_pix_item->setRotation(m_rotation);    // Set rotation on the item
+    m_gview->centerOn(m_pix_item);
 }
 
 void dodo::gotoPage(const int &pageno) noexcept
