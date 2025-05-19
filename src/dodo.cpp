@@ -4,7 +4,7 @@ dodo::dodo() noexcept
 {
     initGui();
     initKeybinds();
-    openFile("~/Downloads/test.pdf");
+    openFile("~/Downloads/test2.pdf");
     gotoPage(0);
 
     m_pixmapCache.setMaxCost(50);
