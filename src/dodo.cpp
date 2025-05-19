@@ -6,11 +6,10 @@ dodo::dodo() noexcept
     initGui();
     initKeybinds();
     openFile("~/Downloads/test2.pdf");
-    gotoPage(0);
-
     m_pixmapCache.setMaxCost(5);
-
     DPI_FRAC = m_dpix / LOW_DPI;
+    QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
+    gotoPage(0);
 }
 
 dodo::~dodo() noexcept
@@ -125,7 +124,6 @@ void dodo::openFile(const QString &fileName) noexcept
     m_panel->setFileName(m_filename);
 }
 
-/*
 void dodo::gotoPage(const int &pageno) noexcept
 {
     m_pageno = pageno;
@@ -133,46 +131,13 @@ void dodo::gotoPage(const int &pageno) noexcept
     m_panel->setPageNo(m_pageno + 1);
     // TODO: Handle file content change detection
 
-    if (QPixmap *cached = m_pixmapCache.object(pageno))
+    if (m_highResCache.contains(pageno))
     {
+        QPixmap *cached = m_highResCache.object(pageno);
         m_pix_item->setPixmap(*cached);
+        m_pix_item->setScale(1.0);
         return;
     }
-
-    auto page = m_document->page(pageno);
-
-    if (!page)
-    {
-        qWarning("Page not found!");
-        return;
-    }
-
-    QImage image = page->renderToImage(m_dpix, m_dpiy);
-    if (image.isNull())
-    {
-        qWarning("Failed to render page");
-        return;
-    }
-
-    auto pix = QPixmap::fromImage(image);
-    m_pixmapCache.insert(pageno, new QPixmap(pix));
-    m_pix_item->setPixmap(pix);
-
-}
-*/
-
-void dodo::gotoPage(const int &pageno) noexcept
-{
-    m_pageno = pageno;
-
-    m_panel->setPageNo(m_pageno + 1);
-    // TODO: Handle file content change detection
-
-    // if (QPixmap *cached = m_pixmapCache.object(pageno))
-    // {
-    //     m_pix_item->setPixmap(*cached);
-    //     return;
-    // }
 
     renderPage(pageno, LOW_DPI);
 
@@ -186,64 +151,46 @@ void dodo::gotoPage(const int &pageno) noexcept
     //prefetchAround(m_pageno);
 }
 
+void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
+{
+    if (pageno != m_pageno || image.isNull())
+        return;
+
+
+    QPixmap pix = QPixmap::fromImage(image);
+    if (lowQuality) {
+        m_pixmapCache.insert(pageno, new QPixmap(pix));
+        m_pix_item->setScale(DPI_FRAC);
+    } else {
+        m_highResCache.insert(pageno, new QPixmap(pix));
+        m_pix_item->setScale(1.0);
+    }
+
+    m_pix_item->setPixmap(pix);
+}
+
 void dodo::renderPage(const int &pageno,
                       const float &dpi,
                       const bool &lowQuality) noexcept
 {
 
-    if (!lowQuality && m_highResCache.contains(pageno))
-    {
-        auto pix = m_highResCache.object(pageno);
-        m_pix_item->setPixmap(*pix);
+    if (!lowQuality && m_highResCache.contains(pageno)) {
+        m_pix_item->setPixmap(*m_highResCache.object(pageno));
         m_pix_item->setScale(1.0);
         return;
     }
 
-    if (lowQuality && m_pixmapCache.contains(pageno))
-    {
-        auto pix = m_pixmapCache.object(pageno);
-        m_pix_item->setPixmap(*pix);
+    if (lowQuality && m_pixmapCache.contains(pageno)) {
+        m_pix_item->setPixmap(*m_pixmapCache.object(pageno));
         m_pix_item->setScale(DPI_FRAC);
         return;
     }
 
-    // Start new worker and thread
-    auto *worker = new RenderWorker(m_document.get(), pageno, dpi, dpi);
-    auto *thread = new QThread(this);
-
-    worker->moveToThread(thread);
-
-    connect(thread, &QThread::started, worker, &RenderWorker::process);
-    connect(worker, &RenderWorker::finished, this, [=](int finishedPage, QImage image) {
-        thread->quit();
-        thread->wait();
-
-        worker->deleteLater();
-        thread->deleteLater();
-
-        if (finishedPage != m_pageno)
-            return; // discard stale render
-
-        if (!image.isNull())
-        {
-            QPixmap pix = QPixmap::fromImage(image);
-
-            if (lowQuality)
-                m_pixmapCache.insert(finishedPage, new QPixmap(pix));
-            else
-                m_highResCache.insert(finishedPage, new QPixmap(pix));
-
-            if (finishedPage == m_pageno)
-            {
-                m_pix_item->setPixmap(pix);
-                m_pix_item->setScale(lowQuality ? DPI_FRAC : 1.0);
-            }
-        }
-
-    });
-
-    thread->start();
-
+    auto *task = new RenderTask(m_document.get(), pageno, dpi, dpi, lowQuality, this);
+    connect(task, &RenderTask::finished, this,
+            &dodo::handleRenderResult,
+            Qt::QueuedConnection);
+    QThreadPool::globalInstance()->start(task);
 }
 
 bool dodo::isPrefetchPage(int page, int currentPage) noexcept {

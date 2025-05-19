@@ -20,15 +20,21 @@
 #include <QDir>
 #include <QMap>
 #include <QTimer>
+#include <QThreadPool>
+#include <QtConcurrent/QtConcurrent>
 
 #include "Panel.hpp"
 #include "RenderWorker.hpp"
 #include "toml.hpp"
+#include "RenderTask.hpp"
 
 class dodo : public QMainWindow {
 public:
     dodo() noexcept;
     ~dodo() noexcept;
+
+    public slots:
+    void handleRenderResult(int pageno, QImage img, bool lowQuality);
 
 private:
     void initGui() noexcept;
@@ -75,6 +81,9 @@ private:
 
     QCache<int, QPixmap> m_highResCache;
     QCache<int, QPixmap> m_pixmapCache;
+
+
+    QThreadPool tp;
 
     QString m_filename;
     std::unique_ptr<Poppler::Document> m_document { nullptr };
