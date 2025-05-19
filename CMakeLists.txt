@@ -11,6 +11,9 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Core)
 add_executable(pdf_viewer
     src/main.cpp
     src/dodo.cpp
+    src/Panel.cpp
+
+    src/RenderWorker.hpp
 )
 
 target_link_libraries(pdf_viewer
