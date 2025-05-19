@@ -14,6 +14,7 @@ add_executable(${PROJECT_NAME}
     src/Panel.cpp
 
     src/RenderWorker.hpp
+    src/RenderTask.hpp
 )
 
 target_link_libraries(${PROJECT_NAME}
