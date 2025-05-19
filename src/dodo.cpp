@@ -61,27 +61,23 @@ void dodo::initConfig() noexcept
 
 void dodo::initKeybinds() noexcept
 {
-    QShortcut *sc__scroll_down = new QShortcut(QKeySequence("j"), this);
-    QShortcut *sc__scroll_up = new QShortcut(QKeySequence("k"), this);
-    QShortcut *sc__scroll_left = new QShortcut(QKeySequence("h"), this);
-    QShortcut *sc__scroll_right = new QShortcut(QKeySequence("l"), this);
-    QShortcut *sc__next_page = new QShortcut(QKeySequence("Shift+j"), this);
-    QShortcut *sc__prev_page = new QShortcut(QKeySequence("Shift+k"), this);
-    QShortcut *sc__first_page = new QShortcut(QKeySequence("g,g"), this);
-    QShortcut *sc__last_page = new QShortcut(QKeySequence("Shift+g"), this);
-    QShortcut *sc__zoom_in = new QShortcut(QKeySequence("="), this);
-    QShortcut *sc__zoom_out = new QShortcut(QKeySequence("-"), this);
+    std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
+        { "j", [this]() { scrollDown(); } },
+        { "k", [this]() { scrollUp(); } },
+        { "h", [this]() { scrollLeft(); } },
+        { "l", [this]() { scrollRight(); } },
+        { "Shift+j", [this]() { nextPage(); } },
+        { "Shift+k", [this]() { prevPage(); } },
+        { "g,g", [this]() { firstPage(); } },
+        { "Shift+g", [this]() { lastPage(); } },
+        { "=", [this]() { zoomIn(); } },
+        { "-", [this]() { zoomOut(); } },
+    };
 
-    connect(sc__scroll_left, &QShortcut::activated, this, &dodo::scrollLeft);
-    connect(sc__scroll_right, &QShortcut::activated, this, &dodo::scrollRight);
-    connect(sc__scroll_down, &QShortcut::activated, this, &dodo::scrollDown);
-    connect(sc__scroll_up, &QShortcut::activated, this, &dodo::scrollUp);
-    connect(sc__next_page, &QShortcut::activated, this, &dodo::nextPage);
-    connect(sc__prev_page, &QShortcut::activated, this, &dodo::prevPage);
-    connect(sc__first_page, &QShortcut::activated, this, &dodo::firstPage);
-    connect(sc__last_page, &QShortcut::activated, this, &dodo::lastPage);
-    connect(sc__zoom_in, &QShortcut::activated, this, &dodo::zoomIn);
-    connect(sc__zoom_out, &QShortcut::activated, this, &dodo::zoomOut);
+    for (const auto& [key, func] : shortcuts) {
+        auto *sc = new QShortcut(QKeySequence(key), this);
+        connect(sc, &QShortcut::activated, func);
+    }
 }
 
 void dodo::initGui() noexcept
