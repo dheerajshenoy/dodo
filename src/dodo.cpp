@@ -79,39 +79,126 @@ void dodo::openFile(const QString &fileName) noexcept
     }
 
     m_total_pages = m_document->numPages();
+    m_panel->setTotalPageCount(m_total_pages);
+    m_panel->setFileName(m_filename);
 }
+
+/*
+void dodo::gotoPage(const int &pageno) noexcept
+{
+    m_pageno = pageno;
+
+    m_panel->setPageNo(m_pageno + 1);
+    // TODO: Handle file content change detection
+
+    if (QPixmap *cached = m_pixmapCache.object(pageno))
+    {
+        m_pix_item->setPixmap(*cached);
+        return;
+    }
+
+    auto page = m_document->page(pageno);
+
+    if (!page)
+    {
+        qWarning("Page not found!");
+        return;
+    }
+
+    QImage image = page->renderToImage(m_dpi_x, m_dpi_y);
+    if (image.isNull())
+    {
+        qWarning("Failed to render page");
+        return;
+    }
+
+    auto pix = QPixmap::fromImage(image);
+    m_pixmapCache.insert(pageno, new QPixmap(pix));
+    m_pix_item->setPixmap(pix);
+
+}
+*/
 
 void dodo::gotoPage(const int &pageno) noexcept
 {
     m_pageno = pageno;
-    QPixmap *cached = m_pixmapCache.object(pageno);
 
+    m_panel->setPageNo(m_pageno + 1);
     // TODO: Handle file content change detection
 
-    if (cached)
+    if (QPixmap *cached = m_pixmapCache.object(pageno))
     {
         m_pix_item->setPixmap(*cached);
         return;
-    } else {
-        auto page = m_document->page(pageno);
-        if (!page)
-        {
-            qWarning("Page not found!");
-            return;
-        }
-        QImage image = page->renderToImage(m_dpi_x, m_dpi_y);
-
-        if (image.isNull())
-        {
-            qWarning("Failed to render page");
-            return;
-        }
-
-        auto pix = QPixmap::fromImage(image);
-        m_pixmapCache.insert(pageno, new QPixmap(pix));
-        m_pix_item->setPixmap(pix);
     }
 
+    renderPage(pageno);
+
+    prefetchPages({pageno - 2, pageno - 1, pageno + 1, pageno + 2 });
+}
+
+void dodo::renderPage(const int &pageno) noexcept
+{
+    QThread *thread = new QThread;
+    auto *worker = new RenderWorker(m_document.get(), pageno, m_dpi_x, m_dpi_y);
+    worker->moveToThread(thread);
+
+    connect(thread, &QThread::started, worker, &RenderWorker::process);
+    connect(worker, &RenderWorker::finished, this, [=](int pageNum, const QImage &image) {
+
+        thread->quit();
+        thread->wait();
+        worker->deleteLater();
+        thread->deleteLater();
+
+        if (m_pageno != pageNum)
+            return;
+
+        if (!image.isNull())
+        {
+            QPixmap pix = QPixmap::fromImage(image);
+            m_pixmapCache.insert(pageNum, new QPixmap(pix));
+            if (pageNum == m_pageno) {
+                m_pix_item->setPixmap(pix);  // display if it's the current page
+            }
+        }
+    });
+
+    thread->start();
+}
+
+void dodo::prefetchPages(const std::vector<int> &pages) noexcept
+{
+    for (const int &page : pages)
+    {
+        if (page < 0 || page >= m_document->numPages()) // boundary
+            continue;
+
+        if (m_pixmapCache.contains(page))
+            continue;  // already cached
+
+        QThread *thread = new QThread;
+        auto *worker = new RenderWorker(m_document.get(), page, m_dpi_x, m_dpi_y);
+        worker->moveToThread(thread);
+
+        connect(thread, &QThread::started, worker, &RenderWorker::process);
+        connect(worker,
+                &RenderWorker::finished,
+                this, [=](int pageNum, const QImage &image) {
+                thread->quit();
+                thread->wait();
+                worker->deleteLater();
+                thread->deleteLater();
+
+                if (!image.isNull())
+                {
+                QPixmap pix = QPixmap::fromImage(image);
+                m_pixmapCache.insert(pageNum, new QPixmap(pix));
+                }
+                });
+
+        thread->start();
+    }
 }
 
 void dodo::firstPage() noexcept
