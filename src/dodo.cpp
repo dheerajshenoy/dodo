@@ -172,78 +172,95 @@ void dodo::gotoPage(const int &pageno) noexcept
     m_panel->setPageNo(m_pageno + 1);
     // TODO: Handle file content change detection
 
-    if (QPixmap *cached = m_pixmapCache.object(pageno))
+    // if (QPixmap *cached = m_pixmapCache.object(pageno))
+    // {
+    //     m_pix_item->setPixmap(*cached);
+    //     return;
+    // }
+
+    renderPage(pageno, LOW_DPI);
+
+    // Schedule high-DPI render after short delay
+    QTimer::singleShot(300, this, [=]() {
+        if (pageno == m_pageno) {
+            renderPage(pageno, m_dpix, false);
+        }
+    });
+
+    //prefetchAround(m_pageno);
+}
+
+void dodo::renderPage(const int &pageno,
+                      const float &dpi,
+                      const bool &lowQuality) noexcept
+{
+
+    if (!lowQuality && m_highResCache.contains(pageno))
     {
-        m_pix_item->setPixmap(*cached);
+        auto pix = m_highResCache.object(pageno);
+        m_pix_item->setPixmap(*pix);
+        m_pix_item->setScale(1.0);
         return;
     }
 
-    renderPage(pageno);
+    if (lowQuality && m_pixmapCache.contains(pageno))
+    {
+        auto pix = m_pixmapCache.object(pageno);
+        m_pix_item->setPixmap(*pix);
+        m_pix_item->setScale(DPI_FRAC);
+        return;
+    }
 
-    prefetchPages({pageno - 2, pageno - 1, pageno + 1, pageno + 2 });
-}
+    // Start new worker and thread
+    auto *worker = new RenderWorker(m_document.get(), pageno, dpi, dpi);
+    auto *thread = new QThread(this);
 
-void dodo::renderPage(const int &pageno) noexcept
-{
-    QThread *thread = new QThread;
-    auto *worker = new RenderWorker(m_document.get(), pageno, m_dpi_x, m_dpi_y);
     worker->moveToThread(thread);
 
     connect(thread, &QThread::started, worker, &RenderWorker::process);
-    connect(worker, &RenderWorker::finished, this, [=](int pageNum, const QImage &image) {
-
+    connect(worker, &RenderWorker::finished, this, [=](int finishedPage, QImage image) {
         thread->quit();
         thread->wait();
+
         worker->deleteLater();
         thread->deleteLater();
 
-        if (m_pageno != pageNum)
-            return;
+        if (finishedPage != m_pageno)
+            return; // discard stale render
 
         if (!image.isNull())
         {
             QPixmap pix = QPixmap::fromImage(image);
-            m_pixmapCache.insert(pageNum, new QPixmap(pix));
-            if (pageNum == m_pageno) {
-                m_pix_item->setPixmap(pix);  // display if it's the current page
+
+            if (lowQuality)
+                m_pixmapCache.insert(finishedPage, new QPixmap(pix));
+            else
+                m_highResCache.insert(finishedPage, new QPixmap(pix));
+
+            if (finishedPage == m_pageno)
+            {
+                m_pix_item->setPixmap(pix);
+                m_pix_item->setScale(lowQuality ? DPI_FRAC : 1.0);
             }
         }
+
     });
 
     thread->start();
+
 }
 
-void dodo::prefetchPages(const std::vector<int> &pages) noexcept
-{
-    for (const int &page : pages)
-    {
-        if (page < 0 || page >= m_document->numPages()) // boundary
-            continue;
+bool dodo::isPrefetchPage(int page, int currentPage) noexcept {
+    // Prefetch next and previous page only
+    return page == currentPage + 1 || page == currentPage - 1;
+}
 
-        if (m_pixmapCache.contains(page))
-            continue;  // already cached
-
-        QThread *thread = new QThread;
-        auto *worker = new RenderWorker(m_document.get(), page, m_dpi_x, m_dpi_y);
-        worker->moveToThread(thread);
-
-        connect(thread, &QThread::started, worker, &RenderWorker::process);
-        connect(worker,
-                &RenderWorker::finished,
-                this, [=](int pageNum, const QImage &image) {
-                thread->quit();
-                thread->wait();
-                worker->deleteLater();
-                thread->deleteLater();
-
-                if (!image.isNull())
-                {
-                QPixmap pix = QPixmap::fromImage(image);
-                m_pixmapCache.insert(pageNum, new QPixmap(pix));
-                }
-                });
-
-        thread->start();
+void dodo::prefetchAround(int currentPage) noexcept {
+    for (int offset = -1; offset <= 1; ++offset) {
+        int page = currentPage + offset;
+        if (page >= 0 && page < m_document->numPages()) {
+            renderPage(page, LOW_DPI);
+        }
     }
 }
 
