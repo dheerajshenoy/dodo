@@ -22,9 +22,9 @@
 #include <QTimer>
 #include <QThreadPool>
 #include <QtConcurrent/QtConcurrent>
+#include <QFileDialog>
 
 #include "Panel.hpp"
-#include "RenderWorker.hpp"
 #include "toml.hpp"
 #include "RenderTask.hpp"
 
@@ -43,20 +43,23 @@ private:
     void gotoPage(const int &pageno) noexcept;
     void openFile(const QString &fileName) noexcept;
 
-    void firstPage() noexcept;
-    void lastPage() noexcept;
-    void nextPage() noexcept;
-    void prevPage() noexcept;
-    void scrollDown() noexcept;
-    void scrollUp() noexcept;
-    void scrollLeft() noexcept;
-    void scrollRight() noexcept;
+    // Interactive functions
+    void OpenFile() noexcept;
+    void FirstPage() noexcept;
+    void LastPage() noexcept;
+    void NextPage() noexcept;
+    void PrevPage() noexcept;
+    void ScrollDown() noexcept;
+    void ScrollUp() noexcept;
+    void ScrollLeft() noexcept;
+    void ScrollRight() noexcept;
+    void ZoomIn() noexcept;
+    void ZoomOut() noexcept;
+
     void renderPage(const int &pageno,
                     const float &dpi,
                     const bool &lowQuality = true) noexcept;
 
-    void zoomIn() noexcept;
-    void zoomOut() noexcept;
 
     bool isPrefetchPage(int page, int currentPage) noexcept;
     void prefetchAround(int currentPage) noexcept;

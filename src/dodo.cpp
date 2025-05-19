@@ -5,7 +5,7 @@ dodo::dodo() noexcept
     initConfig();
     initGui();
     initKeybinds();
-    openFile("~/Downloads/test2.pdf");
+    // openFile("~/Downloads/test2.pdf");
     m_pixmapCache.setMaxCost(5);
     DPI_FRAC = m_dpix / LOW_DPI;
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
@@ -29,6 +29,7 @@ void dodo::initConfig() noexcept
     bool show_statusbar       = ui["show_statusbar"].value_or(true);
     bool fullscreen           = ui["fullscreen"].value_or(false);
     double zoom_level         = ui["zoom_level"].value_or(1.0);
+    bool compact              = ui["compact"].value_or(false);
 
     auto rendering = toml["rendering"];
     double dpi_x              = rendering["dpi_x"].value_or(144.0);
@@ -56,21 +57,28 @@ void dodo::initConfig() noexcept
     int window_width          = session["window_width"].value_or(1024);
     int window_height         = session["window_height"].value_or(768);
 
+    if (compact)
+    {
+        m_layout->setContentsMargins(0, 0, 0, 0);
+        m_panel->layout()->setContentsMargins(0, 0, 0, 0);
+        this->setContentsMargins(0, 0, 0, 0);
+    }
 }
 
 void dodo::initKeybinds() noexcept
 {
     std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
-        { "j", [this]() { scrollDown(); } },
-        { "k", [this]() { scrollUp(); } },
-        { "h", [this]() { scrollLeft(); } },
-        { "l", [this]() { scrollRight(); } },
-        { "Shift+j", [this]() { nextPage(); } },
-        { "Shift+k", [this]() { prevPage(); } },
-        { "g,g", [this]() { firstPage(); } },
-        { "Shift+g", [this]() { lastPage(); } },
-        { "=", [this]() { zoomIn(); } },
-        { "-", [this]() { zoomOut(); } },
+        { "o", [this]() { OpenFile(); } },
+        { "j", [this]() { ScrollDown(); } },
+        { "k", [this]() { ScrollUp(); } },
+        { "h", [this]() { ScrollLeft(); } },
+        { "l", [this]() { ScrollRight(); } },
+        { "Shift+j", [this]() { NextPage(); } },
+        { "Shift+k", [this]() { PrevPage(); } },
+        { "g,g", [this]() { FirstPage(); } },
+        { "Shift+g", [this]() { LastPage(); } },
+        { "=", [this]() { ZoomIn(); } },
+        { "-", [this]() { ZoomOut(); } },
     };
 
     for (const auto& [key, func] : shortcuts) {
@@ -95,13 +103,28 @@ void dodo::initGui() noexcept
     m_gview->setBackgroundBrush(QColor::fromString(m_default_bg));
 }
 
+void dodo::OpenFile() noexcept
+{
+    QString filepath = QFileDialog::getOpenFileName(this,
+                                                    "Open File",
+                                                    "",
+                                                    "PDF Files (*.pdf);; All Files (*)");
+    if (!filepath.isEmpty())
+    {
+        openFile(filepath);
+        // TODO: Remember file location
+        gotoPage(0);
+    }
+
+}
+
 void dodo::openFile(const QString &fileName) noexcept
 {
     m_filename = fileName;
     m_filename.replace("~", QString::fromStdString(getenv("HOME")));
     if (!QFile::exists(m_filename))
     {
-        qDebug() << "file does not exist!: " << fileName << "\n";
+        qWarning("file does not exist!: ");
         return;
     }
 
@@ -126,6 +149,12 @@ void dodo::openFile(const QString &fileName) noexcept
 
 void dodo::gotoPage(const int &pageno) noexcept
 {
+    if (!m_document)
+    {
+        qWarning("Trying to go to page but no document loaded");
+        return;
+    }
+
     m_pageno = pageno;
 
     m_panel->setPageNo(m_pageno + 1);
@@ -207,18 +236,18 @@ void dodo::prefetchAround(int currentPage) noexcept {
     }
 }
 
-void dodo::firstPage() noexcept
+void dodo::FirstPage() noexcept
 {
     gotoPage(0);
 }
 
-void dodo::lastPage() noexcept
+void dodo::LastPage() noexcept
 {
     gotoPage(m_total_pages - 1);
 }
 
 
-void dodo::nextPage() noexcept
+void dodo::NextPage() noexcept
 {
     if (m_pageno < m_total_pages - 1)
     {
@@ -226,7 +255,7 @@ void dodo::nextPage() noexcept
     }
 }
 
-void dodo::prevPage() noexcept
+void dodo::PrevPage() noexcept
 {
     if (m_pageno > 0)
     {
@@ -235,7 +264,7 @@ void dodo::prevPage() noexcept
 }
 
 
-void dodo::zoomIn() noexcept
+void dodo::ZoomIn() noexcept
 {
     if (m_scale_factor < 5.0)
     {
@@ -244,7 +273,7 @@ void dodo::zoomIn() noexcept
     }
 }
 
-void dodo::zoomOut() noexcept
+void dodo::ZoomOut() noexcept
 {
     if (m_scale_factor > 0.2)
     {
@@ -254,25 +283,25 @@ void dodo::zoomOut() noexcept
 }
 
 
-void dodo::scrollDown() noexcept
+void dodo::ScrollDown() noexcept
 {
     auto vscrollbar = m_gview->verticalScrollBar();
     vscrollbar->setValue(vscrollbar->value() + 50);
 }
 
-void dodo::scrollUp() noexcept
+void dodo::ScrollUp() noexcept
 {
     auto vscrollbar = m_gview->verticalScrollBar();
     vscrollbar->setValue(vscrollbar->value() - 50);
 }
 
-void dodo::scrollLeft() noexcept
+void dodo::ScrollLeft() noexcept
 {
     auto hscrollbar = m_gview->horizontalScrollBar();
     hscrollbar->setValue(hscrollbar->value() - 50);
 }
 
-void dodo::scrollRight() noexcept
+void dodo::ScrollRight() noexcept
 {
     auto hscrollbar = m_gview->horizontalScrollBar();
     hscrollbar->setValue(hscrollbar->value() + 50);
