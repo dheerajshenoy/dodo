@@ -2,16 +2,62 @@
 
 dodo::dodo() noexcept
 {
+    initConfig();
     initGui();
     initKeybinds();
     openFile("~/Downloads/test2.pdf");
     gotoPage(0);
 
-    m_pixmapCache.setMaxCost(50);
+    m_pixmapCache.setMaxCost(5);
+
+    DPI_FRAC = m_dpix / LOW_DPI;
 }
 
 dodo::~dodo() noexcept
 {}
+
+void dodo::initConfig() noexcept
+{
+    QDir config_dir = QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
+    auto config_file_path = config_dir.filePath("config.toml");
+
+    auto toml = toml::parse_file(config_file_path.toStdString());
+
+    auto ui = toml["ui"];
+    std::string theme         = ui["theme"].value_or("dark");
+    std::string accent_color  = ui["accent_color"].value_or("#3daee9");
+    bool show_toolbar         = ui["show_toolbar"].value_or(true);
+    bool show_statusbar       = ui["show_statusbar"].value_or(true);
+    bool fullscreen           = ui["fullscreen"].value_or(false);
+    double zoom_level         = ui["zoom_level"].value_or(1.0);
+
+    auto rendering = toml["rendering"];
+    double dpi_x              = rendering["dpi_x"].value_or(144.0);
+    double dpi_y              = rendering["dpi_y"].value_or(144.0);
+    bool antialiasing         = rendering["antialiasing"].value_or(true);
+    int cache_pages           = rendering["cache_pages"].value_or(50);
+
+    auto behavior = toml["behavior"];
+    bool remember_last_page   = behavior["remember_last_page"].value_or(true);
+    std::string scroll_mode   = behavior["scroll_mode"].value_or("vertical");
+    bool enable_prefetch      = behavior["enable_prefetch"].value_or(true);
+    int prefetch_distance     = behavior["prefetch_distance"].value_or(2);
+
+    auto keys = toml["keybindings"];
+    std::string next_page     = keys["next_page"].value_or("Right");
+    std::string prev_page     = keys["prev_page"].value_or("Left");
+    std::string zoom_in       = keys["zoom_in"].value_or("Ctrl+Plus");
+    std::string zoom_out      = keys["zoom_out"].value_or("Ctrl+Minus");
+    std::string toggle_fs     = keys["toggle_fullscreen"].value_or("F11");
+    std::string quit          = keys["quit"].value_or("Ctrl+Q");
+
+    auto session = toml["session"];
+    std::string last_file     = session["last_file"].value_or("");
+    int last_page             = session["last_page"].value_or(0);
+    int window_width          = session["window_width"].value_or(1024);
+    int window_height         = session["window_height"].value_or(768);
+
+}
 
 void dodo::initKeybinds() noexcept
 {
