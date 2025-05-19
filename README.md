@@ -1,7 +1,6 @@
 # DODO PDF Reader
 
-![dodo Logo](./logo/logo.png)
-
+<img src="./logo/banner.png"/>
 A fast and minimal PDF reader.
 
 
