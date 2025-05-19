@@ -151,7 +151,7 @@ void dodo::gotoPage(const int &pageno) noexcept
         return;
     }
 
-    QImage image = page->renderToImage(m_dpi_x, m_dpi_y);
+    QImage image = page->renderToImage(m_dpix, m_dpiy);
     if (image.isNull())
     {
         qWarning("Failed to render page");
