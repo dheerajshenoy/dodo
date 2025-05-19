@@ -1,6 +1,4 @@
 #include "dodo.hpp"
-#include <poppler/qt6/poppler-link.h>
-#include <poppler/qt6/poppler-qt6.h>
 
 dodo::dodo() noexcept
 {
@@ -70,6 +68,9 @@ void dodo::initConfig() noexcept
 void dodo::initKeybinds() noexcept
 {
     std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
+        { "/", [this]() { Search(); } },
+        { "n", [this]() { nextHit(); } },
+        { "Shift+n", [this]() { prevHit(); } },
         { "o", [this]() { OpenFile(); } },
         { "j", [this]() { ScrollDown(); } },
         { "k", [this]() { ScrollUp(); } },
@@ -484,4 +485,165 @@ void dodo::renderLinks() noexcept
         m_gscene->addItem(linkItem);
     }
 
+}
+
+// Single page search
+void dodo::search(const QString &term) noexcept
+{
+    m_last_search_term = term;
+
+    auto page = m_document->page(m_pageno);
+    auto results = page->search(term, m_search_flags);
+    QSizeF pageSizePoints = page->pageSizeF();
+    float scale = m_dpix / 72.0;
+
+    for (const auto &result : results)
+    {
+
+        // Flip Y axis and scale
+        QRectF rect(
+            result.left() * scale,
+            result.top() * scale,
+            result.width() * scale,
+            result.height() * scale
+        );
+
+        auto* highlight = new QGraphicsRectItem(rect);
+        highlight->setBrush(QColor(255, 255, 0, 100)); // semi-transparent yellow
+        highlight->setPen(Qt::NoPen);
+
+        m_gscene->addItem(highlight);
+    }
+}
+
+void dodo::searchAll(const QString &term) noexcept
+{
+    m_last_search_term = term;
+    m_searchRectMap.clear();
+    m_search_index = -1;
+
+
+    QFuture<void> future = QtConcurrent::run([=]() {
+        QMap<int, QList<QRectF>> resultsMap;
+
+        for (int pageNum = 0; pageNum < m_total_pages; ++pageNum) {
+            auto page = m_document->page(pageNum);
+            auto results = page->search(term, m_search_flags);
+
+            if (!results.isEmpty())
+                resultsMap[pageNum] = results;
+        }
+
+        QMetaObject::invokeMethod(this, [=]() {
+            m_searchRectMap = resultsMap;
+            if (!resultsMap.isEmpty()) {
+                m_search_index = m_searchRectMap.firstKey();
+                jumpToHit(m_search_index, 0);
+            }
+        }, Qt::QueuedConnection);
+
+        m_searchWatcher.setFuture(future);
+
+    });
+
+}
+
+
+void dodo::jumpToHit(int page, int index)
+{
+    if (!m_searchRectMap.contains(page) ||
+        index < 0 ||
+        index >= m_searchRectMap[page].size())
+        return;
+
+    m_search_index = index;
+    m_search_hit_page = page;
+
+    gotoPage(page);  // Render page
+
+    highlightSingleHit(page, m_searchRectMap[page][index]);
+}
+
+void dodo::highlightSingleHit(int page, const QRectF &rect)
+{
+    if (page != m_pageno) return;
+
+    clearHighlights();
+
+    float scale = m_dpix / 72.0;
+    QRectF scaledRect = QRectF(
+        rect.left() * scale,
+        rect.top() * scale,
+        rect.width() * scale,
+        rect.height() * scale
+    );
+
+    auto *highlight = new QGraphicsRectItem(scaledRect);
+    highlight->setBrush(QColor(255, 255, 0, 100));
+    highlight->setPen(Qt::NoPen);
+    highlight->setData(0, "searchHighlight");
+
+    m_gscene->addItem(highlight);
+    m_gview->centerOn(highlight);
+}
+
+void dodo::clearHighlights()
+{
+    for (auto item : m_gscene->items()) {
+        if (auto rect = qgraphicsitem_cast<QGraphicsRectItem *>(item)) {
+            if (rect->data(0).toString() == "searchHighlight") {
+                m_gscene->removeItem(rect);
+                delete rect;
+            }
+        }
+    }
+}
+
+
+void dodo::Search() noexcept
+{
+    auto term = QInputDialog::getText(this, "Search", "Search for");
+    searchAll(term);
+}
+
+void dodo::nextHit()
+{
+    if (m_search_hit_page == -1)
+        return;
+
+    QList<int> pages = m_searchRectMap.keys();
+    int currentPageIdx = pages.indexOf(m_search_hit_page);
+
+    // Try next hit on current page
+    if (m_search_index + 1 < m_searchRectMap[m_search_hit_page].size()) {
+        jumpToHit(m_search_hit_page, m_search_index + 1);
+        return;
+    }
+
+    // Try next page
+    if (currentPageIdx + 1 < pages.size()) {
+        int nextPage = pages[currentPageIdx + 1];
+        jumpToHit(nextPage, 0);
+    }
+}
+
+void dodo::prevHit()
+{
+    if (m_search_hit_page == -1) return;
+
+    QList<int> pages = m_searchRectMap.keys();
+    int currentPageIdx = pages.indexOf(m_search_hit_page);
+
+    // Try previous hit on current page
+    if (m_search_index - 1 >= 0) {
+        jumpToHit(m_search_hit_page, m_search_index - 1);
+        return;
+    }
+
+    // Try previous page
+    if (currentPageIdx - 1 >= 0) {
+        int prevPage = pages[currentPageIdx - 1];
+        int lastHitIndex = m_searchRectMap[prevPage].size() - 1;
+        jumpToHit(prevPage, lastHitIndex);
+    }
 }

@@ -29,6 +29,7 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QGraphicsRectItem>
+#include <QInputDialog>
 
 #include "Panel.hpp"
 #include "toml.hpp"
@@ -44,12 +45,15 @@ public:
     void handleRenderResult(int pageno, QImage img, bool lowQuality);
 
 private:
+
     void initGui() noexcept;
     void initConfig() noexcept;
     void initKeybinds() noexcept;
     void gotoPage(const int &pageno) noexcept;
     void openFile(const QString &fileName) noexcept;
     void renderLinks() noexcept;
+    void search(const QString &term) noexcept;
+    void searchAll(const QString &term) noexcept;
 
     // Interactive functions
     void OpenFile() noexcept;
@@ -68,6 +72,7 @@ private:
     void FitToHeight() noexcept;
     void RotateClock() noexcept;
     void RotateAntiClock() noexcept;
+    void Search() noexcept;
 
     void renderPage(const int &pageno,
                     const float &dpi,
@@ -77,9 +82,14 @@ private:
     bool isPrefetchPage(int page, int currentPage) noexcept;
     void prefetchAround(int currentPage) noexcept;
 
-    int m_pageno = -1, m_rotation = 0;
+    int m_pageno = -1, m_rotation = 0, m_search_index = -1,
+    m_search_match_count = 0, m_search_hit_page = -1;
+
+    Poppler::Page::SearchFlags m_search_flags = Poppler::Page::SearchFlag::NoSearchFlags;
 
     double m_scale_factor = 1.0f;
+
+    QString m_last_search_term;
 
     Panel *m_panel = new Panel(this);
 
@@ -96,6 +106,12 @@ private:
     QRectF mapPdfRectToScene(const QRectF& pdfRect,
                                    const QSizeF& pageSizePoints,
                                    float dpi) noexcept;
+    void jumpToHit(int page, int index);
+
+    void highlightSingleHit(int page, const QRectF &rect);
+    void clearHighlights();
+    void prevHit();
+    void nextHit();
 
     QAction *m_actionZoomIn = nullptr;
     QAction *m_actionZoomOut = nullptr;
@@ -111,6 +127,8 @@ private:
     m_pixmapCache;
 
     QThreadPool tp;
+    QMap<int, QList<QRectF>> m_searchRectMap;
+    QFutureWatcher<void> m_searchWatcher;
 
     QString m_filename;
     std::unique_ptr<Poppler::Document> m_document { nullptr };
