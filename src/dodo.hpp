@@ -26,6 +26,9 @@
 #include <QMenu>
 #include <QGraphicsRectItem>
 #include <QInputDialog>
+#include <QtSql/QSqlDatabase>
+#include <QtSql/QSqlQuery>
+#include <QCloseEvent>
 
 #include <poppler/qt6/poppler-qt6.h>
 #include <poppler/qt6/poppler-link.h>
@@ -46,8 +49,10 @@ public:
     public slots:
     void handleRenderResult(int pageno, QImage img, bool lowQuality);
 
+    void closeEvent(QCloseEvent *e) override;
 private:
 
+    void initDB() noexcept;
     void initGui() noexcept;
     void initConfig() noexcept;
     void initKeybinds() noexcept;
@@ -89,9 +94,11 @@ private:
     void Escape() noexcept;
     void GoBackHistory() noexcept;
 
+    QDir m_config_dir;
     bool m_prefetch_enabled,
     m_link_boundary_box_enabled,
-    m_suppressHistory;
+    m_suppressHistory,
+    m_remember_last_visited;
 
     int m_pageno = -1,
     m_rotation = 0,

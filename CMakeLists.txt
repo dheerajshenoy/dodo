@@ -6,7 +6,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Core)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Core Sql)
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
@@ -23,6 +23,7 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     Qt6::Widgets
     Qt6::Core
+    Qt6::Sql
     poppler
     poppler-qt6
 )

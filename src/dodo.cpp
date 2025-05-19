@@ -1,15 +1,17 @@
 #include "dodo.hpp"
 #include "GotoLinkItem.hpp"
+#include <qevent.h>
 
 dodo::dodo() noexcept
 {
     initGui();
     initConfig();
+    initDB();
     DPI_FRAC = m_dpix / LOW_DPI;
     initKeybinds();
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    openFile("~/Downloads/math.pdf");
-    gotoPage(0);
+    // openFile("~/Downloads/math.pdf");
+    // gotoPage(0);
 
     m_page_history_list.reserve(m_page_history_limit);
 }
@@ -17,10 +19,25 @@ dodo::dodo() noexcept
 dodo::~dodo() noexcept
 {}
 
+void dodo::initDB() noexcept
+{
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    db.setDatabaseName(m_config_dir.filePath("last_pages.db"));
+    db.open();
+
+    QSqlQuery query;
+
+    // FIXME: Maybe add some unique hashing so that this works even when you move a file
+    query.exec("CREATE TABLE IF NOT EXISTS last_visited ("
+           "file_path TEXT PRIMARY KEY, "
+           "page_number INTEGER, "
+           "last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+}
+
 void dodo::initConfig() noexcept
 {
-    QDir config_dir = QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
-    auto config_file_path = config_dir.filePath("config.toml");
+    m_config_dir = QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
+    auto config_file_path = m_config_dir.filePath("config.toml");
 
     auto toml = toml::parse_file(config_file_path.toStdString());
 
@@ -40,7 +57,7 @@ void dodo::initConfig() noexcept
     int cache_pages = rendering["cache_pages"].value_or(50);
 
     auto behavior = toml["behavior"];
-    bool remember_last_page = behavior["remember_last_page"].value_or(true);
+    m_remember_last_visited = behavior["remember_last_visited"].value_or(true);
     m_prefetch_enabled = behavior["enable_prefetch"].value_or(true);
     m_prefetch_distance = behavior["prefetch_distance"].value_or(2);
     m_page_history_limit = behavior["page_history"].value_or(100);
@@ -169,8 +186,22 @@ void dodo::OpenFile() noexcept
     if (!filepath.isEmpty())
     {
         openFile(filepath);
-        // TODO: Remember file location
-        gotoPage(0);
+        if (m_remember_last_visited)
+        {
+            QSqlQuery q;
+            q.prepare("SELECT page_number FROM last_visited WHERE file_path = ?");
+            q.addBindValue(m_filename);
+            q.exec();
+
+            if (q.next()) {
+                int page = q.value(0).toInt();
+                gotoPage(page);
+            } else {
+                gotoPage(0);
+            }
+
+        } else
+            gotoPage(0);
     }
 
 }
@@ -714,4 +745,19 @@ void dodo::GoBackHistory() noexcept
     } else {
         qInfo("No page history available");
     }
+}
+
+void dodo::closeEvent(QCloseEvent *e)
+{
+
+    if (m_remember_last_visited && m_document)
+    {
+        QSqlQuery q;
+        q.prepare("INSERT OR REPLACE INTO last_visited(file_path, page_number) VALUES (?, ?)");
+        q.addBindValue(m_filename);
+        q.addBindValue(m_pageno);
+        q.exec();
+    }
+
+    e->accept();
 }
