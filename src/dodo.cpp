@@ -8,10 +8,27 @@ dodo::dodo() noexcept
     DPI_FRAC = m_dpi / m_low_dpi;
     initKeybinds();
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    openFile("~/Downloads/math.pdf");
+    openFile("~/Downloads/basic-link-1.pdf");
     // gotoPage(0);
 
+    m_HQRenderTimer->setSingleShot(true);
     m_page_history_list.reserve(m_page_history_limit);
+
+    connect(m_HQRenderTimer, &QTimer::timeout, this, [&]() {
+        renderPage(m_pageno, false);
+        // renderLinks();
+    });
+
+    connect(m_model, &Model::searchResultsReady, this, [&](const QMap<int, QList<QRectF>> &maps, int matchCount) {
+        m_searchRectMap = maps;
+        m_search_match_count = matchCount;
+        m_panel->setSearchCount(m_search_match_count);
+        auto page = maps.firstKey();
+        highlightHitsInPage(page);
+        jumpToHit(page, 0);
+    });
+
+    m_pix_item->setScale(m_scale_factor);
 }
 
 dodo::~dodo() noexcept
@@ -40,14 +57,28 @@ void dodo::initConfig() noexcept
     auto toml = toml::parse_file(config_file_path.toStdString());
 
     auto ui = toml["ui"];
-    std::string theme = ui["theme"].value_or("dark");
-    std::string accent_color = ui["accent_color"].value_or("#3daee9");
-    bool show_toolbar = ui["show_toolbar"].value_or(true);
-    bool show_statusbar = ui["show_statusbar"].value_or(true);
-    bool fullscreen = ui["fullscreen"].value_or(false);
-    double zoom_level = ui["zoom_level"].value_or(1.0);
+    m_panel->setVisible(ui["panel_shown"].value_or(true));
+
+    if (ui["fullscreen"].value_or(false))
+        this->showFullScreen();
+
+    m_scale_factor = ui["zoom_level"].value_or(1.0);
     bool compact = ui["compact"].value_or(false);
     m_model->setLinkBoundaryBox(ui["link_boundary_box"].value_or(false));
+
+
+    auto colors = toml["colors"];
+    auto search_index = colors["search_index"].value_or("#3daee944");
+    auto search_match = colors["search_match"].value_or("#FFFF8844");
+    auto accent = colors["accent"].value_or("#FF500044");
+    auto background = colors["background"].value_or("#FFFFFF");
+
+    m_colors["search_index"] = search_index;
+    m_colors["search_match"] = search_match;
+    m_colors["accent"] = accent;
+    m_colors["background"] = background;
+
+    m_gview->setBackgroundBrush(QColor(m_colors["background"]));
 
     auto rendering = toml["rendering"];
     auto backend = rendering["backend"].value_or("mupdf");
@@ -132,7 +163,6 @@ void dodo::initGui() noexcept
     // Setup graphics view
     m_gscene->addItem(m_pix_item);
     m_gview->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
-    m_gview->setBackgroundBrush(QColor::fromString(m_default_bg));
 
 
     // Menu Bar
@@ -160,8 +190,34 @@ void dodo::initGui() noexcept
     m_actionLastPage = navMenu->addAction("Last Page\tShift+g", this, &dodo::LastPage);
 
     m_model = new Model(m_gscene);
+    connect(m_model, &Model::imageRenderRequested, this, &dodo::handleRenderResult);
     updateUiEnabledState();
 
+}
+
+void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
+{
+    if (pageno != m_pageno || image.isNull())
+        return;
+
+    QPixmap pix = QPixmap::fromImage(image);
+
+    // if (!lowQuality) {
+    //     m_highResCache.insert(pageno, new QPixmap(pix));
+    //     m_pix_item->setScale(m_scale_factor);
+    // } else {
+    //     m_pixmapCache.insert(pageno, new QPixmap(pix));
+    //     m_pix_item->setScale(DPI_FRAC);
+    // }
+
+    m_pix_item->setPixmap(pix);
+
+    // Normalize scale: use logical size instead of raw pixels
+
+    // if (m_prefetch_enabled)
+    // {
+    //     prefetchAround(m_pageno);
+    // }
 }
 
 void dodo::updateUiEnabledState() noexcept
@@ -189,22 +245,6 @@ void dodo::OpenFile() noexcept
     if (!filepath.isEmpty())
     {
         openFile(filepath);
-        if (m_remember_last_visited)
-        {
-            QSqlQuery q;
-            q.prepare("SELECT page_number FROM last_visited WHERE file_path = ?");
-            q.addBindValue(m_filename);
-            q.exec();
-
-            if (q.next()) {
-                int page = q.value(0).toInt();
-                gotoPage(page);
-            } else {
-                gotoPage(0);
-            }
-
-        } else
-            gotoPage(0);
     }
 
 }
@@ -227,6 +267,23 @@ void dodo::openFile(const QString &fileName) noexcept
     m_total_pages = m_model->numPages();
     m_panel->setTotalPageCount(m_total_pages);
     m_panel->setFileName(m_filename);
+
+    if (m_remember_last_visited)
+    {
+        QSqlQuery q;
+        q.prepare("SELECT page_number FROM last_visited WHERE file_path = ?");
+        q.addBindValue(m_filename);
+        q.exec();
+
+        if (q.next()) {
+            int page = q.value(0).toInt();
+            gotoPage(page);
+        } else {
+            gotoPage(0);
+        }
+    } else
+        gotoPage(0);
+
 
     updateUiEnabledState();
 }
@@ -293,84 +350,71 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
 
     m_pageno = pageno;
 
-
     m_panel->setPageNo(m_pageno + 1);
     // TODO: Handle file content change detection
 
-    if (m_highResCache.contains(pageno))
-    {
-        QPixmap *cached = m_highResCache.object(pageno);
-        m_pix_item->setPixmap(*cached);
-        m_pix_item->setScale(1.0);
-        return;
-    }
-
-    renderPage(pageno, m_low_dpi);
-
-    // Schedule high-DPI render after short delay
-    QTimer::singleShot(300, this, [=]() {
-        if (pageno == m_pageno) {
-            renderPage(pageno, false);
-        }
-    });
-
-    renderLinks();
-
-    // if (m_prefetch_enabled)
+    // if (m_highResCache.contains(pageno))
     // {
-    //     prefetchAround(m_pageno);
+    //     QPixmap *cached = m_highResCache.object(pageno);
+    //     m_pix_item->setPixmap(*cached);
+    //     // m_pix_item->setScale(m_scale_factor);
+    //     return;
     // }
+    //
+    m_HQRenderTimer->stop();
+    m_HQRenderTimer->start(100);
+
+    renderPage(pageno, true);
 }
 
-void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
-{
-    if (pageno != m_pageno || image.isNull())
-        return;
-
-
-    QPixmap pix = QPixmap::fromImage(image);
-    if (lowQuality) {
-        m_pixmapCache.insert(pageno, new QPixmap(pix));
-        m_pix_item->setScale(DPI_FRAC);
-    } else {
-        m_highResCache.insert(pageno, new QPixmap(pix));
-        m_pix_item->setScale(1.0);
-    }
-
-    m_pix_item->setPixmap(pix);
-}
-
-void dodo::renderPage(const int &pageno,
-                      const bool &lowQuality) noexcept
+void dodo::renderPage(int pageno,
+                      bool lowQuality) noexcept
 {
 
-    if (!lowQuality && m_highResCache.contains(pageno)) {
-        m_pix_item->setPixmap(*m_highResCache.object(pageno));
-        m_pix_item->setScale(1.0);
-        return;
-    }
+    // if (!lowQuality)
+    // {
+    //     if (m_highResCache.contains(pageno)) {
+    //         m_pix_item->setPixmap(*m_highResCache.object(pageno));
+    //         m_pix_item->setScale(m_scale_factor);
+    //         return;
+    //     }
+    // } else {
+    //
+    //     if (m_pixmapCache.contains(pageno)) {
+    //         m_pix_item->setPixmap(*m_pixmapCache.object(pageno));
+    //         m_pix_item->setScale(DPI_FRAC);
+    //         return;
+    //     }
+    // }
 
-    if (lowQuality && m_pixmapCache.contains(pageno)) {
-        m_pix_item->setPixmap(*m_pixmapCache.object(pageno));
-        m_pix_item->setScale(DPI_FRAC);
-        return;
-    }
-
-    auto img = m_model->renderPage(pageno, lowQuality);
-    m_pix_item->setPixmap(QPixmap::fromImage(img));
+    m_model->renderPage(pageno, lowQuality);
 }
 
 
-bool dodo::isPrefetchPage(int page, int currentPage) noexcept {
+bool dodo::isPrefetchPage(int page, int currentPage) noexcept
+{
     // Prefetch next and previous page only
     return page == currentPage + 1 || page == currentPage - 1;
 }
 
-void dodo::prefetchAround(int currentPage) noexcept {
+void dodo::cachePage(int pageno) noexcept
+{
+    if (m_highResCache.contains(pageno) || m_pixmapCache.contains(pageno))
+    {
+        return;
+    }
+
+    m_model->renderPage(pageno, false);
+    // auto *pix = new QPixmap(QPixmap::fromImage(img));
+    // m_highResCache.insert(pageno, pix);
+}
+
+void dodo::prefetchAround(int currentPage) noexcept
+{
     for (int offset = -m_prefetch_distance; offset <= m_prefetch_distance; ++offset) {
         int page = currentPage + offset;
         if (page >= 0 && page < m_total_pages) {
-            renderPage(page, true);
+            cachePage(page);
         }
     }
 }
@@ -415,7 +459,7 @@ void dodo::ZoomReset() noexcept
 
 void dodo::ZoomOut() noexcept
 {
-    if (m_scale_factor > 0.2)
+    if (m_scale_factor * 0.9 != 0)
     {
         m_gview->scale(0.9, 0.9);
         m_scale_factor *= 0.9;
@@ -476,7 +520,7 @@ void dodo::FitToWidth() noexcept
 
 void dodo::renderLinks() noexcept
 {
-    m_model->renderLinks(m_pageno, m_pix_item->boundingRect().height());
+    m_model->renderLinks(m_pageno, m_model->transform());
 }
 
 // Single page search
@@ -488,16 +532,20 @@ void dodo::search(const QString &term) noexcept
 
 void dodo::searchAll(const QString &term) noexcept
 {
-    m_last_search_term = term;
+
     m_searchRectMap.clear();
     m_search_index = -1;
     m_search_match_count = 0;
-
+    clearIndexHighlights();
     clearHighlights();
+
+    if (term.isEmpty() || term.isNull())
+        return;
+
+    m_last_search_term = term;
 
     m_model->searchAll(term);
 }
-
 
 void dodo::jumpToHit(int page, int index)
 {
@@ -515,11 +563,40 @@ void dodo::jumpToHit(int page, int index)
     highlightSingleHit(page, m_searchRectMap[page][index]);
 }
 
+void dodo::highlightHitsInPage(int pageno)
+{
+    if (pageno != m_pageno) return;
+
+    clearIndexHighlights();
+
+    float scale = m_dpi / 72.0;
+    auto rects = m_searchRectMap.value(pageno);
+
+    for (const auto &rect : rects)
+    {
+        QRectF scaledRect = QRectF(
+            rect.left() * scale,
+            rect.top() * scale,
+            rect.width() * scale,
+            rect.height() * scale
+        );
+
+        auto *highlight = new QGraphicsRectItem(scaledRect);
+
+        highlight->setBrush(QColor::fromString(m_colors["search_match"]));
+        highlight->setPen(Qt::NoPen);
+        highlight->setData(0, "searchHighlight");
+
+        m_gscene->addItem(highlight);
+        // m_gview->centerOn(highlight);
+    }
+}
+
 void dodo::highlightSingleHit(int page, const QRectF &rect)
 {
     if (page != m_pageno) return;
 
-    clearHighlights();
+    clearIndexHighlights();
 
     float scale = m_dpi / 72.0;
     QRectF scaledRect = QRectF(
@@ -530,12 +607,24 @@ void dodo::highlightSingleHit(int page, const QRectF &rect)
     );
 
     auto *highlight = new QGraphicsRectItem(scaledRect);
-    highlight->setBrush(QColor(255, 255, 0, 100));
+    highlight->setBrush(QColor::fromString(m_colors["search_index"]));
     highlight->setPen(Qt::NoPen);
-    highlight->setData(0, "searchHighlight");
+    highlight->setData(0, "searchIndexHighlight");
 
     m_gscene->addItem(highlight);
     m_gview->centerOn(highlight);
+}
+
+void dodo::clearIndexHighlights()
+{
+    for (auto item : m_gscene->items()) {
+        if (auto rect = qgraphicsitem_cast<QGraphicsRectItem *>(item)) {
+            if (rect->data(0).toString() == "searchIndexHighlight") {
+                m_gscene->removeItem(rect);
+                delete rect;
+            }
+        }
+    }
 }
 
 void dodo::clearHighlights()
@@ -549,7 +638,6 @@ void dodo::clearHighlights()
         }
     }
 }
-
 
 void dodo::Search() noexcept
 {

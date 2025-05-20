@@ -44,7 +44,7 @@ public:
     dodo() noexcept;
     ~dodo() noexcept;
 
-    public slots:
+public slots:
     void handleRenderResult(int pageno, QImage img, bool lowQuality);
 
     void closeEvent(QCloseEvent *e) override;
@@ -60,8 +60,9 @@ private:
     void renderLinks() noexcept;
     void search(const QString &term) noexcept;
     void searchAll(const QString &term) noexcept;
-    void renderPage(const int &pageno,
-                    const bool &lowQuality = true) noexcept;
+    void renderPage(int pageno,
+                    bool lowQuality = true) noexcept;
+    void cachePage(int pageno) noexcept;
     void scrollToNormalizedTop(const double &top) noexcept;
 
 
@@ -110,13 +111,11 @@ private:
 
     // Poppler::Page::SearchFlags m_search_flags = Poppler::Page::SearchFlag::NoSearchFlags;
 
-    double m_scale_factor = 1.0f;
+    float m_scale_factor;
 
     QString m_last_search_term;
 
     Panel *m_panel = new Panel(this);
-
-    QString m_default_bg;
 
     float m_dpi,
     m_low_dpi,
@@ -127,6 +126,8 @@ private:
     void jumpToHit(int page, int index);
 
     void highlightSingleHit(int page, const QRectF &rect);
+    void highlightHitsInPage(int page);
+    void clearIndexHighlights();
     void clearHighlights();
     void prevHit();
     void nextHit();
@@ -155,5 +156,7 @@ private:
     QVBoxLayout *m_layout = new QVBoxLayout();
 
     Model *m_model { nullptr };
+    QTimer *m_HQRenderTimer = new QTimer(this);
+    QMap<QString, QString> m_colors;
 };
 
