@@ -12,12 +12,14 @@ add_executable(${PROJECT_NAME}
     src/main.cpp
     src/dodo.cpp
     src/Panel.cpp
+    src/Model.cpp
 
     src/RenderTask.hpp
 
     src/LinkItem.hpp
     src/BrowseLinkItem.hpp
     src/GotoLinkItem.hpp
+
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -26,6 +28,7 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Sql
     poppler
     poppler-qt6
+    mupdf
 )
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)

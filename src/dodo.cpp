@@ -1,13 +1,11 @@
 #include "dodo.hpp"
-#include "GotoLinkItem.hpp"
-#include <qevent.h>
 
 dodo::dodo() noexcept
 {
     initGui();
     initConfig();
     initDB();
-    DPI_FRAC = m_dpix / LOW_DPI;
+    DPI_FRAC = m_dpi / m_low_dpi;
     initKeybinds();
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
     openFile("~/Downloads/math.pdf");
@@ -49,11 +47,14 @@ void dodo::initConfig() noexcept
     bool fullscreen = ui["fullscreen"].value_or(false);
     double zoom_level = ui["zoom_level"].value_or(1.0);
     bool compact = ui["compact"].value_or(false);
-    m_link_boundary_box_enabled = ui["link_boundary_box"].value_or(false);
+    m_model->setLinkBoundaryBox(ui["link_boundary_box"].value_or(false));
 
     auto rendering = toml["rendering"];
-    m_dpix = rendering["dpix"].value_or(300.0);
-    m_dpiy = rendering["dpiy"].value_or(300.0);
+    auto backend = rendering["backend"].value_or("mupdf");
+    m_dpi = rendering["dpi"].value_or(300.0);
+    m_low_dpi = rendering["low_dpi"].value_or(72.0);
+    m_model->setDPI(m_dpi);
+    m_model->setLowDPI(m_low_dpi);
     int cache_pages = rendering["cache_pages"].value_or(50);
 
     auto behavior = toml["behavior"];
@@ -158,12 +159,14 @@ void dodo::initGui() noexcept
     m_actionNextPage = navMenu->addAction("Next Page\tShift+j", this, &dodo::NextPage);
     m_actionLastPage = navMenu->addAction("Last Page\tShift+g", this, &dodo::LastPage);
 
+    m_model = new Model(m_gscene);
     updateUiEnabledState();
+
 }
 
 void dodo::updateUiEnabledState() noexcept
 {
-    const bool hasFile = m_document.get();
+    const bool hasFile = m_model->valid();
 
     m_actionZoomIn->setEnabled(hasFile);
     m_actionZoomOut->setEnabled(hasFile);
@@ -216,21 +219,12 @@ void dodo::openFile(const QString &fileName) noexcept
         return;
     }
 
-    m_document = Poppler::Document::load(m_filename);
-    if (!m_document)
+    if (!m_model->openFile(m_filename))
     {
-        qWarning("Failed to load PDF");
         return;
     }
 
-    if (m_document->isLocked())
-    {
-        // TODO: Handle locked pdf files
-        qDebug() << "File is password protected!";
-        return;
-    }
-
-    m_total_pages = m_document->numPages();
+    m_total_pages = m_model->numPages();
     m_panel->setTotalPageCount(m_total_pages);
     m_panel->setFileName(m_filename);
 
@@ -262,7 +256,7 @@ void dodo::RotateAntiClock() noexcept
 
 void dodo::gotoPage(const int &pageno) noexcept
 {
-    if (!m_document)
+    if (!m_model->valid())
     {
         qWarning("Trying to go to page but no document loaded");
         return;
@@ -311,21 +305,21 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
         return;
     }
 
-    renderPage(pageno, LOW_DPI);
+    renderPage(pageno, m_low_dpi);
 
     // Schedule high-DPI render after short delay
     QTimer::singleShot(300, this, [=]() {
         if (pageno == m_pageno) {
-            renderPage(pageno, m_dpix, false);
+            renderPage(pageno, false);
         }
     });
 
     renderLinks();
 
-    if (m_prefetch_enabled)
-    {
-        prefetchAround(m_pageno);
-    }
+    // if (m_prefetch_enabled)
+    // {
+    //     prefetchAround(m_pageno);
+    // }
 }
 
 void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
@@ -347,7 +341,6 @@ void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
 }
 
 void dodo::renderPage(const int &pageno,
-                      const float &dpi,
                       const bool &lowQuality) noexcept
 {
 
@@ -363,12 +356,10 @@ void dodo::renderPage(const int &pageno,
         return;
     }
 
-    auto *task = new RenderTask(m_document.get(), pageno, dpi, dpi, lowQuality, this);
-    connect(task, &RenderTask::finished, this,
-            &dodo::handleRenderResult,
-            Qt::QueuedConnection);
-    QThreadPool::globalInstance()->start(task);
+    auto img = m_model->renderPage(pageno, lowQuality);
+    m_pix_item->setPixmap(QPixmap::fromImage(img));
 }
+
 
 bool dodo::isPrefetchPage(int page, int currentPage) noexcept {
     // Prefetch next and previous page only
@@ -378,8 +369,8 @@ bool dodo::isPrefetchPage(int page, int currentPage) noexcept {
 void dodo::prefetchAround(int currentPage) noexcept {
     for (int offset = -m_prefetch_distance; offset <= m_prefetch_distance; ++offset) {
         int page = currentPage + offset;
-        if (page >= 0 && page < m_document->numPages()) {
-            renderPage(page, LOW_DPI);
+        if (page >= 0 && page < m_total_pages) {
+            renderPage(page, true);
         }
     }
 }
@@ -430,7 +421,6 @@ void dodo::ZoomOut() noexcept
         m_scale_factor *= 0.9;
     }
 }
-
 
 void dodo::ScrollDown() noexcept
 {
@@ -484,105 +474,16 @@ void dodo::FitToWidth() noexcept
     m_scale_factor = scale;
 }
 
-QRectF dodo::mapPdfRectToScene(const QRectF& pdfRect,
-                               const QSizeF& pageSizePoints,
-                               float dpi) noexcept
-{
-    const float scale = dpi / 72.0f;
-
-    // Flip Y-axis and scale to pixels
-    qreal x = (pdfRect.left() * pageSizePoints.width()) * scale;
-    qreal y = (pageSizePoints.height() * (pdfRect.top() + pdfRect.height())) * scale;
-    qreal width = pdfRect.width() * pageSizePoints.width() * scale;
-    qreal height = -pdfRect.height() * pageSizePoints.height() * scale;
-
-    return QRectF(x, y, width, height);
-}
-
 void dodo::renderLinks() noexcept
 {
-    float scale = m_dpix / 72.0f;  // 72 points per inch standard
-    auto page = m_document->page(m_pageno);
-    auto links = page->links();
-    QSizeF pageSizePoints = page->pageSizeF();
-
-    for (const auto &link : links)
-    {
-        QRectF rect = link->linkArea();  // In page coordinates
-        if (rect.isNull())
-            continue;
-
-
-        QRectF linkRectScene = mapPdfRectToScene(rect, pageSizePoints, m_dpix);
-
-        linkRectScene = QRectF(linkRectScene.topLeft(), linkRectScene.bottomRight());
-
-        switch(link->linkType())
-         {
-
-            case Poppler::Link::Goto:
-                {
-                    auto gotoLink = static_cast<Poppler::LinkGoto*>(link.get());
-                    GotoLinkItem *linkItem = new GotoLinkItem(linkRectScene,
-                                                                  gotoLink->destination());
-                    connect(linkItem, &GotoLinkItem::jumpToPageRequested,
-                            this, [&](int pageno, double top) {
-                            gotoPage(pageno);
-                            scrollToNormalizedTop(top);
-                    });
-                    if (m_link_boundary_box_enabled)
-                        linkItem->setPen(QPen(Qt::red, 1));
-                    m_gscene->addItem(linkItem);
-                }
-                break;
-
-            case Poppler::Link::Browse:
-                {
-                    auto browseLink = static_cast<Poppler::LinkBrowse*>(link.get());
-                    BrowseLinkItem *linkItem = new BrowseLinkItem(linkRectScene,
-                                                                  browseLink->url());
-                    if (m_link_boundary_box_enabled)
-                        linkItem->setPen(QPen(Qt::red, 1));
-                    m_gscene->addItem(linkItem);
-                }
-                break;
-
-            default:
-                qDebug() << "Link not yet implemented";
-        }
-
-
-    }
-
+    m_model->renderLinks(m_pageno);
 }
 
 // Single page search
 void dodo::search(const QString &term) noexcept
 {
     m_last_search_term = term;
-
-    auto page = m_document->page(m_pageno);
-    auto results = page->search(term, m_search_flags);
-    QSizeF pageSizePoints = page->pageSizeF();
-    float scale = m_dpix / 72.0;
-
-    for (const auto &result : results)
-    {
-
-        // Flip Y axis and scale
-        QRectF rect(
-            result.left() * scale,
-            result.top() * scale,
-            result.width() * scale,
-            result.height() * scale
-        );
-
-        auto* highlight = new QGraphicsRectItem(rect);
-        highlight->setBrush(QColor(255, 255, 0, 100)); // semi-transparent yellow
-        highlight->setPen(Qt::NoPen);
-
-        m_gscene->addItem(highlight);
-    }
+    // m_pdf_backend->search();
 }
 
 void dodo::searchAll(const QString &term) noexcept
@@ -594,33 +495,7 @@ void dodo::searchAll(const QString &term) noexcept
 
     clearHighlights();
 
-    QFuture<void> future = QtConcurrent::run([=]() {
-        QMap<int, QList<QRectF>> resultsMap;
-
-        for (int pageNum = 0; pageNum < m_total_pages; ++pageNum) {
-            auto page = m_document->page(pageNum);
-            auto results = page->search(term, m_search_flags);
-
-            if (!results.isEmpty())
-            {
-                resultsMap[pageNum] = results;
-                m_search_match_count += results.length();
-                m_panel->setSearchCount(m_search_match_count);
-            }
-        }
-
-        QMetaObject::invokeMethod(this, [=]() {
-            m_searchRectMap = resultsMap;
-            if (!resultsMap.isEmpty()) {
-                m_search_index = m_searchRectMap.firstKey();
-                jumpToHit(m_search_index, 0);
-            }
-        }, Qt::QueuedConnection);
-
-
-    });
-
-    m_searchWatcher.setFuture(future);
+    m_model->searchAll(term);
 }
 
 
@@ -646,7 +521,7 @@ void dodo::highlightSingleHit(int page, const QRectF &rect)
 
     clearHighlights();
 
-    float scale = m_dpix / 72.0;
+    float scale = m_dpi / 72.0;
     QRectF scaledRect = QRectF(
         rect.left() * scale,
         rect.top() * scale,
@@ -740,7 +615,6 @@ void dodo::GoBackHistory() noexcept
 {
     if (!m_page_history_list.isEmpty()) {
         int lastPage = m_page_history_list.takeLast(); // Pop last page
-        qDebug() << lastPage << m_pageno;
         m_suppressHistory = true;
         gotoPage(lastPage);
         m_suppressHistory = false;
@@ -752,7 +626,7 @@ void dodo::GoBackHistory() noexcept
 void dodo::closeEvent(QCloseEvent *e)
 {
 
-    if (m_remember_last_visited && m_document)
+    if (m_remember_last_visited && m_model->valid())
     {
         QSqlQuery q;
         q.prepare("INSERT OR REPLACE INTO last_visited(file_path, page_number) VALUES (?, ?)");

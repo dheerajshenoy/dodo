@@ -30,9 +30,6 @@
 #include <QtSql/QSqlQuery>
 #include <QCloseEvent>
 
-#include <poppler/qt6/poppler-qt6.h>
-#include <poppler/qt6/poppler-link.h>
-
 #include <vector>
 
 #include "Panel.hpp"
@@ -40,6 +37,7 @@
 #include "RenderTask.hpp"
 #include "GotoLinkItem.hpp"
 #include "BrowseLinkItem.hpp"
+#include "Model.hpp"
 
 class dodo : public QMainWindow {
 public:
@@ -63,7 +61,6 @@ private:
     void search(const QString &term) noexcept;
     void searchAll(const QString &term) noexcept;
     void renderPage(const int &pageno,
-                    const float &dpi,
                     const bool &lowQuality = true) noexcept;
     void scrollToNormalizedTop(const double &top) noexcept;
 
@@ -97,7 +94,6 @@ private:
 
     QDir m_config_dir;
     bool m_prefetch_enabled,
-    m_link_boundary_box_enabled,
     m_suppressHistory,
     m_remember_last_visited;
 
@@ -112,7 +108,7 @@ private:
 
     QList<int> m_page_history_list;
 
-    Poppler::Page::SearchFlags m_search_flags = Poppler::Page::SearchFlag::NoSearchFlags;
+    // Poppler::Page::SearchFlags m_search_flags = Poppler::Page::SearchFlag::NoSearchFlags;
 
     double m_scale_factor = 1.0f;
 
@@ -122,16 +118,12 @@ private:
 
     QString m_default_bg;
 
-    float m_dpix,
-    m_dpiy,
+    float m_dpi,
+    m_low_dpi,
     DPI_FRAC;
 
-    const float LOW_DPI = 72.0;
 
     void updateUiEnabledState() noexcept;
-    QRectF mapPdfRectToScene(const QRectF& pdfRect,
-                                   const QSizeF& pageSizePoints,
-                                   float dpi) noexcept;
     void jumpToHit(int page, int index);
 
     void highlightSingleHit(int page, const QRectF &rect);
@@ -157,10 +149,11 @@ private:
     QFutureWatcher<void> m_searchWatcher;
 
     QString m_filename;
-    std::unique_ptr<Poppler::Document> m_document { nullptr };
     QGraphicsView *m_gview = new QGraphicsView();
     QGraphicsScene *m_gscene = new QGraphicsScene();
     QGraphicsPixmapItem *m_pix_item = new QGraphicsPixmapItem();
     QVBoxLayout *m_layout = new QVBoxLayout();
+
+    Model *m_model { nullptr };
 };
 
