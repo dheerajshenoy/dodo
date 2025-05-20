@@ -3,7 +3,6 @@
 <img src="./logo/banner.png"/>
 A fast and minimal PDF reader.
 
-
 ## Features
 
 - Caching and pre-fetching pages for faster page rendering
@@ -22,3 +21,8 @@ A fast and minimal PDF reader.
 
 - [ ] Annotations
 - [ ] Table of Contents
+- [ ] Keyboard link navigation
+- [ ] Complex searches
+- [X] Visited file location
+- [X] Keyboard navigation
+- [X] Search (with highlight)
