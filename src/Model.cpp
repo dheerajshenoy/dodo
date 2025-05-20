@@ -1,7 +1,9 @@
 #include "Model.hpp"
+#include "BrowseLinkItem.hpp"
 #include <QGraphicsScene>
 #include <QImage>
 #include <QDebug>
+#include <QGraphicsRectItem>
 
 #define CSTR(x) x.toStdString().c_str()
 
@@ -59,8 +61,8 @@ QImage Model::renderPage(int pageno, bool lowQuality)
     fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
     fz_rect bounds;
     bounds = fz_bound_page(m_ctx, page);
-    fz_matrix transform = fz_scale(scale, scale);
-    fz_rect transformed = fz_transform_rect(bounds, transform);
+    m_transform = fz_scale(scale, scale);
+    fz_rect transformed = fz_transform_rect(bounds, m_transform);
     fz_irect bbox = fz_round_rect(transformed);
 
     fz_pixmap *pix = fz_new_pixmap_with_bbox(m_ctx,
@@ -69,7 +71,7 @@ QImage Model::renderPage(int pageno, bool lowQuality)
                                     nullptr,
                                     0);
     fz_clear_pixmap_with_value(m_ctx, pix, 255); // 255 = white
-    fz_device *dev = fz_new_draw_device(m_ctx, transform, pix);
+    fz_device *dev = fz_new_draw_device(m_ctx, m_transform, pix);
     fz_run_page(m_ctx, page, dev, fz_identity, nullptr);
 
     // Convert fz_pixmap to QImage
@@ -98,8 +100,9 @@ void Model::searchAll(const QString &term)
 
 }
 
-void Model::renderLinks(int pageno)
+void Model::renderLinks(int pageno, float pageHeight)
 {
+    float scale = m_dpi / 72.0f;
     fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
 
     fz_link *link = fz_load_links(m_ctx, page);
@@ -107,7 +110,26 @@ void Model::renderLinks(int pageno)
     while (link)
     {
         if (link->uri) {
-            qDebug() << link->uri;
+            fz_rect r = fz_transform_rect(link->rect, m_transform);
+                        // Flip Y-axis to match Qt's coordinate system
+            float x = r.x0;
+            float w = r.x1 - r.x0;
+            float h = r.y1 - r.y0;
+            float y = r.y1 - h;
+
+            QRectF qtRect(x, y, w, h);
+            BrowseLinkItem *item;
+
+            QString link_str(link->uri);
+            if (link_str.startsWith("#"))
+                item = new BrowseLinkItem(qtRect,
+                                          link->uri,
+                                          BrowseLinkItem::LinkType::Internal);
+            else
+                item = new BrowseLinkItem(qtRect,
+                                          link->uri,
+                                          BrowseLinkItem::LinkType::External);
+            m_scene->addItem(item);
         }
         link = link->next;
     }

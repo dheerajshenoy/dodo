@@ -2,6 +2,7 @@
 
 #include <QString>
 #include <mupdf/fitz.h>
+#include "LinkItem.hpp"
 
 class QImage;
 class QGraphicsScene;
@@ -18,7 +19,7 @@ public:
     inline void setLowDPI(float low_dpi) { m_low_dpi = low_dpi; }
     int numPages();
     QImage renderPage(int pageno, bool lowQuality);
-    void renderLinks(int pageno);
+    void renderLinks(int pageno, float pageHeight);
     void setLinkBoundaryBox(bool state);
     void searchAll(const QString &term);
 
@@ -29,5 +30,6 @@ private:
     QGraphicsScene *m_scene { nullptr };
     fz_context *m_ctx { nullptr };
     fz_document *m_doc { nullptr };
+    fz_matrix m_transform = fz_identity;
 
 };

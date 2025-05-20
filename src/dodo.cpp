@@ -476,7 +476,7 @@ void dodo::FitToWidth() noexcept
 
 void dodo::renderLinks() noexcept
 {
-    m_model->renderLinks(m_pageno);
+    m_model->renderLinks(m_pageno, m_pix_item->boundingRect().height());
 }
 
 // Single page search
@@ -637,7 +637,6 @@ void dodo::closeEvent(QCloseEvent *e)
 
     e->accept();
 }
-
 
 void dodo::scrollToNormalizedTop(const double &ntop) noexcept
 {
