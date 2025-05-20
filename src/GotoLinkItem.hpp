@@ -15,11 +15,11 @@ public:
 
 
     signals:
-    void jumpToPageRequested(int pageNumber);
+    void jumpToPageRequested(int pageNumber, double top = 0.0);
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent*) override {
-        emit jumpToPageRequested(m_dest.pageNumber());
+        emit jumpToPageRequested(m_dest.pageNumber(), m_dest.top());
     }
 
 private:

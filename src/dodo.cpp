@@ -10,7 +10,7 @@ dodo::dodo() noexcept
     DPI_FRAC = m_dpix / LOW_DPI;
     initKeybinds();
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    // openFile("~/Downloads/math.pdf");
+    openFile("~/Downloads/math.pdf");
     // gotoPage(0);
 
     m_page_history_list.reserve(m_page_history_limit);
@@ -525,8 +525,10 @@ void dodo::renderLinks() noexcept
                     auto gotoLink = static_cast<Poppler::LinkGoto*>(link.get());
                     GotoLinkItem *linkItem = new GotoLinkItem(linkRectScene,
                                                                   gotoLink->destination());
-                    connect(linkItem, &GotoLinkItem::jumpToPageRequested, this, [&](int pageno) {
-                        gotoPage(pageno);
+                    connect(linkItem, &GotoLinkItem::jumpToPageRequested,
+                            this, [&](int pageno, double top) {
+                            gotoPage(pageno);
+                            scrollToNormalizedTop(top);
                     });
                     if (m_link_boundary_box_enabled)
                         linkItem->setPen(QPen(Qt::red, 1));
@@ -760,4 +762,26 @@ void dodo::closeEvent(QCloseEvent *e)
     }
 
     e->accept();
+}
+
+
+void dodo::scrollToNormalizedTop(const double &ntop) noexcept
+{
+    // 1. Get scene Y position of the top of the page
+    qreal pageSceneY = m_pix_item->sceneBoundingRect().top();
+
+    // 2. Get full height of the page
+    qreal pageHeight = m_pix_item->boundingRect().height();
+
+    // 3. Compute desired Y position in scene coords
+    qreal targetSceneY = pageSceneY + ntop * pageHeight;
+
+    // 4. Convert scene Y to viewport Y
+    QPointF targetViewportPoint = m_gview->mapFromScene(QPointF(0, targetSceneY));
+
+    // 5. Compute the scroll position required
+    int scrollPos = m_gview->verticalScrollBar()->value() + targetViewportPoint.y();
+
+    m_gview->verticalScrollBar()->setValue(scrollPos);
+
 }

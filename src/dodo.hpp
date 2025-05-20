@@ -65,6 +65,7 @@ private:
     void renderPage(const int &pageno,
                     const float &dpi,
                     const bool &lowQuality = true) noexcept;
+    void scrollToNormalizedTop(const double &top) noexcept;
 
 
     bool isPrefetchPage(int page, int currentPage) noexcept;
