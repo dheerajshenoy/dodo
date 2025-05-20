@@ -6,6 +6,12 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+# Set flags for Debug build
+set(CMAKE_CXX_FLAGS_DEBUG "-ggdb -O0 -Wall -Wextra")
+
+# Set flags for Release build
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+
 find_package(Qt6 REQUIRED COMPONENTS Widgets Core Sql)
 
 add_executable(${PROJECT_NAME}
@@ -14,11 +20,10 @@ add_executable(${PROJECT_NAME}
     src/Panel.cpp
     src/Model.cpp
 
-    src/RenderTask.hpp
+    src/RenderTask.cpp
 
     src/LinkItem.hpp
     src/BrowseLinkItem.hpp
-    src/GotoLinkItem.hpp
 
 )
 
