@@ -1,0 +1,48 @@
+# ===== Appearance Settings =====
+[ui]
+# TODO: theme = "dark"              # Options: dark, light, system
+panel_shown = true
+fullscreen = false
+zoom_level = 1.0            # Default zoom factor
+compact = true
+link_boundary_box = false
+
+
+# Format is #AARRGGBB (ARGB format)
+[colors]
+accent = "#FF3daee9"    # Hex color code for highlights
+background = "#00000000"
+search_match = "#33FF5000"
+search_index = "#55FFFF55"
+
+# ===== Rendering Settings =====
+[rendering]
+backend = "mupdf"
+dpi = 300.0
+low_dpi = 72.0
+cache_pages = 5            # Number of pages to keep in RAM
+
+# ===== Navigation & Behavior =====
+[behavior]
+remember_last_visited = true   # Helps to go to last visited page of document
+enable_prefetch = true
+prefetch_distance = 2       # How many pages ahead/behind to prefetch
+page_history = 100 # History for visited pages in the file
+confirm_on_quit = true # Ask before quitting dodo
+
+# ===== Shortcuts =====
+[keybindings]
+next_page = "Right"
+prev_page = "Left"
+zoom_in = "Ctrl+Plus"
+zoom_out = "Ctrl+Minus"
+toggle_fullscreen = "F11"
+quit = "Ctrl+Q"
+
+# ===== File History / Session (Optional) =====
+# [session]
+# last_file = "/home/user/docs/book.pdf"
+# last_page = 12
+# window_width = 1024
+# window_height = 768
+
