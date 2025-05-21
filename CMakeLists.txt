@@ -24,6 +24,8 @@ add_executable(${PROJECT_NAME}
 
     src/LinkItem.hpp
     src/BrowseLinkItem.hpp
+    src/OutlineWidget.hpp
+    src/OutlineModel.hpp
 
 )
 

@@ -29,11 +29,19 @@ void RenderTask::run()
         fz_rect transformed = fz_transform_rect(bounds, m_transform);
         fz_irect bbox = fz_round_rect(transformed);
 
-        fz_pixmap *pix = fz_new_pixmap_with_bbox(m_ctx,
-                                                 fz_device_rgb(m_ctx),
-                                                 bbox,
-                                                 nullptr,
-                                                 0);
+        fz_pixmap *pix;
+        pix = fz_new_pixmap_with_bbox(m_ctx,
+                                      fz_device_rgb(m_ctx),
+                                      bbox,
+                                      nullptr,
+                                      0);
+        if (!pix)
+        {
+            fz_drop_page(m_ctx, page);
+            fz_drop_context(m_ctx);
+            return;
+        }
+
         fz_clear_pixmap_with_value(m_ctx, pix, 255); // 255 = white
         fz_device *dev = fz_new_draw_device(m_ctx, m_transform, pix);
         fz_run_page(m_ctx, page, dev, fz_identity, nullptr);
@@ -59,7 +67,6 @@ void RenderTask::run()
         fz_drop_page(m_ctx, page);
         fz_drop_context(m_ctx);
     }
-
     fz_catch(m_ctx)
     {
         qWarning() << "Render failed for page" << m_pageno;

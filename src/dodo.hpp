@@ -92,6 +92,7 @@ private:
     void Search() noexcept;
     void Escape() noexcept;
     void GoBackHistory() noexcept;
+    void TableOfContents() noexcept;
 
     QDir m_config_dir;
     bool m_prefetch_enabled,
@@ -158,5 +159,7 @@ private:
     Model *m_model { nullptr };
     QTimer *m_HQRenderTimer = new QTimer(this);
     QMap<QString, QString> m_colors;
+    bool m_highlights_present;
+    OutlineWidget *m_owidget { nullptr };
 };
 

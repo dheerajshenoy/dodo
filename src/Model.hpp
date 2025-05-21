@@ -10,6 +10,7 @@
 #include <mutex>
 #include <QFuture>
 #include <QtConcurrent/QtConcurrent>
+#include "OutlineWidget.hpp"
 
 class QImage;
 class QGraphicsScene;
@@ -34,6 +35,7 @@ public:
     void setLinkBoundaryBox(bool state);
     void searchAll(const QString &term);
     void annotHighlight(int pageno) noexcept;
+    OutlineWidget* tableOfContents() noexcept;
     inline fz_matrix transform() noexcept { return m_transform; }
 
     signals:

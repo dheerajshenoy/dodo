@@ -8,8 +8,7 @@ dodo::dodo() noexcept
     DPI_FRAC = m_dpi / m_low_dpi;
     initKeybinds();
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    openFile("~/Downloads/basic-link-1.pdf");
-    // gotoPage(0);
+    openFile("~/Downloads/D. S, Malik - C++ Programming-Cengage (2017).pdf");
 
     m_HQRenderTimer->setSingleShot(true);
     m_page_history_list.reserve(m_page_history_limit);
@@ -23,6 +22,8 @@ dodo::dodo() noexcept
         m_searchRectMap = maps;
         m_search_match_count = matchCount;
         m_panel->setSearchCount(m_search_match_count);
+        if (maps.isEmpty())
+            return;
         auto page = maps.firstKey();
         highlightHitsInPage(page);
         jumpToHit(page, 0);
@@ -205,10 +206,10 @@ void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
 
     // if (!lowQuality) {
     //     m_highResCache.insert(pageno, new QPixmap(pix));
-    //     m_pix_item->setScale(m_scale_factor);
+    //     // m_pix_item->setScale(m_scale_factor);
     // } else {
     //     m_pixmapCache.insert(pageno, new QPixmap(pix));
-    //     m_pix_item->setScale(DPI_FRAC);
+    //     // m_pix_item->setScale(DPI_FRAC);
     // }
 
     m_pix_item->setPixmap(pix);
@@ -219,6 +220,7 @@ void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
     // {
     //     prefetchAround(m_pageno);
     // }
+    m_panel->setPageNo(m_pageno + 1);
 }
 
 void dodo::updateUiEnabledState() noexcept
@@ -250,6 +252,9 @@ void dodo::OpenFile() noexcept
 
 }
 
+
+/* Function for opening the file using the model.
+ For internal usage only */
 void dodo::openFile(const QString &fileName) noexcept
 {
     m_filename = fileName;
@@ -351,7 +356,6 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
 
     m_pageno = pageno;
 
-    m_panel->setPageNo(m_pageno + 1);
     // TODO: Handle file content change detection
 
     // if (m_highResCache.contains(pageno))
@@ -365,6 +369,12 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
     m_HQRenderTimer->stop();
     m_HQRenderTimer->start(100);
 
+    if (m_highlights_present)
+    {
+        clearHighlights();
+        clearIndexHighlights();
+    }
+
     renderPage(pageno, true);
 }
 
@@ -376,14 +386,13 @@ void dodo::renderPage(int pageno,
     // {
     //     if (m_highResCache.contains(pageno)) {
     //         m_pix_item->setPixmap(*m_highResCache.object(pageno));
-    //         m_pix_item->setScale(m_scale_factor);
+    //         // m_pix_item->setScale(m_scale_factor);
     //         return;
     //     }
     // } else {
-    //
     //     if (m_pixmapCache.contains(pageno)) {
     //         m_pix_item->setPixmap(*m_pixmapCache.object(pageno));
-    //         m_pix_item->setScale(DPI_FRAC);
+    //         // m_pix_item->setScale(DPI_FRAC);
     //         return;
     //     }
     // }
@@ -591,6 +600,7 @@ void dodo::highlightHitsInPage(int pageno)
         m_gscene->addItem(highlight);
         // m_gview->centerOn(highlight);
     }
+    m_highlights_present = true;
 }
 
 void dodo::highlightSingleHit(int page, const QRectF &rect)
@@ -614,6 +624,7 @@ void dodo::highlightSingleHit(int page, const QRectF &rect)
 
     m_gscene->addItem(highlight);
     m_gview->centerOn(highlight);
+    m_highlights_present = true;
 }
 
 void dodo::clearIndexHighlights()
@@ -626,6 +637,7 @@ void dodo::clearIndexHighlights()
             }
         }
     }
+    m_highlights_present = false;
 }
 
 void dodo::clearHighlights()
@@ -638,6 +650,7 @@ void dodo::clearHighlights()
             }
         }
     }
+    m_highlights_present = false;
 }
 
 void dodo::Search() noexcept

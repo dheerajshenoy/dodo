@@ -18,8 +18,6 @@ void unlock_mutex(void* user, int lock) {
     // Do nothing – std::lock_guard handles unlocking
 }
 
-
-
 Model::Model(QGraphicsScene *scene)
 : m_scene(scene)
 {
@@ -42,6 +40,12 @@ Model::~Model()
 {
     fz_drop_document(m_ctx, m_doc);
     fz_drop_context(m_ctx);
+}
+
+OutlineWidget* Model::tableOfContents() noexcept
+{
+    auto owidget = new OutlineWidget(m_ctx, m_doc);
+    return owidget;
 }
 
 bool Model::openFile(const QString &fileName)
@@ -107,6 +111,9 @@ QList<QRectF> Model::searchHelper(int pageno, const QString &term)
     fz_page *page = nullptr;
     fz_stext_page *textPage = nullptr;
 
+    if (!m_ctx)
+        return {};
+
     fz_try(m_ctx)
     {
         page = fz_load_page(m_ctx, m_doc, pageno);
@@ -114,6 +121,8 @@ QList<QRectF> Model::searchHelper(int pageno, const QString &term)
 
         if (!textPage)
         {
+            fz_drop_page(m_ctx, page);
+            fz_drop_stext_page(m_ctx, textPage);
             qWarning() << "Unable to get texts from page";
             return {};
         }
@@ -176,12 +185,17 @@ QList<QRectF> Model::searchHelper(int pageno, const QString &term)
 
                 if (inWord && currentWord == term)
                     results.append(currentRect);
-                // flush last word at end of line
-                // if (!currentWord.isEmpty())
-                //     words.append({ currentWord, QRectF(x0, y0, x1 - x0, y1 - y0) });
             }
         }
 
+    }
+    fz_always(m_ctx)
+    {
+        if (page)
+            fz_drop_page(m_ctx, page);
+
+        if (textPage)
+            fz_drop_stext_page(m_ctx, textPage);
     }
     fz_catch(m_ctx)
     {
@@ -193,25 +207,23 @@ QList<QRectF> Model::searchHelper(int pageno, const QString &term)
 
 void Model::searchAll(const QString &term)
 {
-    QFuture<void> future = QtConcurrent::run([=]() {
-        int matchCount = 0;
-        QMap<int, QList<QRectF>> resultsMap;
+    int matchCount = 0;
+    QMap<int, QList<QRectF>> resultsMap;
 
-        for (int pageNum = 0; pageNum < numPages(); ++pageNum) {
-            auto results = searchHelper(pageNum, term);
+    for (int pageNum = 0; pageNum < numPages(); ++pageNum) {
+        QList<QRectF> results;
 
-            if (!results.isEmpty())
-            {
-                resultsMap[pageNum] = results;
-                matchCount += results.length();
-            }
+        results = searchHelper(pageNum, term);
+
+        if (!results.isEmpty())
+        {
+            resultsMap[pageNum] = results;
+            matchCount += results.length();
         }
+    }
 
-        QMetaObject::invokeMethod(this, [=]() {
-            emit searchResultsReady(resultsMap, matchCount);
-        }, Qt::QueuedConnection);
-
-    });
+    if (matchCount > 0)
+        emit searchResultsReady(resultsMap, matchCount);
 }
 
 void Model::renderLinks(int pageno, const fz_matrix& transform)

@@ -3,7 +3,8 @@
 #include <QRunnable>
 #include <poppler/qt6/poppler-qt6.h>
 #include <QImage>
-
+#include <QMutex>
+#include <QMutexLocker>
 #include <mupdf/fitz.h>
 
 class RenderTask : public QObject, public QRunnable
