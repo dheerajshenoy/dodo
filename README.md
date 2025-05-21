@@ -1,4 +1,4 @@
-# DODO PDF Reader (MuPDF backend)
+# DODO
 
 <img src="./logo/banner.png"/>
 A fast and minimal PDF reader.
