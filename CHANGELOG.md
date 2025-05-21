@@ -10,6 +10,7 @@
 - Browse links implemented (URL)
 - Basic rectangle annotations
 - Search
+- Table of Contents
 
 ## 0.1.0
 
