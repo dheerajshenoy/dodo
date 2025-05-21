@@ -10,13 +10,10 @@ dodo::dodo() noexcept
     DPI_FRAC = m_dpi / m_low_dpi;
     initKeybinds();
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    // openFile("~/Downloads/math.pdf");
-
+    // openFile("~/Downloads/basic-link-1.pdf"); // FOR DEBUG PURPOSE ONLY
     m_HQRenderTimer->setSingleShot(true);
     m_page_history_list.reserve(m_page_history_limit);
-
     initConnections();
-
     m_pix_item->setScale(m_scale_factor);
 }
 
@@ -71,9 +68,11 @@ void dodo::scrollToXY(float x, float y) noexcept
     m_gview->centerOn(QPointF(x * DPI_FRAC, y * DPI_FRAC));
 }
 
-
 void dodo::initDB() noexcept
 {
+    if (!m_remember_last_visited)
+        return;
+
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName(m_config_dir.filePath("last_pages.db"));
     db.open();
@@ -100,10 +99,12 @@ void dodo::initConfig() noexcept
     if (ui["fullscreen"].value_or(false))
         this->showFullScreen();
 
+    m_gview->verticalScrollBar()->setVisible(ui["vscrollbar"].value_or(true));
+    m_gview->horizontalScrollBar()->setVisible(ui["hscrollbar"].value_or(true));
+
     m_scale_factor = ui["zoom_level"].value_or(1.0);
     bool compact = ui["compact"].value_or(false);
     m_model->setLinkBoundaryBox(ui["link_boundary_box"].value_or(false));
-
 
     auto colors = toml["colors"];
     auto search_index = colors["search_index"].value_or("#3daee944");
@@ -134,17 +135,14 @@ void dodo::initConfig() noexcept
 
     auto keys = toml["keybindings"];
 
-    for (auto &[action, value] : *keys.as_table())
+    if (keys.is_value())
     {
-        if (value.is_value())
-            setupKeybinding(action.str(), value.value_or<std::string>(""));
+        for (auto &[action, value] : *keys.as_table())
+        {
+            if (value.is_value())
+                setupKeybinding(action.str(), value.value_or<std::string>(""));
+        }
     }
-
-    auto session = toml["session"];
-    std::string last_file     = session["last_file"].value_or("");
-    int last_page             = session["last_page"].value_or(0);
-    int window_width          = session["window_width"].value_or(1024);
-    int window_height         = session["window_height"].value_or(768);
 
     if (compact)
     {
@@ -162,6 +160,7 @@ void dodo::initKeybinds() noexcept
 {
     std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
 
+        { "f", [this]() { VisitLinkKB(); } },
         { "Ctrl+s", [this]() { SaveFile(); } },
         { "Alt+1", [this]() { ToggleHighlight(); } },
         { "t", [this]() { TableOfContents(); } },
@@ -234,7 +233,6 @@ void dodo::initGui() noexcept
     m_model = new Model(m_gscene);
     connect(m_model, &Model::imageRenderRequested, this, &dodo::handleRenderResult);
     updateUiEnabledState();
-
 }
 
 void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
@@ -277,6 +275,7 @@ void dodo::updateUiEnabledState() noexcept
     m_actionPrevPage->setEnabled(hasFile);
     m_actionNextPage->setEnabled(hasFile);
     m_actionLastPage->setEnabled(hasFile);
+
 }
 
 
@@ -330,7 +329,6 @@ void dodo::openFile(const QString &fileName) noexcept
         }
     } else
         gotoPage(0);
-
 
     updateUiEnabledState();
 }
@@ -838,4 +836,107 @@ void dodo::SaveFile() noexcept
 {
     m_model->save();
     m_model->renderPage(m_pageno, false);
+}
+
+void dodo::VisitLinkKB() noexcept
+{
+    this->installEventFilter(this);
+    m_model->visitLinkKB(m_pageno);
+    m_linkHintMode = true;
+    m_link_hint_map = m_model->hintToLinkMap();
+}
+
+void dodo::CopyLinkKB() noexcept
+{
+    m_model->copyLinkKB(m_pageno);
+}
+
+// void dodo::keyPressEvent(QKeyEvent *e)
+// {
+//     if (e->key() == Qt::Key_F) {
+//         e->accept();
+//
+//         // ✅ Defer activation until after the current event is done
+//         QTimer::singleShot(0, this, [this]() {
+//             m_linkHintMode = true;
+//             qDebug() << "Link hint mode activated";
+//         });
+//
+//         return;
+//     }
+//
+//     QMainWindow::keyPressEvent(e);
+// }
+
+// void dodo::keyReleaseEvent(QKeyEvent *e)
+// {
+//     if (m_linkHintMode)
+//     {
+//         // e->ignore();
+//         e->ignore();
+//         qDebug() << "DD";
+//
+//         // m_linkHintMode = false;
+//         return;
+//     }
+//     QMainWindow::keyPressEvent(e);
+// }
+
+bool dodo::eventFilter(QObject *obj, QEvent *event)
+{
+    if (m_linkHintMode)
+    {
+        if (m_link_hint_map.isEmpty())
+        {
+            m_linkHintMode = false;
+            m_currentHintInput.clear();
+            qWarning() << "No links found to show hints";
+            // m_model->clearKBHintsOverlay();
+            return true;
+        }
+        if (event->type() == QEvent::KeyPress)
+        {
+            QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+            if (keyEvent->key() == Qt::Key_Escape)
+            {
+                m_linkHintMode = false;
+                m_currentHintInput.clear();
+                m_model->clearKBHintsOverlay();
+                this->removeEventFilter(this);
+                return true;
+            } else if (keyEvent->key() == Qt::Key_Backspace)
+            {
+                m_currentHintInput.removeLast();
+                return true;
+            }
+
+            m_currentHintInput += keyEvent->text();
+            if (m_link_hint_map.contains(m_currentHintInput))
+            {
+                Model::LinkInfo info = m_link_hint_map[m_currentHintInput];
+                m_model->followLink(info);
+                m_linkHintMode = false;
+                m_currentHintInput.clear();
+                m_link_hint_map.clear();
+                m_model->clearKBHintsOverlay();
+                this->removeEventFilter(this);
+                return true;
+            }
+            keyEvent->accept();
+            // Accept and swallow the key event to prevent QShortcut activation
+            // keyEvent->timestamp();
+            // qDebug() << "Blocked key in link hint mode:" << keyEvent->text();
+            return true;
+        }
+
+        if (event->type() == QEvent::ShortcutOverride)
+        {
+            QShortcutEvent *stEvent = static_cast<QShortcutEvent *>(event);
+            stEvent->accept();
+            return true;
+        }
+    }
+
+    // Let other events pass through
+    return QObject::eventFilter(obj, event);
 }

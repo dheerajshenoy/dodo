@@ -47,6 +47,12 @@ public slots:
     void handleRenderResult(int pageno, QImage img, bool lowQuality);
 
     void closeEvent(QCloseEvent *e) override;
+
+protected:
+    // void keyPressEvent(QKeyEvent *e) override;
+    // void keyReleaseEvent(QKeyEvent *e) override;
+    bool eventFilter(QObject *obj, QEvent *event) override;
+
 private:
 
     void initConnections() noexcept;
@@ -94,6 +100,8 @@ private:
     void TableOfContents() noexcept;
     void ToggleHighlight() noexcept;
     void SaveFile() noexcept;
+    void VisitLinkKB() noexcept;
+    void CopyLinkKB() noexcept;
 
     QDir m_config_dir;
     bool m_prefetch_enabled,
@@ -161,6 +169,9 @@ private:
     QTimer *m_HQRenderTimer = new QTimer(this);
     QMap<QString, QString> m_colors;
     bool m_highlights_present;
+    bool m_linkHintMode { false };
     OutlineWidget *m_owidget { nullptr };
+    QString m_currentHintInput;
+    QMap<QString, Model::LinkInfo> m_link_hint_map;
 };
 

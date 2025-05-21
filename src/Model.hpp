@@ -17,6 +17,7 @@ class QImage;
 class QGraphicsScene;
 
 
+QString generateHint(int index) noexcept;
 void lock_mutex(void* user, int lock);
 void unlock_mutex(void* user, int lock);
 
@@ -24,6 +25,7 @@ class Model : public QObject
 {
     Q_OBJECT
 public:
+
     Model(QGraphicsScene *scene);
     ~Model();
     bool openFile(const QString &fileName);
@@ -40,8 +42,20 @@ public:
     fz_rect convertToMuPdfRect(const QRectF &qtRect,
                                const fz_matrix &transform, float dpiScale) noexcept;
 
+    struct LinkInfo {
+        QString uri;
+        fz_link_dest dest;
+    };
+
     OutlineWidget* tableOfContents() noexcept;
     inline fz_matrix transform() noexcept { return m_transform; }
+    void visitLinkKB(int pageno) noexcept;
+    void copyLinkKB(int pageno) noexcept;
+    QMap<QString, LinkInfo> hintToLinkMap() {
+        return m_hint_to_link_map;
+    };
+    void clearKBHintsOverlay() noexcept;
+    void followLink(const LinkInfo &info) noexcept;
 
     signals:
     void jumpToPageRequested(int pageno);
@@ -67,4 +81,6 @@ private:
     fz_context *m_ctx { nullptr };
     fz_document *m_doc { nullptr };
     fz_matrix m_transform;
+
+    QMap<QString, LinkInfo> m_hint_to_link_map;
 };
