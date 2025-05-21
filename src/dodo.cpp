@@ -124,6 +124,7 @@ void dodo::initKeybinds() noexcept
 {
     std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
 
+        { "t", [this]() { TableOfContents(); } },
         { "<escape>", [this]() { Escape(); } },
         { "/", [this]() { Search(); } },
         { "n", [this]() { nextHit(); } },
@@ -745,4 +746,24 @@ void dodo::scrollToNormalizedTop(const double &ntop) noexcept
 
     m_gview->verticalScrollBar()->setValue(scrollPos);
 
+}
+
+void dodo::TableOfContents() noexcept
+{
+    if (!m_owidget)
+    {
+        m_owidget = m_model->tableOfContents();
+        m_owidget->setParent(this);
+        m_owidget->setWindowFlag(Qt::Window); // Makes it a standalone window
+        connect(m_owidget, &OutlineWidget::jumpToPageRequested, this, [=](int pageno) {
+            gotoPage(pageno);
+        });
+        m_owidget->open();
+
+    } else {
+        if (m_owidget->isVisible())
+            m_owidget->close();
+        else
+            m_owidget->open();
+    }
 }
