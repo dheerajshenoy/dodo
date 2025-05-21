@@ -19,13 +19,12 @@ add_executable(${PROJECT_NAME}
     src/dodo.cpp
     src/Panel.cpp
     src/Model.cpp
-
     src/RenderTask.cpp
 
-    src/LinkItem.hpp
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp
     src/OutlineModel.hpp
+    src/GraphicsView.hpp
 
 )
 
