@@ -459,3 +459,97 @@ fz_rect Model::convertToMuPdfRect(const QRectF &qtRect,
     return fz_make_rect(p0.x, p0.y, p1.x, p1.y);
 }
 
+void Model::visitLinkKB(int pageno) noexcept
+{
+    m_hint_to_link_map.clear();
+    fz_try(m_ctx)
+    {
+        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        fz_link *head = fz_load_links(m_ctx, page);
+        fz_link *link = head;
+
+        if (!link)
+        {
+            fz_drop_page(m_ctx, page);
+            return;
+        }
+
+        int i=0;
+        while (link)
+        {
+            if (link->uri) {
+                fz_rect r = fz_transform_rect(link->rect, m_transform);
+                float x = r.x0;
+                float h = r.y1 - r.y0;
+                float y = r.y1 - h;
+
+                QString hint = generateHint(i++);
+                auto dest = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
+                m_hint_to_link_map[hint] = { .uri = QString::fromUtf8(link->uri),
+                    .dest = dest };
+
+                QRect rect(x, y, 40, h);
+
+                QGraphicsRectItem *item = new QGraphicsRectItem(rect);
+                item->setBrush(QColor(255, 255, 0, 100));
+                item->setPen(Qt::NoPen);
+                item->setData(0, "kb_link_overlay");
+                m_scene->addItem(item);
+
+                // Add text overlay
+                QGraphicsSimpleTextItem *text = new QGraphicsSimpleTextItem(hint);
+                text->setBrush(Qt::black);
+                text->setPos(rect.topLeft());
+                text->setZValue(item->zValue() + 1);
+                text->setData(0, "kb_link_overlay");
+                m_scene->addItem(text);
+            }
+            link = link->next;
+            i++;
+        }
+
+        fz_drop_link(m_ctx, head);
+        fz_drop_page(m_ctx, page);
+    }
+
+    fz_catch(m_ctx)
+    {
+        qWarning() << "MuPDF error in renderlink: " << fz_caught_message(m_ctx);
+    }
+}
+
+void Model::copyLinkKB(int pageno) noexcept
+{
+
+}
+
+
+void Model::clearKBHintsOverlay() noexcept
+{
+    for (auto &link : m_scene->items())
+    {
+        if (link->data(0).toString() == "kb_link_overlay")
+            m_scene->removeItem(link);
+    }
+}
+
+void Model::followLink(const LinkInfo &info) noexcept
+{
+    QString link_str = info.uri;
+    auto link_dest = info.dest;
+
+    qDebug() << link_str;
+
+    if (link_str.startsWith("#"))
+    {
+        if (link_str.startsWith("#page"))
+        {
+
+        }
+
+        // TODO: Handle sections etc.
+    }
+    else {
+        QDesktopServices::openUrl(QUrl(link_str));
+    }
+}
