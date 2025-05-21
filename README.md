@@ -1,7 +1,12 @@
-# DODO
-
 <img src="./logo/banner.png"/>
 A fast and minimal PDF reader.
+
+## Why ?
+
+- Because okular is bloated and it is the only good pdf reader that seems to exist.
+- Also, because I always wanted to create a PDF reader because when I am not developing a
+PDF reader, I am reading lots of PDFs for my work.
+
 
 ## Features
 
@@ -78,3 +83,10 @@ Check out the `config.toml` file for reference
 - [X] Visited file location
 - [X] Keyboard navigation
 - [X] Search (with highlight)
+
+
+## Tools Used
+
+- Neovim - my beloved text editor, without which I wouldn't be so fast in my commits :)
+- ChatGPT - ofc, it's 2025, I'm not gonna lie...
+- Qt forums and other websites
