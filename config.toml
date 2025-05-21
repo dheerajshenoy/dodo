@@ -31,18 +31,10 @@ page_history = 100 # History for visited pages in the file
 confirm_on_quit = true # Ask before quitting dodo
 
 # ===== Shortcuts =====
-[keybindings]
-next_page = "Right"
-prev_page = "Left"
-zoom_in = "Ctrl+Plus"
-zoom_out = "Ctrl+Minus"
-toggle_fullscreen = "F11"
-quit = "Ctrl+Q"
-
-# ===== File History / Session (Optional) =====
-# [session]
-# last_file = "/home/user/docs/book.pdf"
-# last_page = 12
-# window_width = 1024
-# window_height = 768
-
+# [keybindings]
+# next_page = "Right"
+# prev_page = "Left"
+# zoom_in = "Ctrl+Plus"
+# zoom_out = "Ctrl+Minus"
+# toggle_fullscreen = "F11"
+# quit = "Ctrl+Q"
