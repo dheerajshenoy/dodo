@@ -9,6 +9,21 @@
 #include <mupdf/fitz/structured-text.h>
 #include <mupdf/pdf/annot.h>
 #include <mupdf/pdf/document.h>
+#include <qgraphicsitem.h>
+
+
+QString generateHint(int index) noexcept
+{
+    QString hint;
+    const QString alphabet = "asdfghjkl";
+    int base = alphabet.length();
+    do {
+        hint.prepend(alphabet[index % base]);
+        index = index / base - 1;
+    } while (index >= 0);
+    return hint;
+}
+
 
 void lock_mutex(void* user, int lock) {
     auto mutex = static_cast<std::mutex*>(user);
