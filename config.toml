@@ -6,7 +6,8 @@ fullscreen = false
 zoom_level = 1.0            # Default zoom factor
 compact = true
 link_boundary_box = false
-
+hscrollbar = false
+vscrollbar = false
 
 # Format is #AARRGGBB (ARGB format)
 [colors]
@@ -31,10 +32,10 @@ page_history = 100 # History for visited pages in the file
 confirm_on_quit = true # Ask before quitting dodo
 
 # ===== Shortcuts =====
-# [keybindings]
-# next_page = "Right"
-# prev_page = "Left"
-# zoom_in = "Ctrl+Plus"
-# zoom_out = "Ctrl+Minus"
-# toggle_fullscreen = "F11"
-# quit = "Ctrl+Q"
+[keybindings]
+next_page = "Right"
+prev_page = "Left"
+zoom_in = "Ctrl+Plus"
+zoom_out = "Ctrl+Minus"
+toggle_fullscreen = "F11"
+quit = "Ctrl+Q"
