@@ -4,9 +4,11 @@
 #include <QImage>
 #include <QDebug>
 #include <QGraphicsRectItem>
+#include <mupdf/fitz.h>
 #include <mupdf/fitz/context.h>
+#include <mupdf/fitz/structured-text.h>
 #include <mupdf/pdf/annot.h>
-#define CSTR(x) x.toStdString().c_str()
+#include <mupdf/pdf/document.h>
 
 void lock_mutex(void* user, int lock) {
     auto mutex = static_cast<std::mutex*>(user);
@@ -50,6 +52,7 @@ OutlineWidget* Model::tableOfContents() noexcept
 
 bool Model::openFile(const QString &fileName)
 {
+    m_filename = fileName;
     m_doc = fz_open_document(m_ctx, CSTR(fileName));
     if (!m_doc)
     {
@@ -82,7 +85,6 @@ void Model::renderPage(int pageno, bool lowQuality)
 {
     float render_dpi = lowQuality ? m_low_dpi : m_dpi;
     float scale = render_dpi / 72.0f;
-    qDebug() << render_dpi;
     if (lowQuality)
     {
         m_transform = fz_scale(m_dpi / m_low_dpi, m_dpi / m_low_dpi);
@@ -226,8 +228,18 @@ void Model::searchAll(const QString &term)
         emit searchResultsReady(resultsMap, matchCount);
 }
 
+void Model::clearLinks() noexcept
+{
+    for (auto &link : m_scene->items())
+    {
+        if (link->data(0).toString() == "link")
+            m_scene->removeItem(link);
+    }
+}
+
 void Model::renderLinks(int pageno, const fz_matrix& transform)
 {
+    clearLinks();
     fz_try(m_ctx)
     {
         fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
@@ -252,18 +264,68 @@ void Model::renderLinks(int pageno, const fz_matrix& transform)
 
                 QRectF qtRect(x, y, w, h);
                 BrowseLinkItem *item;
-
                 QString link_str(link->uri);
                 if (link_str.startsWith("#"))
+                {
+                    if (link_str.startsWith("#page"))
+                    {
+                        int page = link_str.mid(6).toInt();
+                        item = new BrowseLinkItem(qtRect,
+                                                  link_str,
+                                                  BrowseLinkItem::LinkType::Internal_Page);
+                        item->setGotoPageNo(page);
+                        connect(item, &BrowseLinkItem::jumpToPageRequested, this, &Model::jumpToPageRequested);
+                    } else {
+                        item = new BrowseLinkItem(qtRect,
+                                                  link_str,
+                                                  BrowseLinkItem::LinkType::Internal_Section);
+                        fz_link_dest dest = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
+                        int pageno = dest.loc.page;
+                        int chapterno = dest.loc.chapter;
+                        switch(dest.type) {
+
+                            case FZ_LINK_DEST_FIT: {
+                            }
+                            break;
+
+                            case FZ_LINK_DEST_FIT_B: break;
+                            case FZ_LINK_DEST_FIT_H: {
+                                // emit horizontalFitRequested();
+                            }
+                            break;
+
+                            case FZ_LINK_DEST_FIT_BH: break;
+                            case FZ_LINK_DEST_FIT_V: {
+                                // emit verticalFitRequested();
+                            }
+                            break;
+
+                            case FZ_LINK_DEST_FIT_BV: break;
+                            case FZ_LINK_DEST_FIT_R: {
+                                // auto loc = dest.loc;
+                                // emit fitRectRequested(dest.x, dest.y, dest.w, dest.h);
+                            }
+                            case FZ_LINK_DEST_XYZ: {
+                                item->setGotoPageNo(pageno);
+                                item->setXYZ({ .x = dest.x, .y = dest.y, .zoom = dest.zoom });
+                                connect(item, &BrowseLinkItem::jumpToLocationRequested, this,
+                                        &Model::jumpToLocationRequested);
+                            }
+                            break;
+                            default:
+                                qWarning() << "Unknown goto destination type";
+                                break;
+
+                        }
+                    }
+
+                } else {
                     item = new BrowseLinkItem(qtRect,
-                                              link->uri,
-                                              BrowseLinkItem::LinkType::Internal);
-                else
-                    item = new BrowseLinkItem(qtRect,
-                                              link->uri,
+                                              link_str,
                                               BrowseLinkItem::LinkType::External);
+                }
+                item->setData(0, "link");
                 m_scene->addItem(item);
-                qDebug() << link->uri;
             }
             link = link->next;
         }
@@ -279,24 +341,106 @@ void Model::renderLinks(int pageno, const fz_matrix& transform)
 
 }
 
-void Model::annotHighlight(int pageno) noexcept
+void Model::addHighlightAnnotation(int pageno, const QRectF &pdfRect) noexcept
 {
-    fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+    auto bbox = convertToMuPdfRect(pdfRect, m_transform, m_dpi / 72.0);
+    fz_try(m_ctx)
+    {
+        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        if (!page)
+        {
+            fz_drop_page(m_ctx, page);
+            return;
+        }
 
-    pdf_page *pdf_page = pdf_page_from_fz_page(m_ctx, page);
+        pdf_page *pdf_page = pdf_page_from_fz_page(m_ctx, page);
+        if (!pdf_page)
+        {
+            fz_drop_page(m_ctx, page);
+            pdf_drop_page(m_ctx, pdf_page);
+            return;
+        }
 
-    pdf_annot *annot = pdf_create_annot(m_ctx, pdf_page,
-                                        pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
+        // Convert to quads (Highlight annotations require quads)
 
-    // Set the highlight quad(s)
-    pdf_set_annot_quadding(m_ctx, annot, 0);
+        pdf_annot *annot = pdf_create_annot(m_ctx, pdf_page,
+                                            pdf_annot_type::PDF_ANNOT_SQUARE);
 
-    float yellow[3] = { 1.0f, 1.0f, 1.0f };
-    pdf_set_annot_color(m_ctx, annot, 3, yellow);
+        if (!annot)
+        {
+            pdf_drop_page(m_ctx, pdf_page);
+            fz_drop_page(m_ctx, page);
+            return;
+        }
 
-    pdf_update_annot(m_ctx, annot);
+        // Convert to quads (Highlight annotations require quads)
+        // fz_quad quad;
+        // quad.ul.x = bbox.x0;
+        // quad.ul.y = bbox.y1;
+        // quad.ur.x = bbox.x1;
+        // quad.ur.y = bbox.y1;
+        // quad.ll.x = bbox.x0;
+        // quad.ll.y = bbox.y0;
+        // quad.lr.x = bbox.x1;
+        // quad.lr.y = bbox.y0;
+        // pdf_set_annot_quad_points(m_ctx, annot, 1, &quad);
 
-    pdf_drop_annot(m_ctx, annot);
-    pdf_drop_page(m_ctx, pdf_page);
+        float yellow[] = {1.0f, 1.0f, 0.0f};
+        int n = 3;
 
+        pdf_set_annot_rect(m_ctx, annot, bbox);
+        pdf_set_annot_interior_color(m_ctx, annot, n, yellow);
+        pdf_set_annot_opacity(m_ctx, annot, 0.2);
+        pdf_update_annot(m_ctx, annot);
+
+        pdf_drop_annot(m_ctx, annot);
+        pdf_drop_page(m_ctx, pdf_page);
+        fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Cannot add highlight annotation!: " << fz_caught_message(m_ctx);
+    }
 }
+
+bool Model::save() noexcept
+{
+    fz_try(m_ctx)
+    {
+        auto pdf_doc = pdf_document_from_fz_document(m_ctx, m_doc);
+        pdf_save_document(m_ctx, pdf_doc, CSTR(m_filename), nullptr);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Cannot save file: " << fz_caught_message(m_ctx);
+        return false;
+    }
+
+    return true;
+}
+
+fz_rect Model::convertToMuPdfRect(const QRectF &qtRect,
+                                  const fz_matrix &transform,
+                                  float dpiScale) noexcept
+{
+    qDebug() << qtRect;
+    // Undo DPI scaling
+    float x0 = qtRect.left() ;
+    float y0 = qtRect.top() ;
+    float x1 = qtRect.right() ;
+    float y1 = qtRect.bottom() ;
+
+    fz_point p0 = fz_make_point(x0, y0);
+    fz_point p1 = fz_make_point(x1, y1);
+
+    // Invert the matrix used during rendering
+    fz_matrix inverse = fz_invert_matrix(transform);
+
+    // Transform points back into PDF space
+    p0 = fz_transform_point(p0, inverse);
+    p1 = fz_transform_point(p1, inverse);
+
+    // Return rectangle
+    return fz_make_rect(p0.x, p0.y, p1.x, p1.y);
+}
+

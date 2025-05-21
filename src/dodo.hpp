@@ -2,7 +2,6 @@
 
 #include <QApplication>
 #include <QWidget>
-#include <QGraphicsView>
 #include <QGraphicsScene>
 #include <QMainWindow>
 #include <QVBoxLayout>
@@ -32,10 +31,10 @@
 
 #include <vector>
 
+#include "GraphicsView.hpp"
 #include "Panel.hpp"
 #include "toml.hpp"
 #include "RenderTask.hpp"
-#include "GotoLinkItem.hpp"
 #include "BrowseLinkItem.hpp"
 #include "Model.hpp"
 
@@ -50,6 +49,7 @@ public slots:
     void closeEvent(QCloseEvent *e) override;
 private:
 
+    void initConnections() noexcept;
     void initDB() noexcept;
     void initGui() noexcept;
     void initConfig() noexcept;
@@ -63,14 +63,12 @@ private:
     void renderPage(int pageno,
                     bool lowQuality = true) noexcept;
     void cachePage(int pageno) noexcept;
+    void scrollToXY(float x, float y) noexcept;
     void scrollToNormalizedTop(const double &top) noexcept;
-
-
     bool isPrefetchPage(int page, int currentPage) noexcept;
     void prefetchAround(int currentPage) noexcept;
     void setupKeybinding(const std::string_view &action,
                          const std::string &key) noexcept;
-
 
     // Interactive functions
     void OpenFile() noexcept;
@@ -85,6 +83,7 @@ private:
     void ZoomReset() noexcept;
     void ZoomIn() noexcept;
     void ZoomOut() noexcept;
+    void Zoom(float factor) noexcept;
     void FitToWidth() noexcept;
     void FitToHeight() noexcept;
     void RotateClock() noexcept;
@@ -93,6 +92,8 @@ private:
     void Escape() noexcept;
     void GoBackHistory() noexcept;
     void TableOfContents() noexcept;
+    void ToggleHighlight() noexcept;
+    void SaveFile() noexcept;
 
     QDir m_config_dir;
     bool m_prefetch_enabled,
@@ -151,7 +152,7 @@ private:
     QFutureWatcher<void> m_searchWatcher;
 
     QString m_filename;
-    QGraphicsView *m_gview = new QGraphicsView();
+    GraphicsView *m_gview = new GraphicsView();
     QGraphicsScene *m_gscene = new QGraphicsScene();
     QGraphicsPixmapItem *m_pix_item = new QGraphicsPixmapItem();
     QVBoxLayout *m_layout = new QVBoxLayout();

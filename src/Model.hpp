@@ -3,7 +3,7 @@
 #include <QString>
 #include <mupdf/fitz.h>
 #include <mupdf/pdf.h>
-#include "LinkItem.hpp"
+#include "BrowseLinkItem.hpp"
 #include "RenderTask.hpp"
 #include <QObject>
 #include <QThreadPool>
@@ -11,6 +11,7 @@
 #include <QFuture>
 #include <QtConcurrent/QtConcurrent>
 #include "OutlineWidget.hpp"
+#define CSTR(x) x.toStdString().c_str()
 
 class QImage;
 class QGraphicsScene;
@@ -34,15 +35,28 @@ public:
     void renderLinks(int pageno, const fz_matrix& transform);
     void setLinkBoundaryBox(bool state);
     void searchAll(const QString &term);
-    void annotHighlight(int pageno) noexcept;
+    void addHighlightAnnotation(int pageno, const QRectF &rect) noexcept;
+    bool save() noexcept;
+    fz_rect convertToMuPdfRect(const QRectF &qtRect,
+                               const fz_matrix &transform, float dpiScale) noexcept;
+
     OutlineWidget* tableOfContents() noexcept;
     inline fz_matrix transform() noexcept { return m_transform; }
 
     signals:
+    void jumpToPageRequested(int pageno);
+    void jumpToLocationRequested(int pageno, const BrowseLinkItem::Location &loc);
     void imageRenderRequested(int pageno, QImage img, bool lowQuality);
     void searchResultsReady(const QMap<int, QList<QRectF>> &results, int matchCount);
+    void horizontalFitRequested();
+    void verticalFitRequested();
+    void fitRectRequested(int pageno, float x, float y, float w, float h);
+    void fitXYZRequested(int pageno, float x, float y, float zoom);
 
 private:
+    void clearLinks() noexcept;
+
+    QString m_filename;
     QList<QRectF> searchHelper(int pageno, const QString &term);
 
     std::mutex m_locks[FZ_LOCK_MAX];

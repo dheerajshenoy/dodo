@@ -1,4 +1,6 @@
 #include "dodo.hpp"
+#include "GraphicsView.hpp"
+#include <qpointingdevice.h>
 
 dodo::dodo() noexcept
 {
@@ -8,14 +10,23 @@ dodo::dodo() noexcept
     DPI_FRAC = m_dpi / m_low_dpi;
     initKeybinds();
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    openFile("~/Downloads/D. S, Malik - C++ Programming-Cengage (2017).pdf");
+    openFile("~/Downloads/math.pdf");
 
     m_HQRenderTimer->setSingleShot(true);
     m_page_history_list.reserve(m_page_history_limit);
 
+    initConnections();
+
+    m_pix_item->setScale(m_scale_factor);
+}
+
+dodo::~dodo() noexcept
+{}
+
+void dodo::initConnections() noexcept
+{
     connect(m_HQRenderTimer, &QTimer::timeout, this, [&]() {
         renderPage(m_pageno, false);
-        // renderLinks();
     });
 
     connect(m_model, &Model::searchResultsReady, this, [&](const QMap<int, QList<QRectF>> &maps, int matchCount) {
@@ -29,11 +40,37 @@ dodo::dodo() noexcept
         jumpToHit(page, 0);
     });
 
-    m_pix_item->setScale(m_scale_factor);
+    connect(m_gview, &GraphicsView::highlightDrawn, this, [=](const QRectF &pdfRect) {
+        m_model->addHighlightAnnotation(m_pageno, pdfRect);
+    });
+
+    connect(m_model, &Model::horizontalFitRequested, this, [&]() {
+        FitToWidth();
+    });
+
+    connect(m_model, &Model::verticalFitRequested, this, [&]() {
+        FitToHeight();
+    });
+
+    connect(m_model, &Model::jumpToPageRequested, this, [&](int pageno) {
+        gotoPage(pageno);
+    });
+
+    connect(m_model, &Model::jumpToLocationRequested, this, [&](int pageno, const BrowseLinkItem::Location &loc) {
+        gotoPage(pageno);
+        scrollToXY(loc.x, loc.y);
+    });
+
 }
 
-dodo::~dodo() noexcept
-{}
+void dodo::scrollToXY(float x, float y) noexcept
+{
+    if (!m_pix_item || !m_gview)
+        return;
+
+    m_gview->centerOn(QPointF(x * DPI_FRAC, y * DPI_FRAC));
+}
+
 
 void dodo::initDB() noexcept
 {
@@ -125,6 +162,8 @@ void dodo::initKeybinds() noexcept
 {
     std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
 
+        { "Ctrl+s", [this]() { SaveFile(); } },
+        { "Alt+1", [this]() { ToggleHighlight(); } },
         { "t", [this]() { TableOfContents(); } },
         { "<escape>", [this]() { Escape(); } },
         { "/", [this]() { Search(); } },
@@ -165,6 +204,7 @@ void dodo::initGui() noexcept
     // Setup graphics view
     m_gscene->addItem(m_pix_item);
     m_gview->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
+    m_gview->setPixmapItem(m_pix_item);
 
 
     // Menu Bar
@@ -221,6 +261,7 @@ void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
     //     prefetchAround(m_pageno);
     // }
     m_panel->setPageNo(m_pageno + 1);
+    renderLinks();
 }
 
 void dodo::updateUiEnabledState() noexcept
@@ -474,6 +515,13 @@ void dodo::ZoomOut() noexcept
         m_gview->scale(0.9, 0.9);
         m_scale_factor *= 0.9;
     }
+}
+
+void dodo::Zoom(float factor) noexcept
+{
+    // TODO: Add constraints here
+    m_gview->scale(factor, factor);
+    m_scale_factor *= factor;
 }
 
 void dodo::ScrollDown() noexcept
@@ -779,4 +827,15 @@ void dodo::TableOfContents() noexcept
         else
             m_owidget->open();
     }
+}
+
+void dodo::ToggleHighlight() noexcept
+{
+    m_gview->setDrawingMode(!m_gview->drawingMode());
+}
+
+void dodo::SaveFile() noexcept
+{
+    m_model->save();
+    m_model->renderPage(m_pageno, false);
 }
