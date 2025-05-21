@@ -7,6 +7,7 @@ A fast and minimal PDF reader.
 - Also, because I always wanted to create a PDF reader because when I am not developing a
 PDF reader, I am reading lots of PDFs for my work.
 
+![dodo in action](./demo_pic.png)
 
 ## Features
 
