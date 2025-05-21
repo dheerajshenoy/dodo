@@ -10,7 +10,7 @@ dodo::dodo() noexcept
     DPI_FRAC = m_dpi / m_low_dpi;
     initKeybinds();
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    openFile("~/Downloads/math.pdf");
+    // openFile("~/Downloads/math.pdf");
 
     m_HQRenderTimer->setSingleShot(true);
     m_page_history_list.reserve(m_page_history_limit);
