@@ -29,6 +29,7 @@ void RenderTask::run()
 
         fz_rect bounds;
         bounds = fz_bound_page(m_ctx, page);
+        // TODO: Load link here maybe ?
         fz_rect transformed = fz_transform_rect(bounds, m_transform);
         fz_irect bbox = fz_round_rect(transformed);
 

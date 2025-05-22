@@ -69,6 +69,7 @@ private:
     void searchAll(const QString &term) noexcept;
     void renderPage(int pageno,
                     bool lowQuality = true) noexcept;
+    void renderImage(const QImage &img) noexcept;
     void cachePage(int pageno) noexcept;
     void scrollToXY(float x, float y) noexcept;
     void scrollToNormalizedTop(const double &top) noexcept;

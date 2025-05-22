@@ -138,8 +138,9 @@ void Model::setLinkBoundaryBox(bool state)
     m_link_boundary_enabled = state;
 }
 
-void Model::renderPage(int pageno, bool lowQuality)
+QImage Model::renderPage(int pageno, bool lowQuality)
 {
+    QImage image;
     float render_dpi = lowQuality ? m_low_dpi : m_dpi;
     float scale = render_dpi / 72.0f;
     if (lowQuality)
@@ -149,18 +150,77 @@ void Model::renderPage(int pageno, bool lowQuality)
         m_transform = fz_scale(scale, scale);
     }
 
-    auto *ctx = fz_clone_context(m_ctx);
-    if (ctx)
-    {
-        RenderTask *task = new RenderTask(ctx, m_doc, m_colorspace, pageno, m_transform);
+    // RenderTask *task = new RenderTask(ctx, m_doc, m_colorspace, pageno, m_transform);
+    //
+    // connect(task, &RenderTask::finished, this, [&](int page, QImage img) {
+    //     emit imageRenderRequested(page, img, lowQuality);
+    // });
+    // QThreadPool::globalInstance()->start(task);
 
-        connect(task, &RenderTask::finished, this, [&](int page, QImage img) {
-            emit imageRenderRequested(page, img, lowQuality);
-        });
-        QThreadPool::globalInstance()->start(task);
-    } else {
-        qWarning("Unable to clone context");
+    if (!m_ctx)
+        return image;
+
+    fz_try(m_ctx)
+    {
+        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        if (!page)
+            return image;
+
+        fz_rect bounds;
+        bounds = fz_bound_page(m_ctx, page);
+        // TODO: Load link here maybe ?
+        fz_rect transformed = fz_transform_rect(bounds, m_transform);
+        fz_irect bbox = fz_round_rect(transformed);
+
+        fz_pixmap *pix;
+        pix = fz_new_pixmap_with_bbox(m_ctx,
+                                      m_colorspace,
+                                      bbox,
+                                      nullptr,
+                                      0);
+        if (!pix)
+        {
+            fz_drop_page(m_ctx, page);
+            return image;
+        }
+
+        fz_clear_pixmap_with_value(m_ctx, pix, 255); // 255 = white
+        fz_device *dev = fz_new_draw_device(m_ctx, m_transform, pix);
+
+        if (!dev)
+        {
+            fz_drop_page(m_ctx, page);
+            return image;
+        }
+        fz_run_page(m_ctx, page, dev, fz_identity, nullptr);
+
+        // Convert fz_pixmap to QImage
+        int width = fz_pixmap_width(m_ctx,pix);
+        int height = fz_pixmap_height(m_ctx,pix);
+        unsigned char *samples = fz_pixmap_samples(m_ctx,pix);
+        int stride = fz_pixmap_stride(m_ctx,pix);
+
+        // Assume RGB, 8-bit per channel (no alpha)
+        image = QImage(width, height, QImage::Format_RGB888);
+
+        for (int y = 0; y < height; ++y)
+        {
+            memcpy(image.scanLine(y), samples + y * stride, width * 3);  // 3 bytes per pixel
+        }
+
+        // Cleanup
+        fz_close_device(m_ctx, dev);
+        fz_drop_device(m_ctx, dev);
+        fz_drop_pixmap(m_ctx, pix);
+        fz_drop_page(m_ctx, page);
     }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Render failed for page" << pageno;
+        return image;
+    }
+
+    return image;
 }
 
 QList<QRectF> Model::searchHelper(int pageno, const QString &term)
@@ -329,7 +389,7 @@ void Model::renderLinks(int pageno, const fz_matrix& transform)
                         item = new BrowseLinkItem(qtRect,
                                                   link_str,
                                                   BrowseLinkItem::LinkType::Internal_Page);
-                        item->setGotoPageNo(page);
+                        item->setGotoPageNo(page - 1);
                         connect(item, &BrowseLinkItem::jumpToPageRequested, this, &Model::jumpToPageRequested);
                     } else {
                         item = new BrowseLinkItem(qtRect,
@@ -479,7 +539,6 @@ fz_rect Model::convertToMuPdfRect(const QRectF &qtRect,
                                   const fz_matrix &transform,
                                   float dpiScale) noexcept
 {
-    qDebug() << qtRect;
     // Undo DPI scaling
     float x0 = qtRect.left() ;
     float y0 = qtRect.top() ;
@@ -579,13 +638,12 @@ void Model::followLink(const LinkInfo &info) noexcept
     QString link_str = info.uri;
     auto link_dest = info.dest;
 
-    qDebug() << link_str;
-
     if (link_str.startsWith("#"))
     {
         if (link_str.startsWith("#page"))
         {
-
+            int pageno = link_str.mid(6).toInt() - 1;
+            emit jumpToPageRequested(pageno);
         }
 
         // TODO: Handle sections etc.

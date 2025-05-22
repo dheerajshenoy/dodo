@@ -35,7 +35,7 @@ public:
     inline void setDPI(float dpi) { m_dpi = dpi; }
     inline void setLowDPI(float low_dpi) { m_low_dpi = low_dpi; }
     int numPages();
-    void renderPage(int pageno, bool lowQuality);
+    QImage renderPage(int pageno, bool lowQuality);
     void renderLinks(int pageno, const fz_matrix& transform);
     void setLinkBoundaryBox(bool state);
     void searchAll(const QString &term);

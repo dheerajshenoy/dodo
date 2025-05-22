@@ -11,7 +11,7 @@ dodo::dodo() noexcept
     DPI_FRAC = m_dpi / m_low_dpi;
     initKeybinds();
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    openFile("~/Scott Dodelson, Fabian Schmidt - Modern Cosmology-Academic Press (2020).pdf"); // FOR DEBUG PURPOSE ONLY
+    openFile("~/Downloads/basic-link-1.pdf"); // FOR DEBUG PURPOSE ONLY
     m_HQRenderTimer->setSingleShot(true);
     m_page_history_list.reserve(m_page_history_limit);
     initConnections();
@@ -251,13 +251,13 @@ void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
 
     QPixmap pix = QPixmap::fromImage(image);
 
-    // if (!lowQuality) {
-    //     m_highResCache.insert(pageno, new QPixmap(pix));
-    //     // m_pix_item->setScale(m_scale_factor);
-    // } else {
-    //     m_pixmapCache.insert(pageno, new QPixmap(pix));
-    //     // m_pix_item->setScale(DPI_FRAC);
-    // }
+    if (!lowQuality) {
+        m_highResCache.insert(pageno, new QPixmap(pix));
+        // m_pix_item->setScale(m_scale_factor);
+    } else {
+        m_pixmapCache.insert(pageno, new QPixmap(pix));
+        // m_pix_item->setScale(DPI_FRAC);
+    }
 
     m_pix_item->setPixmap(pix);
 
@@ -429,14 +429,14 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
 
     // TODO: Handle file content change detection
 
-    // if (m_highResCache.contains(pageno))
-    // {
-    //     QPixmap *cached = m_highResCache.object(pageno);
-    //     m_pix_item->setPixmap(*cached);
-    //     // m_pix_item->setScale(m_scale_factor);
-    //     return;
-    // }
-    //
+    if (m_highResCache.contains(pageno))
+    {
+        QPixmap *cached = m_highResCache.object(pageno);
+        m_pix_item->setPixmap(*cached);
+        // m_pix_item->setScale(m_scale_factor);
+        return;
+    }
+
     m_HQRenderTimer->stop();
     m_HQRenderTimer->start(100);
 
@@ -453,24 +453,33 @@ void dodo::renderPage(int pageno,
                       bool lowQuality) noexcept
 {
 
-    // if (!lowQuality)
-    // {
-    //     if (m_highResCache.contains(pageno)) {
-    //         m_pix_item->setPixmap(*m_highResCache.object(pageno));
-    //         // m_pix_item->setScale(m_scale_factor);
-    //         return;
-    //     }
-    // } else {
-    //     if (m_pixmapCache.contains(pageno)) {
-    //         m_pix_item->setPixmap(*m_pixmapCache.object(pageno));
-    //         // m_pix_item->setScale(DPI_FRAC);
-    //         return;
-    //     }
-    // }
+    if (!lowQuality)
+    {
+        if (m_highResCache.contains(pageno)) {
+            m_pix_item->setPixmap(*m_highResCache.object(pageno));
+            // m_pix_item->setScale(m_scale_factor);
+            return;
+        }
+    } else {
+        if (m_pixmapCache.contains(pageno)) {
+            m_pix_item->setPixmap(*m_pixmapCache.object(pageno));
+            // m_pix_item->setScale(DPI_FRAC);
+            return;
+        }
+    }
 
-    m_model->renderPage(pageno, lowQuality);
+    auto img = m_model->renderPage(pageno, lowQuality);
+    renderImage(img);
+    if (!lowQuality)
+        renderLinks();
 }
 
+void dodo::renderImage(const QImage &img) noexcept
+{
+    QPixmap pix = QPixmap::fromImage(img);
+    m_pix_item->setPixmap(pix);
+    m_panel->setPageNo(m_pageno + 1);
+}
 
 bool dodo::isPrefetchPage(int page, int currentPage) noexcept
 {
@@ -783,12 +792,12 @@ void dodo::prevHit()
 void dodo::setupKeybinding(const std::string_view &action,
                            const std::string &key) noexcept
 {
-    // TODO
+    // TODO: handle shortcuts
 }
 
 void dodo::Escape() noexcept
 {
-    // TODO
+    // TODO: Escape out of everything IG
 }
 
 void dodo::GoBackHistory() noexcept
@@ -817,14 +826,9 @@ void dodo::closeEvent(QCloseEvent *e)
     if (m_model->hasUnsavedChanges())
     {
         auto reply = QMessageBox::question(this, "Unsaved Changed",
-                                           "There are unsaved changes in this document. Do you want to save");
-        if (reply == QMessageBox::StandardButton::Yes)
-        {
-            if (m_model->save())
-            {
-                QMessageBox::information(this, "Saved", "Changes have been saved");
-            }
-        }
+                                           "There are unsaved changes in this document. Do you want to quit ?");
+        if (reply == QMessageBox::StandardButton::No)
+            return;
     }
 
     e->accept();
@@ -879,7 +883,8 @@ void dodo::ToggleHighlight() noexcept
 void dodo::SaveFile() noexcept
 {
     m_model->save();
-    m_model->renderPage(m_pageno, false);
+    auto img = m_model->renderPage(m_pageno, false);
+    renderImage(img);
 }
 
 void dodo::VisitLinkKB() noexcept
