@@ -11,6 +11,9 @@
 - Basic rectangle annotations
 - Search
 - Table of Contents
+- File properties
+- Keyboard link navigation
+
 
 ## 0.1.0
 

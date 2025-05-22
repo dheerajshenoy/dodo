@@ -79,7 +79,7 @@ Check out the `config.toml` file for reference
     - [X] Basic rectangle highlight
     - [ ] Word aware highlight
 - [X] Table of Contents
-- [ ] Keyboard link navigation
+- [X] Keyboard link navigation
 - [ ] Complex searches
 - [X] Visited file location
 - [X] Keyboard navigation
