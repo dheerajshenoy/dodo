@@ -16,7 +16,6 @@
 class QImage;
 class QGraphicsScene;
 
-
 QString generateHint(int index) noexcept;
 void lock_mutex(void* user, int lock);
 void unlock_mutex(void* user, int lock);
@@ -38,7 +37,7 @@ public:
     QImage renderPage(int pageno, bool lowQuality);
     void renderLinks(int pageno, const fz_matrix& transform);
     void setLinkBoundaryBox(bool state);
-    void searchAll(const QString &term);
+    void searchAll(const QString &term, bool caseSensitive);
     void addHighlightAnnotation(int pageno, const QRectF &rect) noexcept;
     bool save() noexcept;
     fz_rect convertToMuPdfRect(const QRectF &qtRect,
@@ -46,6 +45,7 @@ public:
     bool hasUnsavedChanges() noexcept;
     void enableICC() noexcept;
     void setAntialiasingBits(int bits) noexcept;
+    QList<QPair<QString, QString>> extractPDFProperties() noexcept;
 
     struct LinkInfo {
         QString uri;
@@ -67,7 +67,7 @@ public:
     void jumpToPageRequested(int pageno);
     void jumpToLocationRequested(int pageno, const BrowseLinkItem::Location &loc);
     void imageRenderRequested(int pageno, QImage img, bool lowQuality);
-    void searchResultsReady(const QMap<int, QList<QRectF>> &results, int matchCount);
+    void searchResultsReady(const QMap<int, QList<QPair<QRectF, int>>> &results, int matchCount);
     void horizontalFitRequested();
     void verticalFitRequested();
     void fitRectRequested(int pageno, float x, float y, float w, float h);
@@ -75,11 +75,12 @@ public:
 
 private:
     void clearLinks() noexcept;
+    QList<QPair<QRectF, int>> searchHelper(int pageno, const QString &term, bool caseSensitive);
 
     fz_colorspace *m_colorspace;
 
     QString m_filename;
-    QList<QRectF> searchHelper(int pageno, const QString &term);
+    int m_match_count { 0 };
 
     std::mutex m_locks[FZ_LOCK_MAX];
     float m_dpi, m_low_dpi;

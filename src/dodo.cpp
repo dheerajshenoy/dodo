@@ -1,5 +1,6 @@
 #include "dodo.hpp"
 #include "GraphicsView.hpp"
+#include "PropertiesWidget.hpp"
 #include <qpointingdevice.h>
 
 dodo::dodo() noexcept
@@ -27,14 +28,17 @@ void dodo::initConnections() noexcept
         renderPage(m_pageno, false);
     });
 
-    connect(m_model, &Model::searchResultsReady, this, [&](const QMap<int, QList<QRectF>> &maps, int matchCount) {
-        m_searchRectMap = maps;
-        m_search_match_count = matchCount;
-        m_panel->setSearchCount(m_search_match_count);
-        if (maps.isEmpty())
+    connect(m_model, &Model::searchResultsReady, this, [&](const QMap<int, QList<QPair<QRectF, int>>> &maps,
+                                                           int matchCount) {
+            if (matchCount == 0)
+            {
+            QMessageBox::information(this, "Search Result",
+                                     QString("No match found for {}").arg(m_last_search_term));
             return;
+            }
+        m_searchRectMap = maps;
+        m_panel->setSearchCount(matchCount);
         auto page = maps.firstKey();
-        highlightHitsInPage(page);
         jumpToHit(page, 0);
     });
 
@@ -207,10 +211,9 @@ void dodo::initGui() noexcept
     this->setCentralWidget(widget);
 
     // Setup graphics view
-    m_gscene->addItem(m_pix_item);
     m_gview->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
     m_gview->setPixmapItem(m_pix_item);
-
+    m_gscene->addItem(m_pix_item);
 
     // Menu Bar
     QMenuBar *menubar = menuBar();
@@ -218,6 +221,7 @@ void dodo::initGui() noexcept
     // --- File Menu ---
     QMenu *fileMenu = menubar->addMenu("File");
     fileMenu->addAction("Open", this, &dodo::OpenFile);
+    fileMenu->addAction("File Properties", this, &dodo::FileProperties);
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, &QMainWindow::close);
 
@@ -308,6 +312,12 @@ void dodo::openFile(const QString &fileName) noexcept
     m_filename = fileName;
     m_filename.replace("~", QString::fromStdString(getenv("HOME")));
 
+    QList<QGraphicsItem*> items = m_pix_item->childItems();
+    for (const auto &item : items)
+        m_gscene->removeItem(item);
+
+    qDeleteAll(items);
+
     if (!QFile::exists(m_filename))
     {
         qWarning("file does not exist!: ");
@@ -321,8 +331,12 @@ void dodo::openFile(const QString &fileName) noexcept
         if(!askForPassword())
             return;
 
+    m_pageno = -1;
     m_total_pages = m_model->numPages();
     m_panel->setTotalPageCount(m_total_pages);
+
+    if (m_panel->searchMode())
+        m_panel->setSearchMode(false);
 
     if (m_full_file_path_in_panel)
         m_panel->setFileName(m_filename);
@@ -627,12 +641,11 @@ void dodo::search(const QString &term) noexcept
     // m_pdf_backend->search();
 }
 
-void dodo::searchAll(const QString &term) noexcept
+void dodo::searchAll(const QString &term, bool caseSensitive) noexcept
 {
 
     m_searchRectMap.clear();
     m_search_index = -1;
-    m_search_match_count = 0;
     clearIndexHighlights();
     clearHighlights();
 
@@ -641,7 +654,7 @@ void dodo::searchAll(const QString &term) noexcept
 
     m_last_search_term = term;
 
-    m_model->searchAll(term);
+    m_model->searchAll(term, caseSensitive);
 }
 
 void dodo::jumpToHit(int page, int index)
@@ -655,9 +668,10 @@ void dodo::jumpToHit(int page, int index)
     m_search_hit_page = page;
 
     gotoPage(page);  // Render page
-    m_panel->setSearchIndex(index + 1);
+    m_panel->setSearchIndex(m_searchRectMap[page][index].second + 1);
 
-    highlightSingleHit(page, m_searchRectMap[page][index]);
+    highlightSingleHit(page, m_searchRectMap[page][index].first);
+    highlightHitsInPage(page);
 }
 
 void dodo::highlightHitsInPage(int pageno)
@@ -667,10 +681,11 @@ void dodo::highlightHitsInPage(int pageno)
     clearIndexHighlights();
 
     float scale = m_dpi / 72.0;
-    auto rects = m_searchRectMap.value(pageno);
+    auto list_of_pairs = m_searchRectMap[pageno];
 
-    for (const auto &rect : rects)
+    for (const auto &pairs : list_of_pairs)
     {
+        auto rect = pairs.first;
         QRectF scaledRect = QRectF(
             rect.left() * scale,
             rect.top() * scale,
@@ -750,8 +765,14 @@ void dodo::Search() noexcept
         clearIndexHighlights();
         return;
     }
+
     m_panel->setSearchMode(true);
-    searchAll(term);
+    m_search_index = 0;
+
+    if (hasUpperCase(term))
+        searchAll(term, true);
+    else
+        searchAll(term, false);
 }
 
 void dodo::nextHit()
@@ -1003,4 +1024,22 @@ void dodo::GotoPage() noexcept
                                       QString("Enter page number ({} to {})").arg(0, m_total_pages),
                                       0, 1, m_total_pages);
     gotoPage(pageno - 1);
+}
+
+bool dodo::hasUpperCase(const QString &text) noexcept
+{
+    for (const auto &c : text)
+    if (c.isUpper())
+        return true;
+
+    return false;
+}
+
+
+void dodo::FileProperties() noexcept
+{
+    PropertiesWidget *propsWidget = new PropertiesWidget();
+    auto props = m_model->extractPDFProperties();
+    propsWidget->setProperties(props);
+    propsWidget->exec();
 }

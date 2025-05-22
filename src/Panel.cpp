@@ -29,7 +29,7 @@ void Panel::initGui() noexcept
 }
 
 
-void Panel::setTotalPageCount(const unsigned int &total) noexcept
+void Panel::setTotalPageCount(int total) noexcept
 {
     m_totalpage_label->setText(QString::number(total));
 }
@@ -39,23 +39,23 @@ void Panel::setFileName(const QString &name) noexcept
     m_filename_label->setText(name);
 }
 
-void Panel::setPageNo(const unsigned int &pageno) noexcept
+void Panel::setPageNo(int pageno) noexcept
 {
     m_pageno_label->setText(QString::number(pageno));
 }
 
 
-void Panel::setSearchCount(const unsigned int &count) noexcept
+void Panel::setSearchCount(int count) noexcept
 {
     m_search_count_label->setText(QString::number(count));
 }
 
-void Panel::setSearchIndex(const unsigned int &index) noexcept
+void Panel::setSearchIndex(int index) noexcept
 {
     m_search_index_label->setText(QString::number(index));
 }
 
-void Panel::setSearchMode(const bool &state) noexcept
+void Panel::setSearchMode(bool state) noexcept
 {
     if (!state)
     {
@@ -65,4 +65,5 @@ void Panel::setSearchMode(const bool &state) noexcept
     m_search_label->setVisible(state);
     m_search_index_label->setVisible(state);
     m_search_count_label->setVisible(state);
+    m_search_mode = state;
 }

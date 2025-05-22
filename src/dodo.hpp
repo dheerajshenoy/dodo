@@ -28,6 +28,7 @@
 #include <QtSql/QSqlQuery>
 #include <QCloseEvent>
 #include <QMessageBox>
+#include <qgraphicsitem.h>
 #include <vector>
 
 #include "GraphicsView.hpp"
@@ -36,6 +37,7 @@
 #include "RenderTask.hpp"
 #include "BrowseLinkItem.hpp"
 #include "Model.hpp"
+#include "PropertiesWidget.hpp"
 
 class dodo : public QMainWindow {
 public:
@@ -64,7 +66,7 @@ private:
     void openFile(const QString &fileName) noexcept;
     void renderLinks() noexcept;
     void search(const QString &term) noexcept;
-    void searchAll(const QString &term) noexcept;
+    void searchAll(const QString &term, bool caseSensitive) noexcept;
     void renderPage(int pageno,
                     bool lowQuality = true) noexcept;
     void renderImage(const QImage &img) noexcept;
@@ -78,6 +80,7 @@ private:
 
     // Interactive functions
     void OpenFile() noexcept;
+    void FileProperties() noexcept;
     void FirstPage() noexcept;
     void LastPage() noexcept;
     void NextPage() noexcept;
@@ -104,6 +107,7 @@ private:
     void CopyLinkKB() noexcept;
     void GotoPage() noexcept;
 
+
     QDir m_config_dir;
     bool m_prefetch_enabled,
     m_suppressHistory,
@@ -113,7 +117,6 @@ private:
     m_rotation = 0,
     m_search_index = -1,
     m_total_pages = 0,
-    m_search_match_count = 0,
     m_search_hit_page = -1,
     m_prefetch_distance,
     m_page_history_limit;
@@ -132,10 +135,8 @@ private:
     m_low_dpi,
     DPI_FRAC;
 
-
     void updateUiEnabledState() noexcept;
     void jumpToHit(int page, int index);
-
     bool askForPassword() noexcept;
     void highlightSingleHit(int page, const QRectF &rect);
     void highlightHitsInPage(int page);
@@ -143,6 +144,7 @@ private:
     void clearHighlights();
     void prevHit();
     void nextHit();
+    bool hasUpperCase(const QString &text) noexcept;
 
     QAction *m_actionZoomIn = nullptr;
     QAction *m_actionZoomOut = nullptr;
@@ -158,8 +160,7 @@ private:
     m_pixmapCache;
 
     QThreadPool tp;
-    QMap<int, QList<QRectF>> m_searchRectMap;
-    QFutureWatcher<void> m_searchWatcher;
+    QMap<int, QList<QPair<QRectF, int>>> m_searchRectMap;
 
     QString m_filename;
     GraphicsView *m_gview = new GraphicsView();

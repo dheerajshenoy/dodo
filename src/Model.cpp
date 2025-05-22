@@ -10,6 +10,8 @@
 #include <mupdf/fitz/structured-text.h>
 #include <mupdf/pdf/annot.h>
 #include <mupdf/pdf/document.h>
+#include <mupdf/pdf/xref.h>
+#include <mupdf/pdf/object.h>
 #include <qgraphicsitem.h>
 
 
@@ -24,7 +26,6 @@ QString generateHint(int index) noexcept
     } while (index >= 0);
     return hint;
 }
-
 
 void lock_mutex(void* user, int lock) {
     auto mutex = static_cast<std::mutex*>(user);
@@ -223,9 +224,10 @@ QImage Model::renderPage(int pageno, bool lowQuality)
     return image;
 }
 
-QList<QRectF> Model::searchHelper(int pageno, const QString &term)
+QList<QPair<QRectF, int>>
+Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
 {
-    QList<QRectF> results;
+    QList<QPair<QRectF, int>> results;
     fz_page *page = nullptr;
     fz_stext_page *textPage = nullptr;
 
@@ -258,13 +260,11 @@ QList<QRectF> Model::searchHelper(int pageno, const QString &term)
 
                 for (fz_stext_char* ch = line->first_char; ch; ch = ch->next)
                 {
-
                     if (ch->c == 0)
                         continue;
 
-                    auto qch = QChar(ch->c);
+                    QChar qch = QChar(ch->c);
 
-                    // Get character bounds
                     QRectF charRect(
                         ch->quad.ul.x,
                         ch->quad.ul.y,
@@ -272,76 +272,110 @@ QList<QRectF> Model::searchHelper(int pageno, const QString &term)
                         ch->quad.ll.y - ch->quad.ul.y
                     );
 
-                    // Detect word breaks
-                    bool isSpace = qch.isSpace();
-
-                    if (isSpace)
+                    // Handle single-character match
+                    if (term.length() == 1)
                     {
-                        if (inWord)
+                        if ((caseSensitive && qch == term[0]) ||
+                            (!caseSensitive && qch.toLower() == term[0].toLower()))
                         {
-
-                            if (currentWord == term)
-                                results.append(currentRect);
-
-                            currentWord.clear();
-                            currentRect = QRectF();
-                            inWord = false;
+                            results.append(qMakePair(charRect, m_match_count));
+                            m_match_count++;
                         }
+                        continue;
+                    }
+
+                    // Build up word for multi-char term match
+                    if (qch.isSpace())
+                    {
+                        // Word boundary — evaluate match
+                        if (!currentWord.isEmpty())
+                        {
+                            QString wordToCheck = caseSensitive ? currentWord : currentWord.toLower();
+                            QString termToCheck = caseSensitive ? term : term.toLower();
+
+                            if (wordToCheck == termToCheck)
+                            {
+                                results.append(qMakePair(currentRect, m_match_count));
+                                m_match_count++;
+                            }
+                        }
+
+                        // Reset word state
+                        currentWord.clear();
+                        currentRect = QRectF();
                     } else {
-                        if (!inWord)
+                        if (currentWord.isEmpty())
                         {
                             currentWord = qch;
                             currentRect = charRect;
-                            inWord = true;
                         } else {
                             currentWord += qch;
                             currentRect = currentRect.united(charRect);
                         }
-                    }
 
+                        // Check mid-word match
+                        QString wordToCheck = caseSensitive ? currentWord : currentWord.toLower();
+                        QString termToCheck = caseSensitive ? term : term.toLower();
+
+                        if (wordToCheck == termToCheck)
+                        {
+                            results.append(qMakePair(currentRect, m_match_count));
+                            m_match_count++;
+
+                            // Reset to allow overlapping matches (optional)
+                            currentWord.clear();
+                            currentRect = QRectF();
+                        }
+                    }
                 }
 
-                if (inWord && currentWord == term)
-                    results.append(currentRect);
+                // Final check at end of line
+                if (!currentWord.isEmpty())
+                {
+                    QString wordToCheck = caseSensitive ? currentWord : currentWord.toLower();
+                    QString termToCheck = caseSensitive ? term : term.toLower();
+
+                    if (wordToCheck == termToCheck)
+                    {
+                        results.append(qMakePair(currentRect, m_match_count));
+                        m_match_count++;
+                    }
+                }
+
             }
         }
 
     }
     fz_always(m_ctx)
     {
-        if (page)
-            fz_drop_page(m_ctx, page);
-
-        if (textPage)
-            fz_drop_stext_page(m_ctx, textPage);
+        fz_drop_page(m_ctx, page);
+        fz_drop_stext_page(m_ctx, textPage);
     }
     fz_catch(m_ctx)
     {
-
+        qWarning() << "MuPDF exception during text search on page" << pageno;
     }
 
     return results;
 }
 
-void Model::searchAll(const QString &term)
+void Model::searchAll(const QString &term, bool caseSensitive)
 {
-    int matchCount = 0;
-    QMap<int, QList<QRectF>> resultsMap;
+    QMap<int, QList<QPair<QRectF, int>>> resultsMap;
+    m_match_count = 0;
 
     for (int pageNum = 0; pageNum < numPages(); ++pageNum) {
-        QList<QRectF> results;
+        QList<QPair<QRectF, int>> results;
 
-        results = searchHelper(pageNum, term);
+        results = searchHelper(pageNum, term, caseSensitive);
 
         if (!results.isEmpty())
         {
             resultsMap[pageNum] = results;
-            matchCount += results.length();
         }
     }
 
-    if (matchCount > 0)
-        emit searchResultsReady(resultsMap, matchCount);
+    emit searchResultsReady(resultsMap, m_match_count);
 }
 
 void Model::clearLinks() noexcept
@@ -661,3 +695,97 @@ bool Model::hasUnsavedChanges() noexcept
         return pdf_has_unsaved_changes(m_ctx, idoc);
     return false;
 }
+
+// QList<QPair<QString, QString>> Model::extractPDFProperties() noexcept
+// {
+//     QList<QPair<QString, QString>> props;
+//     auto pdfdoc = pdf_specifics(m_ctx, m_doc);
+//
+//     if (!m_ctx || !m_doc)
+//         return props;
+//
+//       static const char* keys[] = {
+//         "Title", "Author", "Subject", "Keywords",
+//         "Creator", "Producer", "CreationDate", "ModDate", "Trapped"
+//     };
+//
+//     pdf_obj* info = pdf_dict_get(m_ctx, pdf_trailer(m_ctx, pdfdoc), PDF_NAME(Info));
+//     if (!info || !pdf_is_dict(m_ctx, info))
+//         return props;
+//
+//     for (const char* key : keys)
+//     {
+//         pdf_obj* val = pdf_dict_get(m_ctx, info, pdf_new_name(m_ctx, key));
+//         if (val && pdf_is_string(m_ctx, val))
+//         {
+//             const char* s = pdf_to_str_buf(m_ctx, val);
+//             int len = pdf_to_str_len(m_ctx, val);
+//             props.append(qMakePair(QString::fromLatin1(key), QString::fromUtf8(s, len)));
+//         }
+//     }
+//
+//     // Add some basic stats
+//     props.append(qMakePair("Page Count", QString::number(pdf_count_pages(m_ctx, pdfdoc))));
+//     props.append(qMakePair("Encrypted", pdf_needs_password(m_ctx, pdfdoc) ? "Yes" : "No"));
+//
+//     return props;
+// }
+
+QList<QPair<QString, QString>> Model::extractPDFProperties() noexcept
+{
+    QList<QPair<QString, QString>> props;
+
+    if (!m_ctx || !m_doc)
+        return props;
+
+    pdf_document* pdfdoc = pdf_specifics(m_ctx, m_doc);
+
+    if (!pdfdoc)
+        return props;
+
+    // ========== Info Dictionary ==========
+    pdf_obj* info = pdf_dict_get(m_ctx, pdf_trailer(m_ctx, pdfdoc), PDF_NAME(Info));
+    if (info && pdf_is_dict(m_ctx, info)) {
+        int len = pdf_dict_len(m_ctx, info);
+        for (int i = 0; i < len; ++i) {
+            pdf_obj* keyObj = pdf_dict_get_key(m_ctx, info, i);
+            pdf_obj* valObj = pdf_dict_get_val(m_ctx, info, i);
+
+            if (!pdf_is_name(m_ctx, keyObj))
+                continue;
+
+            QString key = QString::fromLatin1(pdf_to_name(m_ctx, keyObj));
+            QString val;
+
+            if (pdf_is_string(m_ctx, valObj)) {
+                const char* s = pdf_to_str_buf(m_ctx, valObj);
+                int slen = pdf_to_str_len(m_ctx, valObj);
+
+                if (slen >= 2 && (quint8)s[0] == 0xFE && (quint8)s[1] == 0xFF)
+                    val = QString::fromUtf16(reinterpret_cast<const ushort*>(s + 2), (slen - 2) / 2);
+                else
+                    val = QString::fromUtf8(s, slen);
+            }
+            else if (pdf_is_int(m_ctx, valObj))
+                val = QString::number(pdf_to_int(m_ctx, valObj));
+            else if (pdf_is_bool(m_ctx, valObj))
+                val = pdf_to_bool(m_ctx, valObj) ? "true" : "false";
+            else if (pdf_is_name(m_ctx, valObj))
+                val = QString::fromLatin1(pdf_to_name(m_ctx, valObj));
+            else
+                val = QStringLiteral("[Non-string value]");
+
+            props.append({ key, val });
+        }
+    }
+
+    // ========== Add Derived Properties ==========
+    props.append(qMakePair("Page Count", QString::number(pdf_count_pages(m_ctx, pdfdoc))));
+    props.append(qMakePair("Encrypted", pdf_needs_password(m_ctx, pdfdoc) ? "Yes" : "No"));
+    props.append(qMakePair("PDF Version",
+                           QString("%1.%2").arg(pdfdoc->version / 10).arg(pdfdoc->version % 10)));
+
+    return props;
+}
+
+
