@@ -44,6 +44,8 @@ public:
     fz_rect convertToMuPdfRect(const QRectF &qtRect,
                                const fz_matrix &transform, float dpiScale) noexcept;
     bool hasUnsavedChanges() noexcept;
+    void enableICC() noexcept;
+    void setAntialiasingBits(int bits) noexcept;
 
     struct LinkInfo {
         QString uri;

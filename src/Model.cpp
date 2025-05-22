@@ -60,6 +60,15 @@ Model::~Model()
     fz_drop_context(m_ctx);
 }
 
+void Model::enableICC() noexcept
+{
+    fz_enable_icc(m_ctx);
+}
+
+void Model::setAntialiasingBits(int bits) noexcept
+{
+    fz_set_aa_level(m_ctx, bits);
+}
 
 bool Model::passwordRequired() noexcept
 {

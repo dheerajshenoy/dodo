@@ -11,7 +11,7 @@ dodo::dodo() noexcept
     DPI_FRAC = m_dpi / m_low_dpi;
     initKeybinds();
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    openFile("~/Downloads/protected.pdf"); // FOR DEBUG PURPOSE ONLY
+    openFile("~/Scott Dodelson, Fabian Schmidt - Modern Cosmology-Academic Press (2020).pdf"); // FOR DEBUG PURPOSE ONLY
     m_HQRenderTimer->setSingleShot(true);
     m_page_history_list.reserve(m_page_history_limit);
     initConnections();
@@ -134,6 +134,9 @@ void dodo::initConfig() noexcept
     m_prefetch_enabled = behavior["enable_prefetch"].value_or(true);
     m_prefetch_distance = behavior["prefetch_distance"].value_or(2);
     m_page_history_limit = behavior["page_history"].value_or(100);
+    m_model->setAntialiasingBits(behavior["antialasing_bits"].value_or(8));
+    if (behavior["icc_color_profile"].value_or(true))
+        m_model->enableICC();
 
     auto keys = toml["keybindings"];
 
