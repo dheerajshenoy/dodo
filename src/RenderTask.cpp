@@ -1,4 +1,6 @@
 #include "RenderTask.hpp"
+#include <mupdf/fitz/context.h>
+#include <mupdf/pdf/event.h>
 
 RenderTask::RenderTask(fz_context *ctx,
                        fz_document *doc,
@@ -44,6 +46,13 @@ void RenderTask::run()
 
         fz_clear_pixmap_with_value(m_ctx, pix, 255); // 255 = white
         fz_device *dev = fz_new_draw_device(m_ctx, m_transform, pix);
+
+        if (!dev)
+        {
+            fz_drop_page(m_ctx, page);
+            fz_drop_context(m_ctx);
+            return;
+        }
         fz_run_page(m_ctx, page, dev, fz_identity, nullptr);
 
         // Convert fz_pixmap to QImage

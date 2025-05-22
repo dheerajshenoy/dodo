@@ -28,6 +28,7 @@
 #include <QtSql/QSqlDatabase>
 #include <QtSql/QSqlQuery>
 #include <QCloseEvent>
+#include <QMessageBox>
 
 #include <vector>
 
@@ -102,6 +103,7 @@ private:
     void SaveFile() noexcept;
     void VisitLinkKB() noexcept;
     void CopyLinkKB() noexcept;
+    void GotoPage() noexcept;
 
     QDir m_config_dir;
     bool m_prefetch_enabled,
@@ -135,6 +137,7 @@ private:
     void updateUiEnabledState() noexcept;
     void jumpToHit(int page, int index);
 
+    bool askForPassword() noexcept;
     void highlightSingleHit(int page, const QRectF &rect);
     void highlightHitsInPage(int page);
     void clearIndexHighlights();

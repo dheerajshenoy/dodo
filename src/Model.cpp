@@ -6,6 +6,7 @@
 #include <QGraphicsRectItem>
 #include <mupdf/fitz.h>
 #include <mupdf/fitz/context.h>
+#include <mupdf/fitz/document.h>
 #include <mupdf/fitz/structured-text.h>
 #include <mupdf/pdf/annot.h>
 #include <mupdf/pdf/document.h>
@@ -57,6 +58,17 @@ Model::~Model()
 {
     fz_drop_document(m_ctx, m_doc);
     fz_drop_context(m_ctx);
+}
+
+
+bool Model::passwordRequired() noexcept
+{
+    return fz_needs_password(m_ctx, m_doc);
+}
+
+bool Model::authenticate(const QString &pwd) noexcept
+{
+    return fz_authenticate_password(m_ctx, m_doc, pwd.toStdString().c_str());
 }
 
 OutlineWidget* Model::tableOfContents() noexcept
@@ -113,8 +125,7 @@ void Model::renderPage(int pageno, bool lowQuality)
         RenderTask *task = new RenderTask(ctx, m_doc, pageno, m_transform);
 
         connect(task, &RenderTask::finished, this, [&](int page, QImage img) {
-            if (page == pageno)
-                emit imageRenderRequested(page, img, lowQuality);
+            emit imageRenderRequested(page, img, lowQuality);
         });
         QThreadPool::globalInstance()->start(task);
     } else {

@@ -5,12 +5,13 @@
 dodo::dodo() noexcept
 {
     initGui();
+    this->show();
     initConfig();
     initDB();
     DPI_FRAC = m_dpi / m_low_dpi;
     initKeybinds();
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    // openFile("~/Downloads/basic-link-1.pdf"); // FOR DEBUG PURPOSE ONLY
+    openFile("~/Downloads/protected.pdf"); // FOR DEBUG PURPOSE ONLY
     m_HQRenderTimer->setSingleShot(true);
     m_page_history_list.reserve(m_page_history_limit);
     initConnections();
@@ -160,6 +161,7 @@ void dodo::initKeybinds() noexcept
 {
     std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
 
+        { "b", [this]() { GotoPage(); } },
         { "f", [this]() { VisitLinkKB(); } },
         { "Ctrl+s", [this]() { SaveFile(); } },
         { "Alt+1", [this]() { ToggleHighlight(); } },
@@ -238,7 +240,10 @@ void dodo::initGui() noexcept
 void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
 {
     if (pageno != m_pageno || image.isNull())
+    {
+        qDebug() << "Old, ignoring";
         return;
+    }
 
     QPixmap pix = QPixmap::fromImage(image);
 
@@ -292,13 +297,13 @@ void dodo::OpenFile() noexcept
 
 }
 
-
 /* Function for opening the file using the model.
  For internal usage only */
 void dodo::openFile(const QString &fileName) noexcept
 {
     m_filename = fileName;
     m_filename.replace("~", QString::fromStdString(getenv("HOME")));
+
     if (!QFile::exists(m_filename))
     {
         qWarning("file does not exist!: ");
@@ -306,9 +311,11 @@ void dodo::openFile(const QString &fileName) noexcept
     }
 
     if (!m_model->openFile(m_filename))
-    {
         return;
-    }
+
+    if (m_model->passwordRequired())
+        if(!askForPassword())
+            return;
 
     m_total_pages = m_model->numPages();
     m_panel->setTotalPageCount(m_total_pages);
@@ -333,6 +340,23 @@ void dodo::openFile(const QString &fileName) noexcept
     updateUiEnabledState();
 }
 
+bool dodo::askForPassword() noexcept
+{
+    bool ok;
+    auto pwd = QInputDialog::getText(this, "Document is locked", "Enter password",
+                                     QLineEdit::EchoMode::Password, QString(), &ok);
+    if (!ok)
+        return false;
+
+    auto correct = m_model->authenticate(pwd);
+    if (correct)
+        return true;
+    else
+    {
+        QMessageBox::critical(this, "Password", "Password is incorrect");
+        return false;
+    }
+}
 
 void dodo::RotateClock() noexcept
 {
@@ -939,4 +963,12 @@ bool dodo::eventFilter(QObject *obj, QEvent *event)
 
     // Let other events pass through
     return QObject::eventFilter(obj, event);
+}
+
+void dodo::GotoPage() noexcept
+{
+    int pageno = QInputDialog::getInt(this, "Goto Page",
+                                      QString("Enter page number ({} to {})").arg(0, m_total_pages),
+                                      0, 1, m_total_pages);
+    gotoPage(pageno - 1);
 }

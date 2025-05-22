@@ -28,6 +28,8 @@ public:
 
     Model(QGraphicsScene *scene);
     ~Model();
+    bool authenticate(const QString &pwd) noexcept;
+    bool passwordRequired() noexcept;
     bool openFile(const QString &fileName);
     bool valid();
     inline void setDPI(float dpi) { m_dpi = dpi; }
