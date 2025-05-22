@@ -103,6 +103,7 @@ void dodo::initConfig() noexcept
     m_gview->verticalScrollBar()->setVisible(ui["vscrollbar"].value_or(true));
     m_gview->horizontalScrollBar()->setVisible(ui["hscrollbar"].value_or(true));
 
+    m_full_file_path_in_panel = ui["full_file_path_in_panel"].value_or(false);
     m_scale_factor = ui["zoom_level"].value_or(1.0);
     bool compact = ui["compact"].value_or(false);
     m_model->setLinkBoundaryBox(ui["link_boundary_box"].value_or(false));
@@ -319,7 +320,11 @@ void dodo::openFile(const QString &fileName) noexcept
 
     m_total_pages = m_model->numPages();
     m_panel->setTotalPageCount(m_total_pages);
-    m_panel->setFileName(m_filename);
+
+    if (m_full_file_path_in_panel)
+        m_panel->setFileName(m_filename);
+    else
+        m_panel->setFileName(fz_basename(CSTR(m_filename)));
 
     if (m_remember_last_visited)
     {

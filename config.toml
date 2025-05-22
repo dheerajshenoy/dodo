@@ -8,6 +8,7 @@ compact = true
 link_boundary_box = false
 hscrollbar = false
 vscrollbar = false
+full_file_path_in_panel = true
 
 # Format is #AARRGGBB (ARGB format)
 [colors]
