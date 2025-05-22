@@ -57,6 +57,11 @@ void Panel::setSearchIndex(const unsigned int &index) noexcept
 
 void Panel::setSearchMode(const bool &state) noexcept
 {
+    if (!state)
+    {
+        m_search_index_label->setText("");
+        m_search_count_label->setText("");
+    }
     m_search_label->setVisible(state);
     m_search_index_label->setVisible(state);
     m_search_count_label->setVisible(state);

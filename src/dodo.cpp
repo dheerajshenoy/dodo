@@ -743,6 +743,13 @@ void dodo::clearHighlights()
 void dodo::Search() noexcept
 {
     auto term = QInputDialog::getText(this, "Search", "Search for");
+    if (term.isEmpty() || term.isNull())
+    {
+        m_panel->setSearchMode(false);
+        clearHighlights();
+        clearIndexHighlights();
+        return;
+    }
     m_panel->setSearchMode(true);
     searchAll(term);
 }

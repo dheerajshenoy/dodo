@@ -644,9 +644,10 @@ void Model::followLink(const LinkInfo &info) noexcept
         {
             int pageno = link_str.mid(6).toInt() - 1;
             emit jumpToPageRequested(pageno);
+        } else {
+            qWarning () << "Not yet supported";
+            // TODO: Handle sections etc.
         }
-
-        // TODO: Handle sections etc.
     }
     else {
         QDesktopServices::openUrl(QUrl(link_str));

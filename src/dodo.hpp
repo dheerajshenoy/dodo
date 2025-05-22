@@ -23,13 +23,11 @@
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QMenu>
-#include <QGraphicsRectItem>
 #include <QInputDialog>
 #include <QtSql/QSqlDatabase>
 #include <QtSql/QSqlQuery>
 #include <QCloseEvent>
 #include <QMessageBox>
-
 #include <vector>
 
 #include "GraphicsView.hpp"
