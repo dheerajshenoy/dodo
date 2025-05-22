@@ -20,6 +20,7 @@ add_executable(${PROJECT_NAME}
     src/Panel.cpp
     src/Model.cpp
     src/RenderTask.cpp
+    src/PropertiesWidget.cpp
 
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp
