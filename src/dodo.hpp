@@ -173,6 +173,7 @@ private:
     QMap<QString, QString> m_colors;
     bool m_highlights_present;
     bool m_linkHintMode { false };
+    bool m_full_file_path_in_panel;
     OutlineWidget *m_owidget { nullptr };
     QString m_currentHintInput;
     QMap<QString, Model::LinkInfo> m_link_hint_map;

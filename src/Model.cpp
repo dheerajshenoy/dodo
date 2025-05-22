@@ -564,3 +564,11 @@ void Model::followLink(const LinkInfo &info) noexcept
         QDesktopServices::openUrl(QUrl(link_str));
     }
 }
+
+bool Model::hasUnsavedChanges() noexcept
+{
+    pdf_document *idoc = pdf_specifics(m_ctx, m_doc);
+    if (idoc)
+        return pdf_has_unsaved_changes(m_ctx, idoc);
+    return false;
+}

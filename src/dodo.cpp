@@ -802,7 +802,6 @@ void dodo::GoBackHistory() noexcept
 
 void dodo::closeEvent(QCloseEvent *e)
 {
-
     if (m_remember_last_visited && m_model->valid())
     {
         QSqlQuery q;
@@ -810,6 +809,19 @@ void dodo::closeEvent(QCloseEvent *e)
         q.addBindValue(m_filename);
         q.addBindValue(m_pageno);
         q.exec();
+    }
+
+    if (m_model->hasUnsavedChanges())
+    {
+        auto reply = QMessageBox::question(this, "Unsaved Changed",
+                                           "There are unsaved changes in this document. Do you want to save");
+        if (reply == QMessageBox::StandardButton::Yes)
+        {
+            if (m_model->save())
+            {
+                QMessageBox::information(this, "Saved", "Changes have been saved");
+            }
+        }
     }
 
     e->accept();

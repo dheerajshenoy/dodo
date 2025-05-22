@@ -43,6 +43,7 @@ public:
     bool save() noexcept;
     fz_rect convertToMuPdfRect(const QRectF &qtRect,
                                const fz_matrix &transform, float dpiScale) noexcept;
+    bool hasUnsavedChanges() noexcept;
 
     struct LinkInfo {
         QString uri;
