@@ -50,6 +50,7 @@ Model::Model(QGraphicsScene *scene)
         exit(-1);
     }
 
+    m_colorspace = fz_device_rgb(m_ctx);
     fz_register_document_handlers(m_ctx);
 
 }
@@ -99,6 +100,26 @@ bool Model::openFile(const QString &fileName)
     return true;
 }
 
+void Model::loadColorProfile(const QString &profileName) noexcept
+{
+    fz_buffer *profile_data = nullptr;
+    fz_var(profile_data);
+    fz_try(m_ctx)
+    {
+        profile_data = fz_read_file(m_ctx, CSTR(profileName));
+        m_colorspace = fz_new_icc_colorspace(m_ctx, FZ_COLORSPACE_RGB, 0, nullptr, profile_data);
+    }
+    fz_always(m_ctx)
+    {
+        fz_drop_buffer(m_ctx, profile_data);
+    }
+    fz_catch(m_ctx)
+    {
+        fz_report_error(m_ctx);
+        qWarning() << "Cannot load color profile";
+    }
+}
+
 bool Model::valid()
 {
     return m_doc;
@@ -131,7 +152,7 @@ void Model::renderPage(int pageno, bool lowQuality)
     auto *ctx = fz_clone_context(m_ctx);
     if (ctx)
     {
-        RenderTask *task = new RenderTask(ctx, m_doc, pageno, m_transform);
+        RenderTask *task = new RenderTask(ctx, m_doc, m_colorspace, pageno, m_transform);
 
         connect(task, &RenderTask::finished, this, [&](int page, QImage img) {
             emit imageRenderRequested(page, img, lowQuality);

@@ -4,9 +4,10 @@
 
 RenderTask::RenderTask(fz_context *ctx,
                        fz_document *doc,
+                       fz_colorspace *colorspace,
                        int pageno,
                        fz_matrix transform)
-: m_ctx(ctx), m_doc(doc), m_pageno(pageno), m_transform(transform)
+: m_ctx(ctx), m_doc(doc), m_colorspace(colorspace), m_pageno(pageno), m_transform(transform)
 {
     setAutoDelete(true); // let threadpool clean this up automatically
 }
@@ -33,7 +34,7 @@ void RenderTask::run()
 
         fz_pixmap *pix;
         pix = fz_new_pixmap_with_bbox(m_ctx,
-                                      fz_device_rgb(m_ctx),
+                                      m_colorspace,
                                       bbox,
                                       nullptr,
                                       0);

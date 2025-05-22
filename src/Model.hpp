@@ -61,6 +61,7 @@ public:
     };
     void clearKBHintsOverlay() noexcept;
     void followLink(const LinkInfo &info) noexcept;
+    void loadColorProfile(const QString &profileName) noexcept;
 
     signals:
     void jumpToPageRequested(int pageno);
@@ -74,6 +75,8 @@ public:
 
 private:
     void clearLinks() noexcept;
+
+    fz_colorspace *m_colorspace;
 
     QString m_filename;
     QList<QRectF> searchHelper(int pageno, const QString &term);
