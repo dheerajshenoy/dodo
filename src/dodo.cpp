@@ -424,9 +424,6 @@ void dodo::updateUiEnabledState() noexcept
 
     m_actionZoomIn->setEnabled(hasFile);
     m_actionZoomOut->setEnabled(hasFile);
-    m_actionFitWidth->setEnabled(hasFile);
-    m_actionFitHeight->setEnabled(hasFile);
-    m_actionFitWindow->setEnabled(hasFile);
 
     m_actionFirstPage->setEnabled(hasFile);
     m_actionPrevPage->setEnabled(hasFile);
