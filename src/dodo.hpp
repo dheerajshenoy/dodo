@@ -30,6 +30,7 @@
 #include <QMessageBox>
 #include <qgraphicsitem.h>
 #include <vector>
+#include <functional>
 
 #include "GraphicsView.hpp"
 #include "Panel.hpp"
@@ -54,6 +55,7 @@ protected:
 private:
 
     void initConnections() noexcept;
+    void initMenubar() noexcept;
     void initDB() noexcept;
     void initGui() noexcept;
     void initConfig() noexcept;
@@ -71,10 +73,11 @@ private:
     void scrollToNormalizedTop(const double &top) noexcept;
     bool isPrefetchPage(int page, int currentPage) noexcept;
     void prefetchAround(int currentPage) noexcept;
-    void setupKeybinding(const std::string_view &action,
-                         const std::string &key) noexcept;
+    void setupKeybinding(const QString &action,
+                         const QString &key) noexcept;
 
     // Interactive functions
+    void Fullscreen() noexcept;
     void OpenFile() noexcept;
     void FileProperties() noexcept;
     void FirstPage() noexcept;
@@ -94,7 +97,6 @@ private:
     void RotateClock() noexcept;
     void RotateAntiClock() noexcept;
     void Search() noexcept;
-    void Escape() noexcept;
     void GoBackHistory() noexcept;
     void TableOfContents() noexcept;
     void ToggleHighlight() noexcept;
@@ -102,6 +104,8 @@ private:
     void VisitLinkKB() noexcept;
     void CopyLinkKB() noexcept;
     void GotoPage() noexcept;
+    void TopOfThePage() noexcept;
+    void InvertColor() noexcept;
 
 
     QDir m_config_dir;
@@ -142,6 +146,7 @@ private:
     void nextHit();
     bool hasUpperCase(const QString &text) noexcept;
     void rehighlight() noexcept;
+    void zoomHelper() noexcept;
 
     QAction *m_actionZoomIn = nullptr;
     QAction *m_actionZoomOut = nullptr;
@@ -174,5 +179,9 @@ private:
     OutlineWidget *m_owidget { nullptr };
     QString m_currentHintInput;
     QMap<QString, Model::LinkInfo> m_link_hint_map;
+    QMap<QString, QString> m_shortcuts_map;
+    QMap<QString, std::function<void()>> m_actionMap;
+    bool m_load_default_keybinding { true };
+
 };
 
