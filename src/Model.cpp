@@ -34,7 +34,7 @@ Model::Model(QGraphicsScene *scene)
     lock_context.lock = lock_mutex;
     lock_context.unlock = unlock_mutex;
 
-    m_ctx = fz_new_context(nullptr, &lock_context, FZ_STORE_DEFAULT);
+    m_ctx = fz_new_context(nullptr, &lock_context, FZ_STORE_UNLIMITED);
     if (!m_ctx) {
         qWarning("Unable to create mupdf context");
         exit(-1);
@@ -135,10 +135,9 @@ QImage Model::renderPage(int pageno, float zoom)
     if (!m_ctx)
         return image;
 
-    float scale = m_dpi / 72.0f * zoom;
+    fz_set_aa_level(m_ctx, 8);
+    float scale = m_dpi / 72.0 * zoom;
     m_transform = fz_scale(scale, scale);
-    // Set antialiasing level (crucial for quality)
-    fz_set_aa_level(m_ctx, 8);  // 4 or 8 is common
 
     // RenderTask *task = new RenderTask(ctx, m_doc, m_colorspace, pageno, m_transform);
     //
@@ -156,22 +155,24 @@ QImage Model::renderPage(int pageno, float zoom)
         fz_rect bounds;
         bounds = fz_bound_page(m_ctx, page);
         // TODO: Load link here maybe ?
+        // m_transform = fz_transform_page(bounds, scale, 0);
         fz_rect transformed = fz_transform_rect(bounds, m_transform);
         fz_irect bbox = fz_round_rect(transformed);
+
 
         fz_pixmap *pix;
         pix = fz_new_pixmap_with_bbox(m_ctx,
                                       m_colorspace,
                                       bbox,
                                       nullptr,
-                                      0);
+                                      1);
         if (!pix)
         {
             fz_drop_page(m_ctx, page);
             return image;
         }
 
-        fz_clear_pixmap_with_value(m_ctx, pix, 255); // 255 = white
+        fz_clear_pixmap_with_value(m_ctx, pix, 0xFFFFFF); // 255 = white
 
         fz_device *dev = fz_new_draw_device(m_ctx, m_transform, pix);
 
@@ -181,14 +182,16 @@ QImage Model::renderPage(int pageno, float zoom)
             fz_drop_page(m_ctx, page);
             return image;
         }
+
         fz_run_page(m_ctx, page, dev, fz_identity, nullptr);
 
         if (m_invert_color_mode)
         {
             fz_invert_pixmap_luminance(m_ctx, pix);
             // apply_night_mode(pix);
-            // fz_gamma_pixmap(m_ctx, pix, 1/1.4f);
         }
+
+        // fz_gamma_pixmap(m_ctx, pix, 1.0f);
         // Convert fz_pixmap to QImage
         m_width = fz_pixmap_width(m_ctx,pix);
         m_height = fz_pixmap_height(m_ctx,pix);
@@ -198,13 +201,13 @@ QImage Model::renderPage(int pageno, float zoom)
 
         switch (n) {
             case 1:
-                image = QImage(m_width, m_height, QImage::Format_Grayscale8);
+                image = QImage(samples, m_width, m_height, stride, QImage::Format_Grayscale8);
                 break;
             case 3:
-                image = QImage(m_width, m_height, QImage::Format_RGB888);
+                image = QImage(samples, m_width, m_height, stride, QImage::Format_RGB888);
                 break;
             case 4:
-                image = QImage(m_width, m_height, QImage::Format_RGBA8888);
+                image = QImage(samples, m_width, m_height, stride, QImage::Format_RGBA8888);
                 break;
             default:
                 qWarning() << "Unsupported pixmap component count:" << n;
@@ -213,11 +216,12 @@ QImage Model::renderPage(int pageno, float zoom)
                 return QImage();
         }
 
-        for (int y = 0; y < m_height; ++y)
-            memcpy(image.scanLine(y), samples + y * stride, m_width * n);  // 3 bytes per pixel
+        // for (int y = 0; y < m_height; ++y)
+        //     memcpy(image.scanLine(y), samples + y * stride, m_width * n);  // 3 bytes per pixel
 
-        image.setDotsPerMeterX(static_cast<int>(m_dpi * 1000 / 25.4));
-        image.setDotsPerMeterY(static_cast<int>(m_dpi * 1000 / 25.4));
+        image.setDotsPerMeterX(static_cast<int>((m_dpi * 1000) / 25.4));
+        image.setDotsPerMeterY(static_cast<int>((m_dpi * 1000) / 25.4));
+        image = image.copy();
 
         // Cleanup
         fz_close_device(m_ctx, dev);
