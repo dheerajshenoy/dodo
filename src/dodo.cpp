@@ -123,6 +123,9 @@ void dodo::initMenubar() noexcept
     m_actionLastPage = navMenu->addAction(QString("Last Page\t%1").arg(m_shortcuts_map["last_page"]),
                                           this, &dodo::LastPage);
 
+    m_actionPrevLocation = navMenu->addAction(QString("Previous Location\t%1").arg(m_shortcuts_map["prev_location"]),
+                                          this, &dodo::GoBackHistory);
+
     updateUiEnabledState();
 }
 
