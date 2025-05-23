@@ -63,6 +63,8 @@ public:
     void followLink(const LinkInfo &info) noexcept;
     void loadColorProfile(const QString &profileName) noexcept;
     void invertColor() noexcept;
+    inline float width() noexcept { return m_width; }
+    inline float height() noexcept { return m_height; }
 
     signals:
     void jumpToPageRequested(int pageno);
@@ -76,6 +78,8 @@ public:
 
 private:
     void clearLinks() noexcept;
+    void apply_night_mode(fz_pixmap* pixmap) noexcept;
+
     QList<QPair<QRectF, int>> searchHelper(int pageno, const QString &term, bool caseSensitive);
 
     fz_colorspace *m_colorspace;

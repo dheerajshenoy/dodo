@@ -487,13 +487,13 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
 
     // TODO: Handle file content change detection
 
-    if (m_highResCache.contains(pageno))
-    {
-        QPixmap *cached = m_highResCache.object(pageno);
-        m_pix_item->setPixmap(*cached);
-        m_pix_item->setScale(m_scale_factor);
-        return;
-    }
+    // if (m_highResCache.contains(pageno))
+    // {
+    //     QPixmap *cached = m_highResCache.object(pageno);
+    //     m_pix_item->setPixmap(*cached);
+    //     m_pix_item->setScale(m_scale_factor);
+    //     return;
+    // }
 
     if (m_highlights_present)
     {
@@ -507,12 +507,12 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
 void dodo::renderPage(int pageno) noexcept
 {
 
-    if (m_highResCache.contains(pageno))
-    {
-        m_pix_item->setPixmap(*m_highResCache.object(pageno));
-        m_pix_item->setScale(DPI_FRAC * m_scale_factor);
-        return;
-    }
+    // if (m_highResCache.contains(pageno))
+    // {
+    //     m_pix_item->setPixmap(*m_highResCache.object(pageno));
+    //     m_pix_item->setScale(DPI_FRAC * m_scale_factor);
+    //     return;
+    // }
 
     auto img = m_model->renderPage(pageno, m_scale_factor);
     renderImage(img);
@@ -581,7 +581,7 @@ void dodo::ZoomIn() noexcept
 {
     if (m_scale_factor < 5.0)
     {
-        m_gview->scale(1.1, 1.1);
+        // m_gview->scale(1.1, 1.1);
         m_scale_factor *= 1.1;
         zoomHelper();
     }
@@ -590,7 +590,7 @@ void dodo::ZoomIn() noexcept
 void dodo::ZoomReset() noexcept
 {
     m_scale_factor = 1.0;
-    m_gview->resetTransform();
+    // m_gview->resetTransform();
     zoomHelper();
 }
 
@@ -599,7 +599,7 @@ void dodo::ZoomOut() noexcept
 {
     if (m_scale_factor * 0.9 != 0)
     {
-        m_gview->scale(0.9, 0.9);
+        // m_gview->scale(0.9, 0.9);
         m_scale_factor *= 0.9;
         zoomHelper();
     }
@@ -608,8 +608,9 @@ void dodo::ZoomOut() noexcept
 void dodo::Zoom(float factor) noexcept
 {
     // TODO: Add constraints here
-    m_gview->scale(factor, factor);
-    m_scale_factor *= factor;
+
+    // m_gview->scale(factor, factor);
+    m_scale_factor = factor;
     zoomHelper();
 }
 
@@ -656,9 +657,8 @@ void dodo::FitToHeight() noexcept
     int viewHeight = m_gview->viewport()->height();
 
     qreal scale = static_cast<qreal>(viewHeight) / pixmapHeight;
-    m_gview->resetTransform();
-    m_gview->scale(scale, scale);
-    m_scale_factor = scale;
+    m_scale_factor *= scale;
+    zoomHelper();
 }
 
 void dodo::FitToWidth() noexcept
@@ -670,9 +670,8 @@ void dodo::FitToWidth() noexcept
     int viewWidth = m_gview->viewport()->width();
 
     qreal scale = static_cast<qreal>(viewWidth) / pixmapWidth;
-    m_gview->resetTransform();
-    m_gview->scale(scale, scale);
-    m_scale_factor = scale;
+    m_scale_factor *= scale;
+    zoomHelper();
 }
 
 void dodo::renderLinks() noexcept
@@ -1095,5 +1094,5 @@ void dodo::Fullscreen() noexcept
 void dodo::InvertColor() noexcept
 {
     m_model->invertColor();
-    m_model->renderPage(m_pageno, m_scale_factor);
+    renderPage(m_pageno);
 }

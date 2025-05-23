@@ -169,36 +169,55 @@ QImage Model::renderPage(int pageno, float zoom)
         }
 
         fz_clear_pixmap_with_value(m_ctx, pix, 255); // 255 = white
-        if (m_invert_color_mode)
-        {
-            fz_invert_pixmap_luminance(m_ctx, pix);
-            fz_gamma_pixmap(m_ctx, pix, 1/1.4f);
-            fz_tint_pixmap(m_ctx, pix, 0, 0XFFFAF0);
-        }
 
         fz_device *dev = fz_new_draw_device(m_ctx, m_transform, pix);
 
         if (!dev)
         {
+            fz_drop_pixmap(m_ctx, pix);
             fz_drop_page(m_ctx, page);
             return image;
         }
         fz_run_page(m_ctx, page, dev, fz_identity, nullptr);
 
+        if (m_invert_color_mode)
+        {
+            // fz_invert_pixmap_luminance(m_ctx, pix);
+            apply_night_mode(pix);
+            // fz_gamma_pixmap(m_ctx, pix, 1/1.4f);
+        }
         // Convert fz_pixmap to QImage
         m_width = fz_pixmap_width(m_ctx,pix);
         m_height = fz_pixmap_height(m_ctx,pix);
         unsigned char *samples = fz_pixmap_samples(m_ctx,pix);
         int stride = fz_pixmap_stride(m_ctx,pix);
+        int n = fz_pixmap_components(m_ctx, pix);
+
+        switch (n) {
+            case 1:
+                image = QImage(m_width, m_height, QImage::Format_Grayscale8);
+                break;
+            case 3:
+                image = QImage(m_width, m_height, QImage::Format_RGB888);
+                break;
+            case 4:
+                image = QImage(m_width, m_height, QImage::Format_RGBA8888);
+                break;
+            default:
+                qWarning() << "Unsupported pixmap component count:" << n;
+                fz_drop_pixmap(m_ctx, pix);
+                fz_drop_page(m_ctx, page);
+                return QImage();
+        }
 
         // Assume RGB, 8-bit per channel (no alpha)
         image = QImage(m_width, m_height, QImage::Format_RGB888);
 
         for (int y = 0; y < m_height; ++y)
-            memcpy(image.scanLine(y), samples + y * stride, m_width * 3);  // 3 bytes per pixel
+            memcpy(image.scanLine(y), samples + y * stride, m_width * n);  // 3 bytes per pixel
 
-        image.setDotsPerMeterX(m_dpi / 25.4 * 1000);
-        image.setDotsPerMeterY(m_dpi / 25.4 * 1000);
+        image.setDotsPerMeterX(static_cast<int>(m_dpi * 1000 / 25.4));
+        image.setDotsPerMeterY(static_cast<int>(m_dpi * 1000 / 25.4));
 
         // Cleanup
         fz_close_device(m_ctx, dev);
@@ -753,3 +772,34 @@ void Model::invertColor() noexcept
 {
     m_invert_color_mode = !m_invert_color_mode;
 }
+
+void Model::apply_night_mode(fz_pixmap* pixmap) noexcept
+{
+    unsigned char* samples = fz_pixmap_samples(m_ctx, pixmap);
+    int n = fz_pixmap_components(m_ctx, pixmap);  // usually 4 for RGBA
+    int w = fz_pixmap_width(m_ctx, pixmap);
+    int h = fz_pixmap_height(m_ctx, pixmap);
+    int stride = fz_pixmap_stride(m_ctx, pixmap);
+
+    for (int y = 0; y < h; ++y)
+    {
+        unsigned char* row = samples + y * stride;
+
+        for (int x = 0; x < w; ++x)
+        {
+            unsigned char* px = row + x * n;
+
+            // Skip alpha channel
+            for (int c = 0; c < n - 1; ++c)
+            {
+                // Soft inversion: shift colors toward darker tones
+                // Pure white (255) becomes 0 (black)
+                // Pure black (0) becomes 255 (white)
+                // Midtones become dimmed
+                if (fz_pixmap_colorspace(m_ctx, pixmap) != nullptr && c < n - 1)
+                    px[c] = 255 - px[c];
+            }
+        }
+    }
+}
+
