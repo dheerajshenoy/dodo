@@ -62,6 +62,7 @@ public:
     void clearKBHintsOverlay() noexcept;
     void followLink(const LinkInfo &info) noexcept;
     void loadColorProfile(const QString &profileName) noexcept;
+    void invertColor() noexcept;
 
     signals:
     void jumpToPageRequested(int pageno);
@@ -84,7 +85,8 @@ private:
 
     std::mutex m_locks[FZ_LOCK_MAX];
     float m_dpi, m_low_dpi;
-    bool m_link_boundary_enabled;
+    bool m_link_boundary_enabled,
+    m_invert_color_mode { false };
 
     QGraphicsScene *m_scene { nullptr };
     fz_context *m_ctx { nullptr };
