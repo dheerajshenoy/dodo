@@ -136,8 +136,7 @@ QImage Model::renderPage(int pageno, float zoom)
         return image;
 
     fz_set_aa_level(m_ctx, 8);
-    float scale = m_dpi / 72.0 * zoom;
-    m_transform = fz_scale(scale, scale);
+    float scale = m_dpi / 72.0 * zoom * 20;
 
     // RenderTask *task = new RenderTask(ctx, m_doc, m_colorspace, pageno, m_transform);
     //
@@ -154,11 +153,11 @@ QImage Model::renderPage(int pageno, float zoom)
 
         fz_rect bounds;
         bounds = fz_bound_page(m_ctx, page);
-        // TODO: Load link here maybe ?
-        // m_transform = fz_transform_page(bounds, scale, 0);
+        // FIXME: Load link here maybe ?
+
+        m_transform = fz_transform_page(bounds, scale, rotation);
         fz_rect transformed = fz_transform_rect(bounds, m_transform);
         fz_irect bbox = fz_round_rect(transformed);
-
 
         fz_pixmap *pix;
         pix = fz_new_pixmap_with_bbox(m_ctx,
@@ -174,7 +173,7 @@ QImage Model::renderPage(int pageno, float zoom)
 
         fz_clear_pixmap_with_value(m_ctx, pix, 0xFFFFFF); // 255 = white
 
-        fz_device *dev = fz_new_draw_device(m_ctx, m_transform, pix);
+        fz_device *dev = fz_new_draw_device(m_ctx, fz_identity, pix);
 
         if (!dev)
         {
@@ -183,7 +182,7 @@ QImage Model::renderPage(int pageno, float zoom)
             return image;
         }
 
-        fz_run_page(m_ctx, page, dev, fz_identity, nullptr);
+        fz_run_page(m_ctx, page, dev, m_transform, nullptr);
 
         if (m_invert_color_mode)
         {
