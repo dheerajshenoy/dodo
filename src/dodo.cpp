@@ -485,6 +485,8 @@ void dodo::openFile(const QString &fileName) noexcept
     if (m_panel->searchMode())
         m_panel->setSearchMode(false);
 
+    this->setWindowTitle(QString("%1 - dodo").arg(fz_basename(CSTR(m_filename))));
+
     if (m_full_file_path_in_panel)
         m_panel->setFileName(m_filename);
     else
