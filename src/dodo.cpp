@@ -863,15 +863,19 @@ void dodo::prevHit()
     }
 }
 
-void dodo::setupKeybinding(const std::string_view &action,
-                           const std::string &key) noexcept
+void dodo::setupKeybinding(const QString &action,
+                           const QString &key) noexcept
 {
-    // TODO: handle shortcuts
-}
+    auto it = m_actionMap.find(action);
+    if (it == m_actionMap.end())
+        return;
 
-void dodo::Escape() noexcept
-{
-    // TODO: Escape out of everything IG
+    QShortcut *shortcut = new QShortcut(QKeySequence(key), this);
+    connect(shortcut, &QShortcut::activated, this, [=]() {
+        it.value()();
+    });
+
+    m_shortcuts_map[action] = key;
 }
 
 void dodo::GoBackHistory() noexcept
