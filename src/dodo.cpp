@@ -295,12 +295,16 @@ void dodo::initConfig() noexcept
         m_load_default_keybinding = false;
         auto keys = toml["keybindings"];
         m_actionMap = {
+            { "rotate_clock", [this]() { RotateClock(); } },
+            { "rotate_anticlock", [this]() { RotateAntiClock(); } },
+            { "prev_location", [this]() { GoBackHistory(); } },
             { "scroll_down", [this]() { ScrollDown(); } },
             { "scroll_up", [this]() { ScrollUp(); } },
             { "scroll_left", [this]() { ScrollLeft(); } },
             { "scroll_right", [this]() { ScrollRight(); } },
             { "invert_color", [this]() { InvertColor(); } },
             { "search", [this]() { Search(); } },
+            { "search_page", [this]() { SearchPage(); } },
             { "next_page", [this]() { NextPage(); } },
             { "prev_page", [this]() { PrevPage(); } },
             { "first_page", [this]() { FirstPage(); } },
@@ -392,7 +396,6 @@ void dodo::initGui() noexcept
     m_gview->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
     m_gview->setPixmapItem(m_pix_item);
     m_gscene->addItem(m_pix_item);
-
 
     m_model = new Model(m_gscene);
     // connect(m_model, &Model::imageRenderRequested, this, &dodo::handleRenderResult);
@@ -541,8 +544,7 @@ void dodo::RotateClock() noexcept
         return;
 
     m_rotation = (m_rotation + 90) % 360;
-    m_pix_item->setRotation(m_rotation);
-    m_gview->centerOn(m_pix_item);
+    renderPage(m_pageno);
 }
 
 void dodo::RotateAntiClock() noexcept
@@ -551,10 +553,7 @@ void dodo::RotateAntiClock() noexcept
         return;
 
     m_rotation = (m_rotation + 270) % 360;
-    // m_pix_item->setRotation(m_rotation);
-    m_pix_item->setTransformOriginPoint(m_pix_item->boundingRect().center());
-    m_pix_item->setRotation(m_rotation);    // Set rotation on the item
-    m_gview->centerOn(m_pix_item);
+    renderPage(m_pageno);
 }
 
 void dodo::gotoPage(const int &pageno) noexcept
@@ -625,7 +624,7 @@ void dodo::renderPage(int pageno) noexcept
     //     return;
     // }
 
-    auto img = m_model->renderPage(pageno, m_scale_factor);
+    auto img = m_model->renderPage(pageno, m_scale_factor, m_rotation);
     renderImage(img);
     renderLinks();
 }
@@ -650,7 +649,7 @@ void dodo::cachePage(int pageno) noexcept
         return;
     }
 
-    m_model->renderPage(pageno, m_scale_factor);
+    m_model->renderPage(pageno, m_scale_factor, m_rotation);
     // auto *pix = new QPixmap(QPixmap::fromImage(img));
     // m_highResCache.insert(pageno, pix);
 }
@@ -690,11 +689,12 @@ void dodo::PrevPage() noexcept
 
 void dodo::ZoomIn() noexcept
 {
-    if (m_scale_factor < 5.0)
-    {
-        m_scale_factor *= m_zoom_by;
-        zoomHelper();
-    }
+    // if (m_scale_factor < 5.0)
+    // {
+    m_scale_factor *= m_zoom_by;
+    // m_gview->scale(1.1, 1.1);
+    zoomHelper();
+    // }
 }
 
 void dodo::ZoomReset() noexcept
@@ -711,6 +711,7 @@ void dodo::ZoomOut() noexcept
     {
         // m_gview->scale(0.9, 0.9);
         m_scale_factor *= 1 / m_zoom_by;
+        // m_gview->scale(1.1, 1.1);
         zoomHelper();
     }
 }
@@ -979,6 +980,11 @@ void dodo::Search() noexcept
         searchAll(term, false);
 }
 
+void dodo::SearchPage() noexcept
+{
+    // TODO: Search only the current page
+}
+
 void dodo::nextHit()
 {
     if (m_search_hit_page == -1)
@@ -1119,7 +1125,7 @@ void dodo::ToggleHighlight() noexcept
 void dodo::SaveFile() noexcept
 {
     m_model->save();
-    auto img = m_model->renderPage(m_pageno, m_scale_factor);
+    auto img = m_model->renderPage(m_pageno, m_scale_factor, m_rotation);
     renderImage(img);
 }
 

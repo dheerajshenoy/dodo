@@ -34,7 +34,7 @@ public:
     inline void setDPI(float dpi) { m_dpi = dpi; }
     inline void setLowDPI(float low_dpi) { m_low_dpi = low_dpi; }
     int numPages();
-    QImage renderPage(int pageno, float zoom);
+    QImage renderPage(int pageno, float zoom, float rotation) noexcept;
     void renderLinks(int pageno);
     void setLinkBoundaryBox(bool state);
     void searchAll(const QString &term, bool caseSensitive);
