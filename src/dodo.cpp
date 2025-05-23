@@ -268,8 +268,20 @@ void dodo::initConfig() noexcept
     m_model->setAntialiasingBits(behavior["antialasing_bits"].value_or(8));
     m_auto_resize = behavior["auto_resize"].value_or(false);
     m_zoom_by = behavior["zoom_factor"].value_or(1.25);
+
     if (behavior["icc_color_profile"].value_or(true))
         m_model->enableICC();
+
+    auto initial_fit = behavior["initial_fit"].value_or("width");
+
+    if (strcmp(initial_fit, "height"))
+        m_initial_fit = FitMode::Height;
+    else if (strcmp(initial_fit, "width"))
+        m_initial_fit = FitMode::Width;
+    else if (strcmp(initial_fit, "window"))
+        m_initial_fit = FitMode::Window;
+    else
+        m_initial_fit = FitMode::None;
 
     if (toml.contains("keybindings"))
     {
@@ -430,11 +442,18 @@ void dodo::OpenFile() noexcept
                                                     "Open File",
                                                     "",
                                                     "PDF Files (*.pdf);; All Files (*)");
-    if (!filepath.isEmpty())
-    {
-        openFile(filepath);
-    }
+    if (filepath.isEmpty())
+        return;
 
+    openFile(filepath);
+
+    switch(m_initial_fit)
+    {
+        case FitMode::Height: FitHeight(); break;
+        case FitMode::Width: FitWidth(); break;
+        case FitMode::Window: FitWindow(); break;
+        case FitMode::None: break;
+    }
 }
 
 /* Function for opening the file using the model.
@@ -487,8 +506,7 @@ void dodo::openFile(const QString &fileName) noexcept
         } else {
             gotoPage(0);
         }
-    } else
-    gotoPage(0);
+    } else gotoPage(0);
 
     updateUiEnabledState();
 }
@@ -745,8 +763,7 @@ void dodo::FitHeight() noexcept
     qreal scale = static_cast<qreal>(viewHeight) / pixmapHeight;
     m_scale_factor *= scale;
     zoomHelper();
-    m_fit_mode = FitMode::Height;
-    m_panel->setFitMode("Fit Height");
+    setFitMode(FitMode::Height);
 }
 
 void dodo::FitWidth() noexcept
@@ -760,8 +777,7 @@ void dodo::FitWidth() noexcept
     qreal scale = static_cast<qreal>(viewWidth) / pixmapWidth;
     m_scale_factor *= scale;
     zoomHelper();
-    m_fit_mode = FitMode::Width;
-    m_panel->setFitMode("Fit Width");
+    setFitMode(FitMode::Width);
 }
 
 void dodo::FitWindow() noexcept
@@ -780,10 +796,36 @@ void dodo::FitWindow() noexcept
 
     m_scale_factor *= scale;
     zoomHelper();
-    m_fit_mode = FitMode::Window;
-    m_panel->setFitMode("Fit Window");
+    setFitMode(FitMode::Window);
 }
 
+void dodo::FitNone() noexcept
+{
+    setFitMode(FitMode::None);
+}
+
+void dodo::setFitMode(const FitMode &mode) noexcept
+{
+    m_fit_mode = mode;
+    switch(m_fit_mode)
+    {
+        case FitMode::Height:
+            m_panel->setFitMode("Fit Height");
+            break;
+
+        case FitMode::Width:
+            m_panel->setFitMode("Fit Width");
+            break;
+
+        case FitMode::Window:
+            m_panel->setFitMode("Fit Window");
+            break;
+
+        case FitMode::None:
+            m_panel->setFitMode("");
+            break;
+    }
+}
 
 void dodo::renderLinks() noexcept
 {
