@@ -100,6 +100,7 @@ void dodo::initConnections() noexcept
 
     connect(m_model, &Model::jumpToPageRequested, this, [&](int pageno) {
         gotoPage(pageno);
+        TopOfThePage();
     });
 
     connect(m_model, &Model::jumpToLocationRequested, this, [&](int pageno, const BrowseLinkItem::Location &loc) {
