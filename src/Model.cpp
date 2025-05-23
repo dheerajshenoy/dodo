@@ -128,7 +128,7 @@ void Model::setLinkBoundaryBox(bool state)
     m_link_boundary_enabled = state;
 }
 
-QImage Model::renderPage(int pageno, float zoom)
+QImage Model::renderPage(int pageno, float zoom, float rotation) noexcept
 {
     QImage image;
 
