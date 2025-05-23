@@ -197,14 +197,36 @@ void dodo::initConfig() noexcept
     if (behavior["icc_color_profile"].value_or(true))
         m_model->enableICC();
 
-    auto keys = toml["keybindings"];
-
-    if (keys.is_value())
+    if (toml.contains("keybindings"))
     {
+        qDebug() << "Loading custom keybindings";
+        m_load_default_keybinding = false;
+        auto keys = toml["keybindings"];
+        m_actionMap = {
+            { "scroll_down", [this]() { ScrollDown(); } },
+            { "scroll_up", [this]() { ScrollUp(); } },
+            { "scroll_left", [this]() { ScrollLeft(); } },
+            { "scroll_right", [this]() { ScrollRight(); } },
+            { "invert_color", [this]() { InvertColor(); } },
+            { "search", [this]() { Search(); } },
+            { "next_page", [this]() { NextPage(); } },
+            { "prev_page", [this]() { PrevPage(); } },
+            { "first_page", [this]() { FirstPage(); } },
+            { "last_page", [this]() { LastPage(); } },
+            { "zoom_in", [this]() { ZoomIn(); } },
+            { "zoom_out", [this]() { ZoomOut(); } },
+            { "zoom_reset", [this]() { ZoomReset(); } },
+            { "annot_highlight", [this]() { ToggleHighlight(); } },
+            { "fullscreen", [this]() { Fullscreen(); } },
+            { "file_properties", [this]() { FileProperties(); } },
+            { "open_file", [this]() { OpenFile(); } }
+        };
+
         for (auto &[action, value] : *keys.as_table())
         {
             if (value.is_value())
-                setupKeybinding(action.str(), value.value_or<std::string>(""));
+                setupKeybinding(QString::fromStdString(std::string(action.str())),
+                                QString::fromStdString(value.value_or<std::string>("")));
         }
     }
 
