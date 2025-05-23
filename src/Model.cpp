@@ -7,6 +7,7 @@
 #include <mupdf/fitz.h>
 #include <mupdf/fitz/context.h>
 #include <mupdf/fitz/document.h>
+#include <mupdf/fitz/pixmap.h>
 #include <mupdf/fitz/structured-text.h>
 #include <mupdf/pdf/annot.h>
 #include <mupdf/pdf/document.h>
@@ -168,6 +169,13 @@ QImage Model::renderPage(int pageno, float zoom)
         }
 
         fz_clear_pixmap_with_value(m_ctx, pix, 255); // 255 = white
+        if (m_invert_color_mode)
+        {
+            fz_invert_pixmap_luminance(m_ctx, pix);
+            fz_gamma_pixmap(m_ctx, pix, 1/1.4f);
+            fz_tint_pixmap(m_ctx, pix, 0, 0XFFFAF0);
+        }
+
         fz_device *dev = fz_new_draw_device(m_ctx, m_transform, pix);
 
         if (!dev)
@@ -741,4 +749,7 @@ QList<QPair<QString, QString>> Model::extractPDFProperties() noexcept
     return props;
 }
 
-
+void Model::invertColor() noexcept
+{
+    m_invert_color_mode = !m_invert_color_mode;
+}
