@@ -11,6 +11,7 @@ auto_hide_hscrollbar = true
 auto_hide_vscrollbar = true
 full_file_path_in_panel = false
 menubar = false
+window_title = "{} - dodo" # '{}' will be replaced with the base name of the opened file
 
 # Format is #AARRGGBB (ARGB format)
 [colors]
@@ -21,10 +22,10 @@ search_index = "#55FFFF55"
 
 # ===== Rendering Settings =====
 [rendering]
-dpi = 300.0
+dpi = 600.0
 low_dpi = 72.0
 cache_pages = 5            # Number of pages to keep in RAM
-antialiasing_bits = 8
+antialiasing_bits = 4
 icc_color_profile = true
 
 # ===== Navigation & Behavior =====

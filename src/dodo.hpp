@@ -207,6 +207,7 @@ private:
     bool m_load_default_keybinding { true };
     bool m_auto_resize;
     FitMode m_fit_mode, m_initial_fit;
+    QString m_window_title;
 
 };
 
