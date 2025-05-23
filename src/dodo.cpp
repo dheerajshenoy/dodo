@@ -1078,3 +1078,22 @@ void dodo::rehighlight() noexcept
     }
 
 }
+
+// Puts the viewport to the top of the page
+void dodo::TopOfThePage() noexcept
+{
+    auto vscrollbar = m_gview->verticalScrollBar();
+    vscrollbar->setValue(0);
+}
+
+void dodo::Fullscreen() noexcept
+{
+    qDebug() << "DD";
+    this->showFullScreen();
+}
+
+void dodo::InvertColor() noexcept
+{
+    m_model->invertColor();
+    m_model->renderPage(m_pageno, m_scale_factor);
+}
