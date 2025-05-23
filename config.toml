@@ -1,14 +1,15 @@
 # ===== Appearance Settings =====
 [ui]
-# TODO: theme = "dark"              # Options: dark, light, system
-panel_shown = true
+panel = true
 fullscreen = false
 zoom_level = 1.0            # Default zoom factor
 compact = true
 link_boundary_box = false
 hscrollbar = false
 vscrollbar = false
-full_file_path_in_panel = true
+auto_hide_hscrollbar = true
+auto_hide_vscrollbar = true
+full_file_path_in_panel = false
 
 # Format is #AARRGGBB (ARGB format)
 [colors]
@@ -28,10 +29,11 @@ icc_color_profile = true
 # ===== Navigation & Behavior =====
 [behavior]
 remember_last_visited = true   # Helps to go to last visited page of document
-enable_prefetch = true
-prefetch_distance = 2       # How many pages ahead/behind to prefetch
-page_history = 100 # History for visited pages in the file
+page_history = 100 # History for visited pages in the file (only for the session)
 confirm_on_quit = true # Ask before quitting dodo
+auto_resize = true # Resize the document to fit the window
+zoom_factor = 1.25 # Factor by which to zoom in/out
+initial_fit = "height" # none, width, height, window
 
 # ===== Shortcuts =====
 [keybindings]
@@ -42,10 +44,10 @@ scroll_down = "j"
 scroll_up = "k"
 scroll_right = "l"
 
-next_page = "Shift+j"
-prev_page = "Shift+k"
+next_page = "Shift+J"
+prev_page = "Shift+K"
 first_page = "g,g"
-last_page = "Shift+g"
+last_page = "Shift+G"
 
 search = "/"
 
@@ -53,10 +55,15 @@ zoom_reset = "0"
 zoom_in = "="
 zoom_out = "-"
 
-fullscreen = "<F11>"
 annot_highlight = "Alt+1"
-file_properties = "Ctrl+Shift+f"
+file_properties = "Ctrl+Shift+F"
 invert_color = "i"
 
-fit_height = "Ctrl+Shift+h"
-fit_width = "Ctrl+Shift"w"
+fullscreen = "<F11>"
+fit_height = "Ctrl+Shift+H"
+fit_width = "Ctrl+Shift+W"
+fit_window = "Ctrl+Shift+="
+auto_resize = "Ctrl+Shift+R"
+
+toggle_menubar = "Ctrl+Shift+M"
+toggle_panel = "Ctrl+Shift+B"

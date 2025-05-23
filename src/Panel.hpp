@@ -4,6 +4,8 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
+enum class FitMode;
+
 class Panel : public QWidget
 {
     public:
@@ -14,6 +16,7 @@ class Panel : public QWidget
     void setPageNo(int pageno) noexcept;
     void setSearchCount(int count) noexcept;
     void setSearchIndex(int index) noexcept;
+    void setFitMode(const QString &mode) noexcept;
 
     inline bool searchMode() noexcept { return m_search_mode; }
     void setSearchMode(bool state) noexcept;
@@ -26,6 +29,7 @@ private:
     QLabel *m_search_count_label = new QLabel();
     QLabel *m_search_index_label = new QLabel();
     QLabel *m_search_label = new QLabel("Search: ");
+    QLabel *m_fitmode_label = new QLabel("");
     QHBoxLayout *m_layout = new QHBoxLayout();
     bool m_search_mode { false };
 

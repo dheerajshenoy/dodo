@@ -29,8 +29,10 @@
 #include <QCloseEvent>
 #include <QMessageBox>
 #include <qgraphicsitem.h>
+#include <QResizeEvent>
 #include <vector>
 #include <functional>
+#include <QActionGroup>
 
 #include "GraphicsView.hpp"
 #include "Panel.hpp"
@@ -51,8 +53,15 @@ public slots:
 protected:
     void closeEvent(QCloseEvent *e) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
+    void resizeEvent(QResizeEvent *e) override;
 
 private:
+
+    enum class FitMode {
+        Width = 0,
+        Height,
+        Window
+    };
 
     void initConnections() noexcept;
     void initMenubar() noexcept;
@@ -92,8 +101,9 @@ private:
     void ZoomIn() noexcept;
     void ZoomOut() noexcept;
     void Zoom(float factor) noexcept;
-    void FitToWidth() noexcept;
-    void FitToHeight() noexcept;
+    void FitWidth() noexcept;
+    void FitHeight() noexcept;
+    void FitWindow() noexcept;
     void RotateClock() noexcept;
     void RotateAntiClock() noexcept;
     void Search() noexcept;
@@ -106,7 +116,9 @@ private:
     void GotoPage() noexcept;
     void TopOfThePage() noexcept;
     void InvertColor() noexcept;
-
+    void ToggleAutoResize() noexcept;
+    void ToggleMenubar() noexcept;
+    void TogglePanel() noexcept;
 
     QDir m_config_dir;
     bool m_prefetch_enabled,
@@ -125,11 +137,11 @@ private:
 
     // Poppler::Page::SearchFlags m_search_flags = Poppler::Page::SearchFlag::NoSearchFlags;
 
-    float m_scale_factor;
+    float m_scale_factor, m_zoom_by;
 
     QString m_last_search_term;
 
-    Panel *m_panel = new Panel(this);
+    Panel *m_panel { nullptr };
 
     float m_dpi,
     m_low_dpi,
@@ -148,15 +160,21 @@ private:
     void rehighlight() noexcept;
     void zoomHelper() noexcept;
 
-    QAction *m_actionZoomIn = nullptr;
-    QAction *m_actionZoomOut = nullptr;
-    QAction *m_actionFitWidth = nullptr;
-    QAction *m_actionFitHeight = nullptr;
+    QMenuBar *m_menuBar { nullptr };
+    QAction *m_actionZoomIn { nullptr };
+    QAction *m_actionZoomOut { nullptr };
+    QAction *m_actionFitWidth { nullptr };
+    QAction *m_actionFitHeight { nullptr };
+    QAction *m_actionFitWindow { nullptr };
+    QAction *m_actionAutoresize { nullptr };
 
-    QAction *m_actionFirstPage = nullptr;
-    QAction *m_actionPrevPage = nullptr;
-    QAction *m_actionNextPage = nullptr;
-    QAction *m_actionLastPage = nullptr;
+    QAction *m_actionToggleMenubar { nullptr };
+    QAction *m_actionTogglePanel { nullptr };
+
+    QAction *m_actionFirstPage { nullptr };
+    QAction *m_actionPrevPage { nullptr };
+    QAction *m_actionNextPage { nullptr };
+    QAction *m_actionLastPage { nullptr };
 
     QCache<int, QPixmap> m_highResCache,
     m_pixmapCache;
@@ -182,6 +200,8 @@ private:
     QMap<QString, QString> m_shortcuts_map;
     QMap<QString, std::function<void()>> m_actionMap;
     bool m_load_default_keybinding { true };
+    bool m_auto_resize;
+    FitMode m_fit_mode;
 
 };
 

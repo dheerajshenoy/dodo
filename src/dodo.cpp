@@ -2,6 +2,7 @@
 #include "GraphicsView.hpp"
 #include "PropertiesWidget.hpp"
 #include <qgraphicsitem.h>
+#include <qnamespace.h>
 
 dodo::dodo() noexcept
 {
@@ -32,30 +33,76 @@ dodo::~dodo() noexcept
 void dodo::initMenubar() noexcept
 {
     // Menu Bar
-    QMenuBar *menubar = menuBar();
+    m_menuBar = this->menuBar();
 
     // --- File Menu ---
-    QMenu *fileMenu = menubar->addMenu("File");
-    fileMenu->addAction("Open", this, &dodo::OpenFile);
-    fileMenu->addAction("File Properties", this, &dodo::FileProperties);
+    QMenu *fileMenu = m_menuBar->addMenu("File");
+    fileMenu->addAction(QString("Open\t%1").arg(m_shortcuts_map["open_file"]),
+                        this, &dodo::OpenFile);
+    fileMenu->addAction(QString("File Properties\t%1").arg(m_shortcuts_map["file_properties"]),
+                        this, &dodo::FileProperties);
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, &QMainWindow::close);
 
     // --- View Menu ---
-    QMenu *viewMenu = menubar->addMenu("View");
+    QMenu *viewMenu = m_menuBar->addMenu("View");
     m_actionZoomIn = viewMenu->addAction(QString("Zoom In\t%1").arg(m_shortcuts_map["zoom_in"]),
                                          this, &dodo::ZoomIn);
     m_actionZoomOut = viewMenu->addAction(QString("Zoom Out\t%1").arg(m_shortcuts_map["zoom_out"]),
                                           this, &dodo::ZoomOut);
     viewMenu->addSeparator();
-    m_actionFitWidth = viewMenu->addAction(QString("Fit Width\t%1").arg(m_shortcuts_map["fit_width"]),
-                                           this, &dodo::FitToWidth);
 
-    m_actionFitHeight = viewMenu->addAction(QString("Fit Height\t%1").arg(m_shortcuts_map["fit_height"]),
-                                            this, &dodo::FitToHeight);
+    // Zoom Mode Actions (exclusive)
+    QActionGroup *zoomModeGroup = new QActionGroup(this);
+    zoomModeGroup->setExclusive(true);
+
+    QMenu *fitMenu = viewMenu->addMenu("Fit");
+
+    m_actionFitWidth = fitMenu->addAction(QString("Fit Width\t%1").arg(m_shortcuts_map["fit_width"]),
+                                           this, &dodo::FitWidth);
+    m_actionFitWidth->setCheckable(true);
+    zoomModeGroup->addAction(m_actionFitWidth);
+
+    m_actionFitHeight = fitMenu->addAction(QString("Fit Height\t%1").arg(m_shortcuts_map["fit_height"]),
+                                            this, &dodo::FitHeight);
+    m_actionFitHeight->setCheckable(true);
+    zoomModeGroup->addAction(m_actionFitHeight);
+
+    m_actionFitWindow = fitMenu->addAction(QString("Fit Window\t%1").arg(m_shortcuts_map["fit_window"]),
+                                            this, &dodo::FitWindow);
+    m_actionFitWindow->setCheckable(true);
+    zoomModeGroup->addAction(m_actionFitWindow);
+
+    fitMenu->addSeparator();
+
+    // Auto Resize toggle (independent)
+    m_actionAutoresize = fitMenu->addAction(QString("Auto Resize\t%1").arg(m_shortcuts_map["auto_resize"]),
+                                             this, &dodo::ToggleAutoResize);
+    m_actionAutoresize->setCheckable(true);
+    m_actionAutoresize->setChecked(true);  // default on or off
+
+    viewMenu->addSeparator();
+
+    m_actionAutoresize = fitMenu->addAction(QString("Auto Resize\t%1").arg(m_shortcuts_map["auto_resize"]),
+                                             this, &dodo::ToggleAutoResize);
+    m_actionAutoresize->setCheckable(true);
+    m_actionAutoresize->setChecked(true);  // default on or off
+
+    viewMenu->addSeparator();
+
+
+    m_actionToggleMenubar = viewMenu->addAction(QString("Menubar\t%1").arg(m_shortcuts_map["toggle_menubar"]),
+                                             this, &dodo::ToggleMenubar);
+    m_actionToggleMenubar->setCheckable(true);
+    m_actionToggleMenubar->setChecked(!m_menuBar->isHidden());
+
+    m_actionTogglePanel = viewMenu->addAction(QString("Panel\t%1").arg(m_shortcuts_map["toggle_panel"]),
+                                             this, &dodo::TogglePanel);
+    m_actionTogglePanel->setCheckable(true);
+    m_actionTogglePanel->setChecked(!m_panel->isHidden());
 
     // --- Navigation Menu ---
-    QMenu *navMenu = menubar->addMenu("Navigation");
+    QMenu *navMenu = m_menuBar->addMenu("Navigation");
     m_actionFirstPage = navMenu->addAction(QString("First Page\t%1").arg(m_shortcuts_map["first_page"]),
                                            this, &dodo::FirstPage);
 
@@ -91,11 +138,11 @@ void dodo::initConnections() noexcept
     });
 
     connect(m_model, &Model::horizontalFitRequested, this, [&]() {
-        FitToWidth();
+        FitWidth();
     });
 
     connect(m_model, &Model::verticalFitRequested, this, [&]() {
-        FitToHeight();
+        FitHeight();
     });
 
     connect(m_model, &Model::jumpToPageRequested, this, [&](int pageno) {
@@ -155,13 +202,27 @@ void dodo::initConfig() noexcept
     }
 
     auto ui = toml["ui"];
-    m_panel->setVisible(ui["panel_shown"].value_or(true));
+    m_panel->setHidden(!ui["panel"].value_or(true));
 
     if (ui["fullscreen"].value_or(false))
         Fullscreen();
 
-    m_gview->verticalScrollBar()->setVisible(ui["vscrollbar"].value_or(true));
-    m_gview->horizontalScrollBar()->setVisible(ui["hscrollbar"].value_or(true));
+    auto vscrollbar_shown = ui["vscrollbar"].value_or(true);
+    auto vscrollbar = m_gview->verticalScrollBar();
+    vscrollbar->setVisible(vscrollbar_shown);
+
+    auto hscrollbar_shown = ui["hscrollbar"].value_or(true);
+    auto hscrollbar = m_gview->horizontalScrollBar();
+    hscrollbar->setVisible(hscrollbar_shown);
+
+    auto auto_hide_hscrollbar = ui["auto_hide_hscrollbar"].value_or(true);
+    auto auto_hide_vscrollbar = ui["auto_hide_vscrollbar"].value_or(true);
+
+    if (auto_hide_hscrollbar)
+        m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+    if (auto_hide_vscrollbar)
+        m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
     m_full_file_path_in_panel = ui["full_file_path_in_panel"].value_or(false);
     m_scale_factor = ui["zoom_level"].value_or(1.0);
@@ -182,7 +243,7 @@ void dodo::initConfig() noexcept
     m_gview->setBackgroundBrush(QColor(m_colors["background"]));
 
     auto rendering = toml["rendering"];
-    m_dpi = rendering["dpi"].value_or(300.0);
+    m_dpi = rendering["dpi"].value_or(300.0) * 2;
     m_low_dpi = rendering["low_dpi"].value_or(72.0);
     m_model->setDPI(m_dpi);
     m_model->setLowDPI(m_low_dpi);
@@ -190,10 +251,12 @@ void dodo::initConfig() noexcept
 
     auto behavior = toml["behavior"];
     m_remember_last_visited = behavior["remember_last_visited"].value_or(true);
-    m_prefetch_enabled = behavior["enable_prefetch"].value_or(true);
-    m_prefetch_distance = behavior["prefetch_distance"].value_or(2);
+    // m_prefetch_enabled = behavior["enable_prefetch"].value_or(true);
+    // m_prefetch_distance = behavior["prefetch_distance"].value_or(2);
     m_page_history_limit = behavior["page_history"].value_or(100);
     m_model->setAntialiasingBits(behavior["antialasing_bits"].value_or(8));
+    m_auto_resize = behavior["auto_resize"].value_or(false);
+    m_zoom_by = behavior["zoom_factor"].value_or(1.25);
     if (behavior["icc_color_profile"].value_or(true))
         m_model->enableICC();
 
@@ -219,7 +282,14 @@ void dodo::initConfig() noexcept
             { "annot_highlight", [this]() { ToggleHighlight(); } },
             { "fullscreen", [this]() { Fullscreen(); } },
             { "file_properties", [this]() { FileProperties(); } },
-            { "open_file", [this]() { OpenFile(); } }
+            { "open_file", [this]() { OpenFile(); } },
+            { "fit_width", [this]() { FitWidth(); } },
+            { "fit_height", [this]() { FitHeight(); } },
+            { "fit_window", [this]() { FitWindow(); } },
+            { "auto_resize", [this]() { ToggleAutoResize(); } },
+            { "toggle_menubar", [this]() { ToggleMenubar(); } },
+            { "toggle_panel", [this]() { TogglePanel(); } },
+
         };
 
         for (auto &[action, value] : *keys.as_table())
@@ -281,6 +351,8 @@ void dodo::initKeybinds() noexcept
 void dodo::initGui() noexcept
 {
     QWidget *widget = new QWidget();
+    // Panel
+    m_panel = new Panel(this);
     widget->setLayout(m_layout);
     m_layout->addWidget(m_gview);
     m_layout->addWidget(m_panel);
@@ -291,6 +363,7 @@ void dodo::initGui() noexcept
     m_gview->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
     m_gview->setPixmapItem(m_pix_item);
     m_gscene->addItem(m_pix_item);
+
 
     m_model = new Model(m_gscene);
     // connect(m_model, &Model::imageRenderRequested, this, &dodo::handleRenderResult);
@@ -328,6 +401,7 @@ void dodo::updateUiEnabledState() noexcept
     m_actionZoomOut->setEnabled(hasFile);
     m_actionFitWidth->setEnabled(hasFile);
     m_actionFitHeight->setEnabled(hasFile);
+    m_actionFitWindow->setEnabled(hasFile);
 
     m_actionFirstPage->setEnabled(hasFile);
     m_actionPrevPage->setEnabled(hasFile);
@@ -581,8 +655,7 @@ void dodo::ZoomIn() noexcept
 {
     if (m_scale_factor < 5.0)
     {
-        // m_gview->scale(1.1, 1.1);
-        m_scale_factor *= 1.1;
+        m_scale_factor *= m_zoom_by;
         zoomHelper();
     }
 }
@@ -597,10 +670,10 @@ void dodo::ZoomReset() noexcept
 
 void dodo::ZoomOut() noexcept
 {
-    if (m_scale_factor * 0.9 != 0)
+    if (m_scale_factor * 1 / m_zoom_by != 0)
     {
         // m_gview->scale(0.9, 0.9);
-        m_scale_factor *= 0.9;
+        m_scale_factor *= 1 / m_zoom_by;
         zoomHelper();
     }
 }
@@ -648,7 +721,7 @@ void dodo::ScrollRight() noexcept
     hscrollbar->setValue(hscrollbar->value() + 50);
 }
 
-void dodo::FitToHeight() noexcept
+void dodo::FitHeight() noexcept
 {
     if (!m_pix_item || m_pix_item->pixmap().isNull())
         return;
@@ -659,9 +732,11 @@ void dodo::FitToHeight() noexcept
     qreal scale = static_cast<qreal>(viewHeight) / pixmapHeight;
     m_scale_factor *= scale;
     zoomHelper();
+    m_fit_mode = FitMode::Height;
+    m_panel->setFitMode("Fit Height");
 }
 
-void dodo::FitToWidth() noexcept
+void dodo::FitWidth() noexcept
 {
     if (!m_pix_item || m_pix_item->pixmap().isNull())
         return;
@@ -672,7 +747,30 @@ void dodo::FitToWidth() noexcept
     qreal scale = static_cast<qreal>(viewWidth) / pixmapWidth;
     m_scale_factor *= scale;
     zoomHelper();
+    m_fit_mode = FitMode::Width;
+    m_panel->setFitMode("Fit Width");
 }
+
+void dodo::FitWindow() noexcept
+{
+    const int pixmapWidth = m_pix_item->pixmap().width();
+    const int pixmapHeight = m_pix_item->pixmap().height();
+    const int viewWidth = m_gview->viewport()->width();
+    const int viewHeight = m_gview->viewport()->height();
+
+    // Calculate scale factors for both dimensions
+    const qreal scaleX = static_cast<qreal>(viewWidth) / pixmapWidth;
+    const qreal scaleY = static_cast<qreal>(viewHeight) / pixmapHeight;
+
+    // Use the smaller scale to ensure the entire image fits in the window
+    const qreal scale = std::min(scaleX, scaleY);
+
+    m_scale_factor *= scale;
+    zoomHelper();
+    m_fit_mode = FitMode::Window;
+    m_panel->setFitMode("Fit Window");
+}
+
 
 void dodo::renderLinks() noexcept
 {
@@ -1051,7 +1149,7 @@ bool dodo::hasUpperCase(const QString &text) noexcept
 
 void dodo::FileProperties() noexcept
 {
-    PropertiesWidget *propsWidget = new PropertiesWidget();
+    PropertiesWidget *propsWidget = new PropertiesWidget(this);
     auto props = m_model->extractPDFProperties();
     propsWidget->setProperties(props);
     propsWidget->exec();
@@ -1095,4 +1193,46 @@ void dodo::InvertColor() noexcept
 {
     m_model->invertColor();
     renderPage(m_pageno);
+}
+
+void dodo::ToggleAutoResize() noexcept
+{
+    m_auto_resize = !m_auto_resize;
+}
+
+void dodo::resizeEvent(QResizeEvent *e)
+{
+    if (m_auto_resize)
+    {
+        switch(m_fit_mode)
+        {
+            case FitMode::Height:
+                FitHeight();
+                break;
+
+            case FitMode::Width:
+                FitWidth();
+                break;
+
+            case FitMode::Window:
+                FitWindow();
+                break;
+        }
+    }
+
+    e->accept();
+}
+
+void dodo::TogglePanel() noexcept
+{
+    bool shown = !m_panel->isHidden();
+    m_panel->setHidden(shown);
+    m_actionTogglePanel->setChecked(!shown);
+}
+
+void dodo::ToggleMenubar() noexcept
+{
+    bool shown = !m_menuBar->isHidden();
+    m_menuBar->setHidden(shown);
+    m_actionToggleMenubar->setChecked(!shown);
 }

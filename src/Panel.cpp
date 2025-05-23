@@ -9,17 +9,19 @@ Panel::Panel(QWidget *parent)
 void Panel::initGui() noexcept
 {
     this->setLayout(m_layout);
-
     // Left widgets
     m_layout->addWidget(m_filename_label);
 
     m_layout->addStretch();
 
     // Right widgets
-    m_layout->addWidget(new QLabel("Page: "));
+    m_layout->addWidget(new QLabel("["));
     m_layout->addWidget(m_pageno_label);
     m_layout->addWidget(new QLabel("/"));
     m_layout->addWidget(m_totalpage_label);
+    m_layout->addWidget(new QLabel("]"));
+
+    m_layout->addWidget(m_fitmode_label);
 
     m_layout->addWidget(m_search_label);
     m_layout->addWidget(m_search_index_label);
@@ -66,4 +68,9 @@ void Panel::setSearchMode(bool state) noexcept
     m_search_index_label->setVisible(state);
     m_search_count_label->setVisible(state);
     m_search_mode = state;
+}
+
+void Panel::setFitMode(const QString &fit) noexcept
+{
+    m_fitmode_label->setText(fit);
 }

@@ -4,9 +4,11 @@ PropertiesWidget::PropertiesWidget(QWidget* parent)
 : QDialog(parent)
 {
     setWindowTitle("PDF Document Properties");
-    setMinimumSize(400, 300);
+    setModal(true);
+    // setMinimumSize(400, 300);
     m_formLayout = new QFormLayout(this);
     setLayout(m_formLayout);
+    adjustSize();
 }
 
 void PropertiesWidget::setProperties(const QList<QPair<QString, QString>> &properties) noexcept

@@ -131,8 +131,14 @@ void Model::setLinkBoundaryBox(bool state)
 QImage Model::renderPage(int pageno, float zoom)
 {
     QImage image;
-    float scale = m_dpi / 72.0f;
-    m_transform = fz_scale(scale * zoom, scale * zoom);
+
+    if (!m_ctx)
+        return image;
+
+    float scale = m_dpi / 72.0f * zoom;
+    m_transform = fz_scale(scale, scale);
+    // Set antialiasing level (crucial for quality)
+    fz_set_aa_level(m_ctx, 8);  // 4 or 8 is common
 
     // RenderTask *task = new RenderTask(ctx, m_doc, m_colorspace, pageno, m_transform);
     //
@@ -140,9 +146,6 @@ QImage Model::renderPage(int pageno, float zoom)
     //     emit imageRenderRequested(page, img, lowQuality);
     // });
     // QThreadPool::globalInstance()->start(task);
-
-    if (!m_ctx)
-        return image;
 
     fz_try(m_ctx)
     {
@@ -182,8 +185,8 @@ QImage Model::renderPage(int pageno, float zoom)
 
         if (m_invert_color_mode)
         {
-            // fz_invert_pixmap_luminance(m_ctx, pix);
-            apply_night_mode(pix);
+            fz_invert_pixmap_luminance(m_ctx, pix);
+            // apply_night_mode(pix);
             // fz_gamma_pixmap(m_ctx, pix, 1/1.4f);
         }
         // Convert fz_pixmap to QImage
@@ -209,9 +212,6 @@ QImage Model::renderPage(int pageno, float zoom)
                 fz_drop_page(m_ctx, page);
                 return QImage();
         }
-
-        // Assume RGB, 8-bit per channel (no alpha)
-        image = QImage(m_width, m_height, QImage::Format_RGB888);
 
         for (int y = 0; y < m_height; ++y)
             memcpy(image.scanLine(y), samples + y * stride, m_width * n);  // 3 bytes per pixel
