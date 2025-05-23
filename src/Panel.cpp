@@ -9,6 +9,7 @@ Panel::Panel(QWidget *parent)
 void Panel::initGui() noexcept
 {
     this->setLayout(m_layout);
+
     // Left widgets
     m_layout->addWidget(m_filename_label);
 
@@ -38,7 +39,7 @@ void Panel::setTotalPageCount(int total) noexcept
 
 void Panel::setFileName(const QString &name) noexcept
 {
-    m_filename_label->setText(name);
+    m_filename_label->setFullText(name);
 }
 
 void Panel::setPageNo(int pageno) noexcept

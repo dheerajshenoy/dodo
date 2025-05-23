@@ -26,6 +26,7 @@ add_executable(${PROJECT_NAME}
     src/OutlineWidget.hpp
     src/OutlineModel.hpp
     src/GraphicsView.hpp
+    src/ElidableLabel.hpp
 
 )
 

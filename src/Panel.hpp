@@ -1,8 +1,8 @@
 #pragma once
 
 #include <QWidget>
-#include <QLabel>
 #include <QVBoxLayout>
+#include "ElidableLabel.hpp"
 
 enum class FitMode;
 
@@ -23,7 +23,7 @@ class Panel : public QWidget
 
 private:
     void initGui() noexcept;
-    QLabel *m_filename_label = new QLabel();
+    ElidableLabel *m_filename_label = new ElidableLabel();
     QLabel *m_pageno_label = new QLabel();
     QLabel *m_totalpage_label = new QLabel();
     QLabel *m_search_count_label = new QLabel();
