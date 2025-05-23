@@ -110,6 +110,7 @@ private:
     void RotateClock() noexcept;
     void RotateAntiClock() noexcept;
     void Search() noexcept;
+    void SearchPage() noexcept;
     void GoBackHistory() noexcept;
     void TableOfContents() noexcept;
     void ToggleHighlight() noexcept;
@@ -135,17 +136,10 @@ private:
     m_search_hit_page = -1,
     m_prefetch_distance,
     m_page_history_limit;
-
     QList<int> m_page_history_list;
-
-    // Poppler::Page::SearchFlags m_search_flags = Poppler::Page::SearchFlag::NoSearchFlags;
-
     float m_scale_factor, m_zoom_by;
-
     QString m_last_search_term;
-
     Panel *m_panel { nullptr };
-
     float m_dpi,
     m_low_dpi,
     DPI_FRAC;
