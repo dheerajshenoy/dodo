@@ -583,11 +583,7 @@ void dodo::ZoomIn() noexcept
     {
         m_gview->scale(1.1, 1.1);
         m_scale_factor *= 1.1;
-        renderPage(m_pageno);
-        if (m_highlights_present)
-            rehighlight();
-        m_gview->setSceneRect(m_pix_item->boundingRect());
-        // m_gview->centerOn(m_pix_item);
+        zoomHelper();
     }
 }
 
@@ -595,11 +591,7 @@ void dodo::ZoomReset() noexcept
 {
     m_scale_factor = 1.0;
     m_gview->resetTransform();
-    renderPage(m_pageno);
-    m_gview->setSceneRect(m_pix_item->boundingRect());
-    if (m_highlights_present)
-        rehighlight();
-    // m_gview->centerOn(m_pix_item);
+    zoomHelper();
 }
 
 
@@ -609,12 +601,7 @@ void dodo::ZoomOut() noexcept
     {
         m_gview->scale(0.9, 0.9);
         m_scale_factor *= 0.9;
-        renderPage(m_pageno);
-
-        if (m_highlights_present)
-            rehighlight();
-        m_gview->setSceneRect(m_pix_item->boundingRect());
-        // m_gview->centerOn(m_pix_item);
+        zoomHelper();
     }
 }
 
@@ -623,6 +610,17 @@ void dodo::Zoom(float factor) noexcept
     // TODO: Add constraints here
     m_gview->scale(factor, factor);
     m_scale_factor *= factor;
+    zoomHelper();
+}
+
+void dodo::zoomHelper() noexcept
+{
+    renderPage(m_pageno);
+    if (m_highlights_present)
+        rehighlight();
+    m_gview->setSceneRect(m_pix_item->boundingRect());
+    auto vscrollbar = m_gview->verticalScrollBar();
+    vscrollbar->setValue(vscrollbar->value());
 }
 
 void dodo::ScrollDown() noexcept
