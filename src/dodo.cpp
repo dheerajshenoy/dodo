@@ -37,8 +37,6 @@ dodo::~dodo() noexcept
 
 void dodo::initMenubar() noexcept
 {
-    // Menu Bar
-    m_menuBar = this->menuBar();
 
     // --- File Menu ---
     QMenu *fileMenu = m_menuBar->addMenu("File");
@@ -61,34 +59,40 @@ void dodo::initMenubar() noexcept
     QActionGroup *zoomModeGroup = new QActionGroup(this);
     zoomModeGroup->setExclusive(true);
 
-    QMenu *fitMenu = viewMenu->addMenu("Fit");
+    m_fitMenu = new QMenu();
+    m_fitMenu = viewMenu->addMenu("Fit");
 
-    m_actionFitWidth = fitMenu->addAction(QString("Fit Width\t%1").arg(m_shortcuts_map["fit_width"]),
+    m_actionFitNone = m_fitMenu->addAction(QString("None\t%1").arg(m_shortcuts_map["fit_none"]),
+                                            this, &dodo::FitNone);
+    m_actionFitNone->setCheckable(true);
+    zoomModeGroup->addAction(m_actionFitNone);
+
+    m_actionFitWidth = m_fitMenu->addAction(QString("Width\t%1").arg(m_shortcuts_map["fit_width"]),
                                            this, &dodo::FitWidth);
     m_actionFitWidth->setCheckable(true);
     zoomModeGroup->addAction(m_actionFitWidth);
 
-    m_actionFitHeight = fitMenu->addAction(QString("Fit Height\t%1").arg(m_shortcuts_map["fit_height"]),
+    m_actionFitHeight = m_fitMenu->addAction(QString("Height\t%1").arg(m_shortcuts_map["fit_height"]),
                                             this, &dodo::FitHeight);
     m_actionFitHeight->setCheckable(true);
     zoomModeGroup->addAction(m_actionFitHeight);
 
-    m_actionFitWindow = fitMenu->addAction(QString("Fit Window\t%1").arg(m_shortcuts_map["fit_window"]),
+    m_actionFitWindow = m_fitMenu->addAction(QString("Window\t%1").arg(m_shortcuts_map["fit_window"]),
                                             this, &dodo::FitWindow);
     m_actionFitWindow->setCheckable(true);
     zoomModeGroup->addAction(m_actionFitWindow);
 
-    fitMenu->addSeparator();
+    m_fitMenu->addSeparator();
 
     // Auto Resize toggle (independent)
-    m_actionAutoresize = fitMenu->addAction(QString("Auto Resize\t%1").arg(m_shortcuts_map["auto_resize"]),
+    m_actionAutoresize = m_fitMenu->addAction(QString("Auto Resize\t%1").arg(m_shortcuts_map["auto_resize"]),
                                              this, &dodo::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
     m_actionAutoresize->setChecked(true);  // default on or off
 
     viewMenu->addSeparator();
 
-    m_actionAutoresize = fitMenu->addAction(QString("Auto Resize\t%1").arg(m_shortcuts_map["auto_resize"]),
+    m_actionAutoresize = m_fitMenu->addAction(QString("Auto Resize\t%1").arg(m_shortcuts_map["auto_resize"]),
                                              this, &dodo::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
     m_actionAutoresize->setChecked(true);  // default on or off
@@ -208,6 +212,8 @@ void dodo::initConfig() noexcept
 
     auto ui = toml["ui"];
     m_panel->setHidden(!ui["panel"].value_or(true));
+
+    m_menuBar->setHidden(!ui["menubar"].value_or(true));
 
     if (ui["fullscreen"].value_or(false))
         Fullscreen();
@@ -372,6 +378,8 @@ void dodo::initGui() noexcept
 
     m_model = new Model(m_gscene);
     // connect(m_model, &Model::imageRenderRequested, this, &dodo::handleRenderResult);
+    // Menu Bar
+    m_menuBar = this->menuBar(); // initialize here so that the config visibility works
 }
 
 void dodo::handleRenderResult(int pageno, QImage image)
