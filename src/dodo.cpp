@@ -557,6 +557,7 @@ void dodo::prefetchAround(int currentPage) noexcept
 void dodo::FirstPage() noexcept
 {
     gotoPage(0);
+    TopOfThePage();
 }
 
 void dodo::LastPage() noexcept
