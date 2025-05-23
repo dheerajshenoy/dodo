@@ -10,6 +10,7 @@ vscrollbar = false
 auto_hide_hscrollbar = true
 auto_hide_vscrollbar = true
 full_file_path_in_panel = false
+menubar = false
 
 # Format is #AARRGGBB (ARGB format)
 [colors]
@@ -33,7 +34,7 @@ page_history = 100 # History for visited pages in the file (only for the session
 confirm_on_quit = true # Ask before quitting dodo
 auto_resize = true # Resize the document to fit the window
 zoom_factor = 1.25 # Factor by which to zoom in/out
-initial_fit = "height" # none, width, height, window
+initial_fit = "window" # Fit applied once every file opened; values: "none", "width", "height", "window":
 
 # ===== Shortcuts =====
 [keybindings]
