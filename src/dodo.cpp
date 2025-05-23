@@ -251,7 +251,6 @@ void dodo::initKeybinds() noexcept
         { "Ctrl+s", [this]() { SaveFile(); } },
         { "Alt+1", [this]() { ToggleHighlight(); } },
         { "t", [this]() { TableOfContents(); } },
-        { "<escape>", [this]() { Escape(); } },
         { "/", [this]() { Search(); } },
         { "n", [this]() { nextHit(); } },
         { "Shift+n", [this]() { prevHit(); } },
@@ -276,6 +275,7 @@ void dodo::initKeybinds() noexcept
         auto *sc = new QShortcut(QKeySequence(key), this);
         connect(sc, &QShortcut::activated, func);
     }
+
 }
 
 void dodo::initGui() noexcept
