@@ -22,7 +22,7 @@ search_index = "#55FFFF55"
 
 # ===== Rendering Settings =====
 [rendering]
-dpi = 600.0
+dpi = 300.0
 low_dpi = 72.0
 cache_pages = 5            # Number of pages to keep in RAM
 antialiasing_bits = 4
@@ -46,12 +46,15 @@ scroll_down = "j"
 scroll_up = "k"
 scroll_right = "l"
 
+prev_location = "Ctrl+o"
+
 next_page = "Shift+J"
 prev_page = "Shift+K"
 first_page = "g,g"
 last_page = "Shift+G"
 
 search = "/"
+search_this_page = "?" #TODO
 
 zoom_reset = "0"
 zoom_in = "="
@@ -69,3 +72,6 @@ auto_resize = "Ctrl+Shift+R"
 
 toggle_menubar = "Ctrl+Shift+M"
 toggle_panel = "Ctrl+Shift+B"
+
+rotate_clock = ">"
+rotate_anticlock = "<"
