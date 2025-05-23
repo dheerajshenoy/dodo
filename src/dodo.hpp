@@ -58,9 +58,10 @@ protected:
 private:
 
     enum class FitMode {
-        Width = 0,
+        None = 0,
+        Width,
         Height,
-        Window
+        Window,
     };
 
     void initConnections() noexcept;
@@ -84,6 +85,7 @@ private:
     void prefetchAround(int currentPage) noexcept;
     void setupKeybinding(const QString &action,
                          const QString &key) noexcept;
+    void setFitMode(const FitMode &mode) noexcept;
 
     // Interactive functions
     void Fullscreen() noexcept;
@@ -101,6 +103,7 @@ private:
     void ZoomIn() noexcept;
     void ZoomOut() noexcept;
     void Zoom(float factor) noexcept;
+    void FitNone() noexcept;
     void FitWidth() noexcept;
     void FitHeight() noexcept;
     void FitWindow() noexcept;
@@ -161,11 +164,13 @@ private:
     void zoomHelper() noexcept;
 
     QMenuBar *m_menuBar { nullptr };
+    QMenu *m_fitMenu { nullptr };
     QAction *m_actionZoomIn { nullptr };
     QAction *m_actionZoomOut { nullptr };
     QAction *m_actionFitWidth { nullptr };
     QAction *m_actionFitHeight { nullptr };
     QAction *m_actionFitWindow { nullptr };
+    QAction *m_actionFitNone { nullptr };
     QAction *m_actionAutoresize { nullptr };
 
     QAction *m_actionToggleMenubar { nullptr };
@@ -201,7 +206,7 @@ private:
     QMap<QString, std::function<void()>> m_actionMap;
     bool m_load_default_keybinding { true };
     bool m_auto_resize;
-    FitMode m_fit_mode;
+    FitMode m_fit_mode, m_initial_fit;
 
 };
 
