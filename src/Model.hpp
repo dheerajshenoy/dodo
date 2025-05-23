@@ -34,7 +34,7 @@ public:
     inline void setDPI(float dpi) { m_dpi = dpi; }
     inline void setLowDPI(float low_dpi) { m_low_dpi = low_dpi; }
     int numPages();
-    QImage renderPage(int pageno, bool lowQuality);
+    QImage renderPage(int pageno, float zoom);
     void renderLinks(int pageno, const fz_matrix& transform);
     void setLinkBoundaryBox(bool state);
     void searchAll(const QString &term, bool caseSensitive);
@@ -66,7 +66,7 @@ public:
     signals:
     void jumpToPageRequested(int pageno);
     void jumpToLocationRequested(int pageno, const BrowseLinkItem::Location &loc);
-    void imageRenderRequested(int pageno, QImage img, bool lowQuality);
+    void imageRenderRequested(int pageno, QImage img);
     void searchResultsReady(const QMap<int, QList<QPair<QRectF, int>>> &results, int matchCount);
     void horizontalFitRequested();
     void verticalFitRequested();

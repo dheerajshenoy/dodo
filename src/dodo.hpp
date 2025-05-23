@@ -45,13 +45,10 @@ public:
     ~dodo() noexcept;
 
 public slots:
-    void handleRenderResult(int pageno, QImage img, bool lowQuality);
-
-    void closeEvent(QCloseEvent *e) override;
+    void handleRenderResult(int pageno, QImage img);
 
 protected:
-    // void keyPressEvent(QKeyEvent *e) override;
-    // void keyReleaseEvent(QKeyEvent *e) override;
+    void closeEvent(QCloseEvent *e) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
@@ -67,8 +64,7 @@ private:
     void renderLinks() noexcept;
     void search(const QString &term) noexcept;
     void searchAll(const QString &term, bool caseSensitive) noexcept;
-    void renderPage(int pageno,
-                    bool lowQuality = true) noexcept;
+    void renderPage(int pageno) noexcept;
     void renderImage(const QImage &img) noexcept;
     void cachePage(int pageno) noexcept;
     void scrollToXY(float x, float y) noexcept;

@@ -15,6 +15,8 @@ public:
     GraphicsView(QWidget *parent = nullptr) : QGraphicsView(parent)
     {
         setMouseTracking(true);
+        setResizeAnchor(QGraphicsView::AnchorViewCenter);
+        setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
     }
 
     inline void setDrawingMode(bool state) noexcept { m_drawing_mode = state; }
@@ -109,5 +111,4 @@ private:
     float m_dpiScale { 1.0f };
     QGraphicsPixmapItem *m_pixmapItem;
     QRubberBand *m_rubberBand;
-
 };

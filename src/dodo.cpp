@@ -13,7 +13,6 @@ dodo::dodo() noexcept
     initKeybinds();
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
     openFile("~/Downloads/basic-link-1.pdf"); // FOR DEBUG PURPOSE ONLY
-    m_HQRenderTimer->setSingleShot(true);
     m_page_history_list.reserve(m_page_history_limit);
     initConnections();
     m_pix_item->setScale(m_scale_factor);
@@ -24,10 +23,6 @@ dodo::~dodo() noexcept
 
 void dodo::initConnections() noexcept
 {
-    connect(m_HQRenderTimer, &QTimer::timeout, this, [&]() {
-        renderPage(m_pageno, false);
-    });
-
     connect(m_model, &Model::searchResultsReady, this, [&](const QMap<int, QList<QPair<QRectF, int>>> &maps,
                                                            int matchCount) {
             if (matchCount == 0)
@@ -36,11 +31,11 @@ void dodo::initConnections() noexcept
                                      QString("No match found for {}").arg(m_last_search_term));
             return;
             }
-        m_searchRectMap = maps;
-        m_panel->setSearchCount(matchCount);
-        auto page = maps.firstKey();
-        jumpToHit(page, 0);
-    });
+            m_searchRectMap = maps;
+            m_panel->setSearchCount(matchCount);
+            auto page = maps.firstKey();
+            jumpToHit(page, 0);
+            });
 
     connect(m_gview, &GraphicsView::highlightDrawn, this, [=](const QRectF &pdfRect) {
         m_model->addHighlightAnnotation(m_pageno, pdfRect);
@@ -86,9 +81,9 @@ void dodo::initDB() noexcept
 
     // FIXME: Maybe add some unique hashing so that this works even when you move a file
     query.exec("CREATE TABLE IF NOT EXISTS last_visited ("
-           "file_path TEXT PRIMARY KEY, "
-           "page_number INTEGER, "
-           "last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+               "file_path TEXT PRIMARY KEY, "
+               "page_number INTEGER, "
+               "last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 }
 
 void dodo::initConfig() noexcept
@@ -126,7 +121,6 @@ void dodo::initConfig() noexcept
     m_gview->setBackgroundBrush(QColor(m_colors["background"]));
 
     auto rendering = toml["rendering"];
-    auto backend = rendering["backend"].value_or("mupdf");
     m_dpi = rendering["dpi"].value_or(300.0);
     m_low_dpi = rendering["low_dpi"].value_or(72.0);
     m_model->setDPI(m_dpi);
@@ -241,11 +235,11 @@ void dodo::initGui() noexcept
     m_actionLastPage = navMenu->addAction("Last Page\tShift+g", this, &dodo::LastPage);
 
     m_model = new Model(m_gscene);
-    connect(m_model, &Model::imageRenderRequested, this, &dodo::handleRenderResult);
+    // connect(m_model, &Model::imageRenderRequested, this, &dodo::handleRenderResult);
     updateUiEnabledState();
 }
 
-void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
+void dodo::handleRenderResult(int pageno, QImage image)
 {
     if (pageno != m_pageno || image.isNull())
     {
@@ -255,14 +249,8 @@ void dodo::handleRenderResult(int pageno, QImage image, bool lowQuality)
 
     QPixmap pix = QPixmap::fromImage(image);
 
-    if (!lowQuality) {
-        m_highResCache.insert(pageno, new QPixmap(pix));
-        // m_pix_item->setScale(m_scale_factor);
-    } else {
-        m_pixmapCache.insert(pageno, new QPixmap(pix));
-        // m_pix_item->setScale(DPI_FRAC);
-    }
-
+    m_pixmapCache.insert(pageno, new QPixmap(pix));
+    m_pix_item->setScale(m_scale_factor);
     m_pix_item->setPixmap(pix);
 
     // Normalize scale: use logical size instead of raw pixels
@@ -311,10 +299,9 @@ void dodo::openFile(const QString &fileName) noexcept
 {
     m_filename = fileName;
     m_filename.replace("~", QString::fromStdString(getenv("HOME")));
-
     QList<QGraphicsItem*> items = m_pix_item->childItems();
     for (const auto &item : items)
-        m_gscene->removeItem(item);
+    m_gscene->removeItem(item);
 
     qDeleteAll(items);
 
@@ -357,8 +344,9 @@ void dodo::openFile(const QString &fileName) noexcept
             gotoPage(0);
         }
     } else
-        gotoPage(0);
+    gotoPage(0);
 
+    qDebug() << m_pix_item->pos();
     updateUiEnabledState();
 }
 
@@ -447,12 +435,9 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
     {
         QPixmap *cached = m_highResCache.object(pageno);
         m_pix_item->setPixmap(*cached);
-        // m_pix_item->setScale(m_scale_factor);
+        m_pix_item->setScale(m_scale_factor);
         return;
     }
-
-    m_HQRenderTimer->stop();
-    m_HQRenderTimer->start(100);
 
     if (m_highlights_present)
     {
@@ -460,32 +445,22 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
         clearIndexHighlights();
     }
 
-    renderPage(pageno, true);
+    renderPage(pageno);
 }
 
-void dodo::renderPage(int pageno,
-                      bool lowQuality) noexcept
+void dodo::renderPage(int pageno) noexcept
 {
 
-    if (!lowQuality)
+    if (m_highResCache.contains(pageno))
     {
-        if (m_highResCache.contains(pageno)) {
-            m_pix_item->setPixmap(*m_highResCache.object(pageno));
-            // m_pix_item->setScale(m_scale_factor);
-            return;
-        }
-    } else {
-        if (m_pixmapCache.contains(pageno)) {
-            m_pix_item->setPixmap(*m_pixmapCache.object(pageno));
-            // m_pix_item->setScale(DPI_FRAC);
-            return;
-        }
+        m_pix_item->setPixmap(*m_highResCache.object(pageno));
+        m_pix_item->setScale(DPI_FRAC * m_scale_factor);
+        return;
     }
 
-    auto img = m_model->renderPage(pageno, lowQuality);
+    auto img = m_model->renderPage(pageno, m_scale_factor);
     renderImage(img);
-    if (!lowQuality)
-        renderLinks();
+    renderLinks();
 }
 
 void dodo::renderImage(const QImage &img) noexcept
@@ -508,7 +483,7 @@ void dodo::cachePage(int pageno) noexcept
         return;
     }
 
-    m_model->renderPage(pageno, false);
+    m_model->renderPage(pageno, m_scale_factor);
     // auto *pix = new QPixmap(QPixmap::fromImage(img));
     // m_highResCache.insert(pageno, pix);
 }
@@ -551,6 +526,9 @@ void dodo::ZoomIn() noexcept
     {
         m_gview->scale(1.1, 1.1);
         m_scale_factor *= 1.1;
+        renderPage(m_pageno);
+        m_gview->setSceneRect(m_pix_item->boundingRect());
+        // m_gview->centerOn(m_pix_item);
     }
 }
 
@@ -558,6 +536,8 @@ void dodo::ZoomReset() noexcept
 {
     m_scale_factor = 1.0;
     m_gview->resetTransform();
+    m_gview->setSceneRect(m_pix_item->boundingRect());
+    // m_gview->centerOn(m_pix_item);
 }
 
 
@@ -567,6 +547,9 @@ void dodo::ZoomOut() noexcept
     {
         m_gview->scale(0.9, 0.9);
         m_scale_factor *= 0.9;
+        renderPage(m_pageno);
+        m_gview->setSceneRect(m_pix_item->boundingRect());
+        // m_gview->centerOn(m_pix_item);
     }
 }
 
@@ -911,7 +894,7 @@ void dodo::ToggleHighlight() noexcept
 void dodo::SaveFile() noexcept
 {
     m_model->save();
-    auto img = m_model->renderPage(m_pageno, false);
+    auto img = m_model->renderPage(m_pageno, m_scale_factor);
     renderImage(img);
 }
 
@@ -928,37 +911,6 @@ void dodo::CopyLinkKB() noexcept
     m_model->copyLinkKB(m_pageno);
 }
 
-// void dodo::keyPressEvent(QKeyEvent *e)
-// {
-//     if (e->key() == Qt::Key_F) {
-//         e->accept();
-//
-//         // ✅ Defer activation until after the current event is done
-//         QTimer::singleShot(0, this, [this]() {
-//             m_linkHintMode = true;
-//             qDebug() << "Link hint mode activated";
-//         });
-//
-//         return;
-//     }
-//
-//     QMainWindow::keyPressEvent(e);
-// }
-
-// void dodo::keyReleaseEvent(QKeyEvent *e)
-// {
-//     if (m_linkHintMode)
-//     {
-//         // e->ignore();
-//         e->ignore();
-//         qDebug() << "DD";
-//
-//         // m_linkHintMode = false;
-//         return;
-//     }
-//     QMainWindow::keyPressEvent(e);
-// }
-
 bool dodo::eventFilter(QObject *obj, QEvent *event)
 {
     if (m_linkHintMode)
@@ -968,7 +920,6 @@ bool dodo::eventFilter(QObject *obj, QEvent *event)
             m_linkHintMode = false;
             m_currentHintInput.clear();
             qWarning() << "No links found to show hints";
-            // m_model->clearKBHintsOverlay();
             return true;
         }
         if (event->type() == QEvent::KeyPress)
@@ -1000,9 +951,6 @@ bool dodo::eventFilter(QObject *obj, QEvent *event)
                 return true;
             }
             keyEvent->accept();
-            // Accept and swallow the key event to prevent QShortcut activation
-            // keyEvent->timestamp();
-            // qDebug() << "Blocked key in link hint mode:" << keyEvent->text();
             return true;
         }
 
@@ -1034,7 +982,6 @@ bool dodo::hasUpperCase(const QString &text) noexcept
 
     return false;
 }
-
 
 void dodo::FileProperties() noexcept
 {

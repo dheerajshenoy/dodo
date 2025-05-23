@@ -15,18 +15,6 @@
 #include <qgraphicsitem.h>
 
 
-QString generateHint(int index) noexcept
-{
-    QString hint;
-    const QString alphabet = "asdfghjkl";
-    int base = alphabet.length();
-    do {
-        hint.prepend(alphabet[index % base]);
-        index = index / base - 1;
-    } while (index >= 0);
-    return hint;
-}
-
 void lock_mutex(void* user, int lock) {
     auto mutex = static_cast<std::mutex*>(user);
     std::lock_guard<std::mutex> guard(mutex[lock]);
@@ -139,17 +127,11 @@ void Model::setLinkBoundaryBox(bool state)
     m_link_boundary_enabled = state;
 }
 
-QImage Model::renderPage(int pageno, bool lowQuality)
+QImage Model::renderPage(int pageno, float zoom)
 {
     QImage image;
-    float render_dpi = lowQuality ? m_low_dpi : m_dpi;
-    float scale = render_dpi / 72.0f;
-    if (lowQuality)
-    {
-        m_transform = fz_scale(m_dpi / m_low_dpi, m_dpi / m_low_dpi);
-    } else {
-        m_transform = fz_scale(scale, scale);
-    }
+    float scale = m_dpi / 72.0f;
+    m_transform = fz_scale(scale * zoom, scale * zoom);
 
     // RenderTask *task = new RenderTask(ctx, m_doc, m_colorspace, pageno, m_transform);
     //
@@ -205,9 +187,10 @@ QImage Model::renderPage(int pageno, bool lowQuality)
         image = QImage(width, height, QImage::Format_RGB888);
 
         for (int y = 0; y < height; ++y)
-        {
             memcpy(image.scanLine(y), samples + y * stride, width * 3);  // 3 bytes per pixel
-        }
+
+        image.setDotsPerMeterX(m_dpi / 25.4 * 1000);
+        image.setDotsPerMeterY(m_dpi / 25.4 * 1000);
 
         // Cleanup
         fz_close_device(m_ctx, dev);
@@ -608,7 +591,7 @@ void Model::visitLinkKB(int pageno) noexcept
             return;
         }
 
-        int i=0;
+        int i=-1;
         while (link)
         {
             if (link->uri) {
@@ -617,7 +600,7 @@ void Model::visitLinkKB(int pageno) noexcept
                 float h = r.y1 - r.y0;
                 float y = r.y1 - h;
 
-                QString hint = generateHint(i++);
+                QString hint = QString::number(i++);
                 auto dest = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
                 m_hint_to_link_map[hint] = { .uri = QString::fromUtf8(link->uri),
                     .dest = dest };
@@ -625,13 +608,19 @@ void Model::visitLinkKB(int pageno) noexcept
                 QRect rect(x, y, 40, h);
 
                 QGraphicsRectItem *item = new QGraphicsRectItem(rect);
-                item->setBrush(QColor(255, 255, 0, 100));
+                item->setBrush(QColor(255, 255, 0, 255));
                 item->setPen(Qt::NoPen);
                 item->setData(0, "kb_link_overlay");
                 m_scene->addItem(item);
 
                 // Add text overlay
                 QGraphicsSimpleTextItem *text = new QGraphicsSimpleTextItem(hint);
+                // 🔧 Set larger font based on rect height
+                QFont font;
+                font.setPointSizeF(h * 0.6);  // Try 0.6 or adjust to taste
+                font.setBold(true);
+                text->setFont(font);
+
                 text->setBrush(Qt::black);
                 text->setPos(rect.topLeft());
                 text->setZValue(item->zValue() + 1);
@@ -695,41 +684,6 @@ bool Model::hasUnsavedChanges() noexcept
         return pdf_has_unsaved_changes(m_ctx, idoc);
     return false;
 }
-
-// QList<QPair<QString, QString>> Model::extractPDFProperties() noexcept
-// {
-//     QList<QPair<QString, QString>> props;
-//     auto pdfdoc = pdf_specifics(m_ctx, m_doc);
-//
-//     if (!m_ctx || !m_doc)
-//         return props;
-//
-//       static const char* keys[] = {
-//         "Title", "Author", "Subject", "Keywords",
-//         "Creator", "Producer", "CreationDate", "ModDate", "Trapped"
-//     };
-//
-//     pdf_obj* info = pdf_dict_get(m_ctx, pdf_trailer(m_ctx, pdfdoc), PDF_NAME(Info));
-//     if (!info || !pdf_is_dict(m_ctx, info))
-//         return props;
-//
-//     for (const char* key : keys)
-//     {
-//         pdf_obj* val = pdf_dict_get(m_ctx, info, pdf_new_name(m_ctx, key));
-//         if (val && pdf_is_string(m_ctx, val))
-//         {
-//             const char* s = pdf_to_str_buf(m_ctx, val);
-//             int len = pdf_to_str_len(m_ctx, val);
-//             props.append(qMakePair(QString::fromLatin1(key), QString::fromUtf8(s, len)));
-//         }
-//     }
-//
-//     // Add some basic stats
-//     props.append(qMakePair("Page Count", QString::number(pdf_count_pages(m_ctx, pdfdoc))));
-//     props.append(qMakePair("Encrypted", pdf_needs_password(m_ctx, pdfdoc) ? "Yes" : "No"));
-//
-//     return props;
-// }
 
 QList<QPair<QString, QString>> Model::extractPDFProperties() noexcept
 {
