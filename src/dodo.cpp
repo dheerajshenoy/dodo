@@ -292,34 +292,8 @@ void dodo::initGui() noexcept
     m_gview->setPixmapItem(m_pix_item);
     m_gscene->addItem(m_pix_item);
 
-    // Menu Bar
-    QMenuBar *menubar = menuBar();
-
-    // --- File Menu ---
-    QMenu *fileMenu = menubar->addMenu("File");
-    fileMenu->addAction("Open", this, &dodo::OpenFile);
-    fileMenu->addAction("File Properties", this, &dodo::FileProperties);
-    fileMenu->addSeparator();
-    fileMenu->addAction("Quit", this, &QMainWindow::close);
-
-    // --- View Menu ---
-    QMenu *viewMenu = menubar->addMenu("View");
-    m_actionZoomIn = viewMenu->addAction("Zoom In", this, &dodo::ZoomIn);
-    m_actionZoomOut = viewMenu->addAction("Zoom Out", this, &dodo::ZoomOut);
-    viewMenu->addSeparator();
-    m_actionFitWidth = viewMenu->addAction("Fit to Width", this, &dodo::FitToWidth);
-    m_actionFitHeight = viewMenu->addAction("Fit to Height", this, &dodo::FitToHeight);
-
-    // --- Navigation Menu ---
-    QMenu *navMenu = menubar->addMenu("Navigation");
-    m_actionFirstPage = navMenu->addAction("First Page\tg,g", this, &dodo::FirstPage);
-    m_actionPrevPage = navMenu->addAction("Previous Page\tShift+k", this, &dodo::PrevPage);
-    m_actionNextPage = navMenu->addAction("Next Page\tShift+j", this, &dodo::NextPage);
-    m_actionLastPage = navMenu->addAction("Last Page\tShift+g", this, &dodo::LastPage);
-
     m_model = new Model(m_gscene);
     // connect(m_model, &Model::imageRenderRequested, this, &dodo::handleRenderResult);
-    updateUiEnabledState();
 }
 
 void dodo::handleRenderResult(int pageno, QImage image)
@@ -429,7 +403,6 @@ void dodo::openFile(const QString &fileName) noexcept
     } else
     gotoPage(0);
 
-    qDebug() << m_pix_item->pos();
     updateUiEnabledState();
 }
 
