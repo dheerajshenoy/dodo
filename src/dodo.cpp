@@ -19,7 +19,12 @@ dodo::dodo() noexcept
     }
 
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-    openFile("~/Downloads/basic-link-1.pdf"); // FOR DEBUG PURPOSE ONLY
+
+#ifdef NDEBUG
+#else
+    // openFile("~/Downloads/basic-link-1.pdf"); // FOR DEBUG PURPOSE ONLY
+#endif
+
     m_page_history_list.reserve(m_page_history_limit);
     initConnections();
     m_pix_item->setScale(m_scale_factor);
