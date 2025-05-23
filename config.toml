@@ -19,7 +19,7 @@ search_index = "#55FFFF55"
 
 # ===== Rendering Settings =====
 [rendering]
-dpi = 600.0
+dpi = 300.0
 low_dpi = 72.0
 cache_pages = 5            # Number of pages to keep in RAM
 antialiasing_bits = 8
@@ -35,9 +35,28 @@ confirm_on_quit = true # Ask before quitting dodo
 
 # ===== Shortcuts =====
 [keybindings]
-next_page = "Right"
-prev_page = "Left"
-zoom_in = "Ctrl+Plus"
-zoom_out = "Ctrl+Minus"
-toggle_fullscreen = "F11"
-quit = "Ctrl+Q"
+open_file = "o"
+
+scroll_left = "h"
+scroll_down = "j"
+scroll_up = "k"
+scroll_right = "l"
+
+next_page = "Shift+j"
+prev_page = "Shift+k"
+first_page = "g,g"
+last_page = "Shift+g"
+
+search = "/"
+
+zoom_reset = "0"
+zoom_in = "="
+zoom_out = "-"
+
+fullscreen = "<F11>"
+annot_highlight = "Alt+1"
+file_properties = "Ctrl+Shift+f"
+invert_color = "i"
+
+fit_height = "Ctrl+Shift+h"
+fit_width = "Ctrl+Shift"w"

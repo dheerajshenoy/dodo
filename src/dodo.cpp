@@ -91,13 +91,24 @@ void dodo::initConfig() noexcept
     m_config_dir = QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
     auto config_file_path = m_config_dir.filePath("config.toml");
 
-    auto toml = toml::parse_file(config_file_path.toStdString());
+    toml::table toml;
+
+    try
+    {
+        toml = toml::parse_file(config_file_path.toStdString());
+    } catch (std::exception &e)
+    {
+        QMessageBox::critical(this, "Error in configuration file",
+                              QString("There are one or more error(s) in your config file:\n%1\n\nLoading default config.")
+                              .arg(e.what()));
+        return;
+    }
 
     auto ui = toml["ui"];
     m_panel->setVisible(ui["panel_shown"].value_or(true));
 
     if (ui["fullscreen"].value_or(false))
-        this->showFullScreen();
+        Fullscreen();
 
     m_gview->verticalScrollBar()->setVisible(ui["vscrollbar"].value_or(true));
     m_gview->horizontalScrollBar()->setVisible(ui["hscrollbar"].value_or(true));
