@@ -6,20 +6,69 @@
 dodo::dodo() noexcept
 {
     initGui();
-    this->show();
     initConfig();
+    initMenubar();
     initDB();
     DPI_FRAC = m_dpi / m_low_dpi;
-    initKeybinds();
+
+    if (m_load_default_keybinding)
+    {
+        qDebug() << "Loading default keybindings";
+        initKeybinds();
+    }
+
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
     openFile("~/Downloads/basic-link-1.pdf"); // FOR DEBUG PURPOSE ONLY
     m_page_history_list.reserve(m_page_history_limit);
     initConnections();
     m_pix_item->setScale(m_scale_factor);
+    this->show();
 }
+
 
 dodo::~dodo() noexcept
 {}
+
+void dodo::initMenubar() noexcept
+{
+    // Menu Bar
+    QMenuBar *menubar = menuBar();
+
+    // --- File Menu ---
+    QMenu *fileMenu = menubar->addMenu("File");
+    fileMenu->addAction("Open", this, &dodo::OpenFile);
+    fileMenu->addAction("File Properties", this, &dodo::FileProperties);
+    fileMenu->addSeparator();
+    fileMenu->addAction("Quit", this, &QMainWindow::close);
+
+    // --- View Menu ---
+    QMenu *viewMenu = menubar->addMenu("View");
+    m_actionZoomIn = viewMenu->addAction(QString("Zoom In\t%1").arg(m_shortcuts_map["zoom_in"]),
+                                         this, &dodo::ZoomIn);
+    m_actionZoomOut = viewMenu->addAction(QString("Zoom Out\t%1").arg(m_shortcuts_map["zoom_out"]),
+                                          this, &dodo::ZoomOut);
+    viewMenu->addSeparator();
+    m_actionFitWidth = viewMenu->addAction(QString("Fit Width\t%1").arg(m_shortcuts_map["fit_width"]),
+                                           this, &dodo::FitToWidth);
+
+    m_actionFitHeight = viewMenu->addAction(QString("Fit Height\t%1").arg(m_shortcuts_map["fit_height"]),
+                                            this, &dodo::FitToHeight);
+
+    // --- Navigation Menu ---
+    QMenu *navMenu = menubar->addMenu("Navigation");
+    m_actionFirstPage = navMenu->addAction(QString("First Page\t%1").arg(m_shortcuts_map["first_page"]),
+                                           this, &dodo::FirstPage);
+
+    m_actionPrevPage = navMenu->addAction(QString("Previous Page\t%1").arg(m_shortcuts_map["prev_page"]),
+                                          this, &dodo::PrevPage);
+
+    m_actionNextPage = navMenu->addAction(QString("Next Page\t%1").arg(m_shortcuts_map["next_page"]),
+                                          this, &dodo::NextPage);
+    m_actionLastPage = navMenu->addAction(QString("Last Page\t%1").arg(m_shortcuts_map["last_page"]),
+                                          this, &dodo::LastPage);
+
+    updateUiEnabledState();
+}
 
 void dodo::initConnections() noexcept
 {
