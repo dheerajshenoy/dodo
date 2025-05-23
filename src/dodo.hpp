@@ -180,6 +180,7 @@ private:
     QAction *m_actionPrevPage { nullptr };
     QAction *m_actionNextPage { nullptr };
     QAction *m_actionLastPage { nullptr };
+    QAction *m_actionPrevLocation { nullptr };
 
     QCache<int, QPixmap> m_highResCache,
     m_pixmapCache;
