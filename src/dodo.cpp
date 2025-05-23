@@ -1,7 +1,7 @@
 #include "dodo.hpp"
 #include "GraphicsView.hpp"
 #include "PropertiesWidget.hpp"
-#include <qpointingdevice.h>
+#include <qgraphicsitem.h>
 
 dodo::dodo() noexcept
 {
@@ -527,6 +527,8 @@ void dodo::ZoomIn() noexcept
         m_gview->scale(1.1, 1.1);
         m_scale_factor *= 1.1;
         renderPage(m_pageno);
+        if (m_highlights_present)
+            rehighlight();
         m_gview->setSceneRect(m_pix_item->boundingRect());
         // m_gview->centerOn(m_pix_item);
     }
@@ -536,7 +538,10 @@ void dodo::ZoomReset() noexcept
 {
     m_scale_factor = 1.0;
     m_gview->resetTransform();
+    renderPage(m_pageno);
     m_gview->setSceneRect(m_pix_item->boundingRect());
+    if (m_highlights_present)
+        rehighlight();
     // m_gview->centerOn(m_pix_item);
 }
 
@@ -548,6 +553,9 @@ void dodo::ZoomOut() noexcept
         m_gview->scale(0.9, 0.9);
         m_scale_factor *= 0.9;
         renderPage(m_pageno);
+
+        if (m_highlights_present)
+            rehighlight();
         m_gview->setSceneRect(m_pix_item->boundingRect());
         // m_gview->centerOn(m_pix_item);
     }
@@ -614,7 +622,7 @@ void dodo::FitToWidth() noexcept
 
 void dodo::renderLinks() noexcept
 {
-    m_model->renderLinks(m_pageno, m_model->transform());
+    m_model->renderLinks(m_pageno);
 }
 
 // Single page search
@@ -661,19 +669,18 @@ void dodo::highlightHitsInPage(int pageno)
 {
     if (pageno != m_pageno) return;
 
-    clearIndexHighlights();
+    clearHighlights();
 
-    float scale = m_dpi / 72.0;
     auto list_of_pairs = m_searchRectMap[pageno];
 
     for (const auto &pairs : list_of_pairs)
     {
         auto rect = pairs.first;
         QRectF scaledRect = QRectF(
-            rect.left() * scale,
-            rect.top() * scale,
-            rect.width() * scale,
-            rect.height() * scale
+            rect.left() * DPI_FRAC * m_scale_factor,
+            rect.top() * DPI_FRAC * m_scale_factor,
+            rect.width() * DPI_FRAC * m_scale_factor,
+            rect.height() * DPI_FRAC * m_scale_factor
         );
 
         auto *highlight = new QGraphicsRectItem(scaledRect);
@@ -681,6 +688,7 @@ void dodo::highlightHitsInPage(int pageno)
         highlight->setBrush(QColor::fromString(m_colors["search_match"]));
         highlight->setPen(Qt::NoPen);
         highlight->setData(0, "searchHighlight");
+        highlight->setData(1, rect);
 
         m_gscene->addItem(highlight);
         // m_gview->centerOn(highlight);
@@ -694,18 +702,18 @@ void dodo::highlightSingleHit(int page, const QRectF &rect)
 
     clearIndexHighlights();
 
-    float scale = m_dpi / 72.0;
     QRectF scaledRect = QRectF(
-        rect.left() * scale,
-        rect.top() * scale,
-        rect.width() * scale,
-        rect.height() * scale
+        rect.left() * m_scale_factor * DPI_FRAC,
+        rect.top() * m_scale_factor * DPI_FRAC,
+        rect.width() * m_scale_factor * DPI_FRAC,
+        rect.height() * m_scale_factor * DPI_FRAC
     );
 
     auto *highlight = new QGraphicsRectItem(scaledRect);
     highlight->setBrush(QColor::fromString(m_colors["search_index"]));
     highlight->setPen(Qt::NoPen);
     highlight->setData(0, "searchIndexHighlight");
+    highlight->setData(1, rect);
 
     m_gscene->addItem(highlight);
     m_gview->centerOn(highlight);
@@ -989,4 +997,25 @@ void dodo::FileProperties() noexcept
     auto props = m_model->extractPDFProperties();
     propsWidget->setProperties(props);
     propsWidget->exec();
+}
+
+void dodo::rehighlight() noexcept
+{
+    // searchHighlight
+    // searchIndexHighlight;
+
+    for (auto &object : m_gscene->items())
+    {
+        auto data = object->data(0).toString();
+        if (data == "searchHighlight" || data == "searchIndexHighlight")
+        {
+         QGraphicsRectItem *object_rect = qgraphicsitem_cast<QGraphicsRectItem*>(object);
+         auto rect = object_rect->data(1).toRect();
+         object_rect->setRect(rect.left() * m_scale_factor * DPI_FRAC,
+                              rect.top() * m_scale_factor * DPI_FRAC,
+                              rect.width() * m_scale_factor * DPI_FRAC,
+                              rect.height() * m_scale_factor * DPI_FRAC);
+        }
+    }
+
 }

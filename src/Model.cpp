@@ -178,16 +178,16 @@ QImage Model::renderPage(int pageno, float zoom)
         fz_run_page(m_ctx, page, dev, fz_identity, nullptr);
 
         // Convert fz_pixmap to QImage
-        int width = fz_pixmap_width(m_ctx,pix);
-        int height = fz_pixmap_height(m_ctx,pix);
+        m_width = fz_pixmap_width(m_ctx,pix);
+        m_height = fz_pixmap_height(m_ctx,pix);
         unsigned char *samples = fz_pixmap_samples(m_ctx,pix);
         int stride = fz_pixmap_stride(m_ctx,pix);
 
         // Assume RGB, 8-bit per channel (no alpha)
-        image = QImage(width, height, QImage::Format_RGB888);
+        image = QImage(m_width, m_height, QImage::Format_RGB888);
 
-        for (int y = 0; y < height; ++y)
-            memcpy(image.scanLine(y), samples + y * stride, width * 3);  // 3 bytes per pixel
+        for (int y = 0; y < m_height; ++y)
+            memcpy(image.scanLine(y), samples + y * stride, m_width * 3);  // 3 bytes per pixel
 
         image.setDotsPerMeterX(m_dpi / 25.4 * 1000);
         image.setDotsPerMeterY(m_dpi / 25.4 * 1000);
@@ -370,7 +370,7 @@ void Model::clearLinks() noexcept
     }
 }
 
-void Model::renderLinks(int pageno, const fz_matrix& transform)
+void Model::renderLinks(int pageno)
 {
     clearLinks();
     fz_try(m_ctx)
@@ -388,7 +388,7 @@ void Model::renderLinks(int pageno, const fz_matrix& transform)
         while (link)
         {
             if (link->uri) {
-                fz_rect r = fz_transform_rect(link->rect, transform);
+                fz_rect r = fz_transform_rect(link->rect, m_transform);
 
                 float x = r.x0;
                 float w = r.x1 - r.x0;
@@ -471,7 +471,6 @@ void Model::renderLinks(int pageno, const fz_matrix& transform)
     {
         qWarning() << "MuPDF error in renderlink: " << fz_caught_message(m_ctx);
     }
-
 }
 
 void Model::addHighlightAnnotation(int pageno, const QRectF &pdfRect) noexcept

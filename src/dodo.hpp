@@ -141,6 +141,7 @@ private:
     void prevHit();
     void nextHit();
     bool hasUpperCase(const QString &text) noexcept;
+    void rehighlight() noexcept;
 
     QAction *m_actionZoomIn = nullptr;
     QAction *m_actionZoomOut = nullptr;

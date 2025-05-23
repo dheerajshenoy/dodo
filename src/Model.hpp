@@ -35,7 +35,7 @@ public:
     inline void setLowDPI(float low_dpi) { m_low_dpi = low_dpi; }
     int numPages();
     QImage renderPage(int pageno, float zoom);
-    void renderLinks(int pageno, const fz_matrix& transform);
+    void renderLinks(int pageno);
     void setLinkBoundaryBox(bool state);
     void searchAll(const QString &term, bool caseSensitive);
     void addHighlightAnnotation(int pageno, const QRectF &rect) noexcept;
@@ -90,6 +90,7 @@ private:
     fz_context *m_ctx { nullptr };
     fz_document *m_doc { nullptr };
     fz_matrix m_transform;
+    float m_height, m_width;
 
     QMap<QString, LinkInfo> m_hint_to_link_map;
 };
