@@ -2,6 +2,7 @@
 #include "BrowseLinkItem.hpp"
 #include "GraphicsView.hpp"
 #include "PropertiesWidget.hpp"
+#include <algorithm>
 
 
 dodo::dodo() noexcept
@@ -29,7 +30,7 @@ void dodo::construct() noexcept
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
 
 #ifndef NDEBUG
-    openFile("~/Downloads/basic-link-1.pdf");
+    // openFile("~/Downloads/basic-link-1.pdf");
     // openFile("~/Scott Dodelson, Fabian Schmidt - Modern Cosmology-Academic Press (2020).pdf"); // FOR DEBUG PURPOSE ONLY
 #endif
 
@@ -38,10 +39,6 @@ void dodo::construct() noexcept
     m_pix_item->setScale(m_scale_factor);
     this->show();
 }
-
-
-dodo::~dodo() noexcept
-{}
 
 void dodo::initMenubar() noexcept
 {
@@ -140,7 +137,7 @@ void dodo::initMenubar() noexcept
 
 void dodo::initConnections() noexcept
 {
-    connect(m_model, &Model::searchResultsReady, this, [&](const QMap<int, QList<QPair<QRectF, int>>> &maps,
+    connect(m_model, &Model::searchResultsReady, this, [&](const QMap<int, QList<Model::SearchResult>> &maps,
                                                            int matchCount) {
             if (matchCount == 0)
             {
@@ -272,11 +269,10 @@ void dodo::initConfig() noexcept
 
     m_model->setLinkHintBackground(m_colors["link_hint_bg"]);
     m_model->setLinkHintForeground(m_colors["link_hint_fg"]);
-    m_gview->setBackgroundBrush(QColor(m_colors["background"]));
+    m_gview->setBackgroundBrush(QColor::fromRgba(m_colors["background"]));
 
     auto rendering = toml["rendering"];
-    m_dpi = rendering["dpi"].value_or(300.0) * 2;
-    m_low_dpi = rendering["low_dpi"].value_or(72.0);
+    m_dpi = rendering["dpi"].value_or(300.0);
     m_model->setDPI(m_dpi);
     m_model->setLowDPI(m_low_dpi);
     int cache_pages = rendering["cache_pages"].value_or(50);
@@ -325,6 +321,8 @@ void dodo::initConfig() noexcept
             { "scroll_right", [this]() { ScrollRight(); } },
             { "invert_color", [this]() { InvertColor(); } },
             { "search", [this]() { Search(); } },
+            { "search_next", [this]() { nextHit(); } },
+            { "search_prev", [this]() { prevHit(); } },
             { "search_page", [this]() { SearchPage(); } },
             { "next_page", [this]() { NextPage(); } },
             { "prev_page", [this]() { PrevPage(); } },
@@ -426,8 +424,11 @@ void dodo::initGui() noexcept
     if (win)
     {
         connect(win, &QWindow::screenChanged, m_gview, [&](QScreen *screen) {
-            m_model->setDPR(m_gview->window()->devicePixelRatioF());
-            renderPage(m_pageno);
+            auto dpr = m_gview->window()->devicePixelRatioF();
+            m_model->setDPR(dpr);
+            m_dpr = dpr;
+            m_inv_dpr = 1 / dpr;
+            renderPage(m_pageno, true);
         });
     }
 
@@ -620,7 +621,7 @@ void dodo::RotateClock() noexcept
         return;
 
     m_rotation = (m_rotation + 90) % 360;
-    renderPage(m_pageno);
+    renderPage(m_pageno, true);
 }
 
 void dodo::RotateAntiClock() noexcept
@@ -629,7 +630,7 @@ void dodo::RotateAntiClock() noexcept
         return;
 
     m_rotation = (m_rotation + 270) % 360;
-    renderPage(m_pageno);
+    renderPage(m_pageno, true);
 }
 
 void dodo::gotoPage(const int &pageno) noexcept
@@ -687,10 +688,10 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
         clearIndexHighlights();
     }
 
-    renderPage(pageno);
+    renderPage(pageno, false);
 }
 
-void dodo::renderPage(int pageno) noexcept
+void dodo::renderPage(int pageno, bool renderonly) noexcept
 {
 
     // if (m_highResCache.contains(pageno))
@@ -700,9 +701,8 @@ void dodo::renderPage(int pageno) noexcept
     //     return;
     // }
 
-    auto pix = m_model->renderPage(pageno, m_scale_factor, m_rotation);
+    auto pix = m_model->renderPage(pageno, m_scale_factor, m_rotation, renderonly);
     renderPixmap(pix);
-    renderLinks();
 }
 
 void dodo::renderPixmap(const QPixmap &pix) noexcept
@@ -802,9 +802,12 @@ void dodo::Zoom(float factor) noexcept
 
 void dodo::zoomHelper() noexcept
 {
-    renderPage(m_pageno);
+    renderPage(m_pageno, true);
     if (m_highlights_present)
-        rehighlight();
+    {
+        highlightSingleHit();
+        highlightHitsInPage();
+    }
     m_gview->setSceneRect(m_pix_item->boundingRect());
     auto vscrollbar = m_gview->verticalScrollBar();
     vscrollbar->setValue(vscrollbar->value());
@@ -921,22 +924,6 @@ void dodo::search(const QString &term) noexcept
     // m_pdf_backend->search();
 }
 
-void dodo::searchAll(const QString &term, bool caseSensitive) noexcept
-{
-
-    m_searchRectMap.clear();
-    m_search_index = -1;
-    clearIndexHighlights();
-    clearHighlights();
-
-    if (term.isEmpty() || term.isNull())
-        return;
-
-    m_last_search_term = term;
-
-    m_model->searchAll(term, caseSensitive);
-}
-
 void dodo::jumpToHit(int page, int index)
 {
     if (!m_searchRectMap.contains(page) ||
@@ -948,64 +935,48 @@ void dodo::jumpToHit(int page, int index)
     m_search_hit_page = page;
 
     gotoPage(page);  // Render page
-    m_panel->setSearchIndex(m_searchRectMap[page][index].second + 1);
+    m_panel->setSearchIndex(m_searchRectMap[page][index].index + 1);
 
-    highlightSingleHit(page, m_searchRectMap[page][index].first);
-    highlightHitsInPage(page);
+    highlightSingleHit();
+    highlightHitsInPage();
 }
 
-void dodo::highlightHitsInPage(int pageno)
+void dodo::highlightHitsInPage()
 {
-    if (pageno != m_pageno) return;
-
     clearHighlights();
 
-    auto list_of_pairs = m_searchRectMap[pageno];
+    auto results = m_searchRectMap[m_pageno];
 
-    for (const auto &pairs : list_of_pairs)
+    for (const auto &result : results)
     {
-        auto rect = pairs.first;
-        QRectF scaledRect = QRectF(
-            rect.left() * DPI_FRAC * m_scale_factor,
-            rect.top() * DPI_FRAC * m_scale_factor,
-            rect.width() * DPI_FRAC * m_scale_factor,
-            rect.height() * DPI_FRAC * m_scale_factor
-        );
-
+        fz_quad quad = result.quad;
+        QRectF scaledRect = fzQuadToQRect(quad);
         auto *highlight = new QGraphicsRectItem(scaledRect);
 
-        highlight->setBrush(QColor(m_colors["search_match"]));
+        highlight->setBrush(QColor::fromRgba(m_colors["search_match"]));
         highlight->setPen(Qt::NoPen);
         highlight->setData(0, "searchHighlight");
-        highlight->setData(1, rect);
-
         m_gscene->addItem(highlight);
         // m_gview->centerOn(highlight);
     }
     m_highlights_present = true;
 }
 
-void dodo::highlightSingleHit(int page, const QRectF &rect)
+void dodo::highlightSingleHit() noexcept
 {
-    if (page != m_pageno) return;
+    if (m_highlights_present)
+        clearIndexHighlights();
 
-    clearIndexHighlights();
+    fz_quad quad = m_searchRectMap[m_pageno][m_search_index].quad;
 
-    QRectF scaledRect = QRectF(
-        rect.left() * m_scale_factor * DPI_FRAC,
-        rect.top() * m_scale_factor * DPI_FRAC,
-        rect.width() * m_scale_factor * DPI_FRAC,
-        rect.height() * m_scale_factor * DPI_FRAC
-    );
-
+    QRectF scaledRect = fzQuadToQRect(quad);
     auto *highlight = new QGraphicsRectItem(scaledRect);
-    highlight->setBrush(QColor(m_colors["search_index"]));
+    highlight->setBrush(QColor::fromRgba(m_colors["search_index"]));
     highlight->setPen(Qt::NoPen);
     highlight->setData(0, "searchIndexHighlight");
-    highlight->setData(1, rect);
 
     m_gscene->addItem(highlight);
-    m_gview->centerOn(highlight);
+    // m_gview->centerOn(highlight);
     m_highlights_present = true;
 }
 
@@ -1038,21 +1009,24 @@ void dodo::clearHighlights()
 void dodo::Search() noexcept
 {
     auto term = QInputDialog::getText(this, "Search", "Search for");
+    m_searchRectMap.clear();
+    m_search_index = -1;
     if (term.isEmpty() || term.isNull())
     {
         m_panel->setSearchMode(false);
-        clearHighlights();
-        clearIndexHighlights();
+        if (m_highlights_present)
+        {
+            clearHighlights();
+            clearIndexHighlights();
+        }
         return;
     }
 
+    m_last_search_term = term;
     m_panel->setSearchMode(true);
     m_search_index = 0;
 
-    if (hasUpperCase(term))
-        searchAll(term, true);
-    else
-        searchAll(term, false);
+    m_model->searchAll(term, hasUpperCase(term));
 }
 
 void dodo::SearchPage() noexcept
@@ -1076,8 +1050,8 @@ void dodo::nextHit()
 
     // Try next page
     if (currentPageIdx + 1 < pages.size()) {
-        int nextPage = pages[currentPageIdx + 1];
-        jumpToHit(nextPage, 0);
+        if (!m_searchRectMap[pages[currentPageIdx + 1]].isEmpty())
+            jumpToHit(pages[currentPageIdx + 1], 0);
     }
 }
 
@@ -1303,27 +1277,6 @@ void dodo::FileProperties() noexcept
     m_propsWidget->exec();
 }
 
-void dodo::rehighlight() noexcept
-{
-    // searchHighlight
-    // searchIndexHighlight;
-
-    for (auto &object : m_gscene->items())
-    {
-        auto data = object->data(0).toString();
-        if (data == "searchHighlight" || data == "searchIndexHighlight")
-        {
-         QGraphicsRectItem *object_rect = qgraphicsitem_cast<QGraphicsRectItem*>(object);
-         auto rect = object_rect->data(1).toRect();
-         object_rect->setRect(rect.left() * m_scale_factor * DPI_FRAC,
-                              rect.top() * m_scale_factor * DPI_FRAC,
-                              rect.width() * m_scale_factor * DPI_FRAC,
-                              rect.height() * m_scale_factor * DPI_FRAC);
-        }
-    }
-
-}
-
 // Puts the viewport to the top of the page
 void dodo::TopOfThePage() noexcept
 {
@@ -1342,7 +1295,7 @@ void dodo::ToggleFullscreen() noexcept
 void dodo::InvertColor() noexcept
 {
     m_model->invertColor();
-    renderPage(m_pageno);
+    renderPage(m_pageno, true);
 }
 
 void dodo::ToggleAutoResize() noexcept
@@ -1415,3 +1368,16 @@ void dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
         this->construct();
     }
 }
+
+QRectF dodo::fzQuadToQRect(const fz_quad &q) noexcept
+{
+    fz_quad tq = fz_transform_quad(q, m_model->transform());
+
+    return QRectF(
+        tq.ul.x * m_inv_dpr,
+        tq.ul.y * m_inv_dpr,
+        (tq.ur.x - tq.ul.x) * m_inv_dpr,
+        (tq.ll.y - tq.ul.y) * m_inv_dpr
+    );
+}
+

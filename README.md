@@ -60,6 +60,7 @@ Check out the `config.toml` file for reference
 - [X] Search (with highlight)
 - [ ] Synctex support
 - [ ] Clicking figure names
+- [ ] file:/// link click support
 
 ## Tools Used
 

@@ -17,6 +17,31 @@
 #include <qgraphicsitem.h>
 
 
+fz_quad union_quad(const fz_quad& a, const fz_quad& b)
+{
+    float min_x = std::min({a.ul.x, a.ur.x, a.ll.x, a.lr.x,
+        b.ul.x, b.ur.x, b.ll.x, b.lr.x});
+    float min_y = std::min({a.ul.y, a.ur.y, a.ll.y, a.lr.y,
+        b.ul.y, b.ur.y, b.ll.y, b.lr.y});
+    float max_x = std::max({a.ul.x, a.ur.x, a.ll.x, a.lr.x,
+        b.ul.x, b.ur.x, b.ll.x, b.lr.x});
+    float max_y = std::max({a.ul.y, a.ur.y, a.ll.y, a.lr.y,
+        b.ul.y, b.ur.y, b.ll.y, b.lr.y});
+
+    fz_quad result;
+
+    result.ul.x = min_x;
+    result.ul.y = min_y;
+    result.ur.x = max_x;
+    result.ur.y = min_y;
+    result.ll.x = min_x;
+    result.ll.y = max_y;
+    result.lr.x = max_x;
+    result.lr.y = max_y;
+
+    return result;
+}
+
 void lock_mutex(void* user, int lock) {
     auto mutex = static_cast<std::mutex*>(user);
     std::lock_guard<std::mutex> guard(mutex[lock]);
@@ -145,14 +170,14 @@ void Model::setLinkBoundaryBox(bool state)
     m_link_boundary_enabled = state;
 }
 
-QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
+QPixmap Model::renderPage(int pageno, float zoom, float rotation, bool renderonly) noexcept
 {
     QPixmap qpix;
 
     if (!m_ctx)
         return qpix;
 
-    float scale = m_dpi / 72.0 * zoom * m_dpr;
+    float scale = m_dpi / 72.0 * zoom;
 
     // RenderTask *task = new RenderTask(ctx, m_doc, m_colorspace, pageno, m_transform);
     //
@@ -160,21 +185,26 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
     //     emit imageRenderRequested(page, img, lowQuality);
     // });
     // QThreadPool::globalInstance()->start(task);
-    fz_drop_page(m_ctx, m_page);
+    clearLinks();
 
     fz_try(m_ctx)
     {
-        m_page = fz_load_page(m_ctx, m_doc, pageno);
+        if (!renderonly)
+        {
+            fz_drop_page(m_ctx, m_page);
+            m_page = fz_load_page(m_ctx, m_doc, pageno);
+        }
+
         if (!m_page)
             return qpix;
 
         fz_rect bounds;
         bounds = fz_bound_page(m_ctx, m_page);
-        // FIXME: Load link here maybe ?
 
         m_transform = fz_transform_page(bounds, scale, rotation);
         fz_rect transformed = fz_transform_rect(bounds, m_transform);
         fz_irect bbox = fz_round_rect(transformed);
+
 
         fz_pixmap *pix;
         pix = fz_new_pixmap_with_bbox(m_ctx,
@@ -184,7 +214,6 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
                                       1);
         if (!pix)
         {
-            fz_drop_page(m_ctx, m_page);
             return qpix;
         }
 
@@ -195,11 +224,11 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
         if (!dev)
         {
             fz_drop_pixmap(m_ctx, pix);
-            fz_drop_page(m_ctx, m_page);
             return qpix;
         }
 
         fz_run_page(m_ctx, m_page, dev, m_transform, nullptr);
+        renderLinks(pageno);
 
         if (m_invert_color_mode)
         {
@@ -243,11 +272,11 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
         qpix = QPixmap::fromImage(image);
         qpix.setDevicePixelRatio(m_dpr);
 
+
         // Cleanup
         fz_close_device(m_ctx, dev);
         fz_drop_device(m_ctx, dev);
         fz_drop_pixmap(m_ctx, pix);
-        // fz_drop_page(m_ctx, m_page);
     }
     fz_catch(m_ctx)
     {
@@ -258,10 +287,9 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
     return qpix;
 }
 
-QList<QPair<QRectF, int>>
-Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
+QList<Model::SearchResult> Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
 {
-    QList<QPair<QRectF, int>> results;
+    QList<SearchResult> results;
     fz_stext_page *textPage = nullptr;
 
     if (!m_ctx)
@@ -269,143 +297,103 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
 
     fz_try(m_ctx)
     {
-        // page = fz_load_page(m_ctx, m_doc, pageno);
-        textPage = fz_new_stext_page_from_page(m_ctx, m_page, nullptr);
+        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
 
-        if (!textPage)
-        {
-            // fz_drop_page(m_ctx, page);
+        textPage = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        if (!textPage) {
             fz_drop_stext_page(m_ctx, textPage);
             qWarning() << "Unable to get texts from page";
             return {};
         }
 
-        for (fz_stext_block* block = textPage->first_block; block; block = block->next)
-        {
+        for (fz_stext_block* block = textPage->first_block; block; block = block->next) {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
                 continue;
 
-            for (fz_stext_line* line = block->u.t.first_line; line; line = line->next)
-            {
+            for (fz_stext_line* line = block->u.t.first_line; line; line = line->next) {
                 QString currentWord;
-                QRectF currentRect;
+                fz_quad currentQuad = {{0}};
                 bool inWord = false;
 
-                for (fz_stext_char* ch = line->first_char; ch; ch = ch->next)
-                {
-                    if (ch->c == 0)
+                for (fz_stext_char* ch = line->first_char; ch; ch = ch->next) {
+                    if (!ch->c)
                         continue;
 
                     QChar qch = QChar(ch->c);
 
-                    QRectF charRect(
-                        ch->quad.ul.x,
-                        ch->quad.ul.y,
-                        ch->quad.ur.x - ch->quad.ul.x,
-                        ch->quad.ll.y - ch->quad.ul.y
-                    );
-
-                    // Handle single-character match
-                    if (term.length() == 1)
-                    {
+                    if (term.length() == 1) {
                         if ((caseSensitive && qch == term[0]) ||
                             (!caseSensitive && qch.toLower() == term[0].toLower()))
                         {
-                            results.append(qMakePair(charRect, m_match_count));
-                            m_match_count++;
+                            results.append({pageno, ch->quad, m_match_count++});
                         }
                         continue;
                     }
 
-                    // Build up word for multi-char term match
-                    if (qch.isSpace())
-                    {
-                        // Word boundary — evaluate match
-                        if (!currentWord.isEmpty())
-                        {
+                    if (qch.isSpace()) {
+                        if (!currentWord.isEmpty()) {
                             QString wordToCheck = caseSensitive ? currentWord : currentWord.toLower();
                             QString termToCheck = caseSensitive ? term : term.toLower();
 
-                            if (wordToCheck == termToCheck)
-                            {
-                                results.append(qMakePair(currentRect, m_match_count));
-                                m_match_count++;
+                            if (wordToCheck == termToCheck) {
+                                results.append({pageno, currentQuad, m_match_count++});
                             }
                         }
 
-                        // Reset word state
                         currentWord.clear();
-                        currentRect = QRectF();
+                        memset(&currentQuad, 0, sizeof(currentQuad));
                     } else {
-                        if (currentWord.isEmpty())
-                        {
+                        if (currentWord.isEmpty()) {
                             currentWord = qch;
-                            currentRect = charRect;
+                            currentQuad = ch->quad;
                         } else {
                             currentWord += qch;
-                            currentRect = currentRect.united(charRect);
+                            currentQuad = union_quad(currentQuad, ch->quad);
                         }
 
-                        // Check mid-word match
                         QString wordToCheck = caseSensitive ? currentWord : currentWord.toLower();
                         QString termToCheck = caseSensitive ? term : term.toLower();
 
-                        if (wordToCheck == termToCheck)
-                        {
-                            results.append(qMakePair(currentRect, m_match_count));
-                            m_match_count++;
-
-                            // Reset to allow overlapping matches (optional)
+                        if (wordToCheck == termToCheck) {
+                            results.append({pageno, currentQuad, m_match_count++});
                             currentWord.clear();
-                            currentRect = QRectF();
+                            memset(&currentQuad, 0, sizeof(currentQuad));
                         }
                     }
                 }
 
-                // Final check at end of line
-                if (!currentWord.isEmpty())
-                {
+                if (!currentWord.isEmpty()) {
                     QString wordToCheck = caseSensitive ? currentWord : currentWord.toLower();
                     QString termToCheck = caseSensitive ? term : term.toLower();
-
                     if (wordToCheck == termToCheck)
-                    {
-                        results.append(qMakePair(currentRect, m_match_count));
-                        m_match_count++;
-                    }
+                        results.append({pageno, currentQuad, m_match_count++});
                 }
-
             }
         }
-
     }
-    fz_always(m_ctx)
-    {
-        // fz_drop_page(m_ctx, page);
+    fz_always(m_ctx) {
         fz_drop_stext_page(m_ctx, textPage);
     }
-    fz_catch(m_ctx)
-    {
+    fz_catch(m_ctx) {
         qWarning() << "MuPDF exception during text search on page" << pageno;
     }
+
 
     return results;
 }
 
 void Model::searchAll(const QString &term, bool caseSensitive)
 {
-    QMap<int, QList<QPair<QRectF, int>>> resultsMap;
+    QMap<int, QList<Model::SearchResult>> resultsMap;
     m_match_count = 0;
 
     for (int pageNum = 0; pageNum < numPages(); ++pageNum) {
-        QList<QPair<QRectF, int>> results;
+        QList<Model::SearchResult> results;
 
         results = searchHelper(pageNum, term, caseSensitive);
 
         if (!results.isEmpty())
-        {
             resultsMap[pageNum] = results;
-        }
     }
 
     emit searchResultsReady(resultsMap, m_match_count);
@@ -422,7 +410,6 @@ void Model::clearLinks() noexcept
 
 void Model::renderLinks(int pageno)
 {
-    clearLinks();
     fz_try(m_ctx)
     {
         // m_page = fz_load_page(m_ctx, m_doc, pageno);
@@ -522,7 +509,6 @@ void Model::renderLinks(int pageno)
             link = link->next;
         }
         fz_drop_link(m_ctx, head);
-        // fz_drop_page(m_ctx, page);
     }
 
     fz_catch(m_ctx)
@@ -546,7 +532,6 @@ void Model::addHighlightAnnotation(int pageno, const QRectF &pdfRect) noexcept
         pdf_page *pdf_page = pdf_page_from_fz_page(m_ctx, m_page);
         if (!pdf_page)
         {
-            // fz_drop_page(m_ctx, page);
             pdf_drop_page(m_ctx, pdf_page);
             return;
         }
@@ -559,7 +544,6 @@ void Model::addHighlightAnnotation(int pageno, const QRectF &pdfRect) noexcept
         if (!annot)
         {
             pdf_drop_page(m_ctx, pdf_page);
-            // fz_drop_page(m_ctx, page);
             return;
         }
 
@@ -585,7 +569,6 @@ void Model::addHighlightAnnotation(int pageno, const QRectF &pdfRect) noexcept
 
         pdf_drop_annot(m_ctx, annot);
         pdf_drop_page(m_ctx, pdf_page);
-        // fz_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {
@@ -644,7 +627,6 @@ void Model::visitLinkKB(int pageno, float zoom) noexcept
 
         if (!link)
         {
-            fz_drop_page(m_ctx, m_page);
             return;
         }
 
@@ -689,7 +671,6 @@ void Model::visitLinkKB(int pageno, float zoom) noexcept
         }
 
         fz_drop_link(m_ctx, head);
-        // fz_drop_page(m_ctx, page);
     }
 
     fz_catch(m_ctx)

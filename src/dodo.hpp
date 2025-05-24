@@ -84,8 +84,7 @@ private:
     void openFile(const QString &fileName) noexcept;
     void renderLinks() noexcept;
     void search(const QString &term) noexcept;
-    void searchAll(const QString &term, bool caseSensitive) noexcept;
-    void renderPage(int pageno) noexcept;
+    void renderPage(int pageno, bool renderonly = false) noexcept;
     void renderPixmap(const QPixmap &pix) noexcept;
     void cachePage(int pageno) noexcept;
     void scrollToXY(float x, float y) noexcept;
@@ -148,18 +147,18 @@ private:
     m_prefetch_distance,
     m_page_history_limit;
     QList<int> m_page_history_list;
-    float m_scale_factor, m_zoom_by;
+    float m_scale_factor { 1.0f }, m_zoom_by;
     QString m_last_search_term;
     Panel *m_panel { nullptr };
     float m_dpi,
-    m_low_dpi,
+    m_low_dpi { 72.0f },
     DPI_FRAC;
 
     void updateUiEnabledState() noexcept;
     void jumpToHit(int page, int index);
     bool askForPassword() noexcept;
-    void highlightSingleHit(int page, const QRectF &rect);
-    void highlightHitsInPage(int page);
+    void highlightSingleHit() noexcept;
+    void highlightHitsInPage();
     void clearIndexHighlights();
     void clearHighlights();
     void prevHit();
@@ -167,6 +166,7 @@ private:
     bool hasUpperCase(const QString &text) noexcept;
     void rehighlight() noexcept;
     void zoomHelper() noexcept;
+    QRectF fzQuadToQRect(const fz_quad &q) noexcept;
 
     QMenuBar *m_menuBar { nullptr };
     QMenu *m_fitMenu { nullptr };
@@ -194,17 +194,18 @@ private:
     m_pixmapCache;
 
     QThreadPool tp;
-    QMap<int, QList<QPair<QRectF, int>>> m_searchRectMap;
+    QMap<int, QList<Model::SearchResult>> m_searchRectMap;
 
     QString m_filename;
     GraphicsView *m_gview = new GraphicsView();
     QGraphicsScene *m_gscene = new QGraphicsScene();
     QGraphicsPixmapItem *m_pix_item = new QGraphicsPixmapItem();
     QVBoxLayout *m_layout = new QVBoxLayout();
+    float m_dpr { 1.0f }, m_inv_dpr { 1.0f };
 
     Model *m_model { nullptr };
     QTimer *m_HQRenderTimer = new QTimer(this);
-    QMap<QString, int> m_colors;
+    QMap<QString, QRgb> m_colors;
     bool m_highlights_present;
     bool m_linkHintMode { false };
     bool m_full_file_path_in_panel;

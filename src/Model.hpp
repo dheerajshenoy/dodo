@@ -20,6 +20,7 @@ class QGraphicsScene;
 QString generateHint(int index) noexcept;
 void lock_mutex(void* user, int lock);
 void unlock_mutex(void* user, int lock);
+fz_quad union_quad(const fz_quad& a, const fz_quad& b);
 
 class Model : public QObject
 {
@@ -36,7 +37,7 @@ public:
     inline void setDPI(float dpi) { m_dpi = dpi; }
     inline void setLowDPI(float low_dpi) { m_low_dpi = low_dpi; }
     int numPages();
-    QPixmap renderPage(int pageno, float zoom, float rotation) noexcept;
+    QPixmap renderPage(int pageno, float zoom, float rotation, bool renderonly = false) noexcept;
     void renderLinks(int pageno);
     void setLinkBoundaryBox(bool state);
     void searchAll(const QString &term, bool caseSensitive);
@@ -54,6 +55,12 @@ public:
     struct LinkInfo {
         QString uri;
         fz_link_dest dest;
+    };
+
+    struct SearchResult {
+        int page;
+        fz_quad quad; // Raw text quad from MuPDF, in page coordinates
+        int index;
     };
 
     fz_outline* getOutline() noexcept;
@@ -76,7 +83,7 @@ public:
     void jumpToPageRequested(int pageno);
     void jumpToLocationRequested(int pageno, const BrowseLinkItem::Location &loc);
     void imageRenderRequested(int pageno, QImage img);
-    void searchResultsReady(const QMap<int, QList<QPair<QRectF, int>>> &results, int matchCount);
+    void searchResultsReady(const QMap<int, QList<SearchResult>> &results, int matchCount);
     void horizontalFitRequested(int pageno, const BrowseLinkItem::Location &location);
     void verticalFitRequested(int pageno, const BrowseLinkItem::Location &location);
     void fitRectRequested(int pageno, float x, float y, float w, float h);
@@ -86,7 +93,7 @@ private:
     void clearLinks() noexcept;
     void apply_night_mode(fz_pixmap* pixmap) noexcept;
 
-    QList<QPair<QRectF, int>> searchHelper(int pageno, const QString &term, bool caseSensitive);
+    QList<SearchResult> searchHelper(int pageno, const QString &term, bool caseSensitive);
 
     fz_colorspace *m_colorspace;
 
