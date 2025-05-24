@@ -1,10 +1,19 @@
 #include "dodo.hpp"
+#include "BrowseLinkItem.hpp"
 #include "GraphicsView.hpp"
 #include "PropertiesWidget.hpp"
+
 
 dodo::dodo() noexcept
 {
     setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
+}
+
+dodo::~dodo() noexcept
+{}
+
+void dodo::construct() noexcept
+{
     initGui();
     initConfig();
     initMenubar();
@@ -1383,4 +1392,26 @@ void dodo::ShowAbout() noexcept
     AboutDialog *abw = new AboutDialog(this);
     abw->setAppInfo("v0.2.0", "A fast, unintrusive pdf reader");
     abw->exec();
+}
+
+void dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
+{
+    if (argparser["--version"] == true)
+    {
+        qInfo() << "dodo version: " << __DODO_VERSION;
+        exit(0);
+    }
+
+    try
+    {
+        auto file = argparser.get<std::vector<std::string>>("files");
+        if (!file.empty())
+        {
+            this->construct();
+            openFile(QString::fromStdString(file[0]));
+        }
+    } catch (...)
+    {
+        this->construct();
+    }
 }

@@ -34,6 +34,7 @@
 #include <functional>
 #include <QActionGroup>
 #include <QWindow>
+#include "argparse.hpp"
 
 #include "AboutDialog.hpp"
 #include "GraphicsView.hpp"
@@ -44,12 +45,16 @@
 #include "Model.hpp"
 #include "PropertiesWidget.hpp"
 
+#define __DODO_VERSION "0.2.0"
+
 class dodo : public QMainWindow {
 public:
     dodo() noexcept;
     ~dodo() noexcept;
 
     inline QWindow* windowHandle() noexcept { return this->windowHandle(); }
+    void readArgsParser(argparse::ArgumentParser &argparser) noexcept;
+    void construct() noexcept;
 
 public slots:
     void handleRenderResult(int pageno, QImage img);
