@@ -33,6 +33,7 @@
 #include <vector>
 #include <functional>
 #include <QActionGroup>
+#include <QWindow>
 
 #include "GraphicsView.hpp"
 #include "Panel.hpp"
@@ -46,6 +47,8 @@ class dodo : public QMainWindow {
 public:
     dodo() noexcept;
     ~dodo() noexcept;
+
+    inline QWindow* windowHandle() noexcept { return this->windowHandle(); }
 
 public slots:
     void handleRenderResult(int pageno, QImage img);
@@ -77,7 +80,7 @@ private:
     void search(const QString &term) noexcept;
     void searchAll(const QString &term, bool caseSensitive) noexcept;
     void renderPage(int pageno) noexcept;
-    void renderImage(const QImage &img) noexcept;
+    void renderPixmap(const QPixmap &pix) noexcept;
     void cachePage(int pageno) noexcept;
     void scrollToXY(float x, float y) noexcept;
     void scrollToNormalizedTop(const double &top) noexcept;
@@ -201,8 +204,7 @@ private:
     QMap<QString, std::function<void()>> m_actionMap;
     bool m_load_default_keybinding { true };
     bool m_auto_resize;
-    FitMode m_fit_mode, m_initial_fit;
+    FitMode m_fit_mode, m_initial_fit { FitMode::None };
     QString m_window_title;
-
 };
 

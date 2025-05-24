@@ -11,6 +11,7 @@
 #include <QFuture>
 #include <QtConcurrent/QtConcurrent>
 #include "OutlineWidget.hpp"
+#include <QImage>
 #define CSTR(x) x.toStdString().c_str()
 
 class QImage;
@@ -34,7 +35,7 @@ public:
     inline void setDPI(float dpi) { m_dpi = dpi; }
     inline void setLowDPI(float low_dpi) { m_low_dpi = low_dpi; }
     int numPages();
-    QImage renderPage(int pageno, float zoom, float rotation) noexcept;
+    QPixmap renderPage(int pageno, float zoom, float rotation) noexcept;
     void renderLinks(int pageno);
     void setLinkBoundaryBox(bool state);
     void searchAll(const QString &term, bool caseSensitive);
@@ -46,6 +47,7 @@ public:
     void enableICC() noexcept;
     void setAntialiasingBits(int bits) noexcept;
     QList<QPair<QString, QString>> extractPDFProperties() noexcept;
+    inline void setDPR(float dpr) noexcept { m_dpr = dpr; }
 
     struct LinkInfo {
         QString uri;
@@ -97,6 +99,7 @@ private:
     fz_document *m_doc { nullptr };
     fz_matrix m_transform;
     float m_height, m_width;
+    float m_dpr { 1.0f };
 
     QMap<QString, LinkInfo> m_hint_to_link_map;
 };

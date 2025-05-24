@@ -128,15 +128,19 @@ void Model::setLinkBoundaryBox(bool state)
     m_link_boundary_enabled = state;
 }
 
-QImage Model::renderPage(int pageno, float zoom, float rotation) noexcept
+QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
 {
-    QImage image;
+    QPixmap qpix;
 
     if (!m_ctx)
-        return image;
+        return qpix;
 
-    fz_set_aa_level(m_ctx, 8);
-    float scale = m_dpi / 72.0 * zoom * 20;
+    float scale = m_dpi / 72.0 * zoom * m_dpr;
+
+#ifdef NDEBUG
+    qDebug() << "Render DPI:" << m_dpi << ", DPR:" << m_dpr;
+#endif
+
 
     // RenderTask *task = new RenderTask(ctx, m_doc, m_colorspace, pageno, m_transform);
     //
@@ -149,7 +153,7 @@ QImage Model::renderPage(int pageno, float zoom, float rotation) noexcept
     {
         fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
         if (!page)
-            return image;
+            return qpix;
 
         fz_rect bounds;
         bounds = fz_bound_page(m_ctx, page);
@@ -168,7 +172,7 @@ QImage Model::renderPage(int pageno, float zoom, float rotation) noexcept
         if (!pix)
         {
             fz_drop_page(m_ctx, page);
-            return image;
+            return qpix;
         }
 
         fz_clear_pixmap_with_value(m_ctx, pix, 0xFFFFFF); // 255 = white
@@ -179,7 +183,7 @@ QImage Model::renderPage(int pageno, float zoom, float rotation) noexcept
         {
             fz_drop_pixmap(m_ctx, pix);
             fz_drop_page(m_ctx, page);
-            return image;
+            return qpix;
         }
 
         fz_run_page(m_ctx, page, dev, m_transform, nullptr);
@@ -197,7 +201,11 @@ QImage Model::renderPage(int pageno, float zoom, float rotation) noexcept
         unsigned char *samples = fz_pixmap_samples(m_ctx,pix);
         int stride = fz_pixmap_stride(m_ctx,pix);
         int n = fz_pixmap_components(m_ctx, pix);
+        QImage image;
 
+#ifdef NDEBUG
+        qDebug() << "Pixmap size:" << fz_pixmap_width(m_ctx, pix) << "x" << fz_pixmap_height(m_ctx, pix);
+#endif
         switch (n) {
             case 1:
                 image = QImage(samples, m_width, m_height, stride, QImage::Format_Grayscale8);
@@ -212,7 +220,7 @@ QImage Model::renderPage(int pageno, float zoom, float rotation) noexcept
                 qWarning() << "Unsupported pixmap component count:" << n;
                 fz_drop_pixmap(m_ctx, pix);
                 fz_drop_page(m_ctx, page);
-                return QImage();
+                return qpix;
         }
 
         // for (int y = 0; y < m_height; ++y)
@@ -221,6 +229,9 @@ QImage Model::renderPage(int pageno, float zoom, float rotation) noexcept
         image.setDotsPerMeterX(static_cast<int>((m_dpi * 1000) / 25.4));
         image.setDotsPerMeterY(static_cast<int>((m_dpi * 1000) / 25.4));
         image = image.copy();
+        image.setDevicePixelRatio(m_dpr);
+        qpix = QPixmap::fromImage(image);
+        qpix.setDevicePixelRatio(m_dpr);
 
         // Cleanup
         fz_close_device(m_ctx, dev);
@@ -231,10 +242,10 @@ QImage Model::renderPage(int pageno, float zoom, float rotation) noexcept
     fz_catch(m_ctx)
     {
         qWarning() << "Render failed for page" << pageno;
-        return image;
+        return qpix;
     }
 
-    return image;
+    return qpix;
 }
 
 QList<QPair<QRectF, int>>

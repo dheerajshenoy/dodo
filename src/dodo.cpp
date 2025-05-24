@@ -6,6 +6,7 @@
 
 dodo::dodo() noexcept
 {
+    setAttribute(Qt::WA_NativeWindow);
     initGui();
     initConfig();
     initMenubar();
@@ -22,7 +23,7 @@ dodo::dodo() noexcept
 
 #ifdef NDEBUG
 #else
-    // openFile("~/Downloads/basic-link-1.pdf"); // FOR DEBUG PURPOSE ONLY
+    openFile("~/Scott Dodelson, Fabian Schmidt - Modern Cosmology-Academic Press (2020).pdf"); // FOR DEBUG PURPOSE ONLY
 #endif
 
     m_page_history_list.reserve(m_page_history_limit);
@@ -91,14 +92,6 @@ void dodo::initMenubar() noexcept
     m_actionAutoresize->setChecked(true);  // default on or off
 
     viewMenu->addSeparator();
-
-    m_actionAutoresize = m_fitMenu->addAction(QString("Auto Resize\t%1").arg(m_shortcuts_map["auto_resize"]),
-                                             this, &dodo::ToggleAutoResize);
-    m_actionAutoresize->setCheckable(true);
-    m_actionAutoresize->setChecked(true);  // default on or off
-
-    viewMenu->addSeparator();
-
 
     m_actionToggleMenubar = viewMenu->addAction(QString("Menubar\t%1").arg(m_shortcuts_map["toggle_menubar"]),
                                              this, &dodo::ToggleMenubar);
@@ -389,17 +382,28 @@ void dodo::initGui() noexcept
     widget->setLayout(m_layout);
     m_layout->addWidget(m_gview);
     m_layout->addWidget(m_panel);
+    m_gview->setRenderHint(QPainter::Antialiasing);
     m_gview->setScene(m_gscene);
     this->setCentralWidget(widget);
 
     // Setup graphics view
     m_gview->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
-    m_gview->setPixmapItem(m_pix_item);
+    // m_gview->setPixmapItem(m_pix_item);
     m_gscene->addItem(m_pix_item);
 
     m_model = new Model(m_gscene);
     // connect(m_model, &Model::imageRenderRequested, this, &dodo::handleRenderResult);
     // Menu Bar
+
+    auto win = m_gview->window()->windowHandle();
+    if (win)
+    {
+        connect(win, &QWindow::screenChanged, m_gview, [&](QScreen *screen) {
+            m_model->setDPR(m_gview->window()->devicePixelRatioF());
+            renderPage(m_pageno);
+        });
+    }
+
     m_menuBar = this->menuBar(); // initialize here so that the config visibility works
 }
 
@@ -453,13 +457,7 @@ void dodo::OpenFile() noexcept
 
     openFile(filepath);
 
-    switch(m_initial_fit)
-    {
-        case FitMode::Height: FitHeight(); break;
-        case FitMode::Width: FitWidth(); break;
-        case FitMode::Window: FitWindow(); break;
-        case FitMode::None: break;
-    }
+
 }
 
 /* Function for opening the file using the model.
@@ -518,6 +516,20 @@ void dodo::openFile(const QString &fileName) noexcept
     } else gotoPage(0);
 
     updateUiEnabledState();
+
+    if (m_initial_fit != FitMode::None)
+    {
+        QTimer::singleShot(10, this, [this]() {
+            switch(m_initial_fit)
+            {
+                case FitMode::Height: FitHeight(); break;
+                case FitMode::Width: FitWidth(); break;
+                case FitMode::Window: FitWindow(); break;
+                case FitMode::None: break;
+            }
+        });
+    }
+
 }
 
 bool dodo::askForPassword() noexcept
@@ -624,14 +636,13 @@ void dodo::renderPage(int pageno) noexcept
     //     return;
     // }
 
-    auto img = m_model->renderPage(pageno, m_scale_factor, m_rotation);
-    renderImage(img);
+    auto pix = m_model->renderPage(pageno, m_scale_factor, m_rotation);
+    renderPixmap(pix);
     renderLinks();
 }
 
-void dodo::renderImage(const QImage &img) noexcept
+void dodo::renderPixmap(const QPixmap &pix) noexcept
 {
-    QPixmap pix = QPixmap::fromImage(img);
     m_pix_item->setPixmap(pix);
     m_panel->setPageNo(m_pageno + 1);
 }
@@ -765,7 +776,7 @@ void dodo::FitHeight() noexcept
         return;
 
     int pixmapHeight = m_pix_item->pixmap().height();
-    int viewHeight = m_gview->viewport()->height();
+    int viewHeight = m_gview->viewport()->height() * m_gview->window()->devicePixelRatioF();
 
     qreal scale = static_cast<qreal>(viewHeight) / pixmapHeight;
     m_scale_factor *= scale;
@@ -779,7 +790,7 @@ void dodo::FitWidth() noexcept
         return;
 
     int pixmapWidth = m_pix_item->pixmap().width();
-    int viewWidth = m_gview->viewport()->width();
+    int viewWidth = m_gview->viewport()->width() * m_gview->window()->devicePixelRatioF();
 
     qreal scale = static_cast<qreal>(viewWidth) / pixmapWidth;
     m_scale_factor *= scale;
@@ -791,8 +802,8 @@ void dodo::FitWindow() noexcept
 {
     const int pixmapWidth = m_pix_item->pixmap().width();
     const int pixmapHeight = m_pix_item->pixmap().height();
-    const int viewWidth = m_gview->viewport()->width();
-    const int viewHeight = m_gview->viewport()->height();
+    const int viewWidth = m_gview->viewport()->width() * m_gview->window()->devicePixelRatioF();
+    const int viewHeight = m_gview->viewport()->height() * m_gview->window()->devicePixelRatioF();
 
     // Calculate scale factors for both dimensions
     const qreal scaleX = static_cast<qreal>(viewWidth) / pixmapWidth;
@@ -1125,8 +1136,8 @@ void dodo::ToggleHighlight() noexcept
 void dodo::SaveFile() noexcept
 {
     m_model->save();
-    auto img = m_model->renderPage(m_pageno, m_scale_factor, m_rotation);
-    renderImage(img);
+    auto pix = m_model->renderPage(m_pageno, m_scale_factor, m_rotation);
+    renderPixmap(pix);
 }
 
 void dodo::VisitLinkKB() noexcept
