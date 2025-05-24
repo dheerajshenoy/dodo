@@ -446,9 +446,9 @@ void Model::renderLinks(int pageno)
                 fz_rect r = fz_transform_rect(link->rect, m_transform);
 
                 float x = r.x0 * m_inv_dpr;
+                float y = (r.y0) * m_inv_dpr;
                 float w = (r.x1 - r.x0) * m_inv_dpr;
                 float h = (r.y1 - r.y0) * m_inv_dpr;
-                float y = (r.y1 - h) * m_inv_dpr;
 
                 QRectF qtRect(x, y, w, h);
                 BrowseLinkItem *item;
