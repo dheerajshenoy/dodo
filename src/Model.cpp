@@ -158,15 +158,16 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
     //     emit imageRenderRequested(page, img, lowQuality);
     // });
     // QThreadPool::globalInstance()->start(task);
+    fz_drop_page(m_ctx, m_page);
 
     fz_try(m_ctx)
     {
-        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
-        if (!page)
+        m_page = fz_load_page(m_ctx, m_doc, pageno);
+        if (!m_page)
             return qpix;
 
         fz_rect bounds;
-        bounds = fz_bound_page(m_ctx, page);
+        bounds = fz_bound_page(m_ctx, m_page);
         // FIXME: Load link here maybe ?
 
         m_transform = fz_transform_page(bounds, scale, rotation);
@@ -181,7 +182,7 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
                                       1);
         if (!pix)
         {
-            fz_drop_page(m_ctx, page);
+            fz_drop_page(m_ctx, m_page);
             return qpix;
         }
 
@@ -192,11 +193,11 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
         if (!dev)
         {
             fz_drop_pixmap(m_ctx, pix);
-            fz_drop_page(m_ctx, page);
+            fz_drop_page(m_ctx, m_page);
             return qpix;
         }
 
-        fz_run_page(m_ctx, page, dev, m_transform, nullptr);
+        fz_run_page(m_ctx, m_page, dev, m_transform, nullptr);
 
         if (m_invert_color_mode)
         {
@@ -229,7 +230,7 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
             default:
                 qWarning() << "Unsupported pixmap component count:" << n;
                 fz_drop_pixmap(m_ctx, pix);
-                fz_drop_page(m_ctx, page);
+                fz_drop_page(m_ctx, m_page);
                 return qpix;
         }
 
@@ -247,7 +248,7 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
         fz_close_device(m_ctx, dev);
         fz_drop_device(m_ctx, dev);
         fz_drop_pixmap(m_ctx, pix);
-        fz_drop_page(m_ctx, page);
+        // fz_drop_page(m_ctx, m_page);
     }
     fz_catch(m_ctx)
     {
@@ -262,7 +263,6 @@ QList<QPair<QRectF, int>>
 Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
 {
     QList<QPair<QRectF, int>> results;
-    fz_page *page = nullptr;
     fz_stext_page *textPage = nullptr;
 
     if (!m_ctx)
@@ -270,12 +270,12 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
 
     fz_try(m_ctx)
     {
-        page = fz_load_page(m_ctx, m_doc, pageno);
-        textPage = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        // page = fz_load_page(m_ctx, m_doc, pageno);
+        textPage = fz_new_stext_page_from_page(m_ctx, m_page, nullptr);
 
         if (!textPage)
         {
-            fz_drop_page(m_ctx, page);
+            // fz_drop_page(m_ctx, page);
             fz_drop_stext_page(m_ctx, textPage);
             qWarning() << "Unable to get texts from page";
             return {};
@@ -382,7 +382,7 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
     }
     fz_always(m_ctx)
     {
-        fz_drop_page(m_ctx, page);
+        // fz_drop_page(m_ctx, page);
         fz_drop_stext_page(m_ctx, textPage);
     }
     fz_catch(m_ctx)
@@ -426,15 +426,14 @@ void Model::renderLinks(int pageno)
     clearLinks();
     fz_try(m_ctx)
     {
-        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
-        fz_link *head = fz_load_links(m_ctx, page);
+        // fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        fz_link *head = fz_load_links(m_ctx, m_page);
         fz_link *link = head;
 
         if (!link)
-        {
-            fz_drop_page(m_ctx, page);
             return;
-        }
+
+            // fz_drop_page(m_ctx, page);
 
         while (link)
         {
@@ -515,7 +514,7 @@ void Model::renderLinks(int pageno)
         }
 
         fz_drop_link(m_ctx, head);
-        fz_drop_page(m_ctx, page);
+        // fz_drop_page(m_ctx, page);
     }
 
     fz_catch(m_ctx)
@@ -529,17 +528,17 @@ void Model::addHighlightAnnotation(int pageno, const QRectF &pdfRect) noexcept
     auto bbox = convertToMuPdfRect(pdfRect, m_transform, m_dpi / 72.0);
     fz_try(m_ctx)
     {
-        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
-        if (!page)
-        {
-            fz_drop_page(m_ctx, page);
-            return;
-        }
+        // m_page = fz_load_page(m_ctx, m_doc, pageno);
+        // if (!m_page)
+        // {
+        //     fz_drop_page(m_ctx, page);
+        //     return;
+        // }
 
-        pdf_page *pdf_page = pdf_page_from_fz_page(m_ctx, page);
+        pdf_page *pdf_page = pdf_page_from_fz_page(m_ctx, m_page);
         if (!pdf_page)
         {
-            fz_drop_page(m_ctx, page);
+            // fz_drop_page(m_ctx, page);
             pdf_drop_page(m_ctx, pdf_page);
             return;
         }
@@ -552,7 +551,7 @@ void Model::addHighlightAnnotation(int pageno, const QRectF &pdfRect) noexcept
         if (!annot)
         {
             pdf_drop_page(m_ctx, pdf_page);
-            fz_drop_page(m_ctx, page);
+            // fz_drop_page(m_ctx, page);
             return;
         }
 
@@ -578,7 +577,7 @@ void Model::addHighlightAnnotation(int pageno, const QRectF &pdfRect) noexcept
 
         pdf_drop_annot(m_ctx, annot);
         pdf_drop_page(m_ctx, pdf_page);
-        fz_drop_page(m_ctx, page);
+        // fz_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {
@@ -631,13 +630,13 @@ void Model::visitLinkKB(int pageno) noexcept
     m_hint_to_link_map.clear();
     fz_try(m_ctx)
     {
-        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
-        fz_link *head = fz_load_links(m_ctx, page);
+        // fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        fz_link *head = fz_load_links(m_ctx, m_page);
         fz_link *link = head;
 
         if (!link)
         {
-            fz_drop_page(m_ctx, page);
+            fz_drop_page(m_ctx, m_page);
             return;
         }
 
@@ -682,7 +681,7 @@ void Model::visitLinkKB(int pageno) noexcept
         }
 
         fz_drop_link(m_ctx, head);
-        fz_drop_page(m_ctx, page);
+        // fz_drop_page(m_ctx, page);
     }
 
     fz_catch(m_ctx)

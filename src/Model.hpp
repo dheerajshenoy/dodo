@@ -98,6 +98,7 @@ private:
     QGraphicsScene *m_scene { nullptr };
     fz_context *m_ctx { nullptr };
     fz_document *m_doc { nullptr };
+    fz_page *m_page { nullptr };
     fz_matrix m_transform;
     float m_height, m_width;
     float m_dpr { 1.0f };
