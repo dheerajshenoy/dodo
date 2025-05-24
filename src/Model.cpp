@@ -77,6 +77,16 @@ OutlineWidget* Model::tableOfContents() noexcept
     return owidget;
 }
 
+void Model::closeFile() noexcept
+{
+    m_filename.clear();
+
+    if (!m_ctx)
+        return;
+
+    fz_drop_document(m_ctx, m_doc);
+}
+
 bool Model::openFile(const QString &fileName)
 {
     m_filename = fileName;
@@ -137,7 +147,7 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
 
     float scale = m_dpi / 72.0 * zoom * m_dpr;
 
-#ifdef NDEBUG
+#ifndef NDEBUG
     qDebug() << "Render DPI:" << m_dpi << ", DPR:" << m_dpr;
 #endif
 
@@ -203,7 +213,7 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
         int n = fz_pixmap_components(m_ctx, pix);
         QImage image;
 
-#ifdef NDEBUG
+#ifndef NDEBUG
         qDebug() << "Pixmap size:" << fz_pixmap_width(m_ctx, pix) << "x" << fz_pixmap_height(m_ctx, pix);
 #endif
         switch (n) {
@@ -683,7 +693,10 @@ void Model::visitLinkKB(int pageno) noexcept
 
 void Model::copyLinkKB(int pageno) noexcept
 {
-
+    // TODO: copy link hint
+#ifndef NDEBUG
+    qDebug() << "Copy link hint not yet implemented";
+#endif
 }
 
 

@@ -2,11 +2,12 @@
 #include "GraphicsView.hpp"
 #include "PropertiesWidget.hpp"
 #include <qgraphicsitem.h>
+#include <qkeysequence.h>
 #include <qnamespace.h>
 
 dodo::dodo() noexcept
 {
-    setAttribute(Qt::WA_NativeWindow);
+    setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
     initGui();
     initConfig();
     initMenubar();
@@ -21,8 +22,7 @@ dodo::dodo() noexcept
 
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
 
-#ifdef NDEBUG
-#else
+#ifndef NDEBUG
     openFile("~/Scott Dodelson, Fabian Schmidt - Modern Cosmology-Academic Press (2020).pdf"); // FOR DEBUG PURPOSE ONLY
 #endif
 
@@ -41,10 +41,12 @@ void dodo::initMenubar() noexcept
 
     // --- File Menu ---
     QMenu *fileMenu = m_menuBar->addMenu("File");
-    fileMenu->addAction(QString("Open\t%1").arg(m_shortcuts_map["open_file"]),
+    fileMenu->addAction(QString("Open File\t%1").arg(m_shortcuts_map["open_file"]),
                         this, &dodo::OpenFile);
-    fileMenu->addAction(QString("File Properties\t%1").arg(m_shortcuts_map["file_properties"]),
-                        this, &dodo::FileProperties);
+    m_actionFileProperties = fileMenu->addAction(QString("File Properties\t%1").arg(m_shortcuts_map["file_properties"]),
+                                                this, &dodo::FileProperties);
+    m_actionCloseFile = fileMenu->addAction(QString("Close File\t%1").arg(m_shortcuts_map["close_file"]),
+                                            this, &dodo::CloseFile);
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, &QMainWindow::close);
 
@@ -92,6 +94,9 @@ void dodo::initMenubar() noexcept
     m_actionAutoresize->setChecked(true);  // default on or off
 
     viewMenu->addSeparator();
+
+    m_actionToggleOutline = viewMenu->addAction(QString("Outline\t%1").arg(m_shortcuts_map["outline"]),
+                                             this, &dodo::TableOfContents);
 
     m_actionToggleMenubar = viewMenu->addAction(QString("Menubar\t%1").arg(m_shortcuts_map["toggle_menubar"]),
                                              this, &dodo::ToggleMenubar);
@@ -273,11 +278,11 @@ void dodo::initConfig() noexcept
 
     auto initial_fit = behavior["initial_fit"].value_or("width");
 
-    if (strcmp(initial_fit, "height"))
+    if (strcmp(initial_fit, "height") == 0)
         m_initial_fit = FitMode::Height;
-    else if (strcmp(initial_fit, "width"))
+    else if (strcmp(initial_fit, "width") == 0)
         m_initial_fit = FitMode::Width;
-    else if (strcmp(initial_fit, "window"))
+    else if (strcmp(initial_fit, "window") == 0)
         m_initial_fit = FitMode::Window;
     else
         m_initial_fit = FitMode::None;
@@ -288,6 +293,9 @@ void dodo::initConfig() noexcept
         m_load_default_keybinding = false;
         auto keys = toml["keybindings"];
         m_actionMap = {
+            { "link_hint_visit", [this]() { VisitLinkKB(); } },
+            { "link_hint_copy", [this]() { CopyLinkKB(); } },
+            { "outline", [this]() { TableOfContents(); } },
             { "rotate_clock", [this]() { RotateClock(); } },
             { "rotate_anticlock", [this]() { RotateAntiClock(); } },
             { "prev_location", [this]() { GoBackHistory(); } },
@@ -309,6 +317,7 @@ void dodo::initConfig() noexcept
             { "fullscreen", [this]() { Fullscreen(); } },
             { "file_properties", [this]() { FileProperties(); } },
             { "open_file", [this]() { OpenFile(); } },
+            { "close_file", [this]() { CloseFile(); } },
             { "fit_width", [this]() { FitWidth(); } },
             { "fit_height", [this]() { FitHeight(); } },
             { "fit_window", [this]() { FitWindow(); } },
@@ -386,8 +395,6 @@ void dodo::initGui() noexcept
     m_gview->setScene(m_gscene);
     this->setCentralWidget(widget);
 
-    // Setup graphics view
-    m_gview->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
     // m_gview->setPixmapItem(m_pix_item);
     m_gscene->addItem(m_pix_item);
 
@@ -433,15 +440,16 @@ void dodo::handleRenderResult(int pageno, QImage image)
 
 void dodo::updateUiEnabledState() noexcept
 {
-    const bool hasFile = m_model->valid();
+    const bool hasOpenedFile = m_model->valid();
 
-    m_actionZoomIn->setEnabled(hasFile);
-    m_actionZoomOut->setEnabled(hasFile);
-
-    m_actionFirstPage->setEnabled(hasFile);
-    m_actionPrevPage->setEnabled(hasFile);
-    m_actionNextPage->setEnabled(hasFile);
-    m_actionLastPage->setEnabled(hasFile);
+    m_actionZoomIn->setEnabled(hasOpenedFile);
+    m_actionZoomOut->setEnabled(hasOpenedFile);
+    m_actionFirstPage->setEnabled(hasOpenedFile);
+    m_actionPrevPage->setEnabled(hasOpenedFile);
+    m_actionNextPage->setEnabled(hasOpenedFile);
+    m_actionLastPage->setEnabled(hasOpenedFile);
+    m_actionFileProperties->setEnabled(hasOpenedFile);
+    m_actionCloseFile->setEnabled(hasOpenedFile);
 
 }
 
@@ -456,8 +464,44 @@ void dodo::OpenFile() noexcept
         return;
 
     openFile(filepath);
+}
 
+void dodo::CloseFile() noexcept
+{
+    if (!m_model->valid())
+        return;
 
+    if (m_model->hasUnsavedChanges())
+    {
+        auto close = QMessageBox::question(this, "Unsaved changes detected",
+                                            "There are unsaved changes in this document. Do you really want to close this file ?");
+        if (close == QMessageBox::StandardButton::No)
+            return;
+    }
+    m_model->closeFile();
+    m_filename.clear();
+    if (m_panel->searchMode())
+        m_panel->setSearchMode(false);
+    if (m_highlights_present)
+    {
+        clearHighlights();
+        clearIndexHighlights();
+    }
+    m_panel->setFileName("");
+
+    if (m_owidget)
+    {
+        m_owidget->close();
+        m_owidget->deleteLater();
+        m_owidget = nullptr;
+    }
+
+    if (m_propsWidget)
+    {
+        m_owidget->close();
+        m_propsWidget->deleteLater();
+        m_propsWidget = nullptr;
+    }
 }
 
 /* Function for opening the file using the model.
@@ -1112,6 +1156,7 @@ void dodo::TableOfContents() noexcept
 {
     if (!m_owidget)
     {
+        // TODO: Make this widget pluggable
         m_owidget = m_model->tableOfContents();
         m_owidget->setParent(this);
         m_owidget->setWindowFlag(Qt::Window); // Makes it a standalone window
@@ -1122,9 +1167,13 @@ void dodo::TableOfContents() noexcept
 
     } else {
         if (m_owidget->isVisible())
+        {
             m_owidget->close();
+        }
         else
+    {
             m_owidget->open();
+        }
     }
 }
 
@@ -1227,10 +1276,13 @@ bool dodo::hasUpperCase(const QString &text) noexcept
 
 void dodo::FileProperties() noexcept
 {
-    PropertiesWidget *propsWidget = new PropertiesWidget(this);
-    auto props = m_model->extractPDFProperties();
-    propsWidget->setProperties(props);
-    propsWidget->exec();
+    if (!m_propsWidget)
+    {
+        m_propsWidget = new PropertiesWidget(this);
+        auto props = m_model->extractPDFProperties();
+        m_propsWidget->setProperties(props);
+    }
+    m_propsWidget->exec();
 }
 
 void dodo::rehighlight() noexcept
@@ -1314,3 +1366,4 @@ void dodo::ToggleMenubar() noexcept
     m_menuBar->setHidden(shown);
     m_actionToggleMenubar->setChecked(!shown);
 }
+

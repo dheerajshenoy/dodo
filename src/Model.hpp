@@ -31,6 +31,7 @@ public:
     bool authenticate(const QString &pwd) noexcept;
     bool passwordRequired() noexcept;
     bool openFile(const QString &fileName);
+    void closeFile() noexcept;
     bool valid();
     inline void setDPI(float dpi) { m_dpi = dpi; }
     inline void setLowDPI(float low_dpi) { m_low_dpi = low_dpi; }

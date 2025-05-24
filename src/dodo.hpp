@@ -93,6 +93,7 @@ private:
     // Interactive functions
     void Fullscreen() noexcept;
     void OpenFile() noexcept;
+    void CloseFile() noexcept;
     void FileProperties() noexcept;
     void FirstPage() noexcept;
     void LastPage() noexcept;
@@ -162,17 +163,19 @@ private:
 
     QMenuBar *m_menuBar { nullptr };
     QMenu *m_fitMenu { nullptr };
+
     QAction *m_actionZoomIn { nullptr };
+    QAction *m_actionFileProperties { nullptr };
+    QAction *m_actionCloseFile { nullptr };
     QAction *m_actionZoomOut { nullptr };
     QAction *m_actionFitWidth { nullptr };
     QAction *m_actionFitHeight { nullptr };
     QAction *m_actionFitWindow { nullptr };
     QAction *m_actionFitNone { nullptr };
     QAction *m_actionAutoresize { nullptr };
-
     QAction *m_actionToggleMenubar { nullptr };
     QAction *m_actionTogglePanel { nullptr };
-
+    QAction *m_actionToggleOutline { nullptr };
     QAction *m_actionFirstPage { nullptr };
     QAction *m_actionPrevPage { nullptr };
     QAction *m_actionNextPage { nullptr };
@@ -198,6 +201,7 @@ private:
     bool m_linkHintMode { false };
     bool m_full_file_path_in_panel;
     OutlineWidget *m_owidget { nullptr };
+    PropertiesWidget *m_propsWidget { nullptr };
     QString m_currentHintInput;
     QMap<QString, Model::LinkInfo> m_link_hint_map;
     QMap<QString, QString> m_shortcuts_map;
