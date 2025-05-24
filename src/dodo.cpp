@@ -20,7 +20,8 @@ dodo::dodo() noexcept
     QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
 
 #ifndef NDEBUG
-    openFile("~/Scott Dodelson, Fabian Schmidt - Modern Cosmology-Academic Press (2020).pdf"); // FOR DEBUG PURPOSE ONLY
+    openFile("~/Downloads/basic-link-1.pdf");
+    // openFile("~/Scott Dodelson, Fabian Schmidt - Modern Cosmology-Academic Press (2020).pdf"); // FOR DEBUG PURPOSE ONLY
 #endif
 
     m_page_history_list.reserve(m_page_history_limit);
@@ -246,16 +247,16 @@ void dodo::initConfig() noexcept
     m_window_title.replace("{}", "%1");
 
     auto colors = toml["colors"];
-    auto search_index = colors["search_index"].value_or("#3daee944");
-    auto search_match = colors["search_match"].value_or("#FFFF8844");
-    auto accent = colors["accent"].value_or("#FF500044");
-    auto background = colors["background"].value_or("#FFFFFF");
 
-    m_colors["search_index"] = search_index;
-    m_colors["search_match"] = search_match;
-    m_colors["accent"] = accent;
-    m_colors["background"] = background;
+    m_colors["search_index"] = QColor::fromString(colors["search_index"].value_or("#3daee944")).rgba();
+    m_colors["search_match"] = QColor::fromString(colors["search_match"].value_or("#FFFF8844")).rgba();
+    m_colors["accent"] = QColor::fromString(colors["accent"].value_or("#FF500044")).rgba();
+    m_colors["background"] = QColor::fromString(colors["background"].value_or("#FFFFFF")).rgba();
+    m_colors["link_hint_fg"] = QColor::fromString(colors["link_hint_fg"].value_or("#000000")).rgba();
+    m_colors["link_hint_bg"] = QColor::fromString(colors["link_hint_bg"].value_or("#FFFF00")).rgba();
 
+    m_model->setLinkHintBackground(m_colors["link_hint_bg"]);
+    m_model->setLinkHintForeground(m_colors["link_hint_fg"]);
     m_gview->setBackgroundBrush(QColor(m_colors["background"]));
 
     auto rendering = toml["rendering"];
@@ -273,6 +274,8 @@ void dodo::initConfig() noexcept
     m_model->setAntialiasingBits(behavior["antialasing_bits"].value_or(8));
     m_auto_resize = behavior["auto_resize"].value_or(false);
     m_zoom_by = behavior["zoom_factor"].value_or(1.25);
+    if (behavior["invert_mode"].value_or(false))
+        m_model->invertColor();
 
     if (behavior["icc_color_profile"].value_or(true))
         m_model->enableICC();
@@ -956,7 +959,7 @@ void dodo::highlightHitsInPage(int pageno)
 
         auto *highlight = new QGraphicsRectItem(scaledRect);
 
-        highlight->setBrush(QColor::fromString(m_colors["search_match"]));
+        highlight->setBrush(QColor(m_colors["search_match"]));
         highlight->setPen(Qt::NoPen);
         highlight->setData(0, "searchHighlight");
         highlight->setData(1, rect);
@@ -981,7 +984,7 @@ void dodo::highlightSingleHit(int page, const QRectF &rect)
     );
 
     auto *highlight = new QGraphicsRectItem(scaledRect);
-    highlight->setBrush(QColor::fromString(m_colors["search_index"]));
+    highlight->setBrush(QColor(m_colors["search_index"]));
     highlight->setPen(Qt::NoPen);
     highlight->setData(0, "searchIndexHighlight");
     highlight->setData(1, rect);
@@ -1158,25 +1161,23 @@ void dodo::TableOfContents() noexcept
 {
     if (!m_owidget)
     {
-        // TODO: Make this widget pluggable
-        m_owidget = m_model->tableOfContents();
-        m_owidget->setParent(this);
-        m_owidget->setWindowFlag(Qt::Window); // Makes it a standalone window
+        m_owidget = new OutlineWidget(m_model->clonedContext(), this);
         connect(m_owidget, &OutlineWidget::jumpToPageRequested, this, [=](int pageno) {
             gotoPage(pageno);
         });
-        m_owidget->open();
-
-    } else {
-        if (m_owidget->isVisible())
-        {
-            m_owidget->close();
-        }
-        else
-    {
-            m_owidget->open();
-        }
     }
+
+    if (!m_owidget->hasOutline())
+    {
+        fz_outline *outline = m_model->getOutline();
+        if (!outline)
+        {
+            QMessageBox::information(this, "Outline", "Document does not have outline information");
+            return;
+        }
+        m_owidget->setOutline(outline);
+    }
+    m_owidget->open();
 }
 
 void dodo::ToggleHighlight() noexcept
@@ -1194,7 +1195,7 @@ void dodo::SaveFile() noexcept
 void dodo::VisitLinkKB() noexcept
 {
     this->installEventFilter(this);
-    m_model->visitLinkKB(m_pageno);
+    m_model->visitLinkKB(m_pageno, m_scale_factor);
     m_linkHintMode = true;
     m_link_hint_map = m_model->hintToLinkMap();
 }

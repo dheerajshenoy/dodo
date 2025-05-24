@@ -7,6 +7,7 @@
 #include <mupdf/fitz.h>
 #include <mupdf/fitz/context.h>
 #include <mupdf/fitz/document.h>
+#include <mupdf/fitz/link.h>
 #include <mupdf/fitz/pixmap.h>
 #include <mupdf/fitz/structured-text.h>
 #include <mupdf/pdf/annot.h>
@@ -71,10 +72,16 @@ bool Model::authenticate(const QString &pwd) noexcept
     return fz_authenticate_password(m_ctx, m_doc, pwd.toStdString().c_str());
 }
 
-OutlineWidget* Model::tableOfContents() noexcept
+fz_outline* Model::getOutline() noexcept
 {
-    auto owidget = new OutlineWidget(m_ctx, m_doc);
-    return owidget;
+    return fz_load_outline(m_ctx, m_doc);
+}
+
+
+fz_context* Model::clonedContext() noexcept
+{
+    if (m_ctx)
+        return fz_clone_context(m_ctx);
 }
 
 void Model::closeFile() noexcept
@@ -426,29 +433,28 @@ void Model::renderLinks(int pageno)
     clearLinks();
     fz_try(m_ctx)
     {
-        // fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        // m_page = fz_load_page(m_ctx, m_doc, pageno);
         fz_link *head = fz_load_links(m_ctx, m_page);
-        fz_link *link = head;
-
-        if (!link)
+        if (!head)
             return;
 
-            // fz_drop_page(m_ctx, page);
+        fz_link *link = head;
 
         while (link)
         {
             if (link->uri) {
                 fz_rect r = fz_transform_rect(link->rect, m_transform);
 
-                float x = r.x0;
-                float w = r.x1 - r.x0;
-                float h = r.y1 - r.y0;
-                float y = r.y1 - h;
+                float x = r.x0 * m_inv_dpr;
+                float w = (r.x1 - r.x0) * m_inv_dpr;
+                float h = (r.y1 - r.y0) * m_inv_dpr;
+                float y = (r.y1 - h) * m_inv_dpr;
 
                 QRectF qtRect(x, y, w, h);
                 BrowseLinkItem *item;
                 QString link_str(link->uri);
-                if (link_str.startsWith("#"))
+                bool external = fz_is_external_link(m_ctx, link->uri);
+                if (!external)
                 {
                     if (link_str.startsWith("#page"))
                     {
@@ -512,7 +518,6 @@ void Model::renderLinks(int pageno)
             }
             link = link->next;
         }
-
         fz_drop_link(m_ctx, head);
         // fz_drop_page(m_ctx, page);
     }
@@ -625,7 +630,7 @@ fz_rect Model::convertToMuPdfRect(const QRectF &qtRect,
     return fz_make_rect(p0.x, p0.y, p1.x, p1.y);
 }
 
-void Model::visitLinkKB(int pageno) noexcept
+void Model::visitLinkKB(int pageno, float zoom) noexcept
 {
     m_hint_to_link_map.clear();
     fz_try(m_ctx)
@@ -645,19 +650,19 @@ void Model::visitLinkKB(int pageno) noexcept
         {
             if (link->uri) {
                 fz_rect r = fz_transform_rect(link->rect, m_transform);
-                float x = r.x0;
-                float h = r.y1 - r.y0;
-                float y = r.y1 - h;
+                float x = r.x0 * m_inv_dpr;
+                float h = (r.y1 - r.y0) * m_inv_dpr;
+                float y = (r.y1 - h) * m_inv_dpr;
 
                 QString hint = QString::number(i++);
                 auto dest = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
                 m_hint_to_link_map[hint] = { .uri = QString::fromUtf8(link->uri),
                     .dest = dest };
 
-                QRect rect(x, y, 40, h);
+                QRect rect(x, y, 1.1 * zoom, 1.1 * zoom);
 
                 QGraphicsRectItem *item = new QGraphicsRectItem(rect);
-                item->setBrush(QColor(255, 255, 0, 255));
+                item->setBrush(QColor(m_link_hint_bg));
                 item->setPen(Qt::NoPen);
                 item->setData(0, "kb_link_overlay");
                 m_scene->addItem(item);
@@ -670,7 +675,7 @@ void Model::visitLinkKB(int pageno) noexcept
                 font.setBold(true);
                 text->setFont(font);
 
-                text->setBrush(Qt::black);
+                text->setBrush(QColor(m_link_hint_fg));
                 text->setPos(rect.topLeft());
                 text->setZValue(item->zValue() + 1);
                 text->setData(0, "kb_link_overlay");

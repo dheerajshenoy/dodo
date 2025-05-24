@@ -199,7 +199,7 @@ private:
 
     Model *m_model { nullptr };
     QTimer *m_HQRenderTimer = new QTimer(this);
-    QMap<QString, QString> m_colors;
+    QMap<QString, int> m_colors;
     bool m_highlights_present;
     bool m_linkHintMode { false };
     bool m_full_file_path_in_panel;

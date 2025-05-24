@@ -48,16 +48,17 @@ public:
     void enableICC() noexcept;
     void setAntialiasingBits(int bits) noexcept;
     QList<QPair<QString, QString>> extractPDFProperties() noexcept;
-    inline void setDPR(float dpr) noexcept { m_dpr = dpr; }
+    inline void setDPR(float dpr) noexcept { m_dpr = dpr; m_inv_dpr = 1 / m_dpr; }
+    fz_context* clonedContext() noexcept;
 
     struct LinkInfo {
         QString uri;
         fz_link_dest dest;
     };
 
-    OutlineWidget* tableOfContents() noexcept;
+    fz_outline* getOutline() noexcept;
     inline fz_matrix transform() noexcept { return m_transform; }
-    void visitLinkKB(int pageno) noexcept;
+    void visitLinkKB(int pageno, float zoom) noexcept;
     void copyLinkKB(int pageno) noexcept;
     QMap<QString, LinkInfo> hintToLinkMap() {
         return m_hint_to_link_map;
@@ -68,6 +69,8 @@ public:
     void invertColor() noexcept;
     inline float width() noexcept { return m_width; }
     inline float height() noexcept { return m_height; }
+    inline void setLinkHintForeground(int fg) noexcept { m_link_hint_fg = fg; }
+    inline void setLinkHintBackground(int bg) noexcept { m_link_hint_bg = bg; }
 
     signals:
     void jumpToPageRequested(int pageno);
@@ -101,7 +104,8 @@ private:
     fz_page *m_page { nullptr };
     fz_matrix m_transform;
     float m_height, m_width;
-    float m_dpr { 1.0f };
+    float m_dpr { 1.0f }, m_inv_dpr { 1.0f };
+    int m_link_hint_fg = 0x000000, m_link_hint_bg = 0xFFFF00;
 
     QMap<QString, LinkInfo> m_hint_to_link_map;
 };

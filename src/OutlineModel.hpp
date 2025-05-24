@@ -9,7 +9,7 @@ public:
         setHorizontalHeaderLabels({"Title", "Page"});
     }
 
-    void loadFromOutline(fz_context *ctx, fz_outline *root) {
+    void loadFromOutline(fz_outline *root) {
         clear();
         setHorizontalHeaderLabels({"Title", "Page"});
 
