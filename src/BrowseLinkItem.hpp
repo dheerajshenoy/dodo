@@ -21,11 +21,13 @@ class BrowseLinkItem : public QObject, public QGraphicsRectItem {
     };
 
     enum class LinkType
-        {
-            Internal_Page = 0,
-            Internal_Section,
-            External
-        };
+    {
+        Page = 0,
+        Section,
+        FitV,
+        FitH,
+        External
+    };
 
     BrowseLinkItem(const QRectF& rect,
                    const QString &link,
@@ -48,20 +50,30 @@ class BrowseLinkItem : public QObject, public QGraphicsRectItem {
     signals:
     void jumpToPageRequested(int pageno);
     void jumpToLocationRequested(int pageno, const Location &loc);
+    void verticalFitRequested(int pageno, const Location &loc);
+    void horizontalFitRequested(int pageno, const Location &loc);
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent*) override {
         switch (_type)
         {
-            case LinkType::Internal_Page:
+            case LinkType::Page:
                 if (_pageno)
                     emit jumpToPageRequested(_pageno);
                 else
                     qWarning() << "No page number found!";
                 break;
 
-            case LinkType::Internal_Section:
-                    emit jumpToLocationRequested(_pageno, _loc);
+            case LinkType::Section:
+                emit jumpToLocationRequested(_pageno, _loc);
+                break;
+
+            case LinkType::FitV:
+                emit verticalFitRequested(_pageno, _loc);
+                break;
+
+            case LinkType::FitH:
+                emit horizontalFitRequested(_pageno, _loc);
                 break;
 
             case LinkType::External:

@@ -77,8 +77,8 @@ public:
     void jumpToLocationRequested(int pageno, const BrowseLinkItem::Location &loc);
     void imageRenderRequested(int pageno, QImage img);
     void searchResultsReady(const QMap<int, QList<QPair<QRectF, int>>> &results, int matchCount);
-    void horizontalFitRequested();
-    void verticalFitRequested();
+    void horizontalFitRequested(int pageno, const BrowseLinkItem::Location &location);
+    void verticalFitRequested(int pageno, const BrowseLinkItem::Location &location);
     void fitRectRequested(int pageno, float x, float y, float w, float h);
     void fitXYZRequested(int pageno, float x, float y, float zoom);
 

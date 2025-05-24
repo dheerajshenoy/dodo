@@ -149,12 +149,18 @@ void dodo::initConnections() noexcept
         m_model->addHighlightAnnotation(m_pageno, pdfRect);
     });
 
-    connect(m_model, &Model::horizontalFitRequested, this, [&]() {
+    connect(m_model, &Model::horizontalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location) {
+        qDebug() << "HFIT";
+        gotoPage(pageno);
         FitWidth();
+        scrollToNormalizedTop(location.y);
     });
 
-    connect(m_model, &Model::verticalFitRequested, this, [&]() {
+    connect(m_model, &Model::verticalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location) {
+        qDebug() << "VFIT";
+        gotoPage(pageno);
         FitHeight();
+        scrollToNormalizedTop(location.y);
     });
 
     connect(m_model, &Model::jumpToPageRequested, this, [&](int pageno) {

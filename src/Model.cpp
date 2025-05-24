@@ -154,11 +154,6 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
 
     float scale = m_dpi / 72.0 * zoom * m_dpr;
 
-#ifndef NDEBUG
-    qDebug() << "Render DPI:" << m_dpi << ", DPR:" << m_dpr;
-#endif
-
-
     // RenderTask *task = new RenderTask(ctx, m_doc, m_colorspace, pageno, m_transform);
     //
     // connect(task, &RenderTask::finished, this, [&](int page, QImage img) {
@@ -221,9 +216,6 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation) noexcept
         int n = fz_pixmap_components(m_ctx, pix);
         QImage image;
 
-#ifndef NDEBUG
-        qDebug() << "Pixmap size:" << fz_pixmap_width(m_ctx, pix) << "x" << fz_pixmap_height(m_ctx, pix);
-#endif
         switch (n) {
             case 1:
                 image = QImage(samples, m_width, m_height, stride, QImage::Format_Grayscale8);
@@ -461,16 +453,12 @@ void Model::renderLinks(int pageno)
                         int page = link_str.mid(6).toInt();
                         item = new BrowseLinkItem(qtRect,
                                                   link_str,
-                                                  BrowseLinkItem::LinkType::Internal_Page);
+                                                  BrowseLinkItem::LinkType::Page);
                         item->setGotoPageNo(page - 1);
                         connect(item, &BrowseLinkItem::jumpToPageRequested, this, &Model::jumpToPageRequested);
                     } else {
-                        item = new BrowseLinkItem(qtRect,
-                                                  link_str,
-                                                  BrowseLinkItem::LinkType::Internal_Section);
                         fz_link_dest dest = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
                         int pageno = dest.loc.page;
-                        int chapterno = dest.loc.chapter;
                         switch(dest.type) {
 
                             case FZ_LINK_DEST_FIT: {
@@ -479,28 +467,42 @@ void Model::renderLinks(int pageno)
 
                             case FZ_LINK_DEST_FIT_B: break;
                             case FZ_LINK_DEST_FIT_H: {
-                                // emit horizontalFitRequested();
+                                item = new BrowseLinkItem(qtRect,
+                                                          link_str,
+                                                          BrowseLinkItem::LinkType::FitH);
+                                item->setGotoPageNo(pageno);
+                                item->setXYZ({.x = 0, .y = dest.y, .zoom = 0 });
+                                connect(item, &BrowseLinkItem::horizontalFitRequested, this,
+                                        &Model::horizontalFitRequested);
                             }
                             break;
 
                             case FZ_LINK_DEST_FIT_BH: break;
                             case FZ_LINK_DEST_FIT_V: {
-                                // emit verticalFitRequested();
+                                item = new BrowseLinkItem(qtRect,
+                                                          link_str,
+                                                          BrowseLinkItem::LinkType::FitV);
+                                item->setGotoPageNo(pageno);
+                                connect(item, &BrowseLinkItem::verticalFitRequested, this,
+                                        &Model::verticalFitRequested);
                             }
                             break;
 
                             case FZ_LINK_DEST_FIT_BV: break;
-                            case FZ_LINK_DEST_FIT_R: {
-                                // auto loc = dest.loc;
-                                // emit fitRectRequested(dest.x, dest.y, dest.w, dest.h);
-                            }
+
+                            case FZ_LINK_DEST_FIT_R: break;
+
                             case FZ_LINK_DEST_XYZ: {
+                                item = new BrowseLinkItem(qtRect,
+                                                          link_str,
+                                                          BrowseLinkItem::LinkType::Section);
                                 item->setGotoPageNo(pageno);
                                 item->setXYZ({ .x = dest.x, .y = dest.y, .zoom = dest.zoom });
                                 connect(item, &BrowseLinkItem::jumpToLocationRequested, this,
                                         &Model::jumpToLocationRequested);
                             }
                             break;
+
                             default:
                                 qWarning() << "Unknown goto destination type";
                                 break;
@@ -516,6 +518,7 @@ void Model::renderLinks(int pageno)
                 item->setData(0, "link");
                 m_scene->addItem(item);
             }
+
             link = link->next;
         }
         fz_drop_link(m_ctx, head);
