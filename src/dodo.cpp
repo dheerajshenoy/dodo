@@ -1,9 +1,6 @@
 #include "dodo.hpp"
 #include "GraphicsView.hpp"
 #include "PropertiesWidget.hpp"
-#include <qgraphicsitem.h>
-#include <qkeysequence.h>
-#include <qnamespace.h>
 
 dodo::dodo() noexcept
 {
@@ -124,6 +121,10 @@ void dodo::initMenubar() noexcept
     m_actionPrevLocation = navMenu->addAction(QString("Previous Location\t%1").arg(m_shortcuts_map["prev_location"]),
                                           this, &dodo::GoBackHistory);
 
+    QMenu *helpMenu = m_menuBar->addMenu("Help");
+    m_actionAbout = navMenu->addAction(QString("About\t%1").arg(m_shortcuts_map["about"]),
+                                       this, &dodo::ShowAbout);
+
     updateUiEnabledState();
 }
 
@@ -217,7 +218,7 @@ void dodo::initConfig() noexcept
     m_menuBar->setHidden(!ui["menubar"].value_or(true));
 
     if (ui["fullscreen"].value_or(false))
-        Fullscreen();
+        ToggleFullscreen();
 
     auto vscrollbar_shown = ui["vscrollbar"].value_or(true);
     auto vscrollbar = m_gview->verticalScrollBar();
@@ -293,6 +294,7 @@ void dodo::initConfig() noexcept
         m_load_default_keybinding = false;
         auto keys = toml["keybindings"];
         m_actionMap = {
+            { "about", [this]() { ShowAbout(); } },
             { "link_hint_visit", [this]() { VisitLinkKB(); } },
             { "link_hint_copy", [this]() { CopyLinkKB(); } },
             { "outline", [this]() { TableOfContents(); } },
@@ -314,7 +316,7 @@ void dodo::initConfig() noexcept
             { "zoom_out", [this]() { ZoomOut(); } },
             { "zoom_reset", [this]() { ZoomReset(); } },
             { "annot_highlight", [this]() { ToggleHighlight(); } },
-            { "fullscreen", [this]() { Fullscreen(); } },
+            { "fullscreen", [this]() { ToggleFullscreen(); } },
             { "file_properties", [this]() { FileProperties(); } },
             { "open_file", [this]() { OpenFile(); } },
             { "close_file", [this]() { CloseFile(); } },
@@ -1313,10 +1315,12 @@ void dodo::TopOfThePage() noexcept
     vscrollbar->setValue(0);
 }
 
-void dodo::Fullscreen() noexcept
+void dodo::ToggleFullscreen() noexcept
 {
-    qDebug() << "DD";
-    this->showFullScreen();
+    if (this->isFullScreen())
+        this->showNormal();
+    else
+        this->showFullScreen();
 }
 
 void dodo::InvertColor() noexcept
@@ -1367,3 +1371,9 @@ void dodo::ToggleMenubar() noexcept
     m_actionToggleMenubar->setChecked(!shown);
 }
 
+void dodo::ShowAbout() noexcept
+{
+    AboutDialog *abw = new AboutDialog(this);
+    abw->setAppInfo("v0.2.0", "A fast, unintrusive pdf reader");
+    abw->exec();
+}

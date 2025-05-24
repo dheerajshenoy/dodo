@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>logo/logo.png</file>
+        <file>fonts/comfortaa.ttf</file>
+    </qresource>
+</RCC>
+
+<!-- # vim: ft=xml -->

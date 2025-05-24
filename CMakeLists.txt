@@ -36,6 +36,7 @@ add_executable(${PROJECT_NAME}
     src/Model.cpp
     src/RenderTask.cpp
     src/PropertiesWidget.cpp
+    src/AboutDialog.cpp
 
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp
@@ -44,6 +45,10 @@ add_executable(${PROJECT_NAME}
     src/ElidableLabel.hpp
 
 )
+
+qt_add_resources(RESOURCES resources.qrc)
+target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
+
 
 target_link_libraries(${PROJECT_NAME}
     Qt6::Widgets

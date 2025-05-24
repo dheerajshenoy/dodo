@@ -35,6 +35,7 @@
 #include <QActionGroup>
 #include <QWindow>
 
+#include "AboutDialog.hpp"
 #include "GraphicsView.hpp"
 #include "Panel.hpp"
 #include "toml.hpp"
@@ -91,7 +92,7 @@ private:
     void setFitMode(const FitMode &mode) noexcept;
 
     // Interactive functions
-    void Fullscreen() noexcept;
+    void ToggleFullscreen() noexcept;
     void OpenFile() noexcept;
     void CloseFile() noexcept;
     void FileProperties() noexcept;
@@ -127,6 +128,7 @@ private:
     void ToggleAutoResize() noexcept;
     void ToggleMenubar() noexcept;
     void TogglePanel() noexcept;
+    void ShowAbout() noexcept;
 
     QDir m_config_dir;
     bool m_prefetch_enabled,
@@ -181,6 +183,7 @@ private:
     QAction *m_actionNextPage { nullptr };
     QAction *m_actionLastPage { nullptr };
     QAction *m_actionPrevLocation { nullptr };
+    QAction *m_actionAbout { nullptr };
 
     QCache<int, QPixmap> m_highResCache,
     m_pixmapCache;
