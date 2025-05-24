@@ -1,5 +1,5 @@
 <img src="./logo/banner.png"/>
-A fast and minimal PDF reader.
+A fast and unintrusive PDF reader.
 
 ## Why ?
 
