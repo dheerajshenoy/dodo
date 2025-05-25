@@ -13,8 +13,6 @@ void Panel::initGui() noexcept
     // Left widgets
     m_layout->addWidget(m_filename_label);
 
-    m_layout->addStretch();
-
     // Right widgets
     m_layout->addWidget(new QLabel("["));
     m_layout->addWidget(m_pageno_label);

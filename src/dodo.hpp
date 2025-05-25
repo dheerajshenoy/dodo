@@ -35,6 +35,7 @@
 #include <QActionGroup>
 #include <QWindow>
 #include <QSqlError>
+#include <QClipboard>
 
 #include "argparse.hpp"
 
@@ -168,6 +169,7 @@ private:
     void ToggleMenubar() noexcept;
     void TogglePanel() noexcept;
     void ShowAbout() noexcept;
+    void YankSelection() noexcept;
 
     QDir m_config_dir;
     bool m_prefetch_enabled,
@@ -205,6 +207,7 @@ private:
     void rehighlight() noexcept;
     void zoomHelper() noexcept;
     QRectF fzQuadToQRect(const fz_quad &q) noexcept;
+    void cancelTextSelection() noexcept;
 
     QMenuBar *m_menuBar { nullptr };
     QMenu *m_fitMenu { nullptr };
@@ -256,5 +259,6 @@ private:
     FitMode m_fit_mode, m_initial_fit { FitMode::None };
     QString m_window_title;
     QString m_synctex_editor_command;
+    QClipboard *m_clipboard = QGuiApplication::clipboard();
 };
 
