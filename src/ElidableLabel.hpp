@@ -16,19 +16,20 @@ void setFullText(const QString &text) {
     updateElidedText();
 }
 
-protected:
-void resizeEvent(QResizeEvent *event) override {
-    QLabel::resizeEvent(event);
-updateElidedText();
-    }
-
-private:
-QString m_fullText;
-
-void updateElidedText() {
+void updateElidedText() noexcept {
     QFontMetrics metrics(font());
     QString elided = metrics.elidedText(m_fullText, Qt::ElideRight, width());
     setText(elided);
 }
+
+protected:
+void resizeEvent(QResizeEvent *e) override {
+    updateElidedText();
+    QLabel::resizeEvent(e);
+}
+
+private:
+QString m_fullText;
+
 };
 
