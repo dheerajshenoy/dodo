@@ -11,7 +11,6 @@ PDF reader, I am reading lots of PDFs for my work.
 
 ## Features
 
-
 - Fast rendering with MuPDF backend
 - **SyncTeX** support
 - Caching and pre-fetching pages for faster page rendering
@@ -21,6 +20,7 @@ PDF reader, I am reading lots of PDFs for my work.
 - Visited file location saving
 - Link awareness
 - Save annotations (highlights only for now)
+- Text highlight
 
 ## Dependencies
 
@@ -51,11 +51,12 @@ Check out the `config.toml` file for reference
 
 ## TODO
 
+- [X] Text mouse selection
 - [X] Synctex support
 - [X] HiDPI support
 - [ ] Annotations
     - [X] Basic rectangle highlight
-    - [ ] Word aware highlight
+    <!-- - [ ] Word aware highlight -->
 - [X] Table of Contents
 - [X] Keyboard link navigation
 - [ ] Complex searches

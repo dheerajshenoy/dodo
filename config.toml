@@ -1,6 +1,6 @@
 # ===== Appearance Settings =====
 [ui]
-panel = true
+panel = false
 fullscreen = false
 zoom_level = 1.0            # Default zoom factor
 compact = true
@@ -19,13 +19,14 @@ accent = "#FF3daee9"    # Hex color code for highlights
 background = "#00000000"
 search_match = "#33FF5000"
 search_index = "#55FFFF55"
+link_hint_bg = "#8800FF00"
+link_hint_fg = "#FF000000"
 
 # ===== Rendering Settings =====
 [rendering]
 dpi = 300.0
-low_dpi = 72.0
 cache_pages = 5            # Number of pages to keep in RAM
-antialiasing_bits = 4
+antialiasing_bits = 8 # 4=good, 8=high quality
 icc_color_profile = true
 
 # ===== Navigation & Behavior =====
@@ -33,13 +34,18 @@ icc_color_profile = true
 remember_last_visited = true   # Helps to go to last visited page of document
 page_history = 100 # History for visited pages in the file (only for the session)
 confirm_on_quit = true # Ask before quitting dodo
-auto_resize = true # Resize the document to fit the window
+auto_resize = false # Resize the document to fit the window
 zoom_factor = 1.25 # Factor by which to zoom in/out
-initial_fit = "window" # Fit applied once every file opened; values: "none", "width", "height", "window":
+initial_fit = "width" # Fit applied once every file opened; values: "none", "width", "height", "window":
+invert_mode = false # Start in invert color mode
+synctex_editor_command = "kitty -e nvim +{line} {file}"
 
 # ===== Shortcuts =====
 [keybindings]
 open_file = "o"
+#close_file = ""
+link_hint_visit = "f"
+link_hint_copy = "Shift+F"
 
 scroll_left = "h"
 scroll_down = "j"
@@ -53,8 +59,12 @@ prev_page = "Shift+K"
 first_page = "g,g"
 last_page = "Shift+G"
 
+outline = "t"
+
 search = "/"
 search_this_page = "?" #TODO
+search_next = "n"
+search_prev = "Shift+N"
 
 zoom_reset = "0"
 zoom_in = "="
@@ -64,7 +74,7 @@ annot_highlight = "Alt+1"
 file_properties = "Ctrl+Shift+F"
 invert_color = "i"
 
-fullscreen = "<F11>"
+fullscreen = "F11"
 fit_height = "Ctrl+Shift+H"
 fit_width = "Ctrl+Shift+W"
 fit_window = "Ctrl+Shift+="
@@ -75,3 +85,7 @@ toggle_panel = "Ctrl+Shift+B"
 
 rotate_clock = ">"
 rotate_anticlock = "<"
+
+cancel_selection = "escape"
+yank = "y"
+about = "F12"
