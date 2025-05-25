@@ -24,6 +24,7 @@ PDF reader, I am reading lots of PDFs for my work.
 
 - Qt6
 - mupdf
+- libsynctex
 - cmake (for building)
 - make (for building)
 
