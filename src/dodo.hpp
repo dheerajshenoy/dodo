@@ -34,6 +34,8 @@
 #include <functional>
 #include <QActionGroup>
 #include <QWindow>
+#include <QSqlError>
+
 #include "argparse.hpp"
 
 #include "AboutDialog.hpp"

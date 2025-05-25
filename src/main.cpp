@@ -7,6 +7,11 @@ void init_args(argparse::ArgumentParser &program)
         .help("Show version number")
         .flag();
 
+    program.add_argument("-p", "--page")
+        .help("Page number to go to")
+        .scan<'i', int>()
+        .default_value(-1);
+
     program.add_argument("files")
         .remaining();
 }

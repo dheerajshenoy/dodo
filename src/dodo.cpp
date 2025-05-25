@@ -550,6 +550,7 @@ void dodo::openFile(const QString &fileName) noexcept
 {
     m_filename = fileName;
     m_filename.replace("~", QString::fromStdString(getenv("HOME")));
+
     QList<QGraphicsItem*> items = m_pix_item->childItems();
     for (const auto &item : items)
     m_gscene->removeItem(item);
@@ -584,20 +585,28 @@ void dodo::openFile(const QString &fileName) noexcept
     else
         m_panel->setFileName(fz_basename(CSTR(m_filename)));
 
-    if (m_remember_last_visited)
+    if (m_start_page_override >= 0)
+        m_pageno = m_start_page_override;
+
+    if (m_pageno == -1 && m_remember_last_visited)
     {
         QSqlQuery q;
         q.prepare("SELECT page_number FROM last_visited WHERE file_path = ?");
         q.addBindValue(m_filename);
-        q.exec();
-
-        if (q.next()) {
-            int page = q.value(0).toInt();
-            gotoPage(page);
+        if (!q.exec())
+        {
+            qWarning() << "DB Error: " << q.lastError().text();
         } else {
-            gotoPage(0);
+            if (q.next()) {
+                int page = q.value(0).toInt();
+                gotoPage(page);
+            } else {
+                gotoPage(0);
+            }
         }
-    } else gotoPage(0);
+    } else {
+        gotoPage(m_pageno);
+    }
 
     updateUiEnabledState();
 
@@ -666,10 +675,6 @@ void dodo::gotoPage(const int &pageno) noexcept
         return;
     }
 
-    if (pageno == m_pageno) {
-        return; // No-op
-    }
-
     // boundary condition
     if (!m_suppressHistory && m_pageno >= 0)
     {
@@ -683,24 +688,17 @@ void dodo::gotoPage(const int &pageno) noexcept
 
 void dodo::gotoPageInternal(const int &pageno) noexcept
 {
-
-    if (pageno < 0 || pageno >= m_total_pages)
-    {
-        qWarning("Page number %d out of range", pageno);
-        return;
-    }
-
     m_pageno = pageno;
 
     // TODO: Handle file content change detection
 
-    // if (m_highResCache.contains(pageno))
-    // {
-    //     QPixmap *cached = m_highResCache.object(pageno);
-    //     m_pix_item->setPixmap(*cached);
-    //     m_pix_item->setScale(m_scale_factor);
-    //     return;
-    // }
+    if (m_highResCache.contains(pageno))
+    {
+        QPixmap *cached = m_highResCache.object(pageno);
+        m_pix_item->setPixmap(*cached);
+        // m_pix_item->setScale(m_scale_factor);
+        return;
+    }
 
     if (m_highlights_present)
     {
@@ -714,12 +712,12 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
 void dodo::renderPage(int pageno, bool renderonly) noexcept
 {
 
-    // if (m_highResCache.contains(pageno))
-    // {
-    //     m_pix_item->setPixmap(*m_highResCache.object(pageno));
-    //     m_pix_item->setScale(DPI_FRAC * m_scale_factor);
-    //     return;
-    // }
+    if (m_highResCache.contains(pageno))
+    {
+        m_pix_item->setPixmap(*m_highResCache.object(pageno));
+        // m_pix_item->setScale(DPI_FRAC * m_scale_factor);
+        return;
+    }
 
     auto pix = m_model->renderPage(pageno, m_scale_factor, m_rotation, renderonly);
     renderPixmap(pix);
@@ -1375,18 +1373,21 @@ void dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
         exit(0);
     }
 
+    this->construct();
+    if (argparser.is_used("--page"))
+    {
+        m_start_page_override = argparser.get<int>("--page");
+        qDebug() << "Page number overriden with" << m_start_page_override;
+    }
+
     try
     {
         auto file = argparser.get<std::vector<std::string>>("files");
         if (!file.empty())
-        {
-            this->construct();
             openFile(QString::fromStdString(file[0]));
-        }
     } catch (...)
-    {
-        this->construct();
-    }
+    {}
+    m_start_page_override = -1;
 }
 
 QRectF dodo::fzQuadToQRect(const fz_quad &q) noexcept
