@@ -350,6 +350,8 @@ void dodo::initConfig() noexcept
         m_load_default_keybinding = false;
         auto keys = toml["keybindings"];
         m_actionMap = {
+            { "yank", [this]() { YankSelection(); } },
+            { "cancel_selection", [this]() { cancelTextSelection(); } },
             { "about", [this]() { ShowAbout(); } },
             { "link_hint_visit", [this]() { VisitLinkKB(); } },
             { "link_hint_copy", [this]() { CopyLinkKB(); } },
@@ -1485,4 +1487,10 @@ fz_point dodo::mapToPdf(QPointF loc) noexcept
 
     fz_point pt = { static_cast<float>(x), static_cast<float>(y) };
     pt = fz_transform_point(pt, invTransform);
+    return pt;
+}
+
+void dodo::YankSelection() noexcept
+{
+    m_clipboard->setText(m_model->getSelectionText(m_gview->selectionStart(), m_gview->selectionEnd()));
 }
