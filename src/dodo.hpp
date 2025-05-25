@@ -76,6 +76,14 @@ public:
         }
     };
 
+    struct CacheValue {
+        QPixmap pixmap;
+        QList<BrowseLinkItem*> links;
+
+        CacheValue(const QPixmap &pix, const QList<BrowseLinkItem*> &lnks)
+        : pixmap(pix), links(lnks) {}
+    };
+
 
 public slots:
     void handleRenderResult(int pageno, QImage img);
@@ -104,9 +112,9 @@ private:
     void gotoPage(const int &pageno) noexcept;
     void gotoPageInternal(const int &pageno) noexcept;
     void openFile(const QString &fileName) noexcept;
-    void renderLinks() noexcept;
     void search(const QString &term) noexcept;
     void renderPage(int pageno, bool renderonly = false) noexcept;
+    void renderLinks(const QList<BrowseLinkItem*> &links) noexcept;
     void renderPixmap(const QPixmap &pix) noexcept;
     void cachePage(int pageno) noexcept;
     void scrollToXY(float x, float y) noexcept;
@@ -119,6 +127,7 @@ private:
     void synctexLocateInFile(const char *texFile, int line) noexcept;
     void synctexLocateInPdf(const QString &texFile, int line, int column) noexcept;
     fz_point mapToPdf(QPointF loc) noexcept;
+    void clearLinks() noexcept;
 
     void clearPixmapItems() noexcept;
 
@@ -220,8 +229,7 @@ private:
     QAction *m_actionPrevLocation { nullptr };
     QAction *m_actionAbout { nullptr };
 
-    QCache<CacheKey, QPixmap> m_cache;
-    QList<CacheKey> m_lrulist;
+    QCache<CacheKey, CacheValue> m_cache;
 
     QMap<int, QList<Model::SearchResult>> m_searchRectMap;
 

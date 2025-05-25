@@ -38,7 +38,7 @@ public:
     inline void setLowDPI(float low_dpi) { m_low_dpi = low_dpi; }
     int numPages();
     QPixmap renderPage(int pageno, float zoom, float rotation, bool renderonly = false) noexcept;
-    void renderLinks(int pageno);
+    QList<BrowseLinkItem*> getLinks(int pageno);
     void setLinkBoundaryBox(bool state);
     void searchAll(const QString &term, bool caseSensitive);
     void addHighlightAnnotation(int pageno, const QRectF &rect) noexcept;
@@ -90,7 +90,6 @@ public:
     void fitXYZRequested(int pageno, float x, float y, float zoom);
 
 private:
-    void clearLinks() noexcept;
     void apply_night_mode(fz_pixmap* pixmap) noexcept;
 
     QList<SearchResult> searchHelper(int pageno, const QString &term, bool caseSensitive);

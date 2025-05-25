@@ -57,7 +57,7 @@ void dodo::initMenubar() noexcept
     fileMenu->addAction(QString("Open File\t%1").arg(m_shortcuts_map["open_file"]),
                         this, &dodo::OpenFile);
     m_actionFileProperties = fileMenu->addAction(QString("File Properties\t%1").arg(m_shortcuts_map["file_properties"]),
-                                                this, &dodo::FileProperties);
+                                                 this, &dodo::FileProperties);
     m_actionCloseFile = fileMenu->addAction(QString("Close File\t%1").arg(m_shortcuts_map["close_file"]),
                                             this, &dodo::CloseFile);
     fileMenu->addSeparator();
@@ -79,22 +79,22 @@ void dodo::initMenubar() noexcept
     m_fitMenu = viewMenu->addMenu("Fit");
 
     m_actionFitNone = m_fitMenu->addAction(QString("None\t%1").arg(m_shortcuts_map["fit_none"]),
-                                            this, &dodo::FitNone);
+                                           this, &dodo::FitNone);
     m_actionFitNone->setCheckable(true);
     zoomModeGroup->addAction(m_actionFitNone);
 
     m_actionFitWidth = m_fitMenu->addAction(QString("Width\t%1").arg(m_shortcuts_map["fit_width"]),
-                                           this, &dodo::FitWidth);
+                                            this, &dodo::FitWidth);
     m_actionFitWidth->setCheckable(true);
     zoomModeGroup->addAction(m_actionFitWidth);
 
     m_actionFitHeight = m_fitMenu->addAction(QString("Height\t%1").arg(m_shortcuts_map["fit_height"]),
-                                            this, &dodo::FitHeight);
+                                             this, &dodo::FitHeight);
     m_actionFitHeight->setCheckable(true);
     zoomModeGroup->addAction(m_actionFitHeight);
 
     m_actionFitWindow = m_fitMenu->addAction(QString("Window\t%1").arg(m_shortcuts_map["fit_window"]),
-                                            this, &dodo::FitWindow);
+                                             this, &dodo::FitWindow);
     m_actionFitWindow->setCheckable(true);
     zoomModeGroup->addAction(m_actionFitWindow);
 
@@ -102,22 +102,22 @@ void dodo::initMenubar() noexcept
 
     // Auto Resize toggle (independent)
     m_actionAutoresize = m_fitMenu->addAction(QString("Auto Resize\t%1").arg(m_shortcuts_map["auto_resize"]),
-                                             this, &dodo::ToggleAutoResize);
+                                              this, &dodo::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
     m_actionAutoresize->setChecked(true);  // default on or off
 
     viewMenu->addSeparator();
 
     m_actionToggleOutline = viewMenu->addAction(QString("Outline\t%1").arg(m_shortcuts_map["outline"]),
-                                             this, &dodo::TableOfContents);
+                                                this, &dodo::TableOfContents);
 
     m_actionToggleMenubar = viewMenu->addAction(QString("Menubar\t%1").arg(m_shortcuts_map["toggle_menubar"]),
-                                             this, &dodo::ToggleMenubar);
+                                                this, &dodo::ToggleMenubar);
     m_actionToggleMenubar->setCheckable(true);
     m_actionToggleMenubar->setChecked(!m_menuBar->isHidden());
 
     m_actionTogglePanel = viewMenu->addAction(QString("Panel\t%1").arg(m_shortcuts_map["toggle_panel"]),
-                                             this, &dodo::TogglePanel);
+                                              this, &dodo::TogglePanel);
     m_actionTogglePanel->setCheckable(true);
     m_actionTogglePanel->setChecked(!m_panel->isHidden());
 
@@ -135,7 +135,7 @@ void dodo::initMenubar() noexcept
                                           this, &dodo::LastPage);
 
     m_actionPrevLocation = navMenu->addAction(QString("Previous Location\t%1").arg(m_shortcuts_map["prev_location"]),
-                                          this, &dodo::GoBackHistory);
+                                              this, &dodo::GoBackHistory);
 
     QMenu *helpMenu = m_menuBar->addMenu("Help");
     m_actionAbout = navMenu->addAction(QString("About\t%1").arg(m_shortcuts_map["about"]),
@@ -165,14 +165,12 @@ void dodo::initConnections() noexcept
     });
 
     connect(m_model, &Model::horizontalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location) {
-        qDebug() << "HFIT";
         gotoPage(pageno);
         FitWidth();
         scrollToNormalizedTop(location.y);
     });
 
     connect(m_model, &Model::verticalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location) {
-        qDebug() << "VFIT";
         gotoPage(pageno);
         FitHeight();
         scrollToNormalizedTop(location.y);
@@ -388,8 +386,6 @@ void dodo::initConfig() noexcept
         this->setContentsMargins(0, 0, 0, 0);
     }
 
-    m_pixmapCache.setMaxCost(cache_pages);
-    m_highResCache.setMaxCost(cache_pages);
 }
 
 void dodo::initKeybinds() noexcept
@@ -444,8 +440,6 @@ void dodo::initGui() noexcept
     m_gscene->addItem(m_pix_item);
 
     m_model = new Model(m_gscene);
-    // connect(m_model, &Model::imageRenderRequested, this, &dodo::handleRenderResult);
-    // Menu Bar
 
     auto win = m_gview->window()->windowHandle();
     if (win)
@@ -461,30 +455,6 @@ void dodo::initGui() noexcept
 
     m_menuBar = this->menuBar(); // initialize here so that the config visibility works
 }
-
-// void dodo::handleRenderResult(int pageno, QImage image)
-// {
-//     if (pageno != m_pageno || image.isNull())
-//     {
-//         qDebug() << "Old, ignoring";
-//         return;
-//     }
-//
-//     QPixmap pix = QPixmap::fromImage(image);
-//
-//     m_pixmapCache.insert(pageno, new QPixmap(pix));
-//     // m_pix_item->setScale(m_scale_factor);
-//     m_pix_item->setPixmap(pix);
-//
-//     // Normalize scale: use logical size instead of raw pixels
-//
-//     m_panel->setPageNo(m_pageno + 1);
-//     renderLinks();
-//     if (m_prefetch_enabled)
-//     {
-//         prefetchAround(m_pageno);
-//     }
-// }
 
 void dodo::updateUiEnabledState() noexcept
 {
@@ -522,7 +492,7 @@ void dodo::CloseFile() noexcept
     if (m_model->hasUnsavedChanges())
     {
         auto close = QMessageBox::question(this, "Unsaved changes detected",
-                                            "There are unsaved changes in this document. Do you really want to close this file ?");
+                                           "There are unsaved changes in this document. Do you really want to close this file ?");
         if (close == QMessageBox::StandardButton::No)
             return;
     }
@@ -715,6 +685,22 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
     renderPage(pageno, false);
 }
 
+void dodo::clearLinks() noexcept
+{
+    for (auto &link : m_gscene->items())
+    {
+        if (link->data(0).toString() == "link")
+            m_gscene->removeItem(link);
+    }
+}
+
+void dodo::renderLinks(const QList<BrowseLinkItem*> &links) noexcept
+{
+    clearLinks();
+    for (auto *link: links)
+        m_gscene->addItem(link);
+}
+
 void dodo::renderPage(int pageno, bool renderonly) noexcept
 {
     CacheKey key{pageno, m_rotation, m_scale_factor};
@@ -722,13 +708,17 @@ void dodo::renderPage(int pageno, bool renderonly) noexcept
 
     if (auto cached = m_cache.object(key)) {
         qDebug() << "Using cached pixmap";
-        renderPixmap(*cached);
+        renderPixmap(cached->pixmap);
+        renderLinks(cached->links);
         return;
     }
 
     auto pix = m_model->renderPage(pageno, m_scale_factor, m_rotation, renderonly);
-    m_cache.insert(key, new QPixmap(pix), 1); // cost=1 per pixmap
+    auto links = m_model->getLinks(pageno);
+
+    m_cache.insert(key, new CacheValue(pix, links));
     renderPixmap(pix);
+    renderLinks(links);
 }
 
 void dodo::renderPixmap(const QPixmap &pix) noexcept
@@ -929,11 +919,6 @@ void dodo::setFitMode(const FitMode &mode) noexcept
             m_panel->setFitMode("");
             break;
     }
-}
-
-void dodo::renderLinks() noexcept
-{
-    m_model->renderLinks(m_pageno);
 }
 
 // Single page search
@@ -1480,13 +1465,13 @@ void dodo::synctexLocateInPdf(const QString &texFile, int line, int column) noex
 
 fz_point dodo::mapToPdf(QPointF loc) noexcept
 {
-        double x = loc.x() / m_inv_dpr;
-        double y = loc.y() / m_inv_dpr;
+    double x = loc.x() / m_inv_dpr;
+    double y = loc.y() / m_inv_dpr;
 
-        // Apply inverse of rendering transform
-        fz_matrix invTransform;
-        invTransform = fz_invert_matrix(m_model->transform());
+    // Apply inverse of rendering transform
+    fz_matrix invTransform;
+    invTransform = fz_invert_matrix(m_model->transform());
 
-        fz_point pt = { static_cast<float>(x), static_cast<float>(y) };
-        pt = fz_transform_point(pt, invTransform);
+    fz_point pt = { static_cast<float>(x), static_cast<float>(y) };
+    pt = fz_transform_point(pt, invTransform);
 }

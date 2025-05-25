@@ -185,7 +185,6 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation, bool renderonl
     //     emit imageRenderRequested(page, img, lowQuality);
     // });
     // QThreadPool::globalInstance()->start(task);
-    clearLinks();
 
     fz_try(m_ctx)
     {
@@ -228,7 +227,6 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation, bool renderonl
         }
 
         fz_run_page(m_ctx, m_page, dev, m_transform, nullptr);
-        renderLinks(pageno);
 
         if (m_invert_color_mode)
         {
@@ -399,23 +397,15 @@ void Model::searchAll(const QString &term, bool caseSensitive)
     emit searchResultsReady(resultsMap, m_match_count);
 }
 
-void Model::clearLinks() noexcept
+QList<BrowseLinkItem*> Model::getLinks(int pageno)
 {
-    for (auto &link : m_scene->items())
-    {
-        if (link->data(0).toString() == "link")
-            m_scene->removeItem(link);
-    }
-}
-
-void Model::renderLinks(int pageno)
-{
+    QList<BrowseLinkItem*> items;
     fz_try(m_ctx)
     {
         // m_page = fz_load_page(m_ctx, m_doc, pageno);
         fz_link *head = fz_load_links(m_ctx, m_page);
         if (!head)
-            return;
+            return items;
 
         fz_link *link = head;
 
@@ -503,9 +493,9 @@ void Model::renderLinks(int pageno)
                                               BrowseLinkItem::LinkType::External);
                 }
                 item->setData(0, "link");
-                m_scene->addItem(item);
+                // m_scene->addItem(item);
+                items.append(item);
             }
-
             link = link->next;
         }
         fz_drop_link(m_ctx, head);
@@ -515,6 +505,8 @@ void Model::renderLinks(int pageno)
     {
         qWarning() << "MuPDF error in renderlink: " << fz_caught_message(m_ctx);
     }
+
+    return items;
 }
 
 void Model::addHighlightAnnotation(int pageno, const QRectF &pdfRect) noexcept
