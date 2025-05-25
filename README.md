@@ -11,20 +11,22 @@ PDF reader, I am reading lots of PDFs for my work.
 
 ## Features
 
-- Fast MuPDF backend
+
+- Fast rendering with MuPDF backend
+- **SyncTeX** support
 - Caching and pre-fetching pages for faster page rendering
 - Vim-like keybindings
-- configured using TOML language
+- Configured using TOML language
 - Faster search
 - Visited file location saving
 - Link awareness
-- Save annotations
+- Save annotations (highlights only for now)
 
 ## Dependencies
 
 - Qt6
 - mupdf
-- libsynctex
+- libsynctex \[(optional)for reverse searching and goto reference from LaTeX\]
 - cmake (for building)
 - make (for building)
 
@@ -49,6 +51,7 @@ Check out the `config.toml` file for reference
 
 ## TODO
 
+- [X] Synctex support
 - [X] HiDPI support
 - [ ] Annotations
     - [X] Basic rectangle highlight
@@ -59,13 +62,12 @@ Check out the `config.toml` file for reference
 - [X] Visited file location
 - [X] Keyboard navigation
 - [X] Search (with highlight)
-- [ ] Synctex support
-- [ ] Clicking figure names
+- [X] Clicking figure names
 - [ ] file:/// link click support
 
 ## Tools Used
 
-- Neovim - my beloved text editor, without which I wouldn't be so fast in my commits :)
-- ChatGPT - ofc, it's 2025, I'm not gonna lie...
+- **Neovim** - my beloved text editor, without which I wouldn't be so fast in my commits :)
+- **ChatGPT** - ofc, it's 2025, I'm not gonna lie...
 - Qt forums and other websites
 - MuPDF discord channel

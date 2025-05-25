@@ -3,7 +3,7 @@
 #include "GraphicsView.hpp"
 #include "PropertiesWidget.hpp"
 #include <algorithm>
-
+#include <iterator>
 
 dodo::dodo() noexcept
 {
@@ -11,7 +11,9 @@ dodo::dodo() noexcept
 }
 
 dodo::~dodo() noexcept
-{}
+{
+    synctex_scanner_free(m_synctex_scanner);
+}
 
 void dodo::construct() noexcept
 {
@@ -179,6 +181,19 @@ void dodo::initConnections() noexcept
         scrollToXY(loc.x, loc.y);
     });
 
+    connect(m_gview, &GraphicsView::synctexJumpRequested, this, [&](QPointF loc) {
+        fz_point pt = mapToPdf(loc);
+        if (synctex_edit_query(m_synctex_scanner, m_pageno + 1, pt.x, pt.y) > 0)
+        {
+            synctex_node_p node;
+            while ((node = synctex_scanner_next_result(m_synctex_scanner)))
+                synctexLocateInFile(synctex_node_get_name(node), synctex_node_line(node));
+        } else {
+            qDebug() << "No matching source found!";
+            QMessageBox::warning(this, "SyncTeX Error", "No matching source found!");
+        }
+    });
+
 }
 
 void dodo::scrollToXY(float x, float y) noexcept
@@ -186,7 +201,7 @@ void dodo::scrollToXY(float x, float y) noexcept
     if (!m_pix_item || !m_gview)
         return;
 
-    m_gview->centerOn(QPointF(x * DPI_FRAC, y * DPI_FRAC));
+    m_gview->centerOn(QPointF(x, y));
 }
 
 void dodo::initDB() noexcept
@@ -285,6 +300,10 @@ void dodo::initConfig() noexcept
     m_model->setAntialiasingBits(behavior["antialasing_bits"].value_or(8));
     m_auto_resize = behavior["auto_resize"].value_or(false);
     m_zoom_by = behavior["zoom_factor"].value_or(1.25);
+    auto synctex_editor_command = behavior["synctex_editor_command"].value<std::string>();
+    if (synctex_editor_command.has_value())
+        m_synctex_editor_command = QString::fromStdString(synctex_editor_command.value());
+
     if (behavior["invert_mode"].value_or(false))
         m_model->invertColor();
 
@@ -446,7 +465,7 @@ void dodo::handleRenderResult(int pageno, QImage image)
     QPixmap pix = QPixmap::fromImage(image);
 
     m_pixmapCache.insert(pageno, new QPixmap(pix));
-    m_pix_item->setScale(m_scale_factor);
+    // m_pix_item->setScale(m_scale_factor);
     m_pix_item->setPixmap(pix);
 
     // Normalize scale: use logical size instead of raw pixels
@@ -595,6 +614,7 @@ void dodo::openFile(const QString &fileName) noexcept
         });
     }
 
+    initSynctex();
 }
 
 bool dodo::askForPassword() noexcept
@@ -1381,3 +1401,60 @@ QRectF dodo::fzQuadToQRect(const fz_quad &q) noexcept
     );
 }
 
+void dodo::initSynctex() noexcept
+{
+    auto texFile = nullptr;
+    m_synctex_scanner = synctex_scanner_new_with_output_file(CSTR(m_filename), nullptr, 1);
+    if (!m_synctex_scanner)
+    {
+        qDebug() << "Unable to open SyncTeX scanner";
+        return;
+    }
+}
+
+void dodo::synctexLocateInFile(const char *texFile, int line) noexcept
+{
+    auto tmp = m_synctex_editor_command;
+    if (!tmp.contains("{file}") || !tmp.contains("{line}")) {
+        QMessageBox::critical(this, "SyncTeX error",
+                              "Invalid SyncTeX editor command: missing placeholders ({line} and/or {file}).");
+        return;
+    }
+
+    auto args = QProcess::splitCommand(tmp);
+    auto editor = args.takeFirst();
+    args.replaceInStrings("{line}", QString::number(line));
+    args.replaceInStrings("{file}", texFile);
+
+    // QProcess::startDetached(editor, args);
+}
+
+void dodo::synctexLocateInPdf(const char *texFile, int line, int column) noexcept
+{
+    if (synctex_display_query(m_synctex_scanner, texFile, line, column, -1) > 0)
+    {
+        synctex_node_p node = nullptr;
+        while ((node = synctex_scanner_next_result(m_synctex_scanner)))
+        {
+            int page = synctex_node_page(node);
+            float x = synctex_node_visible_h(node);
+            float y = synctex_node_visible_v(node);
+            gotoPage(page - 1);
+            scrollToXY(x, y);
+            qDebug() << "DD";
+        }
+    }
+}
+
+fz_point dodo::mapToPdf(QPointF loc) noexcept
+{
+        double x = loc.x() / m_inv_dpr;
+        double y = loc.y() / m_inv_dpr;
+
+        // Apply inverse of rendering transform
+        fz_matrix invTransform;
+        invTransform = fz_invert_matrix(m_model->transform());
+
+        fz_point pt = { static_cast<float>(x), static_cast<float>(y) };
+        pt = fz_transform_point(pt, invTransform);
+}

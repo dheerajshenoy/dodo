@@ -6,6 +6,7 @@
 #include <mupdf/fitz.h>
 #include <mupdf/fitz/pixmap.h>
 #include <QRubberBand>
+#include <qnamespace.h>
 #include <qrubberband.h>
 
 class GraphicsView : public QGraphicsView {
@@ -28,10 +29,17 @@ public:
 
     signals:
     void highlightDrawn(const QRectF &pdfRect);
+    void synctexJumpRequested(QPointF pos);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override
     {
+        if (event->modifiers() & Qt::ShiftModifier)
+        {
+            emit synctexJumpRequested(mapToScene(event->pos()));
+            return;
+        }
+
         if (!m_drawing_mode)
         {
             QGraphicsView::mousePressEvent(event);

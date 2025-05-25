@@ -45,6 +45,12 @@
 #include "Model.hpp"
 #include "PropertiesWidget.hpp"
 
+extern "C" {
+#include <synctex/synctex_version.h>
+#include <synctex/synctex_parser.h>
+#include <synctex/synctex_parser_utils.h>
+}
+
 #define __DODO_VERSION "0.2.0"
 
 class dodo : public QMainWindow {
@@ -73,6 +79,8 @@ private:
         Window,
     };
 
+
+    void initSynctex() noexcept;
     void initConnections() noexcept;
     void initMenubar() noexcept;
     void initDB() noexcept;
@@ -94,6 +102,9 @@ private:
     void setupKeybinding(const QString &action,
                          const QString &key) noexcept;
     void setFitMode(const FitMode &mode) noexcept;
+    void synctexLocateInFile(const char *texFile, int line) noexcept;
+    void synctexLocateInPdf(const char *texFile, int line, int column) noexcept;
+    fz_point mapToPdf(QPointF loc) noexcept;
 
     // Interactive functions
     void ToggleFullscreen() noexcept;
@@ -139,11 +150,14 @@ private:
     m_suppressHistory,
     m_remember_last_visited;
 
-    int m_pageno = -1,
-    m_rotation = 0,
-    m_search_index = -1,
-    m_total_pages = 0,
-    m_search_hit_page = -1,
+    synctex_scanner_p m_synctex_scanner { nullptr };
+
+    int m_pageno { -1 },
+    m_start_page_override { -1 },
+    m_rotation { 0 },
+    m_search_index { -1 },
+    m_total_pages { 0 },
+    m_search_hit_page { -1 },
     m_prefetch_distance,
     m_page_history_limit;
     QList<int> m_page_history_list;
@@ -219,5 +233,6 @@ private:
     bool m_auto_resize;
     FitMode m_fit_mode, m_initial_fit { FitMode::None };
     QString m_window_title;
+    QString m_synctex_editor_command;
 };
 

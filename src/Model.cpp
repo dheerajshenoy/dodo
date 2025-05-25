@@ -15,7 +15,7 @@
 #include <mupdf/pdf/xref.h>
 #include <mupdf/pdf/object.h>
 #include <qgraphicsitem.h>
-
+#include <synctex/synctex_parser.h>
 
 fz_quad union_quad(const fz_quad& a, const fz_quad& b)
 {
@@ -450,7 +450,7 @@ void Model::renderLinks(int pageno)
 
                             case FZ_LINK_DEST_FIT: {
                             }
-                            break;
+                                break;
 
                             case FZ_LINK_DEST_FIT_B: break;
                             case FZ_LINK_DEST_FIT_H: {
@@ -462,7 +462,7 @@ void Model::renderLinks(int pageno)
                                 connect(item, &BrowseLinkItem::horizontalFitRequested, this,
                                         &Model::horizontalFitRequested);
                             }
-                            break;
+                                break;
 
                             case FZ_LINK_DEST_FIT_BH: break;
                             case FZ_LINK_DEST_FIT_V: {
@@ -473,7 +473,7 @@ void Model::renderLinks(int pageno)
                                 connect(item, &BrowseLinkItem::verticalFitRequested, this,
                                         &Model::verticalFitRequested);
                             }
-                            break;
+                                break;
 
                             case FZ_LINK_DEST_FIT_BV: break;
 
@@ -488,7 +488,7 @@ void Model::renderLinks(int pageno)
                                 connect(item, &BrowseLinkItem::jumpToLocationRequested, this,
                                         &Model::jumpToLocationRequested);
                             }
-                            break;
+                                break;
 
                             default:
                                 qWarning() << "Unknown goto destination type";
@@ -817,4 +817,5 @@ void Model::apply_night_mode(fz_pixmap* pixmap) noexcept
         }
     }
 }
+
 

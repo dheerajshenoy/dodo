@@ -26,7 +26,6 @@ else()
     message(FATAL_ERROR "MuPDF library not found")
 endif()
 
-
 find_package(Qt6 REQUIRED COMPONENTS Widgets Core Sql)
 
 add_executable(${PROJECT_NAME}
@@ -49,12 +48,12 @@ add_executable(${PROJECT_NAME}
 qt_add_resources(RESOURCES resources.qrc)
 target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 
-
 target_link_libraries(${PROJECT_NAME}
     Qt6::Widgets
     Qt6::Core
     Qt6::Sql
     mupdf
+    synctex
 )
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
