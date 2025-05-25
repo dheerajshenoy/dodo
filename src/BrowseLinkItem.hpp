@@ -33,8 +33,8 @@ class BrowseLinkItem : public QObject, public QGraphicsRectItem {
                    const QString &link,
                    LinkType type) : QGraphicsRectItem(rect), _link(link), _type(type)
     {
-        setPen(Qt::NoPen);
-        setBrush(Qt::transparent);
+        // setPen(Qt::NoPen);
+        // setBrush(Qt::transparent);
         setAcceptedMouseButtons(Qt::MouseButton::LeftButton);
         setAcceptHoverEvents(true);
         setToolTip(link);
@@ -80,23 +80,26 @@ protected:
                 QDesktopServices::openUrl(QUrl(_link));
                 break;
         }
+
+        setBrush(Qt::transparent);
+        QApplication::restoreOverrideCursor();
     }
 
     void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override {
+        QGraphicsRectItem::hoverEnterEvent(e);
         QApplication::setOverrideCursor(Qt::PointingHandCursor);
         setBrush(QBrush(QColor(1.0, 1.0, 0.0, 125)));
-        QGraphicsRectItem::hoverEnterEvent(e);
     }
 
     void hoverLeaveEvent(QGraphicsSceneHoverEvent *e) override {
-        QApplication::restoreOverrideCursor();
-        setBrush(Qt::transparent);
         QGraphicsRectItem::hoverLeaveEvent(e);
+        setBrush(Qt::transparent);
+        QApplication::restoreOverrideCursor();
     }
 
 private:
-    Location _loc;
-    int _pageno;
+    Location _loc { -1, -1, 0 };
+    int _pageno { -1 };
     QString _link;
     LinkType _type;
 
