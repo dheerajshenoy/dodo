@@ -155,7 +155,6 @@ private:
     void RotateClock() noexcept;
     void RotateAntiClock() noexcept;
     void Search() noexcept;
-    void SearchPage() noexcept;
     void GoBackHistory() noexcept;
     void TableOfContents() noexcept;
     void ToggleHighlight() noexcept;

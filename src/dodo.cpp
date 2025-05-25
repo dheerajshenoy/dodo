@@ -348,7 +348,6 @@ void dodo::initConfig() noexcept
             { "search", [this]() { Search(); } },
             { "search_next", [this]() { nextHit(); } },
             { "search_prev", [this]() { prevHit(); } },
-            { "search_page", [this]() { SearchPage(); } },
             { "next_page", [this]() { NextPage(); } },
             { "prev_page", [this]() { PrevPage(); } },
             { "first_page", [this]() { FirstPage(); } },
@@ -1031,11 +1030,6 @@ void dodo::Search() noexcept
     m_search_index = 0;
 
     m_model->searchAll(term, hasUpperCase(term));
-}
-
-void dodo::SearchPage() noexcept
-{
-    // TODO: Search only the current page
 }
 
 void dodo::nextHit()
