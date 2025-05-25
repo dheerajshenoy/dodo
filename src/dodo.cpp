@@ -544,6 +544,14 @@ void dodo::CloseFile() noexcept
     }
 }
 
+void dodo::clearPixmapItems() noexcept
+{
+    QList<QGraphicsItem*> items = m_pix_item->childItems();
+    for (const auto &item : items)
+        m_gscene->removeItem(item);
+    qDeleteAll(items);
+}
+
 /* Function for opening the file using the model.
  For internal usage only */
 void dodo::openFile(const QString &fileName) noexcept
@@ -551,11 +559,7 @@ void dodo::openFile(const QString &fileName) noexcept
     m_filename = fileName;
     m_filename.replace("~", QString::fromStdString(getenv("HOME")));
 
-    QList<QGraphicsItem*> items = m_pix_item->childItems();
-    for (const auto &item : items)
-    m_gscene->removeItem(item);
-
-    qDeleteAll(items);
+    clearPixmapItems();
 
     if (!QFile::exists(m_filename))
     {

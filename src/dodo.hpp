@@ -108,6 +108,8 @@ private:
     void synctexLocateInPdf(const QString &texFile, int line, int column) noexcept;
     fz_point mapToPdf(QPointF loc) noexcept;
 
+    void clearPixmapItems() noexcept;
+
     // Interactive functions
     void ToggleFullscreen() noexcept;
     void OpenFile() noexcept;
