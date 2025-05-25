@@ -38,7 +38,7 @@ public:
     inline void setLowDPI(float low_dpi) { m_low_dpi = low_dpi; }
     int numPages();
     QPixmap renderPage(int pageno, float zoom, float rotation, bool renderonly = false) noexcept;
-    QList<BrowseLinkItem*> getLinks(int pageno);
+    QList<BrowseLinkItem*> getLinks();
     void setLinkBoundaryBox(bool state);
     void searchAll(const QString &term, bool caseSensitive);
     void addHighlightAnnotation(int pageno, const QRectF &rect) noexcept;
@@ -49,7 +49,7 @@ public:
     void enableICC() noexcept;
     void setAntialiasingBits(int bits) noexcept;
     QList<QPair<QString, QString>> extractPDFProperties() noexcept;
-    inline void setDPR(float dpr) noexcept { m_dpr = dpr; m_inv_dpr = 1 / m_dpr; }
+    inline void setDPR(float dpr) noexcept { m_dpr = dpr; m_inv_dpr = 1 / dpr; }
     fz_context* clonedContext() noexcept;
 
     struct LinkInfo {
@@ -78,6 +78,12 @@ public:
     inline float height() noexcept { return m_height; }
     inline void setLinkHintForeground(int fg) noexcept { m_link_hint_fg = fg; }
     inline void setLinkHintBackground(int bg) noexcept { m_link_hint_bg = bg; }
+
+    void highlightHelper(const QPointF &selectionStart, const QPointF &selectionEnd,
+                         fz_point &a, fz_point &b) noexcept;
+    void highlightTextSelection(const QPointF &selectionStart,
+                                const QPointF &selectionEnd) noexcept;
+    QString getSelectionText(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
 
     signals:
     void jumpToPageRequested(int pageno);
@@ -108,6 +114,7 @@ private:
     fz_context *m_ctx { nullptr };
     fz_document *m_doc { nullptr };
     fz_page *m_page { nullptr };
+    fz_stext_page *m_text_page { nullptr };
     fz_matrix m_transform;
     float m_height, m_width;
     float m_dpr { 1.0f }, m_inv_dpr { 1.0f };

@@ -7,6 +7,7 @@
 #include <mupdf/fitz.h>
 #include <mupdf/fitz/context.h>
 #include <mupdf/fitz/document.h>
+#include <mupdf/fitz/geometry.h>
 #include <mupdf/fitz/link.h>
 #include <mupdf/fitz/pixmap.h>
 #include <mupdf/fitz/structured-text.h>
@@ -73,6 +74,8 @@ Model::Model(QGraphicsScene *scene)
 
 Model::~Model()
 {
+    // fz_drop_stext_page(m_ctx, m_stext_page);
+    fz_drop_page(m_ctx, m_page);
     fz_drop_document(m_ctx, m_doc);
     fz_drop_context(m_ctx);
 }
@@ -177,21 +180,15 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation, bool renderonl
     if (!m_ctx)
         return qpix;
 
-    float scale = m_dpi / 72.0 * zoom;
-
-    // RenderTask *task = new RenderTask(ctx, m_doc, m_colorspace, pageno, m_transform);
-    //
-    // connect(task, &RenderTask::finished, this, [&](int page, QImage img) {
-    //     emit imageRenderRequested(page, img, lowQuality);
-    // });
-    // QThreadPool::globalInstance()->start(task);
+    float scale = zoom * m_dpr;
 
     fz_try(m_ctx)
     {
-        if (!renderonly)
+        if (!m_page || !renderonly)
         {
             fz_drop_page(m_ctx, m_page);
             m_page = fz_load_page(m_ctx, m_doc, pageno);
+            fz_drop_stext_page(m_ctx, m_text_page);
         }
 
         if (!m_page)
@@ -204,6 +201,9 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation, bool renderonl
         fz_rect transformed = fz_transform_rect(bounds, m_transform);
         fz_irect bbox = fz_round_rect(transformed);
 
+        m_text_page = fz_new_stext_page_from_page(m_ctx, m_page, nullptr);
+        // fz_device *text_dev = fz_new_stext_device(m_ctx, stext_page, nullptr);
+        // fz_run_page(m_ctx, m_page, text_dev, m_transform, nullptr);
 
         fz_pixmap *pix;
         pix = fz_new_pixmap_with_bbox(m_ctx,
@@ -263,13 +263,12 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation, bool renderonl
         // for (int y = 0; y < m_height; ++y)
         //     memcpy(image.scanLine(y), samples + y * stride, m_width * n);  // 3 bytes per pixel
 
-        image.setDotsPerMeterX(static_cast<int>((m_dpi * 1000) / 25.4));
-        image.setDotsPerMeterY(static_cast<int>((m_dpi * 1000) / 25.4));
+        // image.setDotsPerMeterX(static_cast<int>((m_dpi * 1000) / 25.4));
+        // image.setDotsPerMeterY(static_cast<int>((m_dpi * 1000) / 25.4));
         image = image.copy();
         image.setDevicePixelRatio(m_dpr);
         qpix = QPixmap::fromImage(image);
         qpix.setDevicePixelRatio(m_dpr);
-
 
         // Cleanup
         fz_close_device(m_ctx, dev);
@@ -288,30 +287,24 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation, bool renderonl
 QList<Model::SearchResult> Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
 {
     QList<SearchResult> results;
-    fz_stext_page *textPage = nullptr;
 
     if (!m_ctx)
         return {};
 
     fz_try(m_ctx)
     {
-        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
-
-        textPage = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-        if (!textPage) {
-            fz_drop_stext_page(m_ctx, textPage);
+        if (!m_text_page) {
             qWarning() << "Unable to get texts from page";
             return {};
         }
 
-        for (fz_stext_block* block = textPage->first_block; block; block = block->next) {
+        for (fz_stext_block* block = m_text_page->first_block; block; block = block->next) {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
                 continue;
 
             for (fz_stext_line* line = block->u.t.first_line; line; line = line->next) {
                 QString currentWord;
                 fz_quad currentQuad = {{0}};
-                bool inWord = false;
 
                 for (fz_stext_char* ch = line->first_char; ch; ch = ch->next) {
                     if (!ch->c)
@@ -369,13 +362,9 @@ QList<Model::SearchResult> Model::searchHelper(int pageno, const QString &term, 
             }
         }
     }
-    fz_always(m_ctx) {
-        fz_drop_stext_page(m_ctx, textPage);
-    }
     fz_catch(m_ctx) {
         qWarning() << "MuPDF exception during text search on page" << pageno;
     }
-
 
     return results;
 }
@@ -397,12 +386,11 @@ void Model::searchAll(const QString &term, bool caseSensitive)
     emit searchResultsReady(resultsMap, m_match_count);
 }
 
-QList<BrowseLinkItem*> Model::getLinks(int pageno)
+QList<BrowseLinkItem*> Model::getLinks()
 {
     QList<BrowseLinkItem*> items;
     fz_try(m_ctx)
     {
-        // m_page = fz_load_page(m_ctx, m_doc, pageno);
         fz_link *head = fz_load_links(m_ctx, m_page);
         if (!head)
             return items;
@@ -514,13 +502,6 @@ void Model::addHighlightAnnotation(int pageno, const QRectF &pdfRect) noexcept
     auto bbox = convertToMuPdfRect(pdfRect, m_transform, m_dpi / 72.0);
     fz_try(m_ctx)
     {
-        // m_page = fz_load_page(m_ctx, m_doc, pageno);
-        // if (!m_page)
-        // {
-        //     fz_drop_page(m_ctx, page);
-        //     return;
-        // }
-
         pdf_page *pdf_page = pdf_page_from_fz_page(m_ctx, m_page);
         if (!pdf_page)
         {
@@ -538,18 +519,6 @@ void Model::addHighlightAnnotation(int pageno, const QRectF &pdfRect) noexcept
             pdf_drop_page(m_ctx, pdf_page);
             return;
         }
-
-        // Convert to quads (Highlight annotations require quads)
-        // fz_quad quad;
-        // quad.ul.x = bbox.x0;
-        // quad.ul.y = bbox.y1;
-        // quad.ur.x = bbox.x1;
-        // quad.ur.y = bbox.y1;
-        // quad.ll.x = bbox.x0;
-        // quad.ll.y = bbox.y0;
-        // quad.lr.x = bbox.x1;
-        // quad.lr.y = bbox.y0;
-        // pdf_set_annot_quad_points(m_ctx, annot, 1, &quad);
 
         float yellow[] = {1.0f, 1.0f, 0.0f};
         int n = 3;
@@ -810,4 +779,106 @@ void Model::apply_night_mode(fz_pixmap* pixmap) noexcept
     }
 }
 
+void Model::highlightHelper(const QPointF &selectionStart, const QPointF &selectionEnd,
+                            fz_point &a, fz_point &b) noexcept
+{
+    // fz_stext_page *text_page = fz_new_stext_page_from_page(m_ctx, m_page, nullptr);
+    a = { static_cast<float>(selectionStart.x()),
+        static_cast<float>(selectionStart.y()) };
+    b = { static_cast<float>(selectionEnd.x()),
+        static_cast<float>(selectionEnd.y()) };
 
+    // Ensure a is top-left and b is bottom-right
+    fz_point topLeft, bottomRight;
+
+    topLeft.x = std::min(a.x, b.x);
+    topLeft.y = std::min(a.y, b.y);
+    bottomRight.x = std::max(a.x, b.x);
+    bottomRight.y = std::max(a.y, b.y);
+
+    a = topLeft;
+    b = bottomRight;
+
+    fz_matrix inv_transform = fz_invert_matrix(m_transform);
+    a = fz_transform_point(a, inv_transform);
+    b = fz_transform_point(b, inv_transform);
+
+    fz_matrix dpr_mat = fz_scale(m_dpr, m_dpr);
+
+    a = fz_transform_point(a, dpr_mat);
+    b = fz_transform_point(b, dpr_mat);
+}
+
+void Model::highlightTextSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
+{
+    for (auto *object : m_scene->items())
+    {
+        if (object->data(0).toString() == "selection")
+        {
+            m_scene->removeItem(object);
+        }
+    }
+
+    fz_point a, b;
+
+    highlightHelper(selectionStart, selectionEnd, a, b);
+
+    static fz_quad hits[1000];
+    int count = 0;
+
+    fz_try(m_ctx)
+    {
+        fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
+        count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, 1000);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Selection failed";
+        return;
+    }
+
+    QColor highlightColor(0, 255, 0, 120); // Yellow translucent
+    QBrush brush(highlightColor);
+    QPen pen(Qt::NoPen);
+
+    for (int i = 0; i < count; ++i)
+    {
+        fz_quad q = fz_transform_quad(hits[i], m_transform);
+
+        QPolygonF poly;
+         poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr)
+         << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
+         << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
+         << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
+
+        QGraphicsPolygonItem* item = m_scene->addPolygon(poly, pen, brush);
+        item->setData(0, "selection");
+        // item->setZValue(10); // Ensure it draws over the page
+        item->setFlag(QGraphicsItem::ItemIsSelectable, false);
+        item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
+    }
+}
+
+QString Model::getSelectionText(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
+{
+    QString text;
+    fz_point a, b;
+    highlightHelper(selectionStart, selectionEnd, a, b);
+    char *selected { nullptr };
+
+    fz_try(m_ctx)
+    {
+        fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
+        selected = fz_copy_selection(m_ctx, m_text_page, a, b, 0);
+        text = QString::fromUtf8(selected);
+        qDebug() << text;
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Selection failed";
+    }
+
+    if (selected)
+        delete [] selected;
+    return text;
+}
