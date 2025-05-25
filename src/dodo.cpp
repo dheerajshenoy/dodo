@@ -454,8 +454,8 @@ void dodo::initGui() noexcept
     m_gview->setScene(m_gscene);
     this->setCentralWidget(widget);
 
-    // m_gview->setPixmapItem(m_pix_item);
     m_gscene->addItem(m_pix_item);
+    m_gview->setPixmapItem(m_pix_item);
 
     m_model = new Model(m_gscene);
 
@@ -463,6 +463,7 @@ void dodo::initGui() noexcept
     if (win)
     {
         connect(win, &QWindow::screenChanged, m_gview, [&](QScreen *screen) {
+            m_cache.clear();
             auto dpr = m_gview->window()->devicePixelRatioF();
             m_model->setDPR(dpr);
             m_dpr = dpr;
@@ -732,7 +733,7 @@ void dodo::renderPage(int pageno, bool renderonly) noexcept
     }
 
     auto pix = m_model->renderPage(pageno, m_scale_factor, m_rotation, renderonly);
-    auto links = m_model->getLinks(pageno);
+    auto links = m_model->getLinks();
 
     m_cache.insert(key, new CacheValue(pix, links));
     renderPixmap(pix);
@@ -1456,7 +1457,7 @@ void dodo::synctexLocateInFile(const char *texFile, int line) noexcept
     args.replaceInStrings("{line}", QString::number(line));
     args.replaceInStrings("{file}", texFile);
 
-    // QProcess::startDetached(editor, args);
+    QProcess::startDetached(editor, args);
 }
 
 void dodo::synctexLocateInPdf(const QString &texFile, int line, int column) noexcept
