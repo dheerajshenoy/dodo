@@ -5,6 +5,13 @@
 #include <algorithm>
 #include <iterator>
 
+inline uint qHash(const dodo::CacheKey &key, uint seed = 0) {
+    seed ^= uint(key.page) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= uint(key.rotation) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= uint(key.scale) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    return seed;
+}
+
 dodo::dodo() noexcept
 {
     setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
@@ -290,7 +297,8 @@ void dodo::initConfig() noexcept
     m_dpi = rendering["dpi"].value_or(300.0);
     m_model->setDPI(m_dpi);
     m_model->setLowDPI(m_low_dpi);
-    int cache_pages = rendering["cache_pages"].value_or(50);
+    int cache_pages = rendering["cache_pages"].value_or(10);
+    m_cache.setMaxCost(cache_pages);
 
     auto behavior = toml["behavior"];
     m_remember_last_visited = behavior["remember_last_visited"].value_or(true);
@@ -454,29 +462,29 @@ void dodo::initGui() noexcept
     m_menuBar = this->menuBar(); // initialize here so that the config visibility works
 }
 
-void dodo::handleRenderResult(int pageno, QImage image)
-{
-    if (pageno != m_pageno || image.isNull())
-    {
-        qDebug() << "Old, ignoring";
-        return;
-    }
-
-    QPixmap pix = QPixmap::fromImage(image);
-
-    m_pixmapCache.insert(pageno, new QPixmap(pix));
-    // m_pix_item->setScale(m_scale_factor);
-    m_pix_item->setPixmap(pix);
-
-    // Normalize scale: use logical size instead of raw pixels
-
-    // if (m_prefetch_enabled)
-    // {
-    //     prefetchAround(m_pageno);
-    // }
-    m_panel->setPageNo(m_pageno + 1);
-    renderLinks();
-}
+// void dodo::handleRenderResult(int pageno, QImage image)
+// {
+//     if (pageno != m_pageno || image.isNull())
+//     {
+//         qDebug() << "Old, ignoring";
+//         return;
+//     }
+//
+//     QPixmap pix = QPixmap::fromImage(image);
+//
+//     m_pixmapCache.insert(pageno, new QPixmap(pix));
+//     // m_pix_item->setScale(m_scale_factor);
+//     m_pix_item->setPixmap(pix);
+//
+//     // Normalize scale: use logical size instead of raw pixels
+//
+//     m_panel->setPageNo(m_pageno + 1);
+//     renderLinks();
+//     if (m_prefetch_enabled)
+//     {
+//         prefetchAround(m_pageno);
+//     }
+// }
 
 void dodo::updateUiEnabledState() noexcept
 {
@@ -654,6 +662,7 @@ void dodo::RotateClock() noexcept
         return;
 
     m_rotation = (m_rotation + 90) % 360;
+    m_cache.clear();
     renderPage(m_pageno, true);
 }
 
@@ -663,6 +672,7 @@ void dodo::RotateAntiClock() noexcept
         return;
 
     m_rotation = (m_rotation + 270) % 360;
+    m_cache.clear();
     renderPage(m_pageno, true);
 }
 
@@ -696,14 +706,6 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
 
     // TODO: Handle file content change detection
 
-    if (m_highResCache.contains(pageno))
-    {
-        QPixmap *cached = m_highResCache.object(pageno);
-        m_pix_item->setPixmap(*cached);
-        // m_pix_item->setScale(m_scale_factor);
-        return;
-    }
-
     if (m_highlights_present)
     {
         clearHighlights();
@@ -715,22 +717,23 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
 
 void dodo::renderPage(int pageno, bool renderonly) noexcept
 {
+    CacheKey key{pageno, m_rotation, m_scale_factor};
+    m_panel->setPageNo(m_pageno + 1);
 
-    if (m_highResCache.contains(pageno))
-    {
-        m_pix_item->setPixmap(*m_highResCache.object(pageno));
-        // m_pix_item->setScale(DPI_FRAC * m_scale_factor);
+    if (auto cached = m_cache.object(key)) {
+        qDebug() << "Using cached pixmap";
+        renderPixmap(*cached);
         return;
     }
 
     auto pix = m_model->renderPage(pageno, m_scale_factor, m_rotation, renderonly);
+    m_cache.insert(key, new QPixmap(pix), 1); // cost=1 per pixmap
     renderPixmap(pix);
 }
 
 void dodo::renderPixmap(const QPixmap &pix) noexcept
 {
     m_pix_item->setPixmap(pix);
-    m_panel->setPageNo(m_pageno + 1);
 }
 
 bool dodo::isPrefetchPage(int page, int currentPage) noexcept
@@ -741,14 +744,7 @@ bool dodo::isPrefetchPage(int page, int currentPage) noexcept
 
 void dodo::cachePage(int pageno) noexcept
 {
-    if (m_highResCache.contains(pageno) || m_pixmapCache.contains(pageno))
-    {
-        return;
-    }
-
     m_model->renderPage(pageno, m_scale_factor, m_rotation);
-    // auto *pix = new QPixmap(QPixmap::fromImage(img));
-    // m_highResCache.insert(pageno, pix);
 }
 
 void dodo::prefetchAround(int currentPage) noexcept
@@ -833,6 +829,7 @@ void dodo::zoomHelper() noexcept
     m_gview->setSceneRect(m_pix_item->boundingRect());
     auto vscrollbar = m_gview->verticalScrollBar();
     vscrollbar->setValue(vscrollbar->value());
+    m_cache.clear();
 }
 
 void dodo::ScrollDown() noexcept

@@ -64,6 +64,19 @@ public:
     void readArgsParser(argparse::ArgumentParser &argparser) noexcept;
     void construct() noexcept;
 
+    struct CacheKey {
+        int page;
+        int rotation;
+        float scale;
+
+        bool operator==(const CacheKey &other) const {
+            return page == other.page &&
+            rotation == other.rotation &&
+            qFuzzyCompare(scale, other.scale);
+        }
+    };
+
+
 public slots:
     void handleRenderResult(int pageno, QImage img);
 
@@ -80,7 +93,6 @@ private:
         Height,
         Window,
     };
-
 
     void initSynctex() noexcept;
     void initConnections() noexcept;
@@ -208,10 +220,9 @@ private:
     QAction *m_actionPrevLocation { nullptr };
     QAction *m_actionAbout { nullptr };
 
-    QCache<int, QPixmap> m_highResCache,
-    m_pixmapCache;
+    QCache<CacheKey, QPixmap> m_cache;
+    QList<CacheKey> m_lrulist;
 
-    QThreadPool tp;
     QMap<int, QList<Model::SearchResult>> m_searchRectMap;
 
     QString m_filename;

@@ -26,7 +26,13 @@ int main (int argc, char *argv[])
                                      __DODO_VERSION,
                                      argparse::default_arguments::all);
     init_args(program);
-    program.parse_args(argc, argv);
+    try {
+        program.parse_args(argc, argv);
+    } catch (std::exception &e)
+    {
+        qDebug() << e.what();
+    }
+
     QApplication app(argc, argv);
     dodo d;
     d.readArgsParser(program);
