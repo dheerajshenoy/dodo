@@ -12,6 +12,10 @@ void init_args(argparse::ArgumentParser &program)
         .scan<'i', int>()
         .default_value(-1);
 
+    program.add_argument("--synctex-forward")
+        .help("Page number to go to")
+        .default_value(std::string{});
+
     program.add_argument("files")
         .remaining();
 }

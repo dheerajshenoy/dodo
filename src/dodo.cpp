@@ -559,7 +559,7 @@ void dodo::openFile(const QString &fileName) noexcept
 
     if (!QFile::exists(m_filename))
     {
-        qWarning("file does not exist!: ");
+        qCritical() << "File does not exist: " << m_filename;
         return;
     }
 
@@ -1380,6 +1380,36 @@ void dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
         qDebug() << "Page number overriden with" << m_start_page_override;
     }
 
+    if (argparser.is_used("--synctex-forward"))
+    {
+        m_start_page_override = -1; // do not override the page
+
+        // Format: --synctex-forward={pdf}#{src}:{line}:{column}
+        // Example: --synctex-forward=test.pdf#main.tex:14
+        QString arg = QString::fromStdString(argparser.get<std::string>("--synctex-forward"));
+
+        // Format: file.pdf#file.tex:line
+        QRegularExpression re(R"(^(.*)#(.*):(\d+):(\d+)$)");
+        QRegularExpressionMatch match = re.match(arg);
+
+        if (match.hasMatch()) {
+            QString pdfPath = match.captured(1);
+            pdfPath.replace("~", getenv("HOME"));
+            QString texPath = match.captured(2);
+            texPath.replace("~", getenv("HOME"));
+            int line = match.captured(3).toInt();
+            int column = match.captured(4).toInt();
+
+            qDebug() << "PDF:" << pdfPath << "Source:" << texPath << "Line:" << line << "Column:" << column;
+            openFile(pdfPath);
+            synctexLocateInPdf(texPath, line, column);
+
+        } else {
+            qWarning() << "Invalid --synctex-forward format. Expected file.pdf#file.tex:line:column";
+        }
+
+    }
+
     try
     {
         auto file = argparser.get<std::vector<std::string>>("files");
@@ -1430,20 +1460,20 @@ void dodo::synctexLocateInFile(const char *texFile, int line) noexcept
     // QProcess::startDetached(editor, args);
 }
 
-void dodo::synctexLocateInPdf(const char *texFile, int line, int column) noexcept
+void dodo::synctexLocateInPdf(const QString &texFile, int line, int column) noexcept
 {
-    if (synctex_display_query(m_synctex_scanner, texFile, line, column, -1) > 0)
+    if (synctex_display_query(m_synctex_scanner, CSTR(texFile), line, column, -1) > 0)
     {
         synctex_node_p node = nullptr;
+        int page; float x, y;
         while ((node = synctex_scanner_next_result(m_synctex_scanner)))
         {
-            int page = synctex_node_page(node);
-            float x = synctex_node_visible_h(node);
-            float y = synctex_node_visible_v(node);
-            gotoPage(page - 1);
-            scrollToXY(x, y);
-            qDebug() << "DD";
+            page = synctex_node_page(node);
+            x = synctex_node_visible_h(node);
+            y = synctex_node_visible_v(node);
         }
+        gotoPage(page - 1);
+        scrollToXY(x, y);
     }
 }
 

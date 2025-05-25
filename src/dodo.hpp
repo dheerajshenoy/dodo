@@ -105,7 +105,7 @@ private:
                          const QString &key) noexcept;
     void setFitMode(const FitMode &mode) noexcept;
     void synctexLocateInFile(const char *texFile, int line) noexcept;
-    void synctexLocateInPdf(const char *texFile, int line, int column) noexcept;
+    void synctexLocateInPdf(const QString &texFile, int line, int column) noexcept;
     fz_point mapToPdf(QPointF loc) noexcept;
 
     // Interactive functions
