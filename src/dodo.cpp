@@ -187,18 +187,35 @@ void dodo::initConnections() noexcept
     });
 
     connect(m_gview, &GraphicsView::synctexJumpRequested, this, [&](QPointF loc) {
-        fz_point pt = mapToPdf(loc);
-        if (synctex_edit_query(m_synctex_scanner, m_pageno + 1, pt.x, pt.y) > 0)
+        if (m_synctex_scanner)
         {
-            synctex_node_p node;
-            while ((node = synctex_scanner_next_result(m_synctex_scanner)))
-                synctexLocateInFile(synctex_node_get_name(node), synctex_node_line(node));
+            fz_point pt = mapToPdf(loc);
+            if (synctex_edit_query(m_synctex_scanner, m_pageno + 1, pt.x, pt.y) > 0)
+            {
+                synctex_node_p node;
+                while ((node = synctex_scanner_next_result(m_synctex_scanner)))
+                    synctexLocateInFile(synctex_node_get_name(node), synctex_node_line(node));
+            } else {
+                qDebug() << "No matching source found!";
+                QMessageBox::warning(this, "SyncTeX Error", "No matching source found!");
+            }
         } else {
-            qDebug() << "No matching source found!";
-            QMessageBox::warning(this, "SyncTeX Error", "No matching source found!");
+            QMessageBox::warning(this, "SyncTex", "Not a valid synctex document");
         }
     });
 
+    connect(m_gview, &GraphicsView::textSelectionRequested, m_model, &Model::highlightTextSelection);
+    connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, &dodo::cancelTextSelection);
+}
+
+
+void dodo::cancelTextSelection() noexcept
+{
+    for (auto &object : m_gscene->items())
+    {
+        if (object->data(0).toString() == "selection")
+            m_gscene->removeItem(object);
+    }
 }
 
 void dodo::scrollToXY(float x, float y) noexcept
