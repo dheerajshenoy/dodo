@@ -48,7 +48,7 @@ class Model : public QObject
         pdf_annot* get_annot_by_index(int index) noexcept;
         void annotDeleteRequested(int index) noexcept;
         QList<HighlightItem*> getAnnotations() noexcept;
-        void setLinkBoundaryBox(bool state);
+        void setLinkBoundary(bool state);
         void searchAll(const QString &term, bool caseSensitive);
         void addRectAnnotation(const QRectF &rect) noexcept;
         bool save() noexcept;
@@ -130,7 +130,7 @@ signals:
 
         std::mutex m_locks[FZ_LOCK_MAX];
         float m_dpi, m_low_dpi;
-        bool m_link_boundary_enabled, m_invert_color_mode { false };
+        bool m_link_boundary, m_invert_color_mode { false };
         QGraphicsScene *m_scene { nullptr };
         fz_context *m_ctx { nullptr };
         fz_document *m_doc { nullptr };

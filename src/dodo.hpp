@@ -271,5 +271,6 @@ private:
     QString m_synctex_editor_command;
     QClipboard *m_clipboard = QGuiApplication::clipboard();
     QSet<int> m_selected_annots;
+    bool m_link_boundary;
 };
 

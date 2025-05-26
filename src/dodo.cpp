@@ -333,7 +333,7 @@ void dodo::initConfig() noexcept
     m_full_file_path_in_panel = ui["full_file_path_in_panel"].value_or(false);
     m_scale_factor = ui["zoom_level"].value_or(1.0);
     bool compact = ui["compact"].value_or(false);
-    m_model->setLinkBoundaryBox(ui["link_boundary_box"].value_or(false));
+    m_model->setLinkBoundary(ui["link_boundary"].value_or(false));
 
     m_window_title = ui["window_title"].value_or("{} - dodo");
     m_window_title.replace("{}", "%1");

@@ -214,9 +214,10 @@ int Model::numPages()
         return -1;
 }
 
-void Model::setLinkBoundaryBox(bool state)
+void Model::setLinkBoundary(bool state)
 {
-    m_link_boundary_enabled = state;
+    qDebug() << "DD" << state;
+    m_link_boundary = state;
 }
 
 QPixmap Model::renderPage(int pageno, float zoom, float rotation, bool renderonly) noexcept
@@ -516,7 +517,7 @@ QList<BrowseLinkItem*> Model::getLinks() noexcept
                         int page = link_str.mid(6).toInt();
                         item = new BrowseLinkItem(qtRect,
                                                   link_str,
-                                                  BrowseLinkItem::LinkType::Page);
+                                                  BrowseLinkItem::LinkType::Page, m_link_boundary);
                         item->setGotoPageNo(page - 1);
                         connect(item, &BrowseLinkItem::jumpToPageRequested, this, &Model::jumpToPageRequested);
                     } else {
@@ -532,7 +533,7 @@ QList<BrowseLinkItem*> Model::getLinks() noexcept
                             case FZ_LINK_DEST_FIT_H: {
                                 item = new BrowseLinkItem(qtRect,
                                                           link_str,
-                                                          BrowseLinkItem::LinkType::FitH);
+                                                          BrowseLinkItem::LinkType::FitH, m_link_boundary);
                                 item->setGotoPageNo(pageno);
                                 item->setXYZ({.x = 0, .y = dest.y, .zoom = 0 });
                                 connect(item, &BrowseLinkItem::horizontalFitRequested, this,
@@ -544,7 +545,7 @@ QList<BrowseLinkItem*> Model::getLinks() noexcept
                             case FZ_LINK_DEST_FIT_V: {
                                 item = new BrowseLinkItem(qtRect,
                                                           link_str,
-                                                          BrowseLinkItem::LinkType::FitV);
+                                                          BrowseLinkItem::LinkType::FitV, m_link_boundary);
                                 item->setGotoPageNo(pageno);
                                 connect(item, &BrowseLinkItem::verticalFitRequested, this,
                                         &Model::verticalFitRequested);
@@ -558,7 +559,7 @@ QList<BrowseLinkItem*> Model::getLinks() noexcept
                             case FZ_LINK_DEST_XYZ: {
                                 item = new BrowseLinkItem(qtRect,
                                                           link_str,
-                                                          BrowseLinkItem::LinkType::Section);
+                                                          BrowseLinkItem::LinkType::Section, m_link_boundary);
                                 item->setGotoPageNo(pageno);
                                 item->setXYZ({ .x = dest.x, .y = dest.y, .zoom = dest.zoom });
                                 connect(item, &BrowseLinkItem::jumpToLocationRequested, this,
@@ -576,7 +577,7 @@ QList<BrowseLinkItem*> Model::getLinks() noexcept
                 } else {
                     item = new BrowseLinkItem(qtRect,
                                               link_str,
-                                              BrowseLinkItem::LinkType::External);
+                                              BrowseLinkItem::LinkType::External, m_link_boundary);
                 }
                 item->setData(0, "link");
                 // m_scene->addItem(item);

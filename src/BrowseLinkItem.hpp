@@ -30,10 +30,13 @@ class BrowseLinkItem : public QObject, public QGraphicsRectItem {
     };
 
     BrowseLinkItem(const QRectF& rect,
-                   const QString &link,
-                   LinkType type) : QGraphicsRectItem(rect), _link(link), _type(type)
+            const QString &link,
+            LinkType type,
+            bool boundary = false)
+        : QGraphicsRectItem(rect), _link(link), _type(type)
     {
-        // setPen(Qt::NoPen);
+        if (!boundary)
+            setPen(Qt::NoPen);
         // setBrush(Qt::transparent);
         setAcceptHoverEvents(true);
         setToolTip(link);
