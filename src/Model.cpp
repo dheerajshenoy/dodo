@@ -12,6 +12,7 @@
 #include <mupdf/fitz/link.h>
 #include <mupdf/fitz/pixmap.h>
 #include <mupdf/fitz/structured-text.h>
+#include <mupdf/fitz/util.h>
 #include <mupdf/pdf/annot.h>
 #include <mupdf/pdf/document.h>
 #include <mupdf/pdf/xref.h>
@@ -901,7 +902,7 @@ void Model::highlightTextSelection(const QPointF &selectionStart, const QPointF 
 
     fz_try(m_ctx)
     {
-        fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
+        // fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_CHARS);
         count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, 1000);
     }
     fz_catch(m_ctx)
@@ -941,7 +942,7 @@ QString Model::getSelectionText(const QPointF &selectionStart, const QPointF &se
 
     fz_try(m_ctx)
     {
-        fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
+        // fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
         selected = fz_copy_selection(m_ctx, m_text_page, a, b, 0);
         text = QString::fromUtf8(selected);
     }
@@ -965,7 +966,7 @@ void Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF
 
     fz_try(m_ctx)
     {
-        fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
+        // fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
         count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, 1000);
     }
     fz_catch(m_ctx)
@@ -1004,7 +1005,6 @@ void Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF
     }
 }
 
-
 void Model::annotDeleteRequested(int index) noexcept
 {
     pdf_annot* annot = get_annot_by_index(index);
@@ -1040,4 +1040,30 @@ QSet<int> Model::getAnnotationsInArea(const QRectF &area) noexcept
     }
 
     return results;
+}
+
+
+// Select all text from a page
+
+QString Model::selectAllText(const QPointF &start, const QPointF &end) noexcept
+{
+    QString text;
+    fz_point a, b;
+    highlightHelper(start, end, a, b);
+    char *selected { nullptr };
+    fz_rect area = fz_make_rect(a.x, a.y, b.x, b.y);
+
+    fz_try(m_ctx)
+    {
+        selected = fz_copy_rectangle(m_ctx, m_text_page, area, 0);
+        text = QString::fromUtf8(selected);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Selection failed";
+    }
+
+    if (selected)
+        delete [] selected;
+    return text;
 }
