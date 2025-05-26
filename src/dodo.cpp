@@ -637,25 +637,33 @@ void dodo::openFile(const QString &fileName) noexcept
     if (m_start_page_override >= 0)
         m_pageno = m_start_page_override;
 
-    if (m_pageno == -1 && m_remember_last_visited)
+    if (m_pageno != -1)
+    {
+        gotoPage(m_pageno);
+        return;
+    }
+
+    int targetPage = 0;
+
+    if (m_remember_last_visited)
     {
         QSqlQuery q;
         q.prepare("SELECT page_number FROM last_visited WHERE file_path = ?");
         q.addBindValue(m_filename);
+
         if (!q.exec())
         {
             qWarning() << "DB Error: " << q.lastError().text();
-        } else {
-            if (q.next()) {
-                int page = q.value(0).toInt();
-                gotoPage(page);
-            } else {
-                gotoPage(0);
-            }
         }
-    } else {
-        gotoPage(m_pageno);
+        else if (q.next())
+        {
+            int page = q.value(0).toInt();
+            if (page >= 0 && page < m_total_pages)
+                targetPage = page;
+        }
     }
+
+    gotoPage(targetPage);
 
     updateUiEnabledState();
 
@@ -1214,6 +1222,8 @@ void dodo::closeEvent(QCloseEvent *e)
         QSqlQuery q;
         q.prepare("INSERT OR REPLACE INTO last_visited(file_path, page_number) VALUES (?, ?)");
         q.addBindValue(m_filename);
+        if (m_pageno <= 0)
+            m_pageno = 0;
         q.addBindValue(m_pageno);
         q.exec();
     }

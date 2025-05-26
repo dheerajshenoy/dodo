@@ -85,11 +85,11 @@ Model::~Model()
 void Model::initSaveOptions() noexcept
 {
     m_write_opts = pdf_default_write_options;
-    m_write_opts.do_compress = 1;
-    m_write_opts.do_compress_fonts = 1;
-    m_write_opts.do_compress_images = 1;
-    if (pdf_can_be_saved_incrementally(m_ctx, m_pdfdoc))
-        m_write_opts.do_incremental = 1;
+    // m_write_opts.do_compress = 1;
+    // m_write_opts.do_compress_fonts = 1;
+    // m_write_opts.do_compress_images = 1;
+    // if (pdf_can_be_saved_incrementally(m_ctx, m_pdfdoc))
+    //     m_write_opts.do_incremental = 1;
 
 }
 
@@ -148,10 +148,17 @@ void Model::closeFile() noexcept
 bool Model::openFile(const QString &fileName)
 {
     m_filename = fileName;
-    m_doc = fz_open_document(m_ctx, CSTR(fileName));
-    if (!m_doc)
+    fz_try(m_ctx)
     {
-        qWarning("Unable to open document");
+        m_doc = fz_open_document(m_ctx, CSTR(fileName));
+        if (!m_doc)
+        {
+            qWarning("Unable to open document");
+            return false;
+        }
+    }
+    fz_catch(m_ctx)
+    {
         return false;
     }
 
@@ -609,7 +616,10 @@ bool Model::save() noexcept
 {
     fz_try(m_ctx)
     {
-        pdf_save_document(m_ctx, m_pdfdoc, CSTR(m_filename), &m_write_opts);
+        if (m_pdfdoc)
+            pdf_save_document(m_ctx, m_pdfdoc, CSTR(m_filename), &m_write_opts);
+        else
+            qWarning() << "No PDF document opened!";
     }
     fz_catch(m_ctx)
     {
@@ -746,9 +756,8 @@ void Model::followLink(const LinkInfo &info) noexcept
 
 bool Model::hasUnsavedChanges() noexcept
 {
-    pdf_document *idoc = pdf_specifics(m_ctx, m_doc);
-    if (idoc)
-        return pdf_has_unsaved_changes(m_ctx, idoc);
+    if (m_pdfdoc && pdf_has_unsaved_changes(m_ctx, m_pdfdoc))
+        return true;
     return false;
 }
 
