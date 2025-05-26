@@ -343,7 +343,11 @@ void dodo::initConfig() noexcept
     m_colors["background"] = QColor::fromString(colors["background"].value_or("#FFFFFF")).rgba();
     m_colors["link_hint_fg"] = QColor::fromString(colors["link_hint_fg"].value_or("#000000")).rgba();
     m_colors["link_hint_bg"] = QColor::fromString(colors["link_hint_bg"].value_or("#FFFF00")).rgba();
+    m_colors["highlight"] = QColor::fromString(colors["highlight"].value_or("#55FFFF00")).rgba();
+    m_colors["selection"] = QColor::fromString(colors["selection"].value_or("#550000FF")).rgba();
 
+    m_model->setSelectionColor(m_colors["selection"]);
+    m_model->setHighlightColor(m_colors["highlight"]);
     m_model->setLinkHintBackground(m_colors["link_hint_bg"]);
     m_model->setLinkHintForeground(m_colors["link_hint_fg"]);
     m_gview->setBackgroundBrush(QColor::fromRgba(m_colors["background"]));

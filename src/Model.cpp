@@ -69,6 +69,14 @@ Model::Model(QGraphicsScene *scene)
         exit(-1);
     }
 
+    m_selection_color = 0x330000FF;
+
+    m_highlight_color[0] = 1.0f;  // Red
+    m_highlight_color[1] = 1.0f;  // Green
+    m_highlight_color[2] = 0.0f;  // Blue
+    m_highlight_color[3] = 0.4f;  // Alpha (translucent yellow)
+
+
     m_colorspace = fz_device_rgb(m_ctx);
     fz_register_document_handlers(m_ctx);
 }
@@ -911,9 +919,7 @@ void Model::highlightTextSelection(const QPointF &selectionStart, const QPointF 
         return;
     }
 
-    QColor highlightColor(0, 255, 0, 120); // Yellow translucent
-    QBrush brush(highlightColor);
-    QPen pen(Qt::NoPen);
+    QBrush brush(QColor::fromRgba(m_selection_color));
 
     for (int i = 0; i < count; ++i)
     {
@@ -925,7 +931,7 @@ void Model::highlightTextSelection(const QPointF &selectionStart, const QPointF 
          << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
          << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
 
-        QGraphicsPolygonItem* item = m_scene->addPolygon(poly, pen, brush);
+        QGraphicsPolygonItem* item = m_scene->addPolygon(poly, Qt::NoPen, brush);
         item->setData(0, "selection");
         // item->setZValue(10); // Ensure it draws over the page
         item->setFlag(QGraphicsItem::ItemIsSelectable, false);
@@ -975,9 +981,6 @@ void Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF
         return;
     }
 
-    float yellow[] = {1.0f, 1.0f, 0.0f};
-    int n = 3;
-
     fz_try(m_ctx)
     {
         for (int i = 0; i < count; ++i)
@@ -993,7 +996,7 @@ void Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF
             // fz_quad q = fz_transform_quad(hits[i], m_transform);
             fz_quad q = hits[i];
             pdf_set_annot_quad_points(m_ctx, annot, 1, &q);
-            pdf_set_annot_color(m_ctx, annot, n, yellow);
+            pdf_set_annot_color(m_ctx, annot, 3, m_highlight_color);
             pdf_set_annot_opacity(m_ctx, annot, 0.2);
             pdf_update_annot(m_ctx, annot);
             pdf_drop_annot(m_ctx, annot);
