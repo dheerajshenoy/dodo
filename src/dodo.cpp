@@ -229,6 +229,8 @@ void dodo::initConnections() noexcept
             selectAnnots();
             // renderPage(m_pageno);
             });
+
+    connect(m_gview, &GraphicsView::annotSelectClearRequested, this, &dodo::clearAnnotSelection);
 }
 
 void dodo::selectAnnots() noexcept
@@ -388,6 +390,7 @@ void dodo::initConfig() noexcept
         m_load_default_keybinding = false;
         auto keys = toml["keybindings"];
         m_actionMap = {
+            { "select_all", [this]() { SelectAll(); } },
             { "save", [this]() { SaveFile(); } },
             { "yank", [this]() { YankSelection(); } },
             { "cancel_selection", [this]() { cancelTextSelection(); } },
@@ -488,7 +491,7 @@ void dodo::initGui() noexcept
     QWidget *widget = new QWidget();
     // Panel
     m_panel = new Panel(this);
-    m_panel->setMode(GraphicsView::Mode::None);
+    m_panel->setMode(GraphicsView::Mode::TextSelection);
 
     widget->setLayout(m_layout);
     m_layout->addWidget(m_gview);
@@ -1330,8 +1333,8 @@ void dodo::ToggleRectAnnotation() noexcept
 {
     if (m_gview->mode() == GraphicsView::Mode::AnnotRect)
     {
-        m_gview->setMode(GraphicsView::Mode::None);
-        m_panel->setMode(GraphicsView::Mode::None);
+        m_gview->setMode(GraphicsView::Mode::TextSelection);
+        m_panel->setMode(GraphicsView::Mode::TextSelection);
     }
     else
     {
@@ -1666,8 +1669,8 @@ void dodo::ToggleTextHighlight() noexcept
 {
     if (m_gview->mode() == GraphicsView::Mode::TextHighlight)
     {
-        m_gview->setMode(GraphicsView::Mode::None);
-        m_panel->setMode(GraphicsView::Mode::None);
+        m_gview->setMode(GraphicsView::Mode::TextSelection);
+        m_panel->setMode(GraphicsView::Mode::TextSelection);
     }
     else
     {
@@ -1696,8 +1699,8 @@ void dodo::ToggleAnnotSelect() noexcept
 {
     if (m_gview->mode() == GraphicsView::Mode::AnnotSelect)
     {
-        m_gview->setMode(GraphicsView::Mode::None);
-        m_panel->setMode(GraphicsView::Mode::None);
+        m_gview->setMode(GraphicsView::Mode::TextSelection);
+        m_panel->setMode(GraphicsView::Mode::TextSelection);
     }
     else
     {
@@ -1705,4 +1708,11 @@ void dodo::ToggleAnnotSelect() noexcept
         m_panel->setMode(GraphicsView::Mode::AnnotSelect);
         clearAnnotSelection();
     }
+}
+
+
+void dodo::SelectAll() noexcept
+{
+    auto end = m_pix_item->boundingRect().bottomRight();
+    m_clipboard->setText(m_model->selectAllText(QPointF(0, 0), end));
 }

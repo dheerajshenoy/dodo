@@ -81,9 +81,6 @@ void Panel::setMode(GraphicsView::Mode mode) noexcept
     using enum GraphicsView::Mode;
     switch(mode)
     {
-        case GraphicsView::Mode::None:
-            m_mode_label->setText("None");
-            break;
         case GraphicsView::Mode::TextSelection:
             m_mode_label->setText("Selection");
             break;

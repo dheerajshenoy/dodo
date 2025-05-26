@@ -74,6 +74,7 @@ public:
         int index;
     };
 
+    QString selectAllText(const QPointF &start, const QPointF &end) noexcept;
     void initSaveOptions() noexcept;
     fz_outline* getOutline() noexcept;
     inline fz_matrix transform() noexcept { return m_transform; }

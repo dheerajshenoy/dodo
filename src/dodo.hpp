@@ -175,6 +175,7 @@ private:
     void ShowAbout() noexcept;
     void YankSelection() noexcept;
     void ToggleTextHighlight() noexcept;
+    void SelectAll() noexcept;
 
     QDir m_config_dir;
     bool m_prefetch_enabled,
