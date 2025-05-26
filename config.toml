@@ -21,6 +21,8 @@ search_match = "#33FF5000"
 search_index = "#55FFFF55"
 link_hint_bg = "#8800FF00"
 link_hint_fg = "#FF000000"
+selection = "#44FF5000"
+highlight = "#55FFFF00"
 
 # ===== Rendering Settings =====
 [rendering]
@@ -71,6 +73,9 @@ zoom_in = "="
 zoom_out = "-"
 
 annot_highlight = "Alt+1"
+annot_rect = "Alt+2"
+annot_select = "Alt+3"
+
 file_properties = "Ctrl+Shift+F"
 invert_color = "i"
 
@@ -89,3 +94,5 @@ rotate_anticlock = "<"
 cancel_selection = "escape"
 yank = "y"
 about = "F12"
+save = "Ctrl+S"
+select_all = "Ctrl+A"
