@@ -60,6 +60,8 @@ public:
     inline void setDPR(float dpr) noexcept { m_dpr = dpr; m_inv_dpr = 1 / dpr; }
     fz_context* clonedContext() noexcept;
     void annotHighlightSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
+    QSet<int> getAnnotationsInArea(const QRectF &area) noexcept;
+    inline fz_context* context() noexcept { return m_ctx; }
 
     struct LinkInfo {
         QString uri;

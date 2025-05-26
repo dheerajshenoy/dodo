@@ -162,6 +162,7 @@ private:
     void GoBackHistory() noexcept;
     void TableOfContents() noexcept;
     void ToggleRectAnnotation() noexcept;
+    void ToggleAnnotSelect() noexcept;
     void SaveFile() noexcept;
     void VisitLinkKB() noexcept;
     void CopyLinkKB() noexcept;
@@ -212,6 +213,8 @@ private:
     void zoomHelper() noexcept;
     QRectF fzQuadToQRect(const fz_quad &q) noexcept;
     void cancelTextSelection() noexcept;
+    void selectAnnots() noexcept;
+    void clearAnnotSelection() noexcept;
 
     QMenuBar *m_menuBar { nullptr };
     QMenu *m_fitMenu { nullptr };
@@ -264,5 +267,6 @@ private:
     QString m_window_title;
     QString m_synctex_editor_command;
     QClipboard *m_clipboard = QGuiApplication::clipboard();
+    QSet<int> m_selected_annots;
 };
 

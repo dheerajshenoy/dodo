@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <iterator>
 #include <qcontainerinfo.h>
+#include <qgraphicsitem.h>
 #include <qthread.h>
 
 inline uint qHash(const dodo::CacheKey &key, uint seed = 0) {
@@ -223,6 +224,26 @@ void dodo::initConnections() noexcept
 
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, &dodo::cancelTextSelection);
 
+    connect(m_gview, &GraphicsView::annotSelectRequested, m_model, [&](const QRectF &area) {
+            m_selected_annots = m_model->getAnnotationsInArea(area);
+            selectAnnots();
+            // renderPage(m_pageno);
+            });
+}
+
+void dodo::selectAnnots() noexcept
+{
+    for (const auto &item : m_gscene->items())
+    {
+        if (!m_selected_annots.contains(item->data(1).toInt()))
+            continue;
+
+        QGraphicsRectItem *gitem = qgraphicsitem_cast<QGraphicsRectItem*>(item);
+        if (!gitem)
+            continue;
+
+        gitem->setBrush(QColor(255, 0, 0, 120));
+    }
 }
 
 void dodo::cancelTextSelection() noexcept
@@ -392,6 +413,7 @@ void dodo::initConfig() noexcept
             { "zoom_in", [this]() { ZoomIn(); } },
             { "zoom_out", [this]() { ZoomOut(); } },
             { "zoom_reset", [this]() { ZoomReset(); } },
+            { "annot_select", [this]() { ToggleAnnotSelect(); } },
             { "annot_highlight", [this]() { ToggleTextHighlight(); } },
             { "annot_rect", [this]() { ToggleRectAnnotation(); } },
             { "fullscreen", [this]() { ToggleFullscreen(); } },
@@ -466,6 +488,8 @@ void dodo::initGui() noexcept
     QWidget *widget = new QWidget();
     // Panel
     m_panel = new Panel(this);
+    m_panel->setMode(GraphicsView::Mode::None);
+
     widget->setLayout(m_layout);
     m_layout->addWidget(m_gview);
     m_layout->addWidget(m_panel);
@@ -621,6 +645,7 @@ void dodo::openFile(const QString &fileName) noexcept
 
     m_pageno = -1;
     m_total_pages = m_model->numPages();
+    qDebug() << m_total_pages;
     m_panel->setTotalPageCount(m_total_pages);
 
     if (m_panel->searchMode())
@@ -783,7 +808,6 @@ void dodo::renderAnnotations(const QList<HighlightItem*> &annots) noexcept
                 m_model->annotDeleteRequested(index);
                 renderPage(m_pageno, false);
                 });
-
         m_gscene->addItem(annot);
     }
 }
@@ -1305,9 +1329,15 @@ void dodo::TableOfContents() noexcept
 void dodo::ToggleRectAnnotation() noexcept
 {
     if (m_gview->mode() == GraphicsView::Mode::AnnotRect)
+    {
         m_gview->setMode(GraphicsView::Mode::None);
+        m_panel->setMode(GraphicsView::Mode::None);
+    }
     else
+    {
         m_gview->setMode(GraphicsView::Mode::AnnotRect);
+        m_panel->setMode(GraphicsView::Mode::AnnotRect);
+    }
 }
 
 void dodo::SaveFile() noexcept
@@ -1635,10 +1665,44 @@ void dodo::YankSelection() noexcept
 void dodo::ToggleTextHighlight() noexcept
 {
     if (m_gview->mode() == GraphicsView::Mode::TextHighlight)
+    {
         m_gview->setMode(GraphicsView::Mode::None);
+        m_panel->setMode(GraphicsView::Mode::None);
+    }
     else
     {
         m_gview->setMode(GraphicsView::Mode::TextHighlight);
+        m_panel->setMode(GraphicsView::Mode::TextHighlight);
         cancelTextSelection();
+    }
+}
+
+void dodo::clearAnnotSelection() noexcept
+{
+    for (const auto &item: m_gscene->items())
+    {
+        if (!m_selected_annots.contains(item->data(1).toInt()))
+            continue;
+
+        QGraphicsRectItem *gitem = qgraphicsitem_cast<QGraphicsRectItem*>(item);
+        if (!gitem)
+            continue;
+
+        gitem->setBrush(Qt::transparent);
+    }
+}
+
+void dodo::ToggleAnnotSelect() noexcept
+{
+    if (m_gview->mode() == GraphicsView::Mode::AnnotSelect)
+    {
+        m_gview->setMode(GraphicsView::Mode::None);
+        m_panel->setMode(GraphicsView::Mode::None);
+    }
+    else
+    {
+        m_gview->setMode(GraphicsView::Mode::AnnotSelect);
+        m_panel->setMode(GraphicsView::Mode::AnnotSelect);
+        clearAnnotSelection();
     }
 }

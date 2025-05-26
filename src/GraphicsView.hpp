@@ -18,7 +18,7 @@ class GraphicsView : public QGraphicsView {
             None = 0,
             TextSelection,
             TextHighlight,
-            AnnotEdit,
+            AnnotSelect,
             AnnotRect,
         };
 
@@ -47,7 +47,7 @@ void setMode(Mode mode) noexcept
             break;
 
         case Mode::AnnotRect:
-        case Mode::AnnotEdit:
+        case Mode::AnnotSelect:
             break;
     }
 
@@ -68,6 +68,7 @@ void textSelectionRequested(const QPointF &a, const QPointF &b);
 void textHighlightRequested(const QPointF &a, const QPointF &b);
 void textSelectionDeletionRequested();
 void synctexJumpRequested(QPointF pos);
+void annotSelectRequested(const QRectF &rect);
 
 protected:
 void mousePressEvent(QMouseEvent *event) override
@@ -80,9 +81,11 @@ void mousePressEvent(QMouseEvent *event) override
                 emit synctexJumpRequested(mapToScene(event->pos()));
                 return;
             }
+            QGraphicsView::mousePressEvent(event);  // Let QGraphicsItems (like links) respond
             break;
 
         case Mode::AnnotRect:
+        case Mode::AnnotSelect:
             if (event->button() == Qt::LeftButton)
             {
                 m_start = event->pos();
@@ -114,11 +117,7 @@ void mousePressEvent(QMouseEvent *event) override
         case Mode::TextHighlight:
             emit textSelectionDeletionRequested();
             break;
-
-        case Mode::AnnotEdit:
-            return;
     }
-    QGraphicsView::mousePressEvent(event);  // Let QGraphicsItems (like links) respond
 }
 
 void mouseMoveEvent(QMouseEvent *event) override
@@ -143,14 +142,13 @@ void mouseMoveEvent(QMouseEvent *event) override
             return;
 
         case Mode::AnnotRect:
+        case Mode::AnnotSelect:
             {
                 m_rect = QRect(m_start, event->pos()).normalized();
                 if (m_rubberBand)
                     m_rubberBand->setGeometry(m_rect);
             }
             break;
-
-        case Mode::AnnotEdit: break;
     }
 
     QGraphicsView::mouseMoveEvent(event);  // Allow hover/cursor events
@@ -183,6 +181,25 @@ void mouseReleaseEvent(QMouseEvent *event) override
             }
             break;
 
+        case Mode::AnnotSelect:
+            {
+                if (event->button() == Qt::LeftButton)
+                {
+                    if (m_rubberBand)
+                        m_rubberBand->hide();
+
+                    QRectF sceneRect = mapToScene(m_rect).boundingRect();
+
+                    if (!m_pixmapItem)
+                        return;
+
+                    QRectF clippedRect = sceneRect.intersected(m_pixmapItem->boundingRect());
+                    if (!clippedRect.isEmpty())
+                        emit annotSelectRequested(clippedRect);
+                }
+            }
+            break;
+
         case Mode::AnnotRect:
             {
                 if (event->button() == Qt::LeftButton)
@@ -196,22 +213,13 @@ void mouseReleaseEvent(QMouseEvent *event) override
 
                     QRectF clippedRect = sceneRect.intersected(m_pixmapItem->boundingRect());
                     if (!clippedRect.isEmpty())
-                    {
-                        // scene()->addRect(
-                        //         clippedRect,
-                        //         QPen(Qt::NoPen),
-                        //         QBrush(QColor(255, 255, 0, 80))  // Transparent yellow
-                        //         );
-
                         emit highlightDrawn(clippedRect);
-                    }
                 }
 
             }
             break;
 
         case Mode::None: break;
-        case Mode::AnnotEdit: break;
     }
 
     QGraphicsView::mouseReleaseEvent(event);  // Let items handle clicks

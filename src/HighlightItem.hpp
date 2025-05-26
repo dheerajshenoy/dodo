@@ -4,6 +4,7 @@
 #include <QBrush>
 #include <QPen>
 #include <QObject>
+#include <qgraphicsitem.h>
 
 class HighlightItem : public QObject, public QGraphicsRectItem {
     Q_OBJECT
@@ -22,9 +23,10 @@ signals:
 
     protected:
 
-        void mousePressEvent(QGraphicsSceneMouseEvent*) override {
+        void mousePressEvent(QGraphicsSceneMouseEvent* e) override {
             // setBrush(Qt::red);
-            emit annotDeleteRequested(m_index);
+            // emit annotDeleteRequested(m_index);
+            QGraphicsRectItem::mousePressEvent(e);
         }
 
         // void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override {

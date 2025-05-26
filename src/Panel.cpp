@@ -1,4 +1,5 @@
 #include "Panel.hpp"
+#include "GraphicsView.hpp"
 
 Panel::Panel(QWidget *parent)
 : QWidget(parent)
@@ -11,6 +12,7 @@ void Panel::initGui() noexcept
     this->setLayout(m_layout);
 
     // Left widgets
+    m_layout->addWidget(m_mode_label);
     m_layout->addWidget(m_filename_label);
 
     // Right widgets
@@ -72,4 +74,27 @@ void Panel::setSearchMode(bool state) noexcept
 void Panel::setFitMode(const QString &fit) noexcept
 {
     m_fitmode_label->setText(fit);
+}
+
+void Panel::setMode(GraphicsView::Mode mode) noexcept
+{
+    using enum GraphicsView::Mode;
+    switch(mode)
+    {
+        case GraphicsView::Mode::None:
+            m_mode_label->setText("None");
+            break;
+        case GraphicsView::Mode::TextSelection:
+            m_mode_label->setText("Selection");
+            break;
+        case GraphicsView::Mode::TextHighlight:
+            m_mode_label->setText("Text Highlight");
+            break;
+        case GraphicsView::Mode::AnnotSelect:
+            m_mode_label->setText("Annot Select");
+            break;
+        case GraphicsView::Mode::AnnotRect:
+            m_mode_label->setText("Annot Rect");
+            break;
+    }
 }

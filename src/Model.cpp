@@ -446,6 +446,7 @@ QList<HighlightItem*> Model::getAnnotations() noexcept
                     (bbox.y1 - bbox.y0) * m_inv_dpr);
             HighlightItem *annot_item = new HighlightItem(qrect, index);
             annot_item->setData(0, "annot");
+            annot_item->setData(1, index);
             annots.push_back(annot_item);
             annot = pdf_next_annot(m_ctx, annot);
             ++index;
@@ -1006,11 +1007,37 @@ void Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF
 
 void Model::annotDeleteRequested(int index) noexcept
 {
-    qDebug() << index;
     pdf_annot* annot = get_annot_by_index(index);
     if (annot)
-    {
-        qDebug() << "DD";
         pdf_delete_annot(m_ctx, m_pdfpage, annot);
+}
+
+
+QSet<int> Model::getAnnotationsInArea(const QRectF &area) noexcept
+{
+    QSet<int> results;
+
+    if (!m_ctx || !m_pdfpage)
+        return results;
+    int index = 0;
+
+    pdf_annot* annot = pdf_first_annot(m_ctx, m_pdfpage);
+
+    while(annot)
+    {
+        fz_rect bbox = pdf_bound_annot(m_ctx, annot);
+        QRectF annotRect(
+                bbox.x0 * m_dpr,
+                bbox.y0 * m_dpr,
+                (bbox.x1 - bbox.x0) * m_dpr,
+                (bbox.y1 - bbox.y0) * m_dpr
+                );
+
+        if (area.intersects(annotRect))
+            results.insert(index);
+        annot = pdf_next_annot(m_ctx, annot);
+        index++;
     }
+
+    return results;
 }
