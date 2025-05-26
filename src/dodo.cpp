@@ -610,17 +610,23 @@ void dodo::CloseFile() noexcept
 
     if (m_propsWidget)
     {
-        m_owidget->close();
+        m_propsWidget->close();
         m_propsWidget->deleteLater();
         m_propsWidget = nullptr;
     }
 
+    if (!m_pix_item->pixmap().isNull())
+        m_pix_item->setPixmap(QPixmap());
     m_gview->setSceneRect(m_pix_item->boundingRect());
+    m_model->closeFile();
     updateUiEnabledState();
 }
 
 void dodo::clearPixmapItems() noexcept
 {
+    if (m_pix_item->pixmap().isNull())
+        return;
+
     QList<QGraphicsItem*> items = m_pix_item->childItems();
     for (const auto &item : items)
         m_gscene->removeItem(item);
