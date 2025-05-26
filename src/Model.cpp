@@ -216,7 +216,6 @@ int Model::numPages()
 
 void Model::setLinkBoundary(bool state)
 {
-    qDebug() << "DD" << state;
     m_link_boundary = state;
 }
 
