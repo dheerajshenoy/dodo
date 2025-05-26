@@ -31,6 +31,10 @@ public:
 
     Model(QGraphicsScene *scene);
     ~Model();
+    explicit operator bool() const noexcept {
+        return m_doc != nullptr;
+    }
+
     bool authenticate(const QString &pwd) noexcept;
     bool passwordRequired() noexcept;
     bool openFile(const QString &fileName);
@@ -68,6 +72,7 @@ public:
         int index;
     };
 
+    void initSaveOptions() noexcept;
     fz_outline* getOutline() noexcept;
     inline fz_matrix transform() noexcept { return m_transform; }
     void visitLinkKB(int pageno, float zoom) noexcept;
@@ -125,6 +130,8 @@ private:
     float m_height, m_width;
     float m_dpr { 1.0f }, m_inv_dpr { 1.0f };
     int m_link_hint_fg = 0x000000, m_link_hint_bg = 0xFFFF00;
+    pdf_write_options m_write_opts;
+    pdf_document *m_pdfdoc { nullptr };
 
     QMap<QString, LinkInfo> m_hint_to_link_map;
 };

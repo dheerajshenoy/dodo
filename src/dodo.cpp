@@ -4,6 +4,7 @@
 #include "PropertiesWidget.hpp"
 #include <algorithm>
 #include <iterator>
+#include <qcontainerinfo.h>
 #include <qthread.h>
 
 inline uint qHash(const dodo::CacheKey &key, uint seed = 0) {
@@ -139,7 +140,7 @@ void dodo::initMenubar() noexcept
             this, &dodo::GoBackHistory);
 
     QMenu *helpMenu = m_menuBar->addMenu("Help");
-    m_actionAbout = navMenu->addAction(QString("About\t%1").arg(m_shortcuts_map["about"]),
+    m_actionAbout = helpMenu->addAction(QString("About\t%1").arg(m_shortcuts_map["about"]),
             this, &dodo::ShowAbout);
 
     updateUiEnabledState();
@@ -161,7 +162,11 @@ void dodo::initConnections() noexcept
             jumpToHit(page, 0);
             });
 
-    connect(m_gview, &GraphicsView::highlightDrawn, m_model, &Model::addRectAnnotation);
+    connect(m_gview, &GraphicsView::highlightDrawn, m_model, [&](const QRectF &rect)
+            {
+            m_model->addRectAnnotation(rect);
+            renderPage(m_pageno);
+            });
 
     connect(m_model, &Model::horizontalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location) {
             gotoPage(pageno);
@@ -209,6 +214,13 @@ void dodo::initConnections() noexcept
             m_model->highlightTextSelection(start, end);
             m_selection_present = true;
             });
+
+    connect(m_gview, &GraphicsView::textHighlightRequested, m_model,
+            [&](const QPointF &start, const QPointF &end) {
+            m_model->annotHighlightSelection(start, end);
+            renderPage(m_pageno);
+            });
+
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, &dodo::cancelTextSelection);
 
 }
@@ -380,7 +392,7 @@ void dodo::initConfig() noexcept
             { "zoom_in", [this]() { ZoomIn(); } },
             { "zoom_out", [this]() { ZoomOut(); } },
             { "zoom_reset", [this]() { ZoomReset(); } },
-            { "annot_highlight", [this]() { HighlightSelection(); } },
+            { "annot_highlight", [this]() { ToggleTextHighlight(); } },
             { "annot_rect", [this]() { ToggleRectAnnotation(); } },
             { "fullscreen", [this]() { ToggleFullscreen(); } },
             { "file_properties", [this]() { FileProperties(); } },
@@ -495,6 +507,9 @@ void dodo::updateUiEnabledState() noexcept
     m_actionLastPage->setEnabled(hasOpenedFile);
     m_actionFileProperties->setEnabled(hasOpenedFile);
     m_actionCloseFile->setEnabled(hasOpenedFile);
+    m_fitMenu->setEnabled(hasOpenedFile);
+    m_actionToggleOutline->setEnabled(hasOpenedFile);
+    m_actionPrevLocation->setEnabled(hasOpenedFile);
 
 }
 
@@ -513,25 +528,44 @@ void dodo::OpenFile() noexcept
 
 void dodo::CloseFile() noexcept
 {
-    if (!m_model->valid())
-        return;
-
     if (m_model->hasUnsavedChanges())
     {
-        auto close = QMessageBox::question(this, "Unsaved changes detected",
-                "There are unsaved changes in this document. Do you really want to close this file ?");
-        if (close == QMessageBox::StandardButton::No)
-            return;
+        auto action = QMessageBox::question(this, "Unsaved changes detected",
+                "There are unsaved changes in this document. Do you really want to close this file ?",
+                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel);
+
+        switch(action)
+        {
+            case QMessageBox::StandardButton::Save:
+                SaveFile();
+                break;
+
+            case QMessageBox::StandardButton::Discard:
+                break;
+
+            case QMessageBox::Cancel:
+            default:
+                return;
+
+        }
     }
+
+    clearLinks();
+
     m_model->closeFile();
-    m_filename.clear();
+
     if (m_panel->searchMode())
         m_panel->setSearchMode(false);
+
+    m_pix_item->setPixmap(QPixmap());
+
     if (m_highlights_present)
     {
         clearHighlights();
         clearIndexHighlights();
     }
+
+    m_filename.clear();
     m_panel->setFileName("");
 
     if (m_owidget)
@@ -547,6 +581,9 @@ void dodo::CloseFile() noexcept
         m_propsWidget->deleteLater();
         m_propsWidget = nullptr;
     }
+
+    m_gview->setSceneRect(m_pix_item->boundingRect());
+    updateUiEnabledState();
 }
 
 void dodo::clearPixmapItems() noexcept
@@ -573,7 +610,10 @@ void dodo::openFile(const QString &fileName) noexcept
     }
 
     if (!m_model->openFile(m_filename))
+    {
+        QMessageBox::critical(this, "Error opening document", "Unable to open document for some reason");
         return;
+    }
 
     if (m_model->passwordRequired())
         if(!askForPassword())
@@ -731,7 +771,11 @@ void dodo::renderAnnotations(const QList<HighlightItem*> &annots) noexcept
     for (auto *annot : annots)
     {
         connect(annot, &HighlightItem::annotDeleteRequested,
-                m_model, &Model::annotDeleteRequested);
+                m_model, [&](int index) {
+                m_model->annotDeleteRequested(index);
+                renderPage(m_pageno, false);
+                });
+
         m_gscene->addItem(annot);
     }
 }
@@ -754,6 +798,9 @@ void dodo::renderLinks(const QList<BrowseLinkItem*> &links) noexcept
 
 void dodo::renderPage(int pageno, bool renderonly) noexcept
 {
+    if (!m_model->valid())
+        return;
+
     CacheKey key{pageno, m_rotation, m_scale_factor};
     m_panel->setPageNo(m_pageno + 1);
 
@@ -784,13 +831,7 @@ void dodo::renderPixmap(const QPixmap &pix) noexcept
 
 bool dodo::isPrefetchPage(int page, int currentPage) noexcept
 {
-    // Prefetch next and previous page only
     return page == currentPage + 1 || page == currentPage - 1;
-}
-
-void dodo::cachePage(int pageno) noexcept
-{
-    m_model->renderPage(pageno, m_scale_factor, m_rotation);
 }
 
 void dodo::prefetchAround(int currentPage) noexcept
@@ -798,7 +839,7 @@ void dodo::prefetchAround(int currentPage) noexcept
     for (int offset = -m_prefetch_distance; offset <= m_prefetch_distance; ++offset) {
         int page = currentPage + offset;
         if (page >= 0 && page < m_total_pages) {
-            cachePage(page);
+            m_model->renderPage(page, m_scale_factor, m_rotation);
         }
     }
 }
@@ -1070,6 +1111,9 @@ void dodo::clearHighlights()
 
 void dodo::Search() noexcept
 {
+    if (!m_model->valid())
+        return;
+
     auto term = QInputDialog::getText(this, "Search", "Search for");
     m_searchRectMap.clear();
     m_search_index = -1;
@@ -1162,7 +1206,10 @@ void dodo::GoBackHistory() noexcept
 
 void dodo::closeEvent(QCloseEvent *e)
 {
-    if (m_remember_last_visited && m_model->valid())
+    if (!m_model)
+        e->accept();
+
+    if (m_remember_last_visited)
     {
         QSqlQuery q;
         q.prepare("INSERT OR REPLACE INTO last_visited(file_path, page_number) VALUES (?, ?)");
@@ -1173,10 +1220,26 @@ void dodo::closeEvent(QCloseEvent *e)
 
     if (m_model->hasUnsavedChanges())
     {
-        auto reply = QMessageBox::question(this, "Unsaved Changed",
-                "There are unsaved changes in this document. Do you want to quit ?");
-        if (reply == QMessageBox::StandardButton::No)
-            return;
+        auto reply = QMessageBox::question(this, "Unsaved Changes",
+                "There are unsaved changes in this document. Do you want to quit ?",
+                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+                QMessageBox::Save);
+
+        switch (reply)
+        {
+            case QMessageBox::Save:
+                SaveFile();
+                break;
+
+            case QMessageBox::Discard:
+                break;
+
+            case QMessageBox::Cancel:
+                e->ignore();
+                return;
+
+            default: break;
+        }
     }
 
     e->accept();
@@ -1205,6 +1268,9 @@ void dodo::scrollToNormalizedTop(const double &ntop) noexcept
 
 void dodo::TableOfContents() noexcept
 {
+    if (!m_model->valid())
+        return;
+
     if (!m_owidget)
     {
         m_owidget = new OutlineWidget(m_model->clonedContext(), this);
@@ -1228,11 +1294,17 @@ void dodo::TableOfContents() noexcept
 
 void dodo::ToggleRectAnnotation() noexcept
 {
-    m_gview->setDrawingMode(!m_gview->drawingMode());
+    if (m_gview->mode() == GraphicsView::Mode::AnnotRect)
+        m_gview->setMode(GraphicsView::Mode::None);
+    else
+        m_gview->setMode(GraphicsView::Mode::AnnotRect);
 }
 
 void dodo::SaveFile() noexcept
 {
+    if (!m_model->valid())
+        return;
+
     m_model->save();
     auto pix = m_model->renderPage(m_pageno, m_scale_factor, m_rotation);
     renderPixmap(pix);
@@ -1240,6 +1312,9 @@ void dodo::SaveFile() noexcept
 
 void dodo::VisitLinkKB() noexcept
 {
+    if (!m_model->valid())
+        return;
+
     this->installEventFilter(this);
     m_model->visitLinkKB(m_pageno, m_scale_factor);
     m_linkHintMode = true;
@@ -1248,6 +1323,9 @@ void dodo::VisitLinkKB() noexcept
 
 void dodo::CopyLinkKB() noexcept
 {
+    if (!m_model->valid())
+        return;
+
     m_model->copyLinkKB(m_pageno);
 }
 
@@ -1325,6 +1403,9 @@ bool dodo::hasUpperCase(const QString &text) noexcept
 
 void dodo::FileProperties() noexcept
 {
+    if (!m_model->valid())
+        return;
+
     if (!m_propsWidget)
     {
         m_propsWidget = new PropertiesWidget(this);
@@ -1351,6 +1432,9 @@ void dodo::ToggleFullscreen() noexcept
 
 void dodo::InvertColor() noexcept
 {
+    if (!m_model->valid())
+        return;
+
     m_model->invertColor();
     renderPage(m_pageno, true);
 }
@@ -1531,13 +1615,20 @@ fz_point dodo::mapToPdf(QPointF loc) noexcept
 
 void dodo::YankSelection() noexcept
 {
+    if (!m_model->valid())
+        return;
+
     m_clipboard->setText(m_model->getSelectionText(m_gview->selectionStart(), m_gview->selectionEnd()));
     cancelTextSelection();
 }
 
-void dodo::HighlightSelection() noexcept
+void dodo::ToggleTextHighlight() noexcept
 {
-    m_model->annotHighlightSelection(m_gview->selectionStart(), m_gview->selectionEnd());
-    cancelTextSelection();
-    renderPage(m_pageno, false);
+    if (m_gview->mode() == GraphicsView::Mode::TextHighlight)
+        m_gview->setMode(GraphicsView::Mode::None);
+    else
+    {
+        m_gview->setMode(GraphicsView::Mode::TextHighlight);
+        cancelTextSelection();
+    }
 }

@@ -13,7 +13,7 @@ class OutlineWidget : public QDialog {
     Q_OBJECT
     public:
     OutlineWidget(fz_context *ctx, QWidget *parent = nullptr)
-    : QDialog(parent) {
+    : QDialog(parent), m_ctx(ctx) {
         auto *layout = new QVBoxLayout(this);
         searchEdit->setPlaceholderText("Search TOC...");
         layout->addWidget(searchEdit);

@@ -120,7 +120,6 @@ private:
     void renderLinks(const QList<BrowseLinkItem*> &links) noexcept;
     void renderAnnotations(const QList<HighlightItem*> &annots) noexcept;
     void renderPixmap(const QPixmap &pix) noexcept;
-    void cachePage(int pageno) noexcept;
     void scrollToXY(float x, float y) noexcept;
     void scrollToNormalizedTop(const double &top) noexcept;
     bool isPrefetchPage(int page, int currentPage) noexcept;
@@ -174,7 +173,7 @@ private:
     void TogglePanel() noexcept;
     void ShowAbout() noexcept;
     void YankSelection() noexcept;
-    void HighlightSelection() noexcept;
+    void ToggleTextHighlight() noexcept;
 
     QDir m_config_dir;
     bool m_prefetch_enabled,

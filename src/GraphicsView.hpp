@@ -13,6 +13,15 @@ class GraphicsView : public QGraphicsView {
     Q_OBJECT
 
     public:
+
+        enum class Mode {
+            None = 0,
+            TextSelection,
+            TextHighlight,
+            AnnotEdit,
+            AnnotRect,
+        };
+
     explicit GraphicsView(QWidget *parent = nullptr)
     : QGraphicsView(parent)
     {
@@ -21,75 +30,127 @@ class GraphicsView : public QGraphicsView {
     setTransformationAnchor(AnchorUnderMouse);
 }
 
+
+void setMode(Mode mode) noexcept
+{
+    switch(m_mode)
+    {
+        case Mode::None:
+            break;
+
+        case Mode::TextSelection:
+            emit textSelectionDeletionRequested();
+            break;
+
+        case Mode::TextHighlight:
+            emit textSelectionDeletionRequested();
+            break;
+
+        case Mode::AnnotRect:
+        case Mode::AnnotEdit:
+            break;
+    }
+
+    m_mode = mode;
+}
+
 inline QPointF selectionStart() noexcept { return m_selection_start; }
 inline QPointF selectionEnd() noexcept { return m_selection_end; }
 
-inline void setDrawingMode(bool state) noexcept { m_drawing_mode = state; }
-inline bool drawingMode() const noexcept { return m_drawing_mode; }
+inline Mode mode() const noexcept { return m_mode; }
+
 inline void setPixmapItem(QGraphicsPixmapItem *item) noexcept { m_pixmapItem = item; }
 inline QGraphicsPixmapItem* pixmapItem() const noexcept { return m_pixmapItem; }
 
 signals:
 void highlightDrawn(const QRectF &pdfRect);
 void textSelectionRequested(const QPointF &a, const QPointF &b);
+void textHighlightRequested(const QPointF &a, const QPointF &b);
 void textSelectionDeletionRequested();
 void synctexJumpRequested(QPointF pos);
 
 protected:
 void mousePressEvent(QMouseEvent *event) override
+{
+    switch(m_mode)
     {
-        m_mousePressPos = event->pos();
+        case Mode::None:
+            if (event->modifiers() & Qt::ShiftModifier)
+            {
+                emit synctexJumpRequested(mapToScene(event->pos()));
+                return;
+            }
+            break;
 
-if (event->modifiers() & Qt::ShiftModifier)
-{
-    emit synctexJumpRequested(mapToScene(event->pos()));
-    return;
-}
+        case Mode::AnnotRect:
+            if (event->button() == Qt::LeftButton)
+            {
+                m_start = event->pos();
+                m_rect = QRect();
 
-if (m_drawing_mode && event->button() == Qt::LeftButton)
-{
-    m_start = event->pos();
-    m_rect = QRect();
+                if (!m_rubberBand)
+                    m_rubberBand = new QRubberBand(QRubberBand::Rectangle, this);
 
-    if (!m_rubberBand)
-        m_rubberBand = new QRubberBand(QRubberBand::Rectangle, this);
+                m_rubberBand->setGeometry(QRect(m_start, QSize()));
+                m_rubberBand->show();
+                return;
+            }
+            break;
 
-    m_rubberBand->setGeometry(QRect(m_start, QSize()));
-    m_rubberBand->show();
-}
-else if (event->button() == Qt::LeftButton)
-{
-    auto pos = mapToScene(event->pos());
-    if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(pos))
-    {
-        m_selecting = true;
-        m_selection_start = pos;
-        emit textSelectionDeletionRequested();
+        case Mode::TextSelection:
+            if (event->button() == Qt::LeftButton)
+            {
+                m_mousePressPos = event->pos();
+                m_selecting = true;
+                auto pos = mapToScene(event->pos());
+                if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(pos))
+                {
+                    m_selection_start = pos;
+                    emit textSelectionDeletionRequested();
+                }
+            }
+            break;
+
+        case Mode::TextHighlight:
+            emit textSelectionDeletionRequested();
+            break;
+
+        case Mode::AnnotEdit:
+            return;
     }
     QGraphicsView::mousePressEvent(event);  // Let QGraphicsItems (like links) respond
 }
-else
-            {
-    QGraphicsView::mousePressEvent(event);
-}
-    }
 
 void mouseMoveEvent(QMouseEvent *event) override
 {
-    if (m_selecting)
+    switch(m_mode)
     {
-        auto pos = mapToScene(event->pos());
-        if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(pos))
-        {
-            m_selection_end = pos;
-            emit textSelectionRequested(m_selection_start, m_selection_end);
-        }
-    }
-    else if (m_drawing_mode)
-    {
-        m_rect = QRect(m_start, event->pos()).normalized();
-        if (m_rubberBand)
-            m_rubberBand->setGeometry(m_rect);
+        case Mode::None: break;
+
+        case Mode::TextSelection:
+        case Mode::TextHighlight:
+            {
+                if (m_selecting)
+                {
+                    auto pos = mapToScene(event->pos());
+                    if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(pos))
+                    {
+                        m_selection_end = pos;
+                        emit textSelectionRequested(m_selection_start, m_selection_end);
+                    }
+                }
+            }
+            return;
+
+        case Mode::AnnotRect:
+            {
+                m_rect = QRect(m_start, event->pos()).normalized();
+                if (m_rubberBand)
+                    m_rubberBand->setGeometry(m_rect);
+            }
+            break;
+
+        case Mode::AnnotEdit: break;
     }
 
     QGraphicsView::mouseMoveEvent(event);  // Allow hover/cursor events
@@ -99,36 +160,58 @@ void mouseReleaseEvent(QMouseEvent *event) override
 {
     int dist = (event->pos() - m_mousePressPos).manhattanLength();
 
-    if (m_selecting)
+    switch(m_mode)
     {
-        m_selecting = false;
-        if (dist > CLICK_THRESHOLD) {
-            m_selection_end = mapToScene(event->pos());
-            emit textSelectionRequested(m_selection_start, m_selection_end);
-        }
-    }
-    else if (m_drawing_mode && event->button() == Qt::LeftButton)
-    {
-        if (m_rubberBand)
-            m_rubberBand->hide();
+        case Mode::TextSelection:
+            {
+                if (dist > CLICK_THRESHOLD) {
+                    m_selection_end = mapToScene(event->pos());
+                    emit textSelectionRequested(m_selection_start, m_selection_end);
+                }
+                m_selecting = false;
+            }
+            break;
 
-        QRectF sceneRect = mapToScene(m_rect).boundingRect();
-        if (!m_pixmapItem)
-            return;
 
-        QRectF clippedRect = sceneRect.intersected(m_pixmapItem->boundingRect());
-        if (!clippedRect.isEmpty())
-        {
-            auto *highlightItem = scene()->addRect(
-                clippedRect,
-                QPen(Qt::yellow, 1.0, Qt::SolidLine),
-                QBrush(QColor(255, 255, 0, 80))  // Transparent yellow
-            );
-            highlightItem->setFlag(QGraphicsItem::ItemIsSelectable);
-            highlightItem->setFlag(QGraphicsItem::ItemIsMovable);
+        case Mode::TextHighlight:
+            {
+                if (dist > CLICK_THRESHOLD) {
+                    m_selection_end = mapToScene(event->pos());
+                    emit textHighlightRequested(m_selection_start, m_selection_end);
+                }
+                m_selecting = false;
+            }
+            break;
 
-            emit highlightDrawn(clippedRect);
-        }
+        case Mode::AnnotRect:
+            {
+                if (event->button() == Qt::LeftButton)
+                {
+                    if (m_rubberBand)
+                        m_rubberBand->hide();
+
+                    QRectF sceneRect = mapToScene(m_rect).boundingRect();
+                    if (!m_pixmapItem)
+                        return;
+
+                    QRectF clippedRect = sceneRect.intersected(m_pixmapItem->boundingRect());
+                    if (!clippedRect.isEmpty())
+                    {
+                        // scene()->addRect(
+                        //         clippedRect,
+                        //         QPen(Qt::NoPen),
+                        //         QBrush(QColor(255, 255, 0, 80))  // Transparent yellow
+                        //         );
+
+                        emit highlightDrawn(clippedRect);
+                    }
+                }
+
+            }
+            break;
+
+        case Mode::None: break;
+        case Mode::AnnotEdit: break;
     }
 
     QGraphicsView::mouseReleaseEvent(event);  // Let items handle clicks
@@ -139,8 +222,8 @@ QRect m_rect;
 QPoint m_start;
 QPoint m_mousePressPos;
 QPointF m_selection_start, m_selection_end;
-bool m_drawing_mode { false };
 bool m_selecting { false };
+Mode m_mode { Mode::None };
 QGraphicsPixmapItem *m_pixmapItem { nullptr };
 QRubberBand *m_rubberBand { nullptr };
 };

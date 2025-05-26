@@ -70,16 +70,27 @@ Model::Model(QGraphicsScene *scene)
 
     m_colorspace = fz_device_rgb(m_ctx);
     fz_register_document_handlers(m_ctx);
-
 }
 
 Model::~Model()
 {
     fz_drop_stext_page(m_ctx, m_text_page);
     pdf_drop_page(m_ctx, m_pdfpage);
+    pdf_drop_document(m_ctx, m_pdfdoc);
     fz_drop_page(m_ctx, m_page);
     fz_drop_document(m_ctx, m_doc);
     fz_drop_context(m_ctx);
+}
+
+void Model::initSaveOptions() noexcept
+{
+    m_write_opts = pdf_default_write_options;
+    m_write_opts.do_compress = 1;
+    m_write_opts.do_compress_fonts = 1;
+    m_write_opts.do_compress_images = 1;
+    if (pdf_can_be_saved_incrementally(m_ctx, m_pdfdoc))
+        m_write_opts.do_incremental = 1;
+
 }
 
 void Model::enableICC() noexcept
@@ -121,7 +132,17 @@ void Model::closeFile() noexcept
     if (!m_ctx)
         return;
 
+    pdf_drop_page(m_ctx, m_pdfpage);
+    pdf_drop_document(m_ctx, m_pdfdoc);
+    fz_drop_stext_page(m_ctx, m_text_page);
+    fz_drop_page(m_ctx, m_page);
     fz_drop_document(m_ctx, m_doc);
+
+    m_pdfpage = nullptr;
+    m_pdfdoc = nullptr;
+    m_text_page = nullptr;
+    m_page = nullptr;
+    m_doc = nullptr;
 }
 
 bool Model::openFile(const QString &fileName)
@@ -134,6 +155,14 @@ bool Model::openFile(const QString &fileName)
         return false;
     }
 
+    m_pdfdoc = pdf_specifics(m_ctx, m_doc);
+    if (!m_pdfdoc)
+    {
+        qWarning("Unable to open pdf document");
+        return false;
+    }
+
+    initSaveOptions();
     return true;
 }
 
@@ -568,7 +597,6 @@ void Model::addRectAnnotation(const QRectF &pdfRect) noexcept
         pdf_set_annot_interior_color(m_ctx, annot, n, yellow);
         pdf_set_annot_opacity(m_ctx, annot, 0.2);
         pdf_update_annot(m_ctx, annot);
-
         pdf_drop_annot(m_ctx, annot);
     }
     fz_catch(m_ctx)
@@ -581,8 +609,7 @@ bool Model::save() noexcept
 {
     fz_try(m_ctx)
     {
-        auto pdf_doc = pdf_document_from_fz_document(m_ctx, m_doc);
-        pdf_save_document(m_ctx, pdf_doc, CSTR(m_filename), nullptr);
+        pdf_save_document(m_ctx, m_pdfdoc, CSTR(m_filename), &m_write_opts);
     }
     fz_catch(m_ctx)
     {
