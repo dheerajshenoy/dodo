@@ -216,9 +216,11 @@ private:
     void cancelTextSelection() noexcept;
     void selectAnnots() noexcept;
     void clearAnnotSelection() noexcept;
+    void populateRecentFiles() noexcept;
 
     QMenuBar *m_menuBar { nullptr };
     QMenu *m_fitMenu { nullptr };
+    QMenu *m_recentFilesMenu { nullptr };
 
     QAction *m_actionZoomIn { nullptr };
     QAction *m_actionFileProperties { nullptr };

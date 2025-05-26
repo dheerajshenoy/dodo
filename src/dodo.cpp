@@ -39,7 +39,7 @@ void dodo::construct() noexcept
         initKeybinds();
     }
 
-    QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
+    // QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
 
 #ifndef NDEBUG
     // openFile("~/Downloads/basic-link-1.pdf");
@@ -49,6 +49,7 @@ void dodo::construct() noexcept
     m_page_history_list.reserve(m_page_history_limit);
     initConnections();
     m_pix_item->setScale(m_scale_factor);
+    populateRecentFiles();
     this->show();
 }
 
@@ -63,6 +64,8 @@ void dodo::initMenubar() noexcept
             this, &dodo::FileProperties);
     m_actionCloseFile = fileMenu->addAction(QString("Close File\t%1").arg(m_shortcuts_map["close_file"]),
             this, &dodo::CloseFile);
+
+    m_recentFilesMenu = fileMenu->addMenu("Recent Files");
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, &QMainWindow::close);
 
@@ -577,18 +580,17 @@ void dodo::CloseFile() noexcept
             case QMessageBox::Cancel:
             default:
                 return;
-
         }
     }
 
+    m_cache.clear();
+
     clearLinks();
 
-    m_model->closeFile();
 
     if (m_panel->searchMode())
         m_panel->setSearchMode(false);
 
-    m_pix_item->setPixmap(QPixmap());
 
     if (m_highlights_present)
     {
@@ -629,6 +631,8 @@ void dodo::clearPixmapItems() noexcept
    For internal usage only */
 void dodo::openFile(const QString &fileName) noexcept
 {
+    if (m_model->valid())
+        CloseFile();
     m_filename = fileName;
     m_filename.replace("~", QString::fromStdString(getenv("HOME")));
 
@@ -649,6 +653,8 @@ void dodo::openFile(const QString &fileName) noexcept
     if (m_model->passwordRequired())
         if(!askForPassword())
             return;
+
+    // m_gview->setPixmapItem(m_pix_item);
 
     m_pageno = -1;
     m_total_pages = m_model->numPages();
@@ -1719,4 +1725,32 @@ void dodo::SelectAll() noexcept
 {
     auto end = m_pix_item->boundingRect().bottomRight();
     m_clipboard->setText(m_model->selectAllText(QPointF(0, 0), end));
+}
+
+void dodo::populateRecentFiles() noexcept
+{
+    QSqlQuery query;
+    if (query.exec("SELECT file_path, page_number, last_accessed "
+                "FROM last_visited "
+                "ORDER BY last_accessed DESC"))
+    {
+        while (query.next())
+        {
+            QString path = query.value(0).toString();
+            int page = query.value(1).toInt();
+            // QDateTime accessed = query.value(2).toDateTime();
+            QAction *fileAction = new QAction(path);
+            connect(fileAction, &QAction::triggered, this, [&, path, page]() {
+                    openFile(path);
+                    gotoPage(page);
+                    });
+
+            m_recentFilesMenu->addAction(fileAction);
+        }
+    }
+    else
+    {
+        qWarning() << "Failed to query recent files:" << query.lastError().text();
+    }
+
 }

@@ -141,8 +141,6 @@ void Model::closeFile() noexcept
     if (!m_ctx)
         return;
 
-    pdf_drop_page(m_ctx, m_pdfpage);
-    pdf_drop_document(m_ctx, m_pdfdoc);
     fz_drop_stext_page(m_ctx, m_text_page);
     fz_drop_page(m_ctx, m_page);
     fz_drop_document(m_ctx, m_doc);
@@ -156,6 +154,7 @@ void Model::closeFile() noexcept
 
 bool Model::openFile(const QString &fileName)
 {
+
     m_filename = fileName;
     fz_try(m_ctx)
     {
