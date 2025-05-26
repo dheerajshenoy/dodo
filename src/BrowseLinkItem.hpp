@@ -35,10 +35,9 @@ class BrowseLinkItem : public QObject, public QGraphicsRectItem {
     {
         // setPen(Qt::NoPen);
         // setBrush(Qt::transparent);
-        setAcceptedMouseButtons(Qt::MouseButton::LeftButton);
         setAcceptHoverEvents(true);
         setToolTip(link);
-        // setCursor(Qt::PointingHandCursor);
+        setCursor(Qt::PointingHandCursor);
         setFlag(QGraphicsItem::ItemIsSelectable);
     }
 
@@ -82,19 +81,18 @@ protected:
         }
 
         setBrush(Qt::transparent);
-        QApplication::restoreOverrideCursor();
     }
 
     void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override {
-        QGraphicsRectItem::hoverEnterEvent(e);
-        QApplication::setOverrideCursor(Qt::PointingHandCursor);
+        // QApplication::setOverrideCursor(Qt::PointingHandCursor);
         setBrush(QBrush(QColor(1.0, 1.0, 0.0, 125)));
+        QGraphicsRectItem::hoverEnterEvent(e);
     }
 
     void hoverLeaveEvent(QGraphicsSceneHoverEvent *e) override {
-        QGraphicsRectItem::hoverLeaveEvent(e);
         setBrush(Qt::transparent);
-        QApplication::restoreOverrideCursor();
+        QGraphicsRectItem::hoverLeaveEvent(e);
+        // QApplication::restoreOverrideCursor();
     }
 
 private:
