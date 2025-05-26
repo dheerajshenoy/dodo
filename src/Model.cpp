@@ -871,7 +871,6 @@ QString Model::getSelectionText(const QPointF &selectionStart, const QPointF &se
         fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
         selected = fz_copy_selection(m_ctx, m_text_page, a, b, 0);
         text = QString::fromUtf8(selected);
-        qDebug() << text;
     }
     fz_catch(m_ctx)
     {

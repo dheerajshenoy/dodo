@@ -245,7 +245,7 @@ private:
     Model *m_model { nullptr };
     QTimer *m_HQRenderTimer = new QTimer(this);
     QMap<QString, QRgb> m_colors;
-    bool m_highlights_present;
+    bool m_highlights_present, m_selection_present;
     bool m_linkHintMode { false };
     bool m_full_file_path_in_panel;
     OutlineWidget *m_owidget { nullptr };
