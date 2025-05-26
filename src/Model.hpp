@@ -12,6 +12,8 @@
 #include <QtConcurrent/QtConcurrent>
 #include "OutlineWidget.hpp"
 #include <QImage>
+#include "HighlightItem.hpp"
+
 #define CSTR(x) x.toStdString().c_str()
 
 class QImage;
@@ -38,19 +40,22 @@ public:
     inline void setLowDPI(float low_dpi) { m_low_dpi = low_dpi; }
     int numPages();
     QPixmap renderPage(int pageno, float zoom, float rotation, bool renderonly = false) noexcept;
-    QList<BrowseLinkItem*> getLinks();
+    QList<BrowseLinkItem*> getLinks() noexcept;
+    pdf_annot* get_annot_by_index(int index) noexcept;
+    void annotDeleteRequested(int index) noexcept;
+    QList<HighlightItem*> getAnnotations() noexcept;
     void setLinkBoundaryBox(bool state);
     void searchAll(const QString &term, bool caseSensitive);
-    void addHighlightAnnotation(int pageno, const QRectF &rect) noexcept;
+    void addRectAnnotation(const QRectF &rect) noexcept;
     bool save() noexcept;
-    fz_rect convertToMuPdfRect(const QRectF &qtRect,
-                               const fz_matrix &transform, float dpiScale) noexcept;
+    fz_rect convertToMuPdfRect(const QRectF &qtRect) noexcept;
     bool hasUnsavedChanges() noexcept;
     void enableICC() noexcept;
     void setAntialiasingBits(int bits) noexcept;
     QList<QPair<QString, QString>> extractPDFProperties() noexcept;
     inline void setDPR(float dpr) noexcept { m_dpr = dpr; m_inv_dpr = 1 / dpr; }
     fz_context* clonedContext() noexcept;
+    void annotHighlightSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
 
     struct LinkInfo {
         QString uri;
@@ -114,6 +119,7 @@ private:
     fz_context *m_ctx { nullptr };
     fz_document *m_doc { nullptr };
     fz_page *m_page { nullptr };
+    pdf_page *m_pdfpage { nullptr };
     fz_stext_page *m_text_page { nullptr };
     fz_matrix m_transform;
     float m_height, m_width;

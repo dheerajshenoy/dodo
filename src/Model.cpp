@@ -1,5 +1,6 @@
 #include "Model.hpp"
 #include "BrowseLinkItem.hpp"
+#include "HighlightItem.hpp"
 #include <QGraphicsScene>
 #include <QImage>
 #include <QDebug>
@@ -74,7 +75,8 @@ Model::Model(QGraphicsScene *scene)
 
 Model::~Model()
 {
-    // fz_drop_stext_page(m_ctx, m_stext_page);
+    fz_drop_stext_page(m_ctx, m_text_page);
+    pdf_drop_page(m_ctx, m_pdfpage);
     fz_drop_page(m_ctx, m_page);
     fz_drop_document(m_ctx, m_doc);
     fz_drop_context(m_ctx);
@@ -181,6 +183,8 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation, bool renderonl
         return qpix;
 
     float scale = zoom * m_dpr;
+    fz_device *dev { nullptr };
+    fz_pixmap *pix { nullptr };
 
     fz_try(m_ctx)
     {
@@ -202,10 +206,7 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation, bool renderonl
         fz_irect bbox = fz_round_rect(transformed);
 
         m_text_page = fz_new_stext_page_from_page(m_ctx, m_page, nullptr);
-        // fz_device *text_dev = fz_new_stext_device(m_ctx, stext_page, nullptr);
-        // fz_run_page(m_ctx, m_page, text_dev, m_transform, nullptr);
 
-        fz_pixmap *pix;
         pix = fz_new_pixmap_with_bbox(m_ctx,
                                       m_colorspace,
                                       bbox,
@@ -218,7 +219,7 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation, bool renderonl
 
         fz_clear_pixmap_with_value(m_ctx, pix, 0xFFFFFF); // 255 = white
 
-        fz_device *dev = fz_new_draw_device(m_ctx, fz_identity, pix);
+        dev = fz_new_draw_device(m_ctx, fz_identity, pix);
 
         if (!dev)
         {
@@ -260,17 +261,17 @@ QPixmap Model::renderPage(int pageno, float zoom, float rotation, bool renderonl
                 return qpix;
         }
 
-        // for (int y = 0; y < m_height; ++y)
-        //     memcpy(image.scanLine(y), samples + y * stride, m_width * n);  // 3 bytes per pixel
+        for (int y = 0; y < m_height; ++y)
+            memcpy(image.scanLine(y), samples + y * stride, m_width * n);
 
-        // image.setDotsPerMeterX(static_cast<int>((m_dpi * 1000) / 25.4));
-        // image.setDotsPerMeterY(static_cast<int>((m_dpi * 1000) / 25.4));
-        image = image.copy();
+        image.setDotsPerMeterX(static_cast<int>((m_dpi * 1000) / 25.4));
+        image.setDotsPerMeterY(static_cast<int>((m_dpi * 1000) / 25.4));
         image.setDevicePixelRatio(m_dpr);
         qpix = QPixmap::fromImage(image);
         qpix.setDevicePixelRatio(m_dpr);
-
-        // Cleanup
+    }
+    fz_always(m_ctx)
+    {
         fz_close_device(m_ctx, dev);
         fz_drop_device(m_ctx, dev);
         fz_drop_pixmap(m_ctx, pix);
@@ -386,7 +387,59 @@ void Model::searchAll(const QString &term, bool caseSensitive)
     emit searchResultsReady(resultsMap, m_match_count);
 }
 
-QList<BrowseLinkItem*> Model::getLinks()
+
+QList<HighlightItem*> Model::getAnnotations() noexcept
+{
+    QList<HighlightItem*> annots;
+    int index = 0;
+
+    fz_try(m_ctx)
+    {
+        m_pdfpage = pdf_page_from_fz_page(m_ctx, m_page);
+
+        if (!m_pdfpage)
+            return annots;
+
+        pdf_annot *annot = pdf_first_annot(m_ctx, m_pdfpage);
+        while (annot) {
+            fz_rect bbox = pdf_bound_annot(m_ctx, annot);
+            bbox = fz_transform_rect(bbox, m_transform);
+            QRectF qrect(bbox.x0 * m_inv_dpr,
+                    bbox.y0 * m_inv_dpr,
+                    (bbox.x1 - bbox.x0) * m_inv_dpr,
+                    (bbox.y1 - bbox.y0) * m_inv_dpr);
+            HighlightItem *annot_item = new HighlightItem(qrect, index);
+            annot_item->setData(0, "annot");
+            annots.push_back(annot_item);
+            annot = pdf_next_annot(m_ctx, annot);
+            ++index;
+        }
+    }
+    fz_catch(m_ctx)
+    {
+        qDebug() << "Unable to get annotations";
+    }
+
+    return annots;
+}
+
+pdf_annot* Model::get_annot_by_index(int index) noexcept
+{
+    if (!m_pdfpage)
+        return nullptr;
+
+    pdf_annot *annot = pdf_first_annot(m_ctx, m_pdfpage);
+    int i = 0;
+    while (annot && i < index)
+    {
+        annot = pdf_next_annot(m_ctx, annot);
+        ++i;
+    }
+    return annot; // nullptr if not found
+}
+
+
+QList<BrowseLinkItem*> Model::getLinks() noexcept
 {
     QList<BrowseLinkItem*> items;
     fz_try(m_ctx)
@@ -497,28 +550,16 @@ QList<BrowseLinkItem*> Model::getLinks()
     return items;
 }
 
-void Model::addHighlightAnnotation(int pageno, const QRectF &pdfRect) noexcept
+void Model::addRectAnnotation(const QRectF &pdfRect) noexcept
 {
-    auto bbox = convertToMuPdfRect(pdfRect, m_transform, m_dpi / 72.0);
+    auto bbox = convertToMuPdfRect(pdfRect);
     fz_try(m_ctx)
     {
-        pdf_page *pdf_page = pdf_page_from_fz_page(m_ctx, m_page);
-        if (!pdf_page)
-        {
-            pdf_drop_page(m_ctx, pdf_page);
-            return;
-        }
-
-        // Convert to quads (Highlight annotations require quads)
-
-        pdf_annot *annot = pdf_create_annot(m_ctx, pdf_page,
+        pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage,
                                             pdf_annot_type::PDF_ANNOT_SQUARE);
 
         if (!annot)
-        {
-            pdf_drop_page(m_ctx, pdf_page);
             return;
-        }
 
         float yellow[] = {1.0f, 1.0f, 0.0f};
         int n = 3;
@@ -529,7 +570,6 @@ void Model::addHighlightAnnotation(int pageno, const QRectF &pdfRect) noexcept
         pdf_update_annot(m_ctx, annot);
 
         pdf_drop_annot(m_ctx, annot);
-        pdf_drop_page(m_ctx, pdf_page);
     }
     fz_catch(m_ctx)
     {
@@ -553,21 +593,19 @@ bool Model::save() noexcept
     return true;
 }
 
-fz_rect Model::convertToMuPdfRect(const QRectF &qtRect,
-                                  const fz_matrix &transform,
-                                  float dpiScale) noexcept
+fz_rect Model::convertToMuPdfRect(const QRectF &qtRect) noexcept
 {
     // Undo DPI scaling
-    float x0 = qtRect.left() ;
-    float y0 = qtRect.top() ;
-    float x1 = qtRect.right() ;
-    float y1 = qtRect.bottom() ;
+    float x0 = qtRect.left() * m_dpr;
+    float y0 = qtRect.top() * m_dpr;
+    float x1 = qtRect.right() * m_dpr;
+    float y1 = qtRect.bottom() * m_dpr;
 
     fz_point p0 = fz_make_point(x0, y0);
     fz_point p1 = fz_make_point(x1, y1);
 
     // Invert the matrix used during rendering
-    fz_matrix inverse = fz_invert_matrix(transform);
+    fz_matrix inverse = fz_invert_matrix(m_transform);
 
     // Transform points back into PDF space
     p0 = fz_transform_point(p0, inverse);
@@ -780,15 +818,13 @@ void Model::apply_night_mode(fz_pixmap* pixmap) noexcept
 }
 
 void Model::highlightHelper(const QPointF &selectionStart, const QPointF &selectionEnd,
-                            fz_point &a, fz_point &b) noexcept
+        fz_point &a, fz_point &b) noexcept
 {
-    // fz_stext_page *text_page = fz_new_stext_page_from_page(m_ctx, m_page, nullptr);
     a = { static_cast<float>(selectionStart.x()),
         static_cast<float>(selectionStart.y()) };
     b = { static_cast<float>(selectionEnd.x()),
         static_cast<float>(selectionEnd.y()) };
 
-    // Ensure a is top-left and b is bottom-right
     fz_point topLeft, bottomRight;
 
     topLeft.x = std::min(a.x, b.x);
@@ -880,4 +916,65 @@ QString Model::getSelectionText(const QPointF &selectionStart, const QPointF &se
     if (selected)
         delete [] selected;
     return text;
+}
+
+void Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
+{
+    fz_point a, b;
+    highlightHelper(selectionStart, selectionEnd, a, b);
+
+    static fz_quad hits[1000];
+    int count = 0;
+
+    fz_try(m_ctx)
+    {
+        fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
+        count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, 1000);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Selection failed";
+        return;
+    }
+
+    float yellow[] = {1.0f, 1.0f, 0.0f};
+    int n = 3;
+
+    fz_try(m_ctx)
+    {
+        for (int i = 0; i < count; ++i)
+        {
+            pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage,
+                    pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
+
+            if (!annot)
+            {
+                return;
+            }
+
+            // fz_quad q = fz_transform_quad(hits[i], m_transform);
+            fz_quad q = hits[i];
+            pdf_set_annot_quad_points(m_ctx, annot, 1, &q);
+            pdf_set_annot_color(m_ctx, annot, n, yellow);
+            pdf_set_annot_opacity(m_ctx, annot, 0.2);
+            pdf_update_annot(m_ctx, annot);
+            pdf_drop_annot(m_ctx, annot);
+        }
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Cannot add highlight annotation!: " << fz_caught_message(m_ctx);
+    }
+}
+
+
+void Model::annotDeleteRequested(int index) noexcept
+{
+    qDebug() << index;
+    pdf_annot* annot = get_annot_by_index(index);
+    if (annot)
+    {
+        qDebug() << "DD";
+        pdf_delete_annot(m_ctx, m_pdfpage, annot);
+    }
 }

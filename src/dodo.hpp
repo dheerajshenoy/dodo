@@ -80,9 +80,11 @@ public:
     struct CacheValue {
         QPixmap pixmap;
         QList<BrowseLinkItem*> links;
+        QList<HighlightItem*> annot_highlights;
 
-        CacheValue(const QPixmap &pix, const QList<BrowseLinkItem*> &lnks)
-        : pixmap(pix), links(lnks) {}
+        CacheValue(const QPixmap &pix, const QList<BrowseLinkItem*> &lnks,
+                QList<HighlightItem*> annoth)
+        : pixmap(pix), links(lnks), annot_highlights(annoth) {}
     };
 
 
@@ -116,6 +118,7 @@ private:
     void search(const QString &term) noexcept;
     void renderPage(int pageno, bool renderonly = false) noexcept;
     void renderLinks(const QList<BrowseLinkItem*> &links) noexcept;
+    void renderAnnotations(const QList<HighlightItem*> &annots) noexcept;
     void renderPixmap(const QPixmap &pix) noexcept;
     void cachePage(int pageno) noexcept;
     void scrollToXY(float x, float y) noexcept;
@@ -129,6 +132,7 @@ private:
     void synctexLocateInPdf(const QString &texFile, int line, int column) noexcept;
     fz_point mapToPdf(QPointF loc) noexcept;
     void clearLinks() noexcept;
+    void clearAnnots() noexcept;
 
     void clearPixmapItems() noexcept;
 
@@ -158,7 +162,7 @@ private:
     void Search() noexcept;
     void GoBackHistory() noexcept;
     void TableOfContents() noexcept;
-    void ToggleHighlight() noexcept;
+    void ToggleRectAnnotation() noexcept;
     void SaveFile() noexcept;
     void VisitLinkKB() noexcept;
     void CopyLinkKB() noexcept;
@@ -170,6 +174,7 @@ private:
     void TogglePanel() noexcept;
     void ShowAbout() noexcept;
     void YankSelection() noexcept;
+    void HighlightSelection() noexcept;
 
     QDir m_config_dir;
     bool m_prefetch_enabled,

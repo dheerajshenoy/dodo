@@ -42,6 +42,7 @@ add_executable(${PROJECT_NAME}
     src/OutlineModel.hpp
     src/GraphicsView.hpp
     src/ElidableLabel.hpp
+    src/HighlightItem.hpp
 
 )
 

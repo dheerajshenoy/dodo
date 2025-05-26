@@ -4,6 +4,7 @@
 #include "PropertiesWidget.hpp"
 #include <algorithm>
 #include <iterator>
+#include <qthread.h>
 
 inline uint qHash(const dodo::CacheKey &key, uint seed = 0) {
     seed ^= uint(key.page) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -160,9 +161,7 @@ void dodo::initConnections() noexcept
             jumpToHit(page, 0);
             });
 
-    connect(m_gview, &GraphicsView::highlightDrawn, this, [=](const QRectF &pdfRect) {
-            m_model->addHighlightAnnotation(m_pageno, pdfRect);
-            });
+    connect(m_gview, &GraphicsView::highlightDrawn, m_model, &Model::addRectAnnotation);
 
     connect(m_model, &Model::horizontalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location) {
             gotoPage(pageno);
@@ -211,6 +210,7 @@ void dodo::initConnections() noexcept
             m_selection_present = true;
             });
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, &dodo::cancelTextSelection);
+
 }
 
 void dodo::cancelTextSelection() noexcept
@@ -355,6 +355,7 @@ void dodo::initConfig() noexcept
         m_load_default_keybinding = false;
         auto keys = toml["keybindings"];
         m_actionMap = {
+            { "save", [this]() { SaveFile(); } },
             { "yank", [this]() { YankSelection(); } },
             { "cancel_selection", [this]() { cancelTextSelection(); } },
             { "about", [this]() { ShowAbout(); } },
@@ -379,7 +380,8 @@ void dodo::initConfig() noexcept
             { "zoom_in", [this]() { ZoomIn(); } },
             { "zoom_out", [this]() { ZoomOut(); } },
             { "zoom_reset", [this]() { ZoomReset(); } },
-            { "annot_highlight", [this]() { ToggleHighlight(); } },
+            { "annot_highlight", [this]() { HighlightSelection(); } },
+            { "annot_rect", [this]() { ToggleRectAnnotation(); } },
             { "fullscreen", [this]() { ToggleFullscreen(); } },
             { "file_properties", [this]() { FileProperties(); } },
             { "open_file", [this]() { OpenFile(); } },
@@ -418,7 +420,7 @@ void dodo::initKeybinds() noexcept
         { "b", [this]() { GotoPage(); } },
         { "f", [this]() { VisitLinkKB(); } },
         { "Ctrl+s", [this]() { SaveFile(); } },
-        { "Alt+1", [this]() { ToggleHighlight(); } },
+        { "Alt+1", [this]() { ToggleRectAnnotation(); } },
         { "t", [this]() { TableOfContents(); } },
         { "/", [this]() { Search(); } },
         { "n", [this]() { nextHit(); } },
@@ -473,7 +475,8 @@ void dodo::initGui() noexcept
                 m_model->setDPR(dpr);
                 m_dpr = dpr;
                 m_inv_dpr = 1 / dpr;
-                renderPage(m_pageno, true);
+                if (m_pageno != -1)
+                    renderPage(m_pageno, true);
                 });
     }
 
@@ -658,6 +661,8 @@ void dodo::RotateClock() noexcept
     m_rotation = (m_rotation + 90) % 360;
     m_cache.clear();
     renderPage(m_pageno, true);
+    // m_gview->setSceneRect(m_pix_item->boundingRect());
+    m_gview->centerOn(m_pix_item);  // center view
 }
 
 void dodo::RotateAntiClock() noexcept
@@ -668,6 +673,8 @@ void dodo::RotateAntiClock() noexcept
     m_rotation = (m_rotation + 270) % 360;
     m_cache.clear();
     renderPage(m_pageno, true);
+    // m_gview->setSceneRect(m_pix_item->boundingRect());
+    m_gview->centerOn(m_pix_item);  // center view
 }
 
 void dodo::gotoPage(const int &pageno) noexcept
@@ -718,6 +725,26 @@ void dodo::clearLinks() noexcept
     }
 }
 
+void dodo::renderAnnotations(const QList<HighlightItem*> &annots) noexcept
+{
+    clearAnnots();
+    for (auto *annot : annots)
+    {
+        connect(annot, &HighlightItem::annotDeleteRequested,
+                m_model, &Model::annotDeleteRequested);
+        m_gscene->addItem(annot);
+    }
+}
+
+void dodo::clearAnnots() noexcept
+{
+    for (auto &link : m_gscene->items())
+    {
+        if (link->data(0).toString() == "annot")
+            m_gscene->removeItem(link);
+    }
+}
+
 void dodo::renderLinks(const QList<BrowseLinkItem*> &links) noexcept
 {
     clearLinks();
@@ -730,19 +757,24 @@ void dodo::renderPage(int pageno, bool renderonly) noexcept
     CacheKey key{pageno, m_rotation, m_scale_factor};
     m_panel->setPageNo(m_pageno + 1);
 
-    if (auto cached = m_cache.object(key)) {
-        qDebug() << "Using cached pixmap";
-        renderPixmap(cached->pixmap);
-        renderLinks(cached->links);
-        return;
+    if (renderonly)
+    {
+        if (auto cached = m_cache.object(key)) {
+            qDebug() << "Using cached pixmap";
+            renderPixmap(cached->pixmap);
+            renderLinks(cached->links);
+            return;
+        }
     }
 
     auto pix = m_model->renderPage(pageno, m_scale_factor, m_rotation, renderonly);
     auto links = m_model->getLinks();
+    auto annot_highlights = m_model->getAnnotations();
 
-    m_cache.insert(key, new CacheValue(pix, links));
+    m_cache.insert(key, new CacheValue(pix, links, annot_highlights));
     renderPixmap(pix);
     renderLinks(links);
+    renderAnnotations(annot_highlights);
 }
 
 void dodo::renderPixmap(const QPixmap &pix) noexcept
@@ -1194,7 +1226,7 @@ void dodo::TableOfContents() noexcept
     m_owidget->open();
 }
 
-void dodo::ToggleHighlight() noexcept
+void dodo::ToggleRectAnnotation() noexcept
 {
     m_gview->setDrawingMode(!m_gview->drawingMode());
 }
@@ -1441,7 +1473,6 @@ QRectF dodo::fzQuadToQRect(const fz_quad &q) noexcept
 
 void dodo::initSynctex() noexcept
 {
-    auto texFile = nullptr;
     m_synctex_scanner = synctex_scanner_new_with_output_file(CSTR(m_filename), nullptr, 1);
     if (!m_synctex_scanner)
     {
@@ -1501,4 +1532,12 @@ fz_point dodo::mapToPdf(QPointF loc) noexcept
 void dodo::YankSelection() noexcept
 {
     m_clipboard->setText(m_model->getSelectionText(m_gview->selectionStart(), m_gview->selectionEnd()));
+    cancelTextSelection();
+}
+
+void dodo::HighlightSelection() noexcept
+{
+    m_model->annotHighlightSelection(m_gview->selectionStart(), m_gview->selectionEnd());
+    cancelTextSelection();
+    renderPage(m_pageno, false);
 }
