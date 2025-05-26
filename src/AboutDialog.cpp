@@ -5,7 +5,7 @@
 AboutDialog::AboutDialog(QWidget *parent)
 : QDialog(parent), bannerLabel(new QLabel), infoLabel(new QLabel), closeButton(new QPushButton("Close")) {
 
-    int fontid = QFontDatabase::addApplicationFont(":/fonts/comfortaa.ttf");
+    int fontid = QFontDatabase::addApplicationFont(":/resources/fonts/comfortaa.ttf");
     setWindowTitle("About");
     setModal(true);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint & ~Qt::WindowMaximizeButtonHint);

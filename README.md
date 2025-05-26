@@ -51,10 +51,11 @@ Check out the `config.toml` file for reference
 
 ## TODO
 
+- [ ] Tabs support
 - [X] Text mouse selection
 - [X] Synctex support
 - [X] HiDPI support
-- [ ] Annotations
+- [X] Annotations
     - [X] Basic rectangle highlight
     <!-- - [ ] Word aware highlight -->
 - [X] Table of Contents

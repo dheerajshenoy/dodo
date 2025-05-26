@@ -1,8 +1,8 @@
 <RCC>
     <qresource prefix="/">
-        <file>logo/logo.png</file>
-        <file>fonts/comfortaa.ttf</file>
+        <file>resources/dodo.svg</file>
+        <file>resources/fonts/comfortaa.ttf</file>
     </qresource>
 </RCC>
 
-<!-- # vim: ft=xml -->
+<!-- vim: ft=xml -->

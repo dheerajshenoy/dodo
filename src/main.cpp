@@ -34,6 +34,7 @@ int main (int argc, char *argv[])
     }
 
     QApplication app(argc, argv);
+    app.setWindowIcon(QIcon(":/resources/dodo.svg"));
     dodo d;
     d.readArgsParser(program);
     app.exec();
