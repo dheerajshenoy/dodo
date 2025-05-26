@@ -6,6 +6,7 @@
 #include <QRubberBand>
 #include <mupdf/fitz.h>
 #include <mupdf/fitz/pixmap.h>
+#include <QCursor>
 
 #define CLICK_THRESHOLD 10
 
@@ -15,11 +16,10 @@ class GraphicsView : public QGraphicsView {
     public:
 
         enum class Mode {
-            None = 0,
-            TextSelection,
+            TextSelection = 0,
             TextHighlight,
             AnnotSelect,
-            AnnotRect,
+            AnnotRect
         };
 
     explicit GraphicsView(QWidget *parent = nullptr)
@@ -35,9 +35,6 @@ void setMode(Mode mode) noexcept
 {
     switch(m_mode)
     {
-        case Mode::None:
-            break;
-
         case Mode::TextSelection:
             emit textSelectionDeletionRequested();
             break;
@@ -47,7 +44,10 @@ void setMode(Mode mode) noexcept
             break;
 
         case Mode::AnnotRect:
+            break;
+
         case Mode::AnnotSelect:
+            emit annotSelectClearRequested();
             break;
     }
 
@@ -69,20 +69,13 @@ void textHighlightRequested(const QPointF &a, const QPointF &b);
 void textSelectionDeletionRequested();
 void synctexJumpRequested(QPointF pos);
 void annotSelectRequested(const QRectF &rect);
+void annotSelectClearRequested();
 
 protected:
 void mousePressEvent(QMouseEvent *event) override
 {
     switch(m_mode)
     {
-        case Mode::None:
-            if (event->modifiers() & Qt::ShiftModifier)
-            {
-                emit synctexJumpRequested(mapToScene(event->pos()));
-                return;
-            }
-            QGraphicsView::mousePressEvent(event);  // Let QGraphicsItems (like links) respond
-            break;
 
         case Mode::AnnotRect:
         case Mode::AnnotSelect:
@@ -101,18 +94,29 @@ void mousePressEvent(QMouseEvent *event) override
             break;
 
         case Mode::TextSelection:
-            if (event->button() == Qt::LeftButton)
             {
-                m_mousePressPos = event->pos();
-                m_selecting = true;
-                auto pos = mapToScene(event->pos());
-                if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(pos))
+                if (event->button() == Qt::LeftButton)
                 {
-                    m_selection_start = pos;
-                    emit textSelectionDeletionRequested();
+                    // Synctex stuff
+                    if (event->modifiers() & Qt::ShiftModifier)
+                    {
+                        emit synctexJumpRequested(mapToScene(event->pos()));
+                        return;
+                    }
+
+                    QGuiApplication::setOverrideCursor(Qt::CursorShape::IBeamCursor);
+                    m_mousePressPos = event->pos();
+                    m_selecting = true;
+                    auto pos = mapToScene(event->pos());
+                    if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(pos))
+                    {
+                        m_selection_start = pos;
+                        emit textSelectionDeletionRequested();
+                    }
+                    QGraphicsView::mousePressEvent(event);  // Let QGraphicsItems (like links) respond
                 }
+                break;
             }
-            break;
 
         case Mode::TextHighlight:
             emit textSelectionDeletionRequested();
@@ -124,8 +128,6 @@ void mouseMoveEvent(QMouseEvent *event) override
 {
     switch(m_mode)
     {
-        case Mode::None: break;
-
         case Mode::TextSelection:
         case Mode::TextHighlight:
             {
@@ -139,7 +141,7 @@ void mouseMoveEvent(QMouseEvent *event) override
                     }
                 }
             }
-            return;
+            break;
 
         case Mode::AnnotRect:
         case Mode::AnnotSelect:
@@ -166,6 +168,7 @@ void mouseReleaseEvent(QMouseEvent *event) override
                     m_selection_end = mapToScene(event->pos());
                     emit textSelectionRequested(m_selection_start, m_selection_end);
                 }
+                QGuiApplication::restoreOverrideCursor();
                 m_selecting = false;
             }
             break;
@@ -218,8 +221,6 @@ void mouseReleaseEvent(QMouseEvent *event) override
 
             }
             break;
-
-        case Mode::None: break;
     }
 
     QGraphicsView::mouseReleaseEvent(event);  // Let items handle clicks
@@ -231,7 +232,7 @@ QPoint m_start;
 QPoint m_mousePressPos;
 QPointF m_selection_start, m_selection_end;
 bool m_selecting { false };
-Mode m_mode { Mode::None };
+Mode m_mode { Mode::TextSelection };
 QGraphicsPixmapItem *m_pixmapItem { nullptr };
 QRubberBand *m_rubberBand { nullptr };
 };
