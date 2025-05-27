@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
+set(CMAKE_COLOR_DIAGNOSTICS ON)
 
 # Set flags for Debug build
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb -O0 -Wall -Wextra")
