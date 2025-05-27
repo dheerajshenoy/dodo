@@ -6,8 +6,8 @@ set -e
 
 printf "Starting uninstallation...\n"
 
-read -p "Enter the CMake install prefix (default: /usr/local): " PREFIX
-PREFIX=${PREFIX:-/usr/local}
+read -p "Enter the install prefix used during the install (default: /usr/): " PREFIX
+PREFIX=${PREFIX:-/usr/}
 
 # List of installed files relative to prefix - customize these
 FILES=(
