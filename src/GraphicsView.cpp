@@ -16,9 +16,6 @@ GraphicsView::setMode(Mode mode) noexcept
     switch (m_mode)
     {
         case Mode::TextSelection:
-            emit textSelectionDeletionRequested();
-            break;
-
         case Mode::TextHighlight:
             emit textSelectionDeletionRequested();
             break;
@@ -161,6 +158,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent* event)
                 m_selection_end = mapToScene(event->pos());
                 emit textHighlightRequested(m_selection_start, m_selection_end);
             }
+            QGuiApplication::restoreOverrideCursor();
             m_selecting = false;
             emit textSelectionDeletionRequested();
         }
