@@ -8,7 +8,6 @@ AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 
-ColumnLimit: 100
 MaxEmptyLinesToKeep: 1
 IndentCaseLabels: true
 AlwaysBreakAfterReturnType: TopLevel
@@ -29,3 +28,6 @@ SpacesInAngles: false
 SpaceBeforeParens: ControlStatements
 AccessModifierOffset: -4
 IndentAccessModifiers: false
+BreakBeforeBinaryOperators: None
+AlignOperands: true
+ColumnLimit: 120  # Or whatever high value fits your code style
