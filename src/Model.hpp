@@ -41,7 +41,6 @@ class Model : public QObject
         void closeFile() noexcept;
         bool valid();
         inline void setDPI(float dpi) { m_dpi = dpi; }
-        inline void setLowDPI(float low_dpi) { m_low_dpi = low_dpi; }
         int numPages();
         QPixmap renderPage(int pageno, float zoom, float rotation, bool renderonly = false) noexcept;
         QList<BrowseLinkItem*> getLinks() noexcept;
@@ -129,7 +128,7 @@ signals:
         int m_match_count { 0 };
 
         std::mutex m_locks[FZ_LOCK_MAX];
-        float m_dpi, m_low_dpi;
+        float m_dpi;
         bool m_link_boundary, m_invert_color_mode { false };
         QGraphicsScene *m_scene { nullptr };
         fz_context *m_ctx { nullptr };

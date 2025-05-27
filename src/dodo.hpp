@@ -197,9 +197,7 @@ private:
     float m_scale_factor { 1.0f }, m_zoom_by;
     QString m_last_search_term;
     Panel *m_panel { nullptr };
-    float m_dpi,
-    m_low_dpi { 72.0f },
-    DPI_FRAC;
+    float m_dpi;
 
     void updateUiEnabledState() noexcept;
     void jumpToHit(int page, int index);

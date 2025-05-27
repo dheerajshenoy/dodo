@@ -33,7 +33,6 @@ void dodo::construct() noexcept
     initConfig();
     initMenubar();
     initDB();
-    DPI_FRAC = m_dpi / m_low_dpi;
 
     if (m_load_default_keybinding)
         initKeybinds();
@@ -361,7 +360,6 @@ void dodo::initConfig() noexcept
     auto rendering = toml["rendering"];
     m_dpi = rendering["dpi"].value_or(300.0);
     m_model->setDPI(m_dpi);
-    m_model->setLowDPI(m_low_dpi);
     int cache_pages = rendering["cache_pages"].value_or(10);
     m_cache.setMaxCost(cache_pages);
 
@@ -512,7 +510,7 @@ void dodo::initGui() noexcept
 
     m_gscene->addItem(m_pix_item);
     m_gview->setPixmapItem(m_pix_item);
-
+    m_gview->setEnabled(false);
     m_model = new Model(m_gscene);
 
     auto win = m_gview->window()->windowHandle();
@@ -622,6 +620,7 @@ void dodo::CloseFile() noexcept
         m_pix_item->setPixmap(QPixmap());
     m_gview->setSceneRect(m_pix_item->boundingRect());
     m_model->closeFile();
+    m_gview->setEnabled(false);
     updateUiEnabledState();
 }
 
@@ -709,6 +708,7 @@ void dodo::openFile(const QString &fileName) noexcept
         }
     }
 
+    m_gview->setEnabled(true);
     gotoPage(targetPage);
 
     updateUiEnabledState();
