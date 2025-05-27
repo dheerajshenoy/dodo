@@ -166,9 +166,11 @@ signals:
     void fitRectRequested(int pageno, float x, float y, float w, float h);
     void fitXYZRequested(int pageno, float x, float y, float zoom);
     void showMessageRequested(const char *message, MessageType type);
+    void documentSaved();
 
 private:
     void apply_night_mode(fz_pixmap* pixmap) noexcept;
+    void reloadDocument() noexcept;
 
     QList<SearchResult> searchHelper(int pageno, const QString& term, bool caseSensitive);
 

@@ -163,7 +163,6 @@ Model::closeFile() noexcept
 bool
 Model::openFile(const QString& fileName)
 {
-
     m_filename = fileName;
     fz_try(m_ctx)
     {
@@ -189,6 +188,34 @@ Model::openFile(const QString& fileName)
 
     initSaveOptions();
     return true;
+}
+
+void
+Model::reloadDocument() noexcept
+{
+    if (!m_doc)
+        return;
+
+    fz_drop_document(m_ctx, m_doc);
+
+    // load accelerator
+    fz_try(m_ctx)
+    {
+        m_doc = fz_open_document(m_ctx, CSTR(m_filename));
+        m_pdfdoc = pdf_specifics(m_ctx, m_doc);
+
+        if (!m_doc)
+        {
+            qWarning("Unable to open document");
+            return;
+        }
+
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Exception when opening the document";
+        return;
+    }
 }
 
 void
@@ -662,7 +689,10 @@ Model::save() noexcept
     fz_try(m_ctx)
     {
         if (m_pdfdoc)
+        {
             pdf_save_document(m_ctx, m_pdfdoc, CSTR(m_filename), &m_write_opts);
+            reloadDocument();
+        }
         else
             qWarning() << "No PDF document opened!";
     }
@@ -672,6 +702,7 @@ Model::save() noexcept
         return false;
     }
 
+    emit documentSaved();
     return true;
 }
 

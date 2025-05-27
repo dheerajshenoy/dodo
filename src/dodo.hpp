@@ -78,8 +78,7 @@ public:
 
         bool operator==(const CacheKey& other) const
         {
-            return page == other.page && rotation == other.rotation &&
-                   qFuzzyCompare(scale, other.scale);
+            return page == other.page && rotation == other.rotation && qFuzzyCompare(scale, other.scale);
         }
     };
 
@@ -89,8 +88,7 @@ public:
         QList<BrowseLinkItem*> links;
         QList<HighlightItem*> annot_highlights;
 
-        CacheValue(const QPixmap& pix, const QList<BrowseLinkItem*>& lnks,
-                   QList<HighlightItem*> annoth)
+        CacheValue(const QPixmap& pix, const QList<BrowseLinkItem*>& lnks, QList<HighlightItem*> annoth)
             : pixmap(pix), links(lnks), annot_highlights(annoth)
         {
         }
@@ -190,6 +188,7 @@ private:
     void ShowAbout() noexcept;
     void YankSelection() noexcept;
     void ToggleTextHighlight() noexcept;
+    void TextSelectionMode() noexcept;
     void SelectAll() noexcept;
 
     QDir m_config_dir;
@@ -197,8 +196,8 @@ private:
 
     synctex_scanner_p m_synctex_scanner{nullptr};
 
-    int m_pageno{-1}, m_start_page_override{-1}, m_rotation{0}, m_search_index{-1},
-        m_total_pages{0}, m_search_hit_page{-1}, m_prefetch_distance, m_page_history_limit;
+    int m_pageno{-1}, m_start_page_override{-1}, m_rotation{0}, m_search_index{-1}, m_total_pages{0},
+        m_search_hit_page{-1}, m_prefetch_distance, m_page_history_limit;
     QList<int> m_page_history_list;
     float m_scale_factor{1.0f}, m_zoom_by;
     QString m_last_search_term;
@@ -218,12 +217,13 @@ private:
     void rehighlight() noexcept;
     void zoomHelper() noexcept;
     QRectF fzQuadToQRect(const fz_quad& q) noexcept;
-    void cancelTextSelection() noexcept;
+    void clearTextSelection() noexcept;
     void selectAnnots() noexcept;
     void clearAnnotSelection() noexcept;
     void populateRecentFiles() noexcept;
     void editLastPages() noexcept;
     void deleteKeyAction() noexcept;
+    void setDirty(bool state) noexcept;
 
     QMenuBar* m_menuBar{nullptr};
     QMenu* m_fitMenu{nullptr};
@@ -250,10 +250,14 @@ private:
     QAction* m_actionLastPage{nullptr};
     QAction* m_actionPrevLocation{nullptr};
     QAction* m_actionAbout{nullptr};
+    QAction* m_actionTextHighlight{nullptr};
+    QAction* m_actionAnnotRect{nullptr};
+    QAction* m_actionTextSelect{nullptr};
+    QAction* m_actionAnnotEdit{nullptr};
 
     QCache<CacheKey, CacheValue> m_cache;
     QMap<int, QList<Model::SearchResult>> m_searchRectMap;
-    QString m_filename;
+    QString m_filename, m_basename;
     GraphicsView* m_gview           = new GraphicsView();
     QGraphicsScene* m_gscene        = new QGraphicsScene();
     QGraphicsPixmapItem* m_pix_item = new QGraphicsPixmapItem();
@@ -263,8 +267,8 @@ private:
     Model* m_model{nullptr};
     QTimer* m_HQRenderTimer = new QTimer(this);
     QMap<QString, QRgb> m_colors;
-    bool m_highlights_present, m_selection_present, m_annot_selection_present;
-    bool m_full_file_path_in_panel;
+    bool m_highlights_present, m_selection_present, m_annot_selection_present, m_full_file_path_in_panel,
+        m_dirty{false};
     OutlineWidget* m_owidget{nullptr};
     PropertiesWidget* m_propsWidget{nullptr};
     QString m_currentHintInput;
