@@ -159,7 +159,7 @@ dodo::initConnections() noexcept
     {
         if (matchCount == 0)
         {
-            QMessageBox::information(this, "Search Result", QString("No match found for {}").arg(m_last_search_term));
+            QMessageBox::information(this, "Search Result", QString("No match found for %1").arg(m_last_search_term));
             return;
         }
         m_searchRectMap = maps;
