@@ -36,11 +36,11 @@ add_executable(${PROJECT_NAME}
     src/RenderTask.cpp
     src/PropertiesWidget.cpp
     src/AboutDialog.cpp
+    src/GraphicsView.cpp
 
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp
     src/OutlineModel.hpp
-    src/GraphicsView.hpp
     src/ElidableLabel.hpp
     src/HighlightItem.hpp
     src/EditLastPagesWidget.hpp
