@@ -45,6 +45,7 @@ add_executable(${PROJECT_NAME}
     src/ElidableLabel.hpp
     src/HighlightItem.hpp
     src/EditLastPagesWidget.hpp
+    src/LinkHint.hpp
 
 )
 

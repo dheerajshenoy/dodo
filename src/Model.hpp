@@ -14,6 +14,7 @@
 #include <mupdf/fitz.h>
 #include <mupdf/pdf.h>
 #include <mutex>
+#include "LinkHint.hpp"
 
 #define CSTR(x) x.toStdString().c_str()
 
@@ -133,11 +134,11 @@ public:
     }
     inline void setLinkHintForeground(int fg) noexcept
     {
-        m_link_hint_fg = fg;
+        m_link_hint_fg = QColor::fromRgba(fg);
     }
     inline void setLinkHintBackground(int bg) noexcept
     {
-        m_link_hint_bg = bg;
+        m_link_hint_bg = QColor::fromRgba(bg);
     }
 
     void highlightHelper(const QPointF& selectionStart, const QPointF& selectionEnd, fz_point& a,
@@ -178,7 +179,7 @@ private:
     fz_matrix m_transform;
     float m_height, m_width;
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
-    int m_link_hint_fg = 0x000000, m_link_hint_bg = 0xFFFF00;
+    QColor m_link_hint_fg { QColor::fromRgba(0x000000) }, m_link_hint_bg { QColor::fromRgba(0xFFFF00) };
     pdf_write_options m_write_opts;
     pdf_document* m_pdfdoc{nullptr};
     float m_highlight_color[4];

@@ -374,8 +374,7 @@ Model::searchHelper(int pageno, const QString& term, bool caseSensitive)
 
                     if (term.length() == 1)
                     {
-                        if ((caseSensitive && qch == term[0]) ||
-                            (!caseSensitive && qch.toLower() == term[0].toLower()))
+                        if ((caseSensitive && qch == term[0]) || (!caseSensitive && qch.toLower() == term[0].toLower()))
                         {
                             results.append({pageno, ch->quad, m_match_count++});
                         }
@@ -386,8 +385,7 @@ Model::searchHelper(int pageno, const QString& term, bool caseSensitive)
                     {
                         if (!currentWord.isEmpty())
                         {
-                            QString wordToCheck =
-                                caseSensitive ? currentWord : currentWord.toLower();
+                            QString wordToCheck = caseSensitive ? currentWord : currentWord.toLower();
                             QString termToCheck = caseSensitive ? term : term.toLower();
 
                             if (wordToCheck == termToCheck)
@@ -545,11 +543,9 @@ Model::getLinks() noexcept
                     if (link_str.startsWith("#page"))
                     {
                         int page = link_str.mid(6).toInt();
-                        item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::Page,
-                                                  m_link_boundary);
+                        item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::Page, m_link_boundary);
                         item->setGotoPageNo(page - 1);
-                        connect(item, &BrowseLinkItem::jumpToPageRequested, this,
-                                &Model::jumpToPageRequested);
+                        connect(item, &BrowseLinkItem::jumpToPageRequested, this, &Model::jumpToPageRequested);
                     }
                     else
                     {
@@ -567,8 +563,7 @@ Model::getLinks() noexcept
                                 break;
                             case FZ_LINK_DEST_FIT_H:
                             {
-                                item = new BrowseLinkItem(qtRect, link_str,
-                                                          BrowseLinkItem::LinkType::FitH,
+                                item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::FitH,
                                                           m_link_boundary);
                                 item->setGotoPageNo(pageno);
                                 item->setXYZ({.x = 0, .y = dest.y, .zoom = 0});
@@ -581,8 +576,7 @@ Model::getLinks() noexcept
                                 break;
                             case FZ_LINK_DEST_FIT_V:
                             {
-                                item = new BrowseLinkItem(qtRect, link_str,
-                                                          BrowseLinkItem::LinkType::FitV,
+                                item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::FitV,
                                                           m_link_boundary);
                                 item->setGotoPageNo(pageno);
                                 connect(item, &BrowseLinkItem::verticalFitRequested, this,
@@ -598,8 +592,7 @@ Model::getLinks() noexcept
 
                             case FZ_LINK_DEST_XYZ:
                             {
-                                item = new BrowseLinkItem(qtRect, link_str,
-                                                          BrowseLinkItem::LinkType::Section,
+                                item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::Section,
                                                           m_link_boundary);
                                 item->setGotoPageNo(pageno);
                                 item->setXYZ({.x = dest.x, .y = dest.y, .zoom = dest.zoom});
@@ -616,8 +609,7 @@ Model::getLinks() noexcept
                 }
                 else
                 {
-                    item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::External,
-                                              m_link_boundary);
+                    item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::External, m_link_boundary);
                 }
                 item->setData(0, "link");
                 // m_scene->addItem(item);
@@ -733,27 +725,10 @@ Model::visitLinkKB(int pageno, float zoom) noexcept
                 auto dest                = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
                 m_hint_to_link_map[hint] = {.uri = QString::fromUtf8(link->uri), .dest = dest};
 
-                QRect rect(x, y, 1.1 * zoom, 1.1 * zoom);
-
-                QGraphicsRectItem* item = new QGraphicsRectItem(rect);
-                item->setBrush(QColor(m_link_hint_bg));
-                item->setPen(Qt::NoPen);
-                item->setData(0, "kb_link_overlay");
-                m_scene->addItem(item);
-
-                // Add text overlay
-                QGraphicsSimpleTextItem* text = new QGraphicsSimpleTextItem(hint);
-                // 🔧 Set larger font based on rect height
-                QFont font;
-                font.setPointSizeF(h * 0.6); // Try 0.6 or adjust to taste
-                font.setBold(true);
-                text->setFont(font);
-
-                text->setBrush(QColor(m_link_hint_fg));
-                text->setPos(rect.topLeft());
-                text->setZValue(item->zValue() + 1);
-                text->setData(0, "kb_link_overlay");
-                m_scene->addItem(text);
+                float w = 0.25 * zoom;
+                QRect rect(x, y, w, w);
+                LinkHint* linkHint = new LinkHint(rect, m_link_hint_bg, m_link_hint_fg, hint, w * 0.5);
+                m_scene->addItem(linkHint);
             }
             link = link->next;
             i++;
@@ -866,8 +841,7 @@ Model::extractPDFProperties() noexcept
     // ========== Add Derived Properties ==========
     props.append(qMakePair("Page Count", QString::number(pdf_count_pages(m_ctx, pdfdoc))));
     props.append(qMakePair("Encrypted", pdf_needs_password(m_ctx, pdfdoc) ? "Yes" : "No"));
-    props.append(qMakePair("PDF Version",
-                           QString("%1.%2").arg(pdfdoc->version / 10).arg(pdfdoc->version % 10)));
+    props.append(qMakePair("PDF Version", QString("%1.%2").arg(pdfdoc->version / 10).arg(pdfdoc->version % 10)));
 
     return props;
 }
@@ -910,8 +884,7 @@ Model::apply_night_mode(fz_pixmap* pixmap) noexcept
 }
 
 void
-Model::highlightHelper(const QPointF& selectionStart, const QPointF& selectionEnd, fz_point& a,
-                       fz_point& b) noexcept
+Model::highlightHelper(const QPointF& selectionStart, const QPointF& selectionEnd, fz_point& a, fz_point& b) noexcept
 {
     a = {static_cast<float>(selectionStart.x()), static_cast<float>(selectionStart.y())};
     b = {static_cast<float>(selectionEnd.x()), static_cast<float>(selectionEnd.y())};
@@ -972,10 +945,8 @@ Model::highlightTextSelection(const QPointF& selectionStart, const QPointF& sele
         fz_quad q = fz_transform_quad(hits[i], m_transform);
 
         QPolygonF poly;
-        poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr)
-             << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
-             << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
-             << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
+        poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr) << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
+             << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr) << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
 
         QGraphicsPolygonItem* item = m_scene->addPolygon(poly, Qt::NoPen, brush);
         item->setData(0, "selection");
@@ -1033,8 +1004,7 @@ Model::annotHighlightSelection(const QPointF& selectionStart, const QPointF& sel
     {
         for (int i = 0; i < count; ++i)
         {
-            pdf_annot* annot =
-                pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
+            pdf_annot* annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
 
             if (!annot)
             {
@@ -1078,8 +1048,7 @@ Model::getAnnotationsInArea(const QRectF& area) noexcept
     while (annot)
     {
         fz_rect bbox = pdf_bound_annot(m_ctx, annot);
-        QRectF annotRect(bbox.x0 * m_dpr, bbox.y0 * m_dpr, (bbox.x1 - bbox.x0) * m_dpr,
-                         (bbox.y1 - bbox.y0) * m_dpr);
+        QRectF annotRect(bbox.x0 * m_dpr, bbox.y0 * m_dpr, (bbox.x1 - bbox.x0) * m_dpr, (bbox.y1 - bbox.y0) * m_dpr);
 
         if (area.intersects(annotRect))
             results.insert(index);

@@ -1,8 +1,9 @@
+#include "dodo.hpp"
+
 #include "BrowseLinkItem.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
 #include "PropertiesWidget.hpp"
-#include "dodo.hpp"
 
 #include <algorithm>
 #include <iterator>
