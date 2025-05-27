@@ -58,6 +58,14 @@ dodo::initMenubar() noexcept
     fileMenu->addAction(QString("Open File\t%1").arg(m_shortcuts_map["open_file"]), this, &dodo::OpenFile);
     m_actionFileProperties = fileMenu->addAction(QString("File Properties\t%1").arg(m_shortcuts_map["file_properties"]),
                                                  this, &dodo::FileProperties);
+
+    m_actionSaveFile =
+        fileMenu->addAction(QString("Save File\t%1").arg(m_shortcuts_map["save"]), this, &dodo::SaveFile);
+
+    m_actionSaveAsFile =
+        fileMenu->addAction(QString("Save As File\t%1").arg(m_shortcuts_map["save_as"]), this,
+                &dodo::SaveAsFile);
+
     m_actionCloseFile =
         fileMenu->addAction(QString("Close File\t%1").arg(m_shortcuts_map["close_file"]), this, &dodo::CloseFile);
 
@@ -426,6 +434,10 @@ dodo::initConfig() noexcept
                       {
             SaveFile();
         }},
+            {"save_as",
+                [this]() {
+                    SaveAsFile();
+                }},
             {"yank",
                            [this]()
                       {
@@ -814,6 +826,8 @@ dodo::updateUiEnabledState() noexcept
     m_fitMenu->setEnabled(hasOpenedFile);
     m_actionToggleOutline->setEnabled(hasOpenedFile);
     m_actionInvertColor->setEnabled(hasOpenedFile);
+    m_actionSaveFile->setEnabled(hasOpenedFile);
+    m_actionSaveAsFile->setEnabled(hasOpenedFile);
 }
 
 void
@@ -1692,6 +1706,23 @@ dodo::SaveFile() noexcept
     m_model->save();
     auto pix = m_model->renderPage(m_pageno, m_scale_factor, m_rotation);
     renderPixmap(pix);
+}
+
+void
+dodo::SaveAsFile() noexcept
+{
+    if (!m_model->valid())
+        return;
+
+    auto filename = QFileDialog::getSaveFileName(this, "Save as", QString());
+
+    if (filename.isEmpty())
+        return;
+
+    if (!m_model->saveAs(CSTR(filename)))
+    {
+        QMessageBox::critical(this, "Saving as failed", "Could not perform save as operation on the file");
+    }
 }
 
 void

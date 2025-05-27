@@ -178,6 +178,7 @@ private:
     void ToggleRectAnnotation() noexcept;
     void ToggleAnnotSelect() noexcept;
     void SaveFile() noexcept;
+    void SaveAsFile() noexcept;
     void VisitLinkKB() noexcept;
     void CopyLinkKB() noexcept;
     void GotoPage() noexcept;
@@ -230,6 +231,8 @@ private:
     QAction* m_actionZoomIn{nullptr};
     QAction* m_actionInvertColor{nullptr};
     QAction* m_actionFileProperties{nullptr};
+    QAction* m_actionSaveFile{nullptr};
+    QAction* m_actionSaveAsFile{nullptr};
     QAction* m_actionCloseFile{nullptr};
     QAction* m_actionZoomOut{nullptr};
     QAction* m_actionFitWidth{nullptr};

@@ -167,6 +167,7 @@ Model::openFile(const QString& fileName)
     fz_try(m_ctx)
     {
         m_doc = fz_open_document(m_ctx, CSTR(fileName));
+
         if (!m_doc)
         {
             qWarning("Unable to open document");
@@ -663,6 +664,25 @@ Model::save() noexcept
             pdf_save_document(m_ctx, m_pdfdoc, CSTR(m_filename), &m_write_opts);
         else
             qWarning() << "No PDF document opened!";
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Cannot save file: " << fz_caught_message(m_ctx);
+        return false;
+    }
+
+    return true;
+}
+
+bool
+Model::saveAs(const char *filename) noexcept
+{
+    if (!filename)
+        return false;
+
+    fz_try(m_ctx)
+    {
+        pdf_save_document(m_ctx, m_pdfdoc, filename, &m_write_opts);
     }
     fz_catch(m_ctx)
     {

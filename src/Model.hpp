@@ -60,6 +60,7 @@ public:
     void searchAll(const QString& term, bool caseSensitive);
     void addRectAnnotation(const QRectF& rect) noexcept;
     bool save() noexcept;
+    bool saveAs(const char* filename) noexcept;
     fz_rect convertToMuPdfRect(const QRectF& qtRect) noexcept;
     bool hasUnsavedChanges() noexcept;
     void enableICC() noexcept;
@@ -90,6 +91,13 @@ public:
         m_highlight_color[2] = color.blueF();
         m_highlight_color[3] = color.alphaF();
     }
+
+    enum class MessageType
+    {
+        INFO = 0,
+        WARNING,
+        CRITICAL,
+    };
 
     struct LinkInfo
     {
@@ -156,6 +164,7 @@ signals:
     void verticalFitRequested(int pageno, const BrowseLinkItem::Location& location);
     void fitRectRequested(int pageno, float x, float y, float w, float h);
     void fitXYZRequested(int pageno, float x, float y, float zoom);
+    void showMessageRequested(const char *message, MessageType type);
 
 private:
     void apply_night_mode(fz_pixmap* pixmap) noexcept;
