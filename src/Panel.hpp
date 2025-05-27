@@ -25,8 +25,9 @@ class Panel : public QWidget
 
 private:
     void initGui() noexcept;
+    void labelBG(QLabel *label, const QColor &color) noexcept;
     ElidableLabel *m_filename_label = new ElidableLabel();
-    ElidableLabel *m_mode_label = new ElidableLabel();
+    QLabel *m_mode_label = new QLabel();
     QLabel *m_pageno_label = new QLabel();
     QLabel *m_totalpage_label = new QLabel();
     QLabel *m_search_count_label = new QLabel();

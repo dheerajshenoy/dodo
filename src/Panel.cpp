@@ -12,10 +12,10 @@ void Panel::initGui() noexcept
     this->setLayout(m_layout);
 
     // Left widgets
-    m_layout->addWidget(m_mode_label);
     m_layout->addWidget(m_filename_label);
 
     // Right widgets
+    m_layout->addWidget(m_mode_label);
     m_layout->addWidget(new QLabel("["));
     m_layout->addWidget(m_pageno_label);
     m_layout->addWidget(new QLabel("/"));
@@ -23,12 +23,19 @@ void Panel::initGui() noexcept
     m_layout->addWidget(new QLabel("]"));
 
     m_layout->addWidget(m_fitmode_label);
-
     m_layout->addWidget(m_search_label);
     m_layout->addWidget(m_search_index_label);
     m_layout->addWidget(m_search_count_label);
 
     this->setSearchMode(false);
+}
+
+void Panel::labelBG(QLabel *label, const QColor &color) noexcept
+{
+    QPalette palette = label->palette();
+    palette.setColor(QPalette::Window, color);
+    label->setAutoFillBackground(true);  // REQUIRED for background to show
+    label->setPalette(palette);
 }
 
 
@@ -78,7 +85,6 @@ void Panel::setFitMode(const QString &fit) noexcept
 
 void Panel::setMode(GraphicsView::Mode mode) noexcept
 {
-    using enum GraphicsView::Mode;
     switch(mode)
     {
         case GraphicsView::Mode::TextSelection:

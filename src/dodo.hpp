@@ -180,7 +180,7 @@ private:
 
     QDir m_config_dir;
     bool m_prefetch_enabled,
-    m_suppressHistory,
+    m_suppressHistory { false },
     m_remember_last_visited;
 
     synctex_scanner_p m_synctex_scanner { nullptr };

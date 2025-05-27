@@ -144,7 +144,6 @@ void dodo::initMenubar() noexcept
     m_actionPrevLocation = navMenu->addAction(QString("Previous Location\t%1").arg(m_shortcuts_map["prev_location"]),
             this, &dodo::GoBackHistory);
 
-
     QMenu *helpMenu = m_menuBar->addMenu("Help");
     m_actionAbout = helpMenu->addAction(QString("About\t%1").arg(m_shortcuts_map["about"]),
             this, &dodo::ShowAbout);
@@ -544,7 +543,6 @@ void dodo::updateUiEnabledState() noexcept
     m_actionCloseFile->setEnabled(hasOpenedFile);
     m_fitMenu->setEnabled(hasOpenedFile);
     m_actionToggleOutline->setEnabled(hasOpenedFile);
-    m_actionPrevLocation->setEnabled(hasOpenedFile);
 
 }
 
@@ -785,7 +783,7 @@ void dodo::gotoPage(const int &pageno) noexcept
     }
 
     // boundary condition
-    if (!m_suppressHistory && m_pageno >= 0)
+    if (!m_suppressHistory)
     {
         m_page_history_list.push_back(m_pageno);
         if (m_page_history_list.size() > m_page_history_limit)
@@ -1252,8 +1250,6 @@ void dodo::GoBackHistory() noexcept
         m_suppressHistory = true;
         gotoPage(lastPage);
         m_suppressHistory = false;
-    } else {
-        qInfo("No page history available");
     }
 }
 
