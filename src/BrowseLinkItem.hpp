@@ -1,22 +1,22 @@
 #pragma once
 
-#include <QGraphicsRectItem>
-#include <QDesktopServices>
+#include <QApplication>
+#include <QBrush>
 #include <QCursor>
+#include <QDesktopServices>
+#include <QGraphicsRectItem>
+#include <QGraphicsSceneHoverEvent>
+#include <QPen>
 #include <QUrl>
 #include <qgraphicsitem.h>
 #include <qnamespace.h>
-#include <QPen>
-#include <QBrush>
-#include <QGraphicsSceneHoverEvent>
-#include <QApplication>
-#include <QCursor>
 
-class BrowseLinkItem : public QObject, public QGraphicsRectItem {
+class BrowseLinkItem : public QObject, public QGraphicsRectItem
+{
     Q_OBJECT
-    public:
-
-    struct Location {
+public:
+    struct Location
+    {
         float x, y, zoom;
     };
 
@@ -29,10 +29,7 @@ class BrowseLinkItem : public QObject, public QGraphicsRectItem {
         External
     };
 
-    BrowseLinkItem(const QRectF& rect,
-            const QString &link,
-            LinkType type,
-            bool boundary = false)
+    BrowseLinkItem(const QRectF& rect, const QString& link, LinkType type, bool boundary = false)
         : QGraphicsRectItem(rect), _link(link), _type(type)
     {
         if (!boundary)
@@ -44,19 +41,32 @@ class BrowseLinkItem : public QObject, public QGraphicsRectItem {
         setFlag(QGraphicsItem::ItemIsSelectable);
     }
 
-    inline void setGotoPageNo(int pageno) noexcept { _pageno = pageno; }
-    inline int gotoPageNo() noexcept { return _pageno; }
-    inline void setXYZ(const Location &loc) noexcept { _loc = loc; }
-    inline Location XYZ() noexcept { return _loc; }
+    inline void setGotoPageNo(int pageno) noexcept
+    {
+        _pageno = pageno;
+    }
+    inline int gotoPageNo() noexcept
+    {
+        return _pageno;
+    }
+    inline void setXYZ(const Location& loc) noexcept
+    {
+        _loc = loc;
+    }
+    inline Location XYZ() noexcept
+    {
+        return _loc;
+    }
 
-    signals:
+signals:
     void jumpToPageRequested(int pageno);
-    void jumpToLocationRequested(int pageno, const Location &loc);
-    void verticalFitRequested(int pageno, const Location &loc);
-    void horizontalFitRequested(int pageno, const Location &loc);
+    void jumpToLocationRequested(int pageno, const Location& loc);
+    void verticalFitRequested(int pageno, const Location& loc);
+    void horizontalFitRequested(int pageno, const Location& loc);
 
 protected:
-    void mousePressEvent(QGraphicsSceneMouseEvent*) override {
+    void mousePressEvent(QGraphicsSceneMouseEvent*) override
+    {
         switch (_type)
         {
             case LinkType::Page:
@@ -86,22 +96,23 @@ protected:
         setBrush(Qt::transparent);
     }
 
-    void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override {
+    void hoverEnterEvent(QGraphicsSceneHoverEvent* e) override
+    {
         // QApplication::setOverrideCursor(Qt::PointingHandCursor);
         setBrush(QBrush(QColor(1.0, 1.0, 0.0, 125)));
         QGraphicsRectItem::hoverEnterEvent(e);
     }
 
-    void hoverLeaveEvent(QGraphicsSceneHoverEvent *e) override {
+    void hoverLeaveEvent(QGraphicsSceneHoverEvent* e) override
+    {
         setBrush(Qt::transparent);
         QGraphicsRectItem::hoverLeaveEvent(e);
         // QApplication::restoreOverrideCursor();
     }
 
 private:
-    Location _loc { -1, -1, 0 };
-    int _pageno { -1 };
+    Location _loc{-1, -1, 0};
+    int _pageno{-1};
     QString _link;
     LinkType _type;
-
 };

@@ -1,11 +1,10 @@
-#include "dodo.hpp"
 #include "argparse.hpp"
+#include "dodo.hpp"
 
-void init_args(argparse::ArgumentParser &program)
+void
+init_args(argparse::ArgumentParser& program)
 {
-    program.add_argument("-v", "--version")
-        .help("Show version number")
-        .flag();
+    program.add_argument("-v", "--version").help("Show version number").flag();
 
     program.add_argument("-p", "--page")
         .help("Page number to go to")
@@ -16,19 +15,19 @@ void init_args(argparse::ArgumentParser &program)
         .help("Page number to go to")
         .default_value(std::string{});
 
-    program.add_argument("files")
-        .remaining();
+    program.add_argument("files").remaining();
 }
 
-int main (int argc, char *argv[])
+int
+main(int argc, char* argv[])
 {
-    argparse::ArgumentParser program("dodo",
-                                     __DODO_VERSION,
-                                     argparse::default_arguments::all);
+    argparse::ArgumentParser program("dodo", __DODO_VERSION, argparse::default_arguments::all);
     init_args(program);
-    try {
+    try
+    {
         program.parse_args(argc, argv);
-    } catch (std::exception &e)
+    }
+    catch (std::exception& e)
     {
         qDebug() << e.what();
     }

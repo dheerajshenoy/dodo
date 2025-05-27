@@ -1,15 +1,18 @@
-#include "dodo.hpp"
 #include "BrowseLinkItem.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
 #include "PropertiesWidget.hpp"
+#include "dodo.hpp"
+
 #include <algorithm>
 #include <iterator>
 #include <qcontainerinfo.h>
 #include <qgraphicsitem.h>
 #include <qthread.h>
 
-inline uint qHash(const dodo::CacheKey &key, uint seed = 0) {
+inline uint
+qHash(const dodo::CacheKey& key, uint seed = 0)
+{
     seed ^= uint(key.page) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     seed ^= uint(key.rotation) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     seed ^= uint(key.scale) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -27,7 +30,8 @@ dodo::~dodo() noexcept
     synctex_scanner_free(m_synctex_scanner);
 }
 
-void dodo::construct() noexcept
+void
+dodo::construct() noexcept
 {
     initGui();
     initConfig();
@@ -41,7 +45,8 @@ void dodo::construct() noexcept
 
 #ifndef NDEBUG
     // openFile("~/Downloads/basic-link-1.pdf");
-    // openFile("~/Scott Dodelson, Fabian Schmidt - Modern Cosmology-Academic Press (2020).pdf"); // FOR DEBUG PURPOSE ONLY
+    // openFile("~/Scott Dodelson, Fabian Schmidt - Modern Cosmology-Academic Press (2020).pdf"); //
+    // FOR DEBUG PURPOSE ONLY
 #endif
 
     m_page_history_list.reserve(m_page_history_limit);
@@ -51,202 +56,230 @@ void dodo::construct() noexcept
     this->show();
 }
 
-void dodo::initMenubar() noexcept
+void
+dodo::initMenubar() noexcept
 {
 
     // --- File Menu ---
-    QMenu *fileMenu = m_menuBar->addMenu("&File");
-    fileMenu->addAction(QString("Open File\t%1").arg(m_shortcuts_map["open_file"]),
-            this, &dodo::OpenFile);
-    m_actionFileProperties = fileMenu->addAction(QString("File Properties\t%1").arg(m_shortcuts_map["file_properties"]),
-            this, &dodo::FileProperties);
-    m_actionCloseFile = fileMenu->addAction(QString("Close File\t%1").arg(m_shortcuts_map["close_file"]),
-            this, &dodo::CloseFile);
+    QMenu* fileMenu = m_menuBar->addMenu("&File");
+    fileMenu->addAction(QString("Open File\t%1").arg(m_shortcuts_map["open_file"]), this,
+                        &dodo::OpenFile);
+    m_actionFileProperties =
+        fileMenu->addAction(QString("File Properties\t%1").arg(m_shortcuts_map["file_properties"]),
+                            this, &dodo::FileProperties);
+    m_actionCloseFile = fileMenu->addAction(
+        QString("Close File\t%1").arg(m_shortcuts_map["close_file"]), this, &dodo::CloseFile);
 
     m_recentFilesMenu = fileMenu->addMenu("Recent Files");
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, &QMainWindow::close);
 
-    QMenu *editMenu = m_menuBar->addMenu("&Edit");
-    editMenu->addAction(QString("Last Pages\t%1").arg(m_shortcuts_map["edit_last_pages"]),
-            this, &dodo::editLastPages);
+    QMenu* editMenu = m_menuBar->addMenu("&Edit");
+    editMenu->addAction(QString("Last Pages\t%1").arg(m_shortcuts_map["edit_last_pages"]), this,
+                        &dodo::editLastPages);
 
     // --- View Menu ---
-    QMenu *viewMenu = m_menuBar->addMenu("&View");
-    m_actionZoomIn = viewMenu->addAction(QString("Zoom In\t%1").arg(m_shortcuts_map["zoom_in"]),
-            this, &dodo::ZoomIn);
+    QMenu* viewMenu = m_menuBar->addMenu("&View");
+    m_actionZoomIn  = viewMenu->addAction(QString("Zoom In\t%1").arg(m_shortcuts_map["zoom_in"]),
+                                          this, &dodo::ZoomIn);
     m_actionZoomOut = viewMenu->addAction(QString("Zoom Out\t%1").arg(m_shortcuts_map["zoom_out"]),
-            this, &dodo::ZoomOut);
+                                          this, &dodo::ZoomOut);
+
     viewMenu->addSeparator();
 
     // Zoom Mode Actions (exclusive)
-    QActionGroup *zoomModeGroup = new QActionGroup(this);
+    QActionGroup* zoomModeGroup = new QActionGroup(this);
     zoomModeGroup->setExclusive(true);
 
     m_fitMenu = viewMenu->addMenu("Fit");
 
     m_actionFitNone = m_fitMenu->addAction(QString("None\t%1").arg(m_shortcuts_map["fit_none"]),
-            this, &dodo::FitNone);
+                                           this, &dodo::FitNone);
     m_actionFitNone->setCheckable(true);
     zoomModeGroup->addAction(m_actionFitNone);
 
     m_actionFitWidth = m_fitMenu->addAction(QString("Width\t%1").arg(m_shortcuts_map["fit_width"]),
-            this, &dodo::FitWidth);
+                                            this, &dodo::FitWidth);
     m_actionFitWidth->setCheckable(true);
     zoomModeGroup->addAction(m_actionFitWidth);
 
-    m_actionFitHeight = m_fitMenu->addAction(QString("Height\t%1").arg(m_shortcuts_map["fit_height"]),
-            this, &dodo::FitHeight);
+    m_actionFitHeight = m_fitMenu->addAction(
+        QString("Height\t%1").arg(m_shortcuts_map["fit_height"]), this, &dodo::FitHeight);
     m_actionFitHeight->setCheckable(true);
     zoomModeGroup->addAction(m_actionFitHeight);
 
-    m_actionFitWindow = m_fitMenu->addAction(QString("Window\t%1").arg(m_shortcuts_map["fit_window"]),
-            this, &dodo::FitWindow);
+    m_actionFitWindow = m_fitMenu->addAction(
+        QString("Window\t%1").arg(m_shortcuts_map["fit_window"]), this, &dodo::FitWindow);
     m_actionFitWindow->setCheckable(true);
     zoomModeGroup->addAction(m_actionFitWindow);
 
     m_fitMenu->addSeparator();
 
     // Auto Resize toggle (independent)
-    m_actionAutoresize = m_fitMenu->addAction(QString("Auto Resize\t%1").arg(m_shortcuts_map["auto_resize"]),
-            this, &dodo::ToggleAutoResize);
+    m_actionAutoresize =
+        m_fitMenu->addAction(QString("Auto Resize\t%1").arg(m_shortcuts_map["auto_resize"]), this,
+                             &dodo::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
-    m_actionAutoresize->setChecked(true);  // default on or off
+    m_actionAutoresize->setChecked(true); // default on or off
 
     viewMenu->addSeparator();
 
-    m_actionToggleOutline = viewMenu->addAction(QString("Outline\t%1").arg(m_shortcuts_map["outline"]),
-            this, &dodo::TableOfContents);
+    m_actionToggleOutline = viewMenu->addAction(
+        QString("Outline\t%1").arg(m_shortcuts_map["outline"]), this, &dodo::TableOfContents);
 
-    m_actionToggleMenubar = viewMenu->addAction(QString("Menubar\t%1").arg(m_shortcuts_map["toggle_menubar"]),
-            this, &dodo::ToggleMenubar);
+    m_actionToggleMenubar = viewMenu->addAction(
+        QString("Menubar\t%1").arg(m_shortcuts_map["toggle_menubar"]), this, &dodo::ToggleMenubar);
     m_actionToggleMenubar->setCheckable(true);
     m_actionToggleMenubar->setChecked(!m_menuBar->isHidden());
 
-    m_actionTogglePanel = viewMenu->addAction(QString("Panel\t%1").arg(m_shortcuts_map["toggle_panel"]),
-            this, &dodo::TogglePanel);
+    m_actionTogglePanel = viewMenu->addAction(
+        QString("Panel\t%1").arg(m_shortcuts_map["toggle_panel"]), this, &dodo::TogglePanel);
     m_actionTogglePanel->setCheckable(true);
     m_actionTogglePanel->setChecked(!m_panel->isHidden());
 
+    m_actionInvertColor = viewMenu->addAction(
+        QString("Invert Color\t%1").arg(m_shortcuts_map["invert_color"]), this, &dodo::InvertColor);
+    m_actionInvertColor->setCheckable(true);
+    m_actionInvertColor->setChecked(m_model->invertColor());
+
     // --- Navigation Menu ---
-    QMenu *navMenu = m_menuBar->addMenu("&Navigation");
-    m_actionFirstPage = navMenu->addAction(QString("First Page\t%1").arg(m_shortcuts_map["first_page"]),
-            this, &dodo::FirstPage);
+    QMenu* navMenu    = m_menuBar->addMenu("&Navigation");
+    m_actionFirstPage = navMenu->addAction(
+        QString("First Page\t%1").arg(m_shortcuts_map["first_page"]), this, &dodo::FirstPage);
 
-    m_actionPrevPage = navMenu->addAction(QString("Previous Page\t%1").arg(m_shortcuts_map["prev_page"]),
-            this, &dodo::PrevPage);
+    m_actionPrevPage = navMenu->addAction(
+        QString("Previous Page\t%1").arg(m_shortcuts_map["prev_page"]), this, &dodo::PrevPage);
 
-    m_actionNextPage = navMenu->addAction(QString("Next Page\t%1").arg(m_shortcuts_map["next_page"]),
-            this, &dodo::NextPage);
-    m_actionLastPage = navMenu->addAction(QString("Last Page\t%1").arg(m_shortcuts_map["last_page"]),
-            this, &dodo::LastPage);
+    m_actionNextPage = navMenu->addAction(
+        QString("Next Page\t%1").arg(m_shortcuts_map["next_page"]), this, &dodo::NextPage);
+    m_actionLastPage = navMenu->addAction(
+        QString("Last Page\t%1").arg(m_shortcuts_map["last_page"]), this, &dodo::LastPage);
 
-    m_actionPrevLocation = navMenu->addAction(QString("Previous Location\t%1").arg(m_shortcuts_map["prev_location"]),
-            this, &dodo::GoBackHistory);
+    m_actionPrevLocation =
+        navMenu->addAction(QString("Previous Location\t%1").arg(m_shortcuts_map["prev_location"]),
+                           this, &dodo::GoBackHistory);
 
-    QMenu *helpMenu = m_menuBar->addMenu("&Help");
-    m_actionAbout = helpMenu->addAction(QString("About\t%1").arg(m_shortcuts_map["about"]),
-            this, &dodo::ShowAbout);
+    QMenu* helpMenu = m_menuBar->addMenu("&Help");
+    m_actionAbout   = helpMenu->addAction(QString("About\t%1").arg(m_shortcuts_map["about"]), this,
+                                          &dodo::ShowAbout);
 
     updateUiEnabledState();
 }
 
-void dodo::initConnections() noexcept
+void
+dodo::initConnections() noexcept
 {
-    connect(m_model, &Model::searchResultsReady, this, [&](const QMap<int, QList<Model::SearchResult>> &maps,
-                int matchCount) {
-            if (matchCount == 0)
-            {
+    connect(m_model, &Model::searchResultsReady, this,
+            [&](const QMap<int, QList<Model::SearchResult>>& maps, int matchCount)
+    {
+        if (matchCount == 0)
+        {
             QMessageBox::information(this, "Search Result",
-                    QString("No match found for {}").arg(m_last_search_term));
+                                     QString("No match found for {}").arg(m_last_search_term));
             return;
-            }
-            m_searchRectMap = maps;
-            m_panel->setSearchCount(matchCount);
-            auto page = maps.firstKey();
-            jumpToHit(page, 0);
-            });
+        }
+        m_searchRectMap = maps;
+        m_panel->setSearchCount(matchCount);
+        auto page = maps.firstKey();
+        jumpToHit(page, 0);
+    });
 
-    connect(m_gview, &GraphicsView::highlightDrawn, m_model, [&](const QRectF &rect)
-            {
-            m_model->addRectAnnotation(rect);
-            renderPage(m_pageno);
-            });
+    connect(m_gview, &GraphicsView::highlightDrawn, m_model, [&](const QRectF& rect)
+    {
+        m_model->addRectAnnotation(rect);
+        renderPage(m_pageno);
+    });
 
-    connect(m_model, &Model::horizontalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location) {
-            gotoPage(pageno);
-            FitWidth();
-            scrollToNormalizedTop(location.y);
-            });
+    connect(m_model, &Model::horizontalFitRequested, this,
+            [&](int pageno, const BrowseLinkItem::Location& location)
+    {
+        gotoPage(pageno);
+        FitWidth();
+        scrollToNormalizedTop(location.y);
+    });
 
-    connect(m_model, &Model::verticalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location) {
-            gotoPage(pageno);
-            FitHeight();
-            scrollToNormalizedTop(location.y);
-            });
+    connect(m_model, &Model::verticalFitRequested, this,
+            [&](int pageno, const BrowseLinkItem::Location& location)
+    {
+        gotoPage(pageno);
+        FitHeight();
+        scrollToNormalizedTop(location.y);
+    });
 
-    connect(m_model, &Model::jumpToPageRequested, this, [&](int pageno) {
-            gotoPage(pageno);
-            TopOfThePage();
-            });
+    connect(m_model, &Model::jumpToPageRequested, this, [&](int pageno)
+    {
+        gotoPage(pageno);
+        TopOfThePage();
+    });
 
-    connect(m_model, &Model::jumpToLocationRequested, this, [&](int pageno, const BrowseLinkItem::Location &loc) {
-            gotoPage(pageno);
-            scrollToXY(loc.x, loc.y);
-            });
+    connect(m_model, &Model::jumpToLocationRequested, this,
+            [&](int pageno, const BrowseLinkItem::Location& loc)
+    {
+        gotoPage(pageno);
+        scrollToXY(loc.x, loc.y);
+    });
 
-    connect(m_gview, &GraphicsView::synctexJumpRequested, this, [&](QPointF loc) {
-            if (m_synctex_scanner)
-            {
+    connect(m_gview, &GraphicsView::synctexJumpRequested, this, [&](QPointF loc)
+    {
+        if (m_synctex_scanner)
+        {
             fz_point pt = mapToPdf(loc);
             if (synctex_edit_query(m_synctex_scanner, m_pageno + 1, pt.x, pt.y) > 0)
             {
-            synctex_node_p node;
-            while ((node = synctex_scanner_next_result(m_synctex_scanner)))
-            synctexLocateInFile(synctex_node_get_name(node), synctex_node_line(node));
-            } else {
-            qDebug() << "No matching source found!";
-            QMessageBox::warning(this, "SyncTeX Error", "No matching source found!");
+                synctex_node_p node;
+                while ((node = synctex_scanner_next_result(m_synctex_scanner)))
+                    synctexLocateInFile(synctex_node_get_name(node), synctex_node_line(node));
             }
-            } else {
+            else
+            {
+                qDebug() << "No matching source found!";
+                QMessageBox::warning(this, "SyncTeX Error", "No matching source found!");
+            }
+        }
+        else
+        {
             QMessageBox::warning(this, "SyncTex", "Not a valid synctex document");
-            }
-            });
+        }
+    });
 
     connect(m_gview, &GraphicsView::textSelectionRequested, m_model,
-            [&](const QPointF &start, const QPointF &end)
-            {
-            m_model->highlightTextSelection(start, end);
-            m_selection_present = true;
-            });
+            [&](const QPointF& start, const QPointF& end)
+    {
+        m_model->highlightTextSelection(start, end);
+        m_selection_present = true;
+    });
 
     connect(m_gview, &GraphicsView::textHighlightRequested, m_model,
-            [&](const QPointF &start, const QPointF &end) {
-            m_model->annotHighlightSelection(start, end);
-            renderPage(m_pageno);
-            });
+            [&](const QPointF& start, const QPointF& end)
+    {
+        m_model->annotHighlightSelection(start, end);
+        renderPage(m_pageno);
+    });
 
-    connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, &dodo::cancelTextSelection);
+    connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this,
+            &dodo::cancelTextSelection);
 
-    connect(m_gview, &GraphicsView::annotSelectRequested, m_model, [&](const QRectF &area) {
-            m_selected_annots = m_model->getAnnotationsInArea(area);
-            selectAnnots();
-            // renderPage(m_pageno);
-            });
+    connect(m_gview, &GraphicsView::annotSelectRequested, m_model, [&](const QRectF& area)
+    {
+        m_selected_annots = m_model->getAnnotationsInArea(area);
+        selectAnnots();
+        // renderPage(m_pageno);
+    });
 
     connect(m_gview, &GraphicsView::annotSelectClearRequested, this, &dodo::clearAnnotSelection);
     connect(m_gview, &GraphicsView::zoomInRequested, this, &dodo::ZoomIn);
     connect(m_gview, &GraphicsView::zoomOutRequested, this, &dodo::ZoomOut);
 }
 
-void dodo::selectAnnots() noexcept
+void
+dodo::selectAnnots() noexcept
 {
-    for (const auto &item : m_gscene->items())
+    for (const auto& item : m_gscene->items())
     {
         if (!m_selected_annots.contains(item->data(1).toInt()))
             continue;
 
-        QGraphicsRectItem *gitem = qgraphicsitem_cast<QGraphicsRectItem*>(item);
+        QGraphicsRectItem* gitem = qgraphicsitem_cast<QGraphicsRectItem*>(item);
         if (!gitem)
             continue;
 
@@ -254,9 +287,10 @@ void dodo::selectAnnots() noexcept
     }
 }
 
-void dodo::cancelTextSelection() noexcept
+void
+dodo::cancelTextSelection() noexcept
 {
-    for (auto &object : m_gscene->items())
+    for (auto& object : m_gscene->items())
     {
         if (object->data(0).toString() == "selection")
             m_gscene->removeItem(object);
@@ -264,7 +298,8 @@ void dodo::cancelTextSelection() noexcept
     m_selection_present = false;
 }
 
-void dodo::scrollToXY(float x, float y) noexcept
+void
+dodo::scrollToXY(float x, float y) noexcept
 {
     if (!m_pix_item || !m_gview)
         return;
@@ -272,7 +307,8 @@ void dodo::scrollToXY(float x, float y) noexcept
     m_gview->centerOn(QPointF(x, y));
 }
 
-void dodo::initDB() noexcept
+void
+dodo::initDB() noexcept
 {
     if (!m_remember_last_visited)
         return;
@@ -285,12 +321,13 @@ void dodo::initDB() noexcept
 
     // FIXME: Maybe add some unique hashing so that this works even when you move a file
     query.exec("CREATE TABLE IF NOT EXISTS last_visited ("
-            "file_path TEXT PRIMARY KEY, "
-            "page_number INTEGER, "
-            "last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+               "file_path TEXT PRIMARY KEY, "
+               "page_number INTEGER, "
+               "last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 }
 
-void dodo::initConfig() noexcept
+void
+dodo::initConfig() noexcept
 {
     m_config_dir = QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
     auto config_file_path = m_config_dir.filePath("config.toml");
@@ -300,11 +337,13 @@ void dodo::initConfig() noexcept
     try
     {
         toml = toml::parse_file(config_file_path.toStdString());
-    } catch (std::exception &e)
+    }
+    catch (std::exception& e)
     {
         QMessageBox::critical(this, "Error in configuration file",
-                QString("There are one or more error(s) in your config file:\n%1\n\nLoading default config.")
-                .arg(e.what()));
+                              QString("There are one or more error(s) in your config "
+                                      "file:\n%1\n\nLoading default config.")
+                                  .arg(e.what()));
         return;
     }
 
@@ -317,11 +356,11 @@ void dodo::initConfig() noexcept
         ToggleFullscreen();
 
     auto vscrollbar_shown = ui["vscrollbar"].value_or(true);
-    auto vscrollbar = m_gview->verticalScrollBar();
+    auto vscrollbar       = m_gview->verticalScrollBar();
     vscrollbar->setVisible(vscrollbar_shown);
 
     auto hscrollbar_shown = ui["hscrollbar"].value_or(true);
-    auto hscrollbar = m_gview->horizontalScrollBar();
+    auto hscrollbar       = m_gview->horizontalScrollBar();
     hscrollbar->setVisible(hscrollbar_shown);
 
     auto auto_hide_hscrollbar = ui["auto_hide_hscrollbar"].value_or(true);
@@ -334,8 +373,8 @@ void dodo::initConfig() noexcept
         m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
     m_full_file_path_in_panel = ui["full_file_path_in_panel"].value_or(false);
-    m_scale_factor = ui["zoom_level"].value_or(1.0);
-    bool compact = ui["compact"].value_or(false);
+    m_scale_factor            = ui["zoom_level"].value_or(1.0);
+    bool compact              = ui["compact"].value_or(false);
     m_model->setLinkBoundary(ui["link_boundary"].value_or(false));
 
     m_window_title = ui["window_title"].value_or("{} - dodo");
@@ -343,12 +382,16 @@ void dodo::initConfig() noexcept
 
     auto colors = toml["colors"];
 
-    m_colors["search_index"] = QColor::fromString(colors["search_index"].value_or("#3daee944")).rgba();
-    m_colors["search_match"] = QColor::fromString(colors["search_match"].value_or("#FFFF8844")).rgba();
-    m_colors["accent"] = QColor::fromString(colors["accent"].value_or("#FF500044")).rgba();
+    m_colors["search_index"] =
+        QColor::fromString(colors["search_index"].value_or("#3daee944")).rgba();
+    m_colors["search_match"] =
+        QColor::fromString(colors["search_match"].value_or("#FFFF8844")).rgba();
+    m_colors["accent"]     = QColor::fromString(colors["accent"].value_or("#FF500044")).rgba();
     m_colors["background"] = QColor::fromString(colors["background"].value_or("#FFFFFF")).rgba();
-    m_colors["link_hint_fg"] = QColor::fromString(colors["link_hint_fg"].value_or("#000000")).rgba();
-    m_colors["link_hint_bg"] = QColor::fromString(colors["link_hint_bg"].value_or("#FFFF00")).rgba();
+    m_colors["link_hint_fg"] =
+        QColor::fromString(colors["link_hint_fg"].value_or("#000000")).rgba();
+    m_colors["link_hint_bg"] =
+        QColor::fromString(colors["link_hint_bg"].value_or("#FFFF00")).rgba();
     m_colors["highlight"] = QColor::fromString(colors["highlight"].value_or("#55FFFF00")).rgba();
     m_colors["selection"] = QColor::fromString(colors["selection"].value_or("#550000FF")).rgba();
 
@@ -359,19 +402,19 @@ void dodo::initConfig() noexcept
     m_gview->setBackgroundBrush(QColor::fromRgba(m_colors["background"]));
 
     auto rendering = toml["rendering"];
-    m_dpi = rendering["dpi"].value_or(300.0);
+    m_dpi          = rendering["dpi"].value_or(300.0);
     m_model->setDPI(m_dpi);
     int cache_pages = rendering["cache_pages"].value_or(10);
     m_cache.setMaxCost(cache_pages);
 
-    auto behavior = toml["behavior"];
+    auto behavior           = toml["behavior"];
     m_remember_last_visited = behavior["remember_last_visited"].value_or(true);
     // m_prefetch_enabled = behavior["enable_prefetch"].value_or(true);
     // m_prefetch_distance = behavior["prefetch_distance"].value_or(2);
     m_page_history_limit = behavior["page_history"].value_or(100);
     m_model->setAntialiasingBits(behavior["antialasing_bits"].value_or(8));
-    m_auto_resize = behavior["auto_resize"].value_or(false);
-    m_zoom_by = behavior["zoom_factor"].value_or(1.25);
+    m_auto_resize               = behavior["auto_resize"].value_or(false);
+    m_zoom_by                   = behavior["zoom_factor"].value_or(1.25);
     auto synctex_editor_command = behavior["synctex_editor_command"].value<std::string>();
     if (synctex_editor_command.has_value())
         m_synctex_editor_command = QString::fromStdString(synctex_editor_command.value());
@@ -397,55 +440,211 @@ void dodo::initConfig() noexcept
     {
         qDebug() << "Loading custom keybindings";
         m_load_default_keybinding = false;
-        auto keys = toml["keybindings"];
-        m_actionMap = {
-            { "select_all", [this]() { SelectAll(); } },
-            { "save", [this]() { SaveFile(); } },
-            { "yank", [this]() { YankSelection(); } },
-            { "cancel_selection", [this]() { cancelTextSelection(); } },
-            { "about", [this]() { ShowAbout(); } },
-            { "link_hint_visit", [this]() { VisitLinkKB(); } },
-            { "link_hint_copy", [this]() { CopyLinkKB(); } },
-            { "outline", [this]() { TableOfContents(); } },
-            { "rotate_clock", [this]() { RotateClock(); } },
-            { "rotate_anticlock", [this]() { RotateAntiClock(); } },
-            { "prev_location", [this]() { GoBackHistory(); } },
-            { "scroll_down", [this]() { ScrollDown(); } },
-            { "scroll_up", [this]() { ScrollUp(); } },
-            { "scroll_left", [this]() { ScrollLeft(); } },
-            { "scroll_right", [this]() { ScrollRight(); } },
-            { "invert_color", [this]() { InvertColor(); } },
-            { "search", [this]() { Search(); } },
-            { "search_next", [this]() { nextHit(); } },
-            { "search_prev", [this]() { prevHit(); } },
-            { "next_page", [this]() { NextPage(); } },
-            { "prev_page", [this]() { PrevPage(); } },
-            { "first_page", [this]() { FirstPage(); } },
-            { "last_page", [this]() { LastPage(); } },
-            { "zoom_in", [this]() { ZoomIn(); } },
-            { "zoom_out", [this]() { ZoomOut(); } },
-            { "zoom_reset", [this]() { ZoomReset(); } },
-            { "annot_select", [this]() { ToggleAnnotSelect(); } },
-            { "annot_highlight", [this]() { ToggleTextHighlight(); } },
-            { "annot_rect", [this]() { ToggleRectAnnotation(); } },
-            { "fullscreen", [this]() { ToggleFullscreen(); } },
-            { "file_properties", [this]() { FileProperties(); } },
-            { "open_file", [this]() { OpenFile(); } },
-            { "close_file", [this]() { CloseFile(); } },
-            { "fit_width", [this]() { FitWidth(); } },
-            { "fit_height", [this]() { FitHeight(); } },
-            { "fit_window", [this]() { FitWindow(); } },
-            { "auto_resize", [this]() { ToggleAutoResize(); } },
-            { "toggle_menubar", [this]() { ToggleMenubar(); } },
-            { "toggle_panel", [this]() { TogglePanel(); } },
+        auto keys                 = toml["keybindings"];
+        m_actionMap               = {
+            {"select_all",
+                           [this]()
+                      {
+            SelectAll();
+        }},
+            {"save",
+                           [this]()
+                      {
+            SaveFile();
+        }},
+            {"yank",
+                           [this]()
+                      {
+            YankSelection();
+        }},
+            {"cancel_selection",
+                           [this]()
+                      {
+            cancelTextSelection();
+        }},
+            {"about",
+                           [this]()
+                      {
+            ShowAbout();
+        }},
+            {"link_hint_visit",
+                           [this]()
+                      {
+            VisitLinkKB();
+        }},
+            {"link_hint_copy",
+                           [this]()
+                      {
+            CopyLinkKB();
+        }},
+            {"outline",
+                           [this]()
+                      {
+            TableOfContents();
+        }},
+            {"rotate_clock",
+                           [this]()
+                      {
+            RotateClock();
+        }},
+            {"rotate_anticlock",
+                           [this]()
+                      {
+            RotateAntiClock();
+        }},
+            {"prev_location",
+                           [this]()
+                      {
+            GoBackHistory();
+        }},
+            {"scroll_down",
+                           [this]()
+                      {
+            ScrollDown();
+        }},
+            {"scroll_up",
+                           [this]()
+                      {
+            ScrollUp();
+        }},
+            {"scroll_left",
+                           [this]()
+                      {
+            ScrollLeft();
+        }},
+            {"scroll_right",
+                           [this]()
+                      {
+            ScrollRight();
+        }},
+            {"invert_color",
+                           [this]()
+                      {
+            InvertColor();
+        }},
+            {"search",
+                           [this]()
+                      {
+            Search();
+        }},
+            {"search_next",
+                           [this]()
+                      {
+            nextHit();
+        }},
+            {"search_prev",
+                           [this]()
+                      {
+            prevHit();
+        }},
+            {"next_page",
+                           [this]()
+                      {
+            NextPage();
+        }},
+            {"prev_page",
+                           [this]()
+                      {
+            PrevPage();
+        }},
+            {"first_page",
+                           [this]()
+                      {
+            FirstPage();
+        }},
+            {"last_page",
+                           [this]()
+                      {
+            LastPage();
+        }},
+            {"zoom_in",
+                           [this]()
+                      {
+            ZoomIn();
+        }},
+            {"zoom_out",
+                           [this]()
+                      {
+            ZoomOut();
+        }},
+            {"zoom_reset",
+                           [this]()
+                      {
+            ZoomReset();
+        }},
+            {"annot_select",
+                           [this]()
+                      {
+            ToggleAnnotSelect();
+        }},
+            {"annot_highlight",
+                           [this]()
+                      {
+            ToggleTextHighlight();
+        }},
+            {"annot_rect",
+                           [this]()
+                      {
+            ToggleRectAnnotation();
+        }},
+            {"fullscreen",
+                           [this]()
+                      {
+            ToggleFullscreen();
+        }},
+            {"file_properties",
+                           [this]()
+                      {
+            FileProperties();
+        }},
+            {"open_file",
+                           [this]()
+                      {
+            OpenFile();
+        }},
+            {"close_file",
+                           [this]()
+                      {
+            CloseFile();
+        }},
+            {"fit_width",
+                           [this]()
+                      {
+            FitWidth();
+        }},
+            {"fit_height",
+                           [this]()
+                      {
+            FitHeight();
+        }},
+            {"fit_window",
+                           [this]()
+                      {
+            FitWindow();
+        }},
+            {"auto_resize",
+                           [this]()
+                      {
+            ToggleAutoResize();
+        }},
+            {"toggle_menubar",
+                           [this]()
+                      {
+            ToggleMenubar();
+        }},
+            {"toggle_panel",
+                           [this]()
+                      {
+            TogglePanel();
+        }},
 
         };
 
-        for (auto &[action, value] : *keys.as_table())
+        for (auto& [action, value] : *keys.as_table())
         {
             if (value.is_value())
                 setupKeybinding(QString::fromStdString(std::string(action.str())),
-                        QString::fromStdString(value.value_or<std::string>("")));
+                                QString::fromStdString(value.value_or<std::string>("")));
         }
     }
 
@@ -456,48 +655,141 @@ void dodo::initConfig() noexcept
         m_panel->setContentsMargins(0, 0, 0, 0);
         this->setContentsMargins(0, 0, 0, 0);
     }
-
 }
 
-void dodo::initKeybinds() noexcept
+void
+dodo::initKeybinds() noexcept
 {
     std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
 
-        { "b", [this]() { GotoPage(); } },
-        { "f", [this]() { VisitLinkKB(); } },
-        { "Ctrl+s", [this]() { SaveFile(); } },
-        { "Alt+1", [this]() { ToggleRectAnnotation(); } },
-        { "t", [this]() { TableOfContents(); } },
-        { "/", [this]() { Search(); } },
-        { "n", [this]() { nextHit(); } },
-        { "Shift+n", [this]() { prevHit(); } },
-        { "Ctrl+o", [this]() { GoBackHistory(); } },
-        { "o", [this]() { OpenFile(); } },
-        { "j", [this]() { ScrollDown(); } },
-        { "k", [this]() { ScrollUp(); } },
-        { "h", [this]() { ScrollLeft(); } },
-        { "l", [this]() { ScrollRight(); } },
-        { "Shift+j", [this]() { NextPage(); } },
-        { "Shift+k", [this]() { PrevPage(); } },
-        { "g,g", [this]() { FirstPage(); } },
-        { "Shift+g", [this]() { LastPage(); } },
-        { "0", [this]() { ZoomReset(); } },
-        { "=", [this]() { ZoomIn(); } },
-        { "-", [this]() { ZoomOut(); } },
-        { "<", [this]() { RotateAntiClock(); } },
-        { ">", [this]() { RotateClock(); } },
+        {"b",
+         [this]()
+    {
+        GotoPage();
+    }},
+        {"f",
+         [this]()
+    {
+        VisitLinkKB();
+    }},
+        {"Ctrl+s",
+         [this]()
+    {
+        SaveFile();
+    }},
+        {"Alt+1",
+         [this]()
+    {
+        ToggleRectAnnotation();
+    }},
+        {"t",
+         [this]()
+    {
+        TableOfContents();
+    }},
+        {"/",
+         [this]()
+    {
+        Search();
+    }},
+        {"n",
+         [this]()
+    {
+        nextHit();
+    }},
+        {"Shift+n",
+         [this]()
+    {
+        prevHit();
+    }},
+        {"Ctrl+o",
+         [this]()
+    {
+        GoBackHistory();
+    }},
+        {"o",
+         [this]()
+    {
+        OpenFile();
+    }},
+        {"j",
+         [this]()
+    {
+        ScrollDown();
+    }},
+        {"k",
+         [this]()
+    {
+        ScrollUp();
+    }},
+        {"h",
+         [this]()
+    {
+        ScrollLeft();
+    }},
+        {"l",
+         [this]()
+    {
+        ScrollRight();
+    }},
+        {"Shift+j",
+         [this]()
+    {
+        NextPage();
+    }},
+        {"Shift+k",
+         [this]()
+    {
+        PrevPage();
+    }},
+        {"g,g",
+         [this]()
+    {
+        FirstPage();
+    }},
+        {"Shift+g",
+         [this]()
+    {
+        LastPage();
+    }},
+        {"0",
+         [this]()
+    {
+        ZoomReset();
+    }},
+        {"=",
+         [this]()
+    {
+        ZoomIn();
+    }},
+        {"-",
+         [this]()
+    {
+        ZoomOut();
+    }},
+        {"<",
+         [this]()
+    {
+        RotateAntiClock();
+    }},
+        {">",
+         [this]()
+    {
+        RotateClock();
+    }},
     };
 
-    for (const auto& [key, func] : shortcuts) {
-        auto *sc = new QShortcut(QKeySequence(key), this);
+    for (const auto& [key, func] : shortcuts)
+    {
+        auto* sc = new QShortcut(QKeySequence(key), this);
         connect(sc, &QShortcut::activated, func);
     }
-
 }
 
-void dodo::initGui() noexcept
+void
+dodo::initGui() noexcept
 {
-    QWidget *widget = new QWidget();
+    QWidget* widget = new QWidget();
     // Panel
     m_panel = new Panel(this);
     m_panel->setMode(GraphicsView::Mode::TextSelection);
@@ -517,21 +809,23 @@ void dodo::initGui() noexcept
     auto win = m_gview->window()->windowHandle();
     if (win)
     {
-        connect(win, &QWindow::screenChanged, m_gview, [&](QScreen *screen) {
-                m_cache.clear();
-                auto dpr = m_gview->window()->devicePixelRatioF();
-                m_model->setDPR(dpr);
-                m_dpr = dpr;
-                m_inv_dpr = 1 / dpr;
-                if (m_pageno != -1)
-                    renderPage(m_pageno, true);
-                });
+        connect(win, &QWindow::screenChanged, m_gview, [&](QScreen* screen)
+        {
+            m_cache.clear();
+            auto dpr = m_gview->window()->devicePixelRatioF();
+            m_model->setDPR(dpr);
+            m_dpr     = dpr;
+            m_inv_dpr = 1 / dpr;
+            if (m_pageno != -1)
+                renderPage(m_pageno, true);
+        });
     }
 
     m_menuBar = this->menuBar(); // initialize here so that the config visibility works
 }
 
-void dodo::updateUiEnabledState() noexcept
+void
+dodo::updateUiEnabledState() noexcept
 {
     const bool hasOpenedFile = m_model->valid();
 
@@ -545,31 +839,31 @@ void dodo::updateUiEnabledState() noexcept
     m_actionCloseFile->setEnabled(hasOpenedFile);
     m_fitMenu->setEnabled(hasOpenedFile);
     m_actionToggleOutline->setEnabled(hasOpenedFile);
-
+    m_actionInvertColor->setEnabled(hasOpenedFile);
 }
 
-
-void dodo::OpenFile() noexcept
+void
+dodo::OpenFile() noexcept
 {
-    QString filepath = QFileDialog::getOpenFileName(this,
-            "Open File",
-            "",
-            "PDF Files (*.pdf);; All Files (*)");
+    QString filepath =
+        QFileDialog::getOpenFileName(this, "Open File", "", "PDF Files (*.pdf);; All Files (*)");
     if (filepath.isEmpty())
         return;
 
     openFile(filepath);
 }
 
-void dodo::CloseFile() noexcept
+void
+dodo::CloseFile() noexcept
 {
     if (m_model->hasUnsavedChanges())
     {
-        auto action = QMessageBox::question(this, "Unsaved changes detected",
-                "There are unsaved changes in this document. Do you really want to close this file ?",
-                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel);
+        auto action = QMessageBox::question(
+            this, "Unsaved changes detected",
+            "There are unsaved changes in this document. Do you really want to close this file ?",
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel);
 
-        switch(action)
+        switch (action)
         {
             case QMessageBox::StandardButton::Save:
                 SaveFile();
@@ -588,10 +882,8 @@ void dodo::CloseFile() noexcept
 
     clearLinks();
 
-
     if (m_panel->searchMode())
         m_panel->setSearchMode(false);
-
 
     if (m_highlights_present)
     {
@@ -624,20 +916,22 @@ void dodo::CloseFile() noexcept
     updateUiEnabledState();
 }
 
-void dodo::clearPixmapItems() noexcept
+void
+dodo::clearPixmapItems() noexcept
 {
     if (m_pix_item->pixmap().isNull())
         return;
 
     QList<QGraphicsItem*> items = m_pix_item->childItems();
-    for (const auto &item : items)
+    for (const auto& item : items)
         m_gscene->removeItem(item);
     qDeleteAll(items);
 }
 
 /* Function for opening the file using the model.
    For internal usage only */
-void dodo::openFile(const QString &fileName) noexcept
+void
+dodo::openFile(const QString& fileName) noexcept
 {
     if (m_model->valid())
         CloseFile();
@@ -654,17 +948,18 @@ void dodo::openFile(const QString &fileName) noexcept
 
     if (!m_model->openFile(m_filename))
     {
-        QMessageBox::critical(this, "Error opening document", "Unable to open document for some reason");
+        QMessageBox::critical(this, "Error opening document",
+                              "Unable to open document for some reason");
         return;
     }
 
     if (m_model->passwordRequired())
-        if(!askForPassword())
+        if (!askForPassword())
             return;
 
     // m_gview->setPixmapItem(m_pix_item);
 
-    m_pageno = -1;
+    m_pageno      = -1;
     m_total_pages = m_model->numPages();
     m_panel->setTotalPageCount(m_total_pages);
 
@@ -715,25 +1010,34 @@ void dodo::openFile(const QString &fileName) noexcept
 
     if (m_initial_fit != FitMode::None)
     {
-        QTimer::singleShot(10, this, [this]() {
-                switch(m_initial_fit)
-                {
-                case FitMode::Height: FitHeight(); break;
-                case FitMode::Width: FitWidth(); break;
-                case FitMode::Window: FitWindow(); break;
-                case FitMode::None: break;
-                }
-                });
+        QTimer::singleShot(10, this, [this]()
+        {
+            switch (m_initial_fit)
+            {
+                case FitMode::Height:
+                    FitHeight();
+                    break;
+                case FitMode::Width:
+                    FitWidth();
+                    break;
+                case FitMode::Window:
+                    FitWindow();
+                    break;
+                case FitMode::None:
+                    break;
+            }
+        });
     }
 
     initSynctex();
 }
 
-bool dodo::askForPassword() noexcept
+bool
+dodo::askForPassword() noexcept
 {
     bool ok;
     auto pwd = QInputDialog::getText(this, "Document is locked", "Enter password",
-            QLineEdit::EchoMode::Password, QString(), &ok);
+                                     QLineEdit::EchoMode::Password, QString(), &ok);
     if (!ok)
         return false;
 
@@ -747,7 +1051,8 @@ bool dodo::askForPassword() noexcept
     }
 }
 
-void dodo::RotateClock() noexcept
+void
+dodo::RotateClock() noexcept
 {
     if (!m_pix_item)
         return;
@@ -756,10 +1061,11 @@ void dodo::RotateClock() noexcept
     m_cache.clear();
     renderPage(m_pageno, true);
     // m_gview->setSceneRect(m_pix_item->boundingRect());
-    m_gview->centerOn(m_pix_item);  // center view
+    m_gview->centerOn(m_pix_item); // center view
 }
 
-void dodo::RotateAntiClock() noexcept
+void
+dodo::RotateAntiClock() noexcept
 {
     if (!m_pix_item)
         return;
@@ -768,10 +1074,11 @@ void dodo::RotateAntiClock() noexcept
     m_cache.clear();
     renderPage(m_pageno, true);
     // m_gview->setSceneRect(m_pix_item->boundingRect());
-    m_gview->centerOn(m_pix_item);  // center view
+    m_gview->centerOn(m_pix_item); // center view
 }
 
-void dodo::gotoPage(const int &pageno) noexcept
+void
+dodo::gotoPage(const int& pageno) noexcept
 {
     if (!m_model->valid())
     {
@@ -779,7 +1086,8 @@ void dodo::gotoPage(const int &pageno) noexcept
         return;
     }
 
-    if (pageno < 0 || pageno >= m_total_pages) {
+    if (pageno < 0 || pageno >= m_total_pages)
+    {
         qWarning("Page number %d out of range", pageno);
         return;
     }
@@ -795,7 +1103,8 @@ void dodo::gotoPage(const int &pageno) noexcept
     gotoPageInternal(pageno);
 }
 
-void dodo::gotoPageInternal(const int &pageno) noexcept
+void
+dodo::gotoPageInternal(const int& pageno) noexcept
 {
     m_pageno = pageno;
 
@@ -810,46 +1119,51 @@ void dodo::gotoPageInternal(const int &pageno) noexcept
     renderPage(pageno, false);
 }
 
-void dodo::clearLinks() noexcept
+void
+dodo::clearLinks() noexcept
 {
-    for (auto &link : m_gscene->items())
+    for (auto& link : m_gscene->items())
     {
         if (link->data(0).toString() == "link")
             m_gscene->removeItem(link);
     }
 }
 
-void dodo::renderAnnotations(const QList<HighlightItem*> &annots) noexcept
+void
+dodo::renderAnnotations(const QList<HighlightItem*>& annots) noexcept
 {
     clearAnnots();
-    for (auto *annot : annots)
+    for (auto* annot : annots)
     {
-        connect(annot, &HighlightItem::annotDeleteRequested,
-                m_model, [&](int index) {
-                m_model->annotDeleteRequested(index);
-                renderPage(m_pageno, false);
-                });
+        connect(annot, &HighlightItem::annotDeleteRequested, m_model, [&](int index)
+        {
+            m_model->annotDeleteRequested(index);
+            renderPage(m_pageno, false);
+        });
         m_gscene->addItem(annot);
     }
 }
 
-void dodo::clearAnnots() noexcept
+void
+dodo::clearAnnots() noexcept
 {
-    for (auto &link : m_gscene->items())
+    for (auto& link : m_gscene->items())
     {
         if (link->data(0).toString() == "annot")
             m_gscene->removeItem(link);
     }
 }
 
-void dodo::renderLinks(const QList<BrowseLinkItem*> &links) noexcept
+void
+dodo::renderLinks(const QList<BrowseLinkItem*>& links) noexcept
 {
     clearLinks();
-    for (auto *link: links)
+    for (auto* link : links)
         m_gscene->addItem(link);
 }
 
-void dodo::renderPage(int pageno, bool renderonly) noexcept
+void
+dodo::renderPage(int pageno, bool renderonly) noexcept
 {
     if (!m_model->valid())
         return;
@@ -859,7 +1173,8 @@ void dodo::renderPage(int pageno, bool renderonly) noexcept
 
     if (renderonly)
     {
-        if (auto cached = m_cache.object(key)) {
+        if (auto cached = m_cache.object(key))
+        {
             qDebug() << "Using cached pixmap";
             renderPixmap(cached->pixmap);
             renderLinks(cached->links);
@@ -867,8 +1182,8 @@ void dodo::renderPage(int pageno, bool renderonly) noexcept
         }
     }
 
-    auto pix = m_model->renderPage(pageno, m_scale_factor, m_rotation, renderonly);
-    auto links = m_model->getLinks();
+    auto pix              = m_model->renderPage(pageno, m_scale_factor, m_rotation, renderonly);
+    auto links            = m_model->getLinks();
     auto annot_highlights = m_model->getAnnotations();
 
     m_cache.insert(key, new CacheValue(pix, links, annot_highlights));
@@ -877,50 +1192,58 @@ void dodo::renderPage(int pageno, bool renderonly) noexcept
     renderAnnotations(annot_highlights);
 }
 
-void dodo::renderPixmap(const QPixmap &pix) noexcept
+void
+dodo::renderPixmap(const QPixmap& pix) noexcept
 {
     m_pix_item->setPixmap(pix);
 }
 
-bool dodo::isPrefetchPage(int page, int currentPage) noexcept
+bool
+dodo::isPrefetchPage(int page, int currentPage) noexcept
 {
     return page == currentPage + 1 || page == currentPage - 1;
 }
 
-void dodo::prefetchAround(int currentPage) noexcept
+void
+dodo::prefetchAround(int currentPage) noexcept
 {
-    for (int offset = -m_prefetch_distance; offset <= m_prefetch_distance; ++offset) {
+    for (int offset = -m_prefetch_distance; offset <= m_prefetch_distance; ++offset)
+    {
         int page = currentPage + offset;
-        if (page >= 0 && page < m_total_pages) {
+        if (page >= 0 && page < m_total_pages)
+        {
             m_model->renderPage(page, m_scale_factor, m_rotation);
         }
     }
 }
 
-void dodo::FirstPage() noexcept
+void
+dodo::FirstPage() noexcept
 {
     gotoPage(0);
     TopOfThePage();
 }
 
-void dodo::LastPage() noexcept
+void
+dodo::LastPage() noexcept
 {
     gotoPage(m_total_pages - 1);
 }
 
-
-void dodo::NextPage() noexcept
+void
+dodo::NextPage() noexcept
 {
     gotoPage(m_pageno + 1);
 }
 
-void dodo::PrevPage() noexcept
+void
+dodo::PrevPage() noexcept
 {
     gotoPage(m_pageno - 1);
 }
 
-
-void dodo::ZoomIn() noexcept
+void
+dodo::ZoomIn() noexcept
 {
     // if (m_scale_factor < 5.0)
     // {
@@ -930,15 +1253,16 @@ void dodo::ZoomIn() noexcept
     // }
 }
 
-void dodo::ZoomReset() noexcept
+void
+dodo::ZoomReset() noexcept
 {
     m_scale_factor = 1.0;
     // m_gview->resetTransform();
     zoomHelper();
 }
 
-
-void dodo::ZoomOut() noexcept
+void
+dodo::ZoomOut() noexcept
 {
     if (m_scale_factor * 1 / m_zoom_by != 0)
     {
@@ -949,7 +1273,8 @@ void dodo::ZoomOut() noexcept
     }
 }
 
-void dodo::Zoom(float factor) noexcept
+void
+dodo::Zoom(float factor) noexcept
 {
     // TODO: Add constraints here
 
@@ -958,7 +1283,8 @@ void dodo::Zoom(float factor) noexcept
     zoomHelper();
 }
 
-void dodo::zoomHelper() noexcept
+void
+dodo::zoomHelper() noexcept
 {
     renderPage(m_pageno, true);
     if (m_highlights_present)
@@ -974,37 +1300,42 @@ void dodo::zoomHelper() noexcept
     m_cache.clear();
 }
 
-void dodo::ScrollDown() noexcept
+void
+dodo::ScrollDown() noexcept
 {
     auto vscrollbar = m_gview->verticalScrollBar();
     vscrollbar->setValue(vscrollbar->value() + 50);
 }
 
-void dodo::ScrollUp() noexcept
+void
+dodo::ScrollUp() noexcept
 {
     auto vscrollbar = m_gview->verticalScrollBar();
     vscrollbar->setValue(vscrollbar->value() - 50);
 }
 
-void dodo::ScrollLeft() noexcept
+void
+dodo::ScrollLeft() noexcept
 {
     auto hscrollbar = m_gview->horizontalScrollBar();
     hscrollbar->setValue(hscrollbar->value() - 50);
 }
 
-void dodo::ScrollRight() noexcept
+void
+dodo::ScrollRight() noexcept
 {
     auto hscrollbar = m_gview->horizontalScrollBar();
     hscrollbar->setValue(hscrollbar->value() + 50);
 }
 
-void dodo::FitHeight() noexcept
+void
+dodo::FitHeight() noexcept
 {
     if (!m_pix_item || m_pix_item->pixmap().isNull())
         return;
 
     int pixmapHeight = m_pix_item->pixmap().height();
-    int viewHeight = m_gview->viewport()->height() * m_gview->window()->devicePixelRatioF();
+    int viewHeight   = m_gview->viewport()->height() * m_gview->window()->devicePixelRatioF();
 
     qreal scale = static_cast<qreal>(viewHeight) / pixmapHeight;
     m_scale_factor *= scale;
@@ -1012,13 +1343,14 @@ void dodo::FitHeight() noexcept
     setFitMode(FitMode::Height);
 }
 
-void dodo::FitWidth() noexcept
+void
+dodo::FitWidth() noexcept
 {
     if (!m_pix_item || m_pix_item->pixmap().isNull())
         return;
 
     int pixmapWidth = m_pix_item->pixmap().width();
-    int viewWidth = m_gview->viewport()->width() * m_gview->window()->devicePixelRatioF();
+    int viewWidth   = m_gview->viewport()->width() * m_gview->window()->devicePixelRatioF();
 
     qreal scale = static_cast<qreal>(viewWidth) / pixmapWidth;
     m_scale_factor *= scale;
@@ -1026,12 +1358,13 @@ void dodo::FitWidth() noexcept
     setFitMode(FitMode::Width);
 }
 
-void dodo::FitWindow() noexcept
+void
+dodo::FitWindow() noexcept
 {
-    const int pixmapWidth = m_pix_item->pixmap().width();
+    const int pixmapWidth  = m_pix_item->pixmap().width();
     const int pixmapHeight = m_pix_item->pixmap().height();
-    const int viewWidth = m_gview->viewport()->width() * m_gview->window()->devicePixelRatioF();
-    const int viewHeight = m_gview->viewport()->height() * m_gview->window()->devicePixelRatioF();
+    const int viewWidth    = m_gview->viewport()->width() * m_gview->window()->devicePixelRatioF();
+    const int viewHeight   = m_gview->viewport()->height() * m_gview->window()->devicePixelRatioF();
 
     // Calculate scale factors for both dimensions
     const qreal scaleX = static_cast<qreal>(viewWidth) / pixmapWidth;
@@ -1045,15 +1378,17 @@ void dodo::FitWindow() noexcept
     setFitMode(FitMode::Window);
 }
 
-void dodo::FitNone() noexcept
+void
+dodo::FitNone() noexcept
 {
     setFitMode(FitMode::None);
 }
 
-void dodo::setFitMode(const FitMode &mode) noexcept
+void
+dodo::setFitMode(const FitMode& mode) noexcept
 {
     m_fit_mode = mode;
-    switch(m_fit_mode)
+    switch (m_fit_mode)
     {
         case FitMode::Height:
             m_panel->setFitMode("Fit Height");
@@ -1074,40 +1409,41 @@ void dodo::setFitMode(const FitMode &mode) noexcept
 }
 
 // Single page search
-void dodo::search(const QString &term) noexcept
+void
+dodo::search(const QString& term) noexcept
 {
     m_last_search_term = term;
     // m_pdf_backend->search();
 }
 
-void dodo::jumpToHit(int page, int index)
+void
+dodo::jumpToHit(int page, int index)
 {
-    if (!m_searchRectMap.contains(page) ||
-            index < 0 ||
-            index >= m_searchRectMap[page].size())
+    if (!m_searchRectMap.contains(page) || index < 0 || index >= m_searchRectMap[page].size())
         return;
 
-    m_search_index = index;
+    m_search_index    = index;
     m_search_hit_page = page;
 
-    gotoPage(page);  // Render page
+    gotoPage(page); // Render page
     m_panel->setSearchIndex(m_searchRectMap[page][index].index + 1);
 
     highlightSingleHit();
     highlightHitsInPage();
 }
 
-void dodo::highlightHitsInPage()
+void
+dodo::highlightHitsInPage()
 {
     clearHighlights();
 
     auto results = m_searchRectMap[m_pageno];
 
-    for (const auto &result : results)
+    for (const auto& result : results)
     {
-        fz_quad quad = result.quad;
+        fz_quad quad      = result.quad;
         QRectF scaledRect = fzQuadToQRect(quad);
-        auto *highlight = new QGraphicsRectItem(scaledRect);
+        auto* highlight   = new QGraphicsRectItem(scaledRect);
 
         highlight->setBrush(QColor::fromRgba(m_colors["search_match"]));
         highlight->setPen(Qt::NoPen);
@@ -1118,7 +1454,8 @@ void dodo::highlightHitsInPage()
     m_highlights_present = true;
 }
 
-void dodo::highlightSingleHit() noexcept
+void
+dodo::highlightSingleHit() noexcept
 {
     if (m_highlights_present)
         clearIndexHighlights();
@@ -1126,7 +1463,7 @@ void dodo::highlightSingleHit() noexcept
     fz_quad quad = m_searchRectMap[m_pageno][m_search_index].quad;
 
     QRectF scaledRect = fzQuadToQRect(quad);
-    auto *highlight = new QGraphicsRectItem(scaledRect);
+    auto* highlight   = new QGraphicsRectItem(scaledRect);
     highlight->setBrush(QColor::fromRgba(m_colors["search_index"]));
     highlight->setPen(Qt::NoPen);
     highlight->setData(0, "searchIndexHighlight");
@@ -1136,11 +1473,15 @@ void dodo::highlightSingleHit() noexcept
     m_highlights_present = true;
 }
 
-void dodo::clearIndexHighlights()
+void
+dodo::clearIndexHighlights()
 {
-    for (auto item : m_gscene->items()) {
-        if (auto rect = qgraphicsitem_cast<QGraphicsRectItem *>(item)) {
-            if (rect->data(0).toString() == "searchIndexHighlight") {
+    for (auto item : m_gscene->items())
+    {
+        if (auto rect = qgraphicsitem_cast<QGraphicsRectItem*>(item))
+        {
+            if (rect->data(0).toString() == "searchIndexHighlight")
+            {
                 m_gscene->removeItem(rect);
                 delete rect;
             }
@@ -1149,11 +1490,15 @@ void dodo::clearIndexHighlights()
     m_highlights_present = false;
 }
 
-void dodo::clearHighlights()
+void
+dodo::clearHighlights()
 {
-    for (auto item : m_gscene->items()) {
-        if (auto rect = qgraphicsitem_cast<QGraphicsRectItem *>(item)) {
-            if (rect->data(0).toString() == "searchHighlight") {
+    for (auto item : m_gscene->items())
+    {
+        if (auto rect = qgraphicsitem_cast<QGraphicsRectItem*>(item))
+        {
+            if (rect->data(0).toString() == "searchHighlight")
+            {
                 m_gscene->removeItem(rect);
                 delete rect;
             }
@@ -1162,7 +1507,8 @@ void dodo::clearHighlights()
     m_highlights_present = false;
 }
 
-void dodo::Search() noexcept
+void
+dodo::Search() noexcept
 {
     if (!m_model->valid())
         return;
@@ -1188,74 +1534,82 @@ void dodo::Search() noexcept
     m_model->searchAll(term, hasUpperCase(term));
 }
 
-void dodo::nextHit()
+void
+dodo::nextHit()
 {
     if (m_search_hit_page == -1)
         return;
 
-    QList<int> pages = m_searchRectMap.keys();
+    QList<int> pages   = m_searchRectMap.keys();
     int currentPageIdx = pages.indexOf(m_search_hit_page);
 
     // Try next hit on current page
-    if (m_search_index + 1 < m_searchRectMap[m_search_hit_page].size()) {
+    if (m_search_index + 1 < m_searchRectMap[m_search_hit_page].size())
+    {
         jumpToHit(m_search_hit_page, m_search_index + 1);
         return;
     }
 
     // Try next page
-    if (currentPageIdx + 1 < pages.size()) {
+    if (currentPageIdx + 1 < pages.size())
+    {
         if (!m_searchRectMap[pages[currentPageIdx + 1]].isEmpty())
             jumpToHit(pages[currentPageIdx + 1], 0);
     }
 }
 
-void dodo::prevHit()
+void
+dodo::prevHit()
 {
-    if (m_search_hit_page == -1) return;
+    if (m_search_hit_page == -1)
+        return;
 
-    QList<int> pages = m_searchRectMap.keys();
+    QList<int> pages   = m_searchRectMap.keys();
     int currentPageIdx = pages.indexOf(m_search_hit_page);
 
     // Try previous hit on current page
-    if (m_search_index - 1 >= 0) {
+    if (m_search_index - 1 >= 0)
+    {
         jumpToHit(m_search_hit_page, m_search_index - 1);
         return;
     }
 
     // Try previous page
-    if (currentPageIdx - 1 >= 0) {
-        int prevPage = pages[currentPageIdx - 1];
+    if (currentPageIdx - 1 >= 0)
+    {
+        int prevPage     = pages[currentPageIdx - 1];
         int lastHitIndex = m_searchRectMap[prevPage].size() - 1;
         jumpToHit(prevPage, lastHitIndex);
     }
 }
 
-void dodo::setupKeybinding(const QString &action,
-        const QString &key) noexcept
+void
+dodo::setupKeybinding(const QString& action, const QString& key) noexcept
 {
     auto it = m_actionMap.find(action);
     if (it == m_actionMap.end())
         return;
 
-    QShortcut *shortcut = new QShortcut(QKeySequence(key), this);
-    connect(shortcut, &QShortcut::activated, this, [=]() {
-            it.value()();
-            });
+    QShortcut* shortcut = new QShortcut(QKeySequence(key), this);
+    connect(shortcut, &QShortcut::activated, this, [=]() { it.value()(); });
 
     m_shortcuts_map[action] = key;
 }
 
-void dodo::GoBackHistory() noexcept
+void
+dodo::GoBackHistory() noexcept
 {
-    if (!m_page_history_list.isEmpty()) {
-        int lastPage = m_page_history_list.takeLast(); // Pop last page
+    if (!m_page_history_list.isEmpty())
+    {
+        int lastPage      = m_page_history_list.takeLast(); // Pop last page
         m_suppressHistory = true;
         gotoPage(lastPage);
         m_suppressHistory = false;
     }
 }
 
-void dodo::closeEvent(QCloseEvent *e)
+void
+dodo::closeEvent(QCloseEvent* e)
 {
     if (!m_model)
         e->accept();
@@ -1271,10 +1625,10 @@ void dodo::closeEvent(QCloseEvent *e)
 
     if (m_model->hasUnsavedChanges())
     {
-        auto reply = QMessageBox::question(this, "Unsaved Changes",
-                "There are unsaved changes in this document. Do you want to quit ?",
-                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-                QMessageBox::Save);
+        auto reply = QMessageBox::question(
+            this, "Unsaved Changes",
+            "There are unsaved changes in this document. Do you want to quit ?",
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
 
         switch (reply)
         {
@@ -1289,14 +1643,16 @@ void dodo::closeEvent(QCloseEvent *e)
                 e->ignore();
                 return;
 
-            default: break;
+            default:
+                break;
         }
     }
 
     e->accept();
 }
 
-void dodo::scrollToNormalizedTop(const double &ntop) noexcept
+void
+dodo::scrollToNormalizedTop(const double& ntop) noexcept
 {
     // 1. Get scene Y position of the top of the page
     qreal pageSceneY = m_pix_item->sceneBoundingRect().top();
@@ -1314,10 +1670,10 @@ void dodo::scrollToNormalizedTop(const double &ntop) noexcept
     int scrollPos = m_gview->verticalScrollBar()->value() + targetViewportPoint.y();
 
     m_gview->verticalScrollBar()->setValue(scrollPos);
-
 }
 
-void dodo::TableOfContents() noexcept
+void
+dodo::TableOfContents() noexcept
 {
     if (!m_model->valid())
         return;
@@ -1325,14 +1681,13 @@ void dodo::TableOfContents() noexcept
     if (!m_owidget)
     {
         m_owidget = new OutlineWidget(m_model->clonedContext(), this);
-        connect(m_owidget, &OutlineWidget::jumpToPageRequested, this, [=](int pageno) {
-                gotoPage(pageno);
-                });
+        connect(m_owidget, &OutlineWidget::jumpToPageRequested, this,
+                [=](int pageno) { gotoPage(pageno); });
     }
 
     if (!m_owidget->hasOutline())
     {
-        fz_outline *outline = m_model->getOutline();
+        fz_outline* outline = m_model->getOutline();
         if (!outline)
         {
             QMessageBox::information(this, "Outline", "Document does not have outline information");
@@ -1343,7 +1698,8 @@ void dodo::TableOfContents() noexcept
     m_owidget->open();
 }
 
-void dodo::ToggleRectAnnotation() noexcept
+void
+dodo::ToggleRectAnnotation() noexcept
 {
     if (m_gview->mode() == GraphicsView::Mode::AnnotRect)
     {
@@ -1357,7 +1713,8 @@ void dodo::ToggleRectAnnotation() noexcept
     }
 }
 
-void dodo::SaveFile() noexcept
+void
+dodo::SaveFile() noexcept
 {
     if (!m_model->valid())
         return;
@@ -1367,18 +1724,20 @@ void dodo::SaveFile() noexcept
     renderPixmap(pix);
 }
 
-void dodo::VisitLinkKB() noexcept
+void
+dodo::VisitLinkKB() noexcept
 {
     if (!m_model->valid())
         return;
 
     this->installEventFilter(this);
     m_model->visitLinkKB(m_pageno, m_scale_factor);
-    m_linkHintMode = true;
+    m_linkHintMode  = true;
     m_link_hint_map = m_model->hintToLinkMap();
 }
 
-void dodo::CopyLinkKB() noexcept
+void
+dodo::CopyLinkKB() noexcept
 {
     if (!m_model->valid())
         return;
@@ -1386,7 +1745,8 @@ void dodo::CopyLinkKB() noexcept
     m_model->copyLinkKB(m_pageno);
 }
 
-bool dodo::eventFilter(QObject *obj, QEvent *event)
+bool
+dodo::eventFilter(QObject* obj, QEvent* event)
 {
     if (m_linkHintMode)
     {
@@ -1399,7 +1759,7 @@ bool dodo::eventFilter(QObject *obj, QEvent *event)
         }
         if (event->type() == QEvent::KeyPress)
         {
-            QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+            QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
             if (keyEvent->key() == Qt::Key_Escape)
             {
                 m_linkHintMode = false;
@@ -1407,7 +1767,8 @@ bool dodo::eventFilter(QObject *obj, QEvent *event)
                 m_model->clearKBHintsOverlay();
                 this->removeEventFilter(this);
                 return true;
-            } else if (keyEvent->key() == Qt::Key_Backspace)
+            }
+            else if (keyEvent->key() == Qt::Key_Backspace)
             {
                 m_currentHintInput.removeLast();
                 return true;
@@ -1431,7 +1792,7 @@ bool dodo::eventFilter(QObject *obj, QEvent *event)
 
         if (event->type() == QEvent::ShortcutOverride)
         {
-            QShortcutEvent *stEvent = static_cast<QShortcutEvent *>(event);
+            QShortcutEvent* stEvent = static_cast<QShortcutEvent*>(event);
             stEvent->accept();
             return true;
         }
@@ -1441,24 +1802,27 @@ bool dodo::eventFilter(QObject *obj, QEvent *event)
     return QObject::eventFilter(obj, event);
 }
 
-void dodo::GotoPage() noexcept
+void
+dodo::GotoPage() noexcept
 {
     int pageno = QInputDialog::getInt(this, "Goto Page",
-            QString("Enter page number ({} to {})").arg(0, m_total_pages),
-            0, 1, m_total_pages);
+                                      QString("Enter page number ({} to {})").arg(0, m_total_pages),
+                                      0, 1, m_total_pages);
     gotoPage(pageno - 1);
 }
 
-bool dodo::hasUpperCase(const QString &text) noexcept
+bool
+dodo::hasUpperCase(const QString& text) noexcept
 {
-    for (const auto &c : text)
+    for (const auto& c : text)
         if (c.isUpper())
             return true;
 
     return false;
 }
 
-void dodo::FileProperties() noexcept
+void
+dodo::FileProperties() noexcept
 {
     if (!m_model->valid())
         return;
@@ -1466,20 +1830,22 @@ void dodo::FileProperties() noexcept
     if (!m_propsWidget)
     {
         m_propsWidget = new PropertiesWidget(this);
-        auto props = m_model->extractPDFProperties();
+        auto props    = m_model->extractPDFProperties();
         m_propsWidget->setProperties(props);
     }
     m_propsWidget->exec();
 }
 
 // Puts the viewport to the top of the page
-void dodo::TopOfThePage() noexcept
+void
+dodo::TopOfThePage() noexcept
 {
     auto vscrollbar = m_gview->verticalScrollBar();
     vscrollbar->setValue(0);
 }
 
-void dodo::ToggleFullscreen() noexcept
+void
+dodo::ToggleFullscreen() noexcept
 {
     if (this->isFullScreen())
         this->showNormal();
@@ -1487,25 +1853,30 @@ void dodo::ToggleFullscreen() noexcept
         this->showFullScreen();
 }
 
-void dodo::InvertColor() noexcept
+void
+dodo::InvertColor() noexcept
 {
     if (!m_model->valid())
         return;
 
     m_model->invertColor();
-    renderPage(m_pageno, true);
+    renderPage(m_pageno);
+
+    m_actionInvertColor->setChecked(m_model->invertColor());
 }
 
-void dodo::ToggleAutoResize() noexcept
+void
+dodo::ToggleAutoResize() noexcept
 {
     m_auto_resize = !m_auto_resize;
 }
 
-void dodo::resizeEvent(QResizeEvent *e)
+void
+dodo::resizeEvent(QResizeEvent* e)
 {
     if (m_auto_resize)
     {
-        switch(m_fit_mode)
+        switch (m_fit_mode)
         {
             case FitMode::Height:
                 FitHeight();
@@ -1524,28 +1895,32 @@ void dodo::resizeEvent(QResizeEvent *e)
     e->accept();
 }
 
-void dodo::TogglePanel() noexcept
+void
+dodo::TogglePanel() noexcept
 {
     bool shown = !m_panel->isHidden();
     m_panel->setHidden(shown);
     m_actionTogglePanel->setChecked(!shown);
 }
 
-void dodo::ToggleMenubar() noexcept
+void
+dodo::ToggleMenubar() noexcept
 {
     bool shown = !m_menuBar->isHidden();
     m_menuBar->setHidden(shown);
     m_actionToggleMenubar->setChecked(!shown);
 }
 
-void dodo::ShowAbout() noexcept
+void
+dodo::ShowAbout() noexcept
 {
-    AboutDialog *abw = new AboutDialog(this);
+    AboutDialog* abw = new AboutDialog(this);
     abw->setAppInfo("v0.2.0", "A fast, unintrusive pdf reader");
     abw->exec();
 }
 
-void dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
+void
+dodo::readArgsParser(argparse::ArgumentParser& argparser) noexcept
 {
     if (argparser["--version"] == true)
     {
@@ -1572,22 +1947,25 @@ void dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
         QRegularExpression re(R"(^(.*)#(.*):(\d+):(\d+)$)");
         QRegularExpressionMatch match = re.match(arg);
 
-        if (match.hasMatch()) {
+        if (match.hasMatch())
+        {
             QString pdfPath = match.captured(1);
             pdfPath.replace("~", getenv("HOME"));
             QString texPath = match.captured(2);
             texPath.replace("~", getenv("HOME"));
-            int line = match.captured(3).toInt();
+            int line   = match.captured(3).toInt();
             int column = match.captured(4).toInt();
 
-            qDebug() << "PDF:" << pdfPath << "Source:" << texPath << "Line:" << line << "Column:" << column;
+            qDebug() << "PDF:" << pdfPath << "Source:" << texPath << "Line:" << line
+                     << "Column:" << column;
             openFile(pdfPath);
             synctexLocateInPdf(texPath, line, column);
-
-        } else {
-            qWarning() << "Invalid --synctex-forward format. Expected file.pdf#file.tex:line:column";
         }
-
+        else
+        {
+            qWarning()
+                << "Invalid --synctex-forward format. Expected file.pdf#file.tex:line:column";
+        }
     }
 
     try
@@ -1595,24 +1973,24 @@ void dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
         auto file = argparser.get<std::vector<std::string>>("files");
         if (!file.empty())
             openFile(QString::fromStdString(file[0]));
-    } catch (...)
-    {}
+    }
+    catch (...)
+    {
+    }
     m_start_page_override = -1;
 }
 
-QRectF dodo::fzQuadToQRect(const fz_quad &q) noexcept
+QRectF
+dodo::fzQuadToQRect(const fz_quad& q) noexcept
 {
     fz_quad tq = fz_transform_quad(q, m_model->transform());
 
-    return QRectF(
-            tq.ul.x * m_inv_dpr,
-            tq.ul.y * m_inv_dpr,
-            (tq.ur.x - tq.ul.x) * m_inv_dpr,
-            (tq.ll.y - tq.ul.y) * m_inv_dpr
-            );
+    return QRectF(tq.ul.x * m_inv_dpr, tq.ul.y * m_inv_dpr, (tq.ur.x - tq.ul.x) * m_inv_dpr,
+                  (tq.ll.y - tq.ul.y) * m_inv_dpr);
 }
 
-void dodo::initSynctex() noexcept
+void
+dodo::initSynctex() noexcept
 {
     m_synctex_scanner = synctex_scanner_new_with_output_file(CSTR(m_filename), nullptr, 1);
     if (!m_synctex_scanner)
@@ -1622,16 +2000,19 @@ void dodo::initSynctex() noexcept
     }
 }
 
-void dodo::synctexLocateInFile(const char *texFile, int line) noexcept
+void
+dodo::synctexLocateInFile(const char* texFile, int line) noexcept
 {
     auto tmp = m_synctex_editor_command;
-    if (!tmp.contains("{file}") || !tmp.contains("{line}")) {
-        QMessageBox::critical(this, "SyncTeX error",
-                "Invalid SyncTeX editor command: missing placeholders ({line} and/or {file}).");
+    if (!tmp.contains("{file}") || !tmp.contains("{line}"))
+    {
+        QMessageBox::critical(
+            this, "SyncTeX error",
+            "Invalid SyncTeX editor command: missing placeholders ({line} and/or {file}).");
         return;
     }
 
-    auto args = QProcess::splitCommand(tmp);
+    auto args   = QProcess::splitCommand(tmp);
     auto editor = args.takeFirst();
     args.replaceInStrings("{line}", QString::number(line));
     args.replaceInStrings("{file}", texFile);
@@ -1639,24 +2020,27 @@ void dodo::synctexLocateInFile(const char *texFile, int line) noexcept
     QProcess::startDetached(editor, args);
 }
 
-void dodo::synctexLocateInPdf(const QString &texFile, int line, int column) noexcept
+void
+dodo::synctexLocateInPdf(const QString& texFile, int line, int column) noexcept
 {
     if (synctex_display_query(m_synctex_scanner, CSTR(texFile), line, column, -1) > 0)
     {
         synctex_node_p node = nullptr;
-        int page; float x, y;
+        int page;
+        float x, y;
         while ((node = synctex_scanner_next_result(m_synctex_scanner)))
         {
             page = synctex_node_page(node);
-            x = synctex_node_visible_h(node);
-            y = synctex_node_visible_v(node);
+            x    = synctex_node_visible_h(node);
+            y    = synctex_node_visible_v(node);
         }
         gotoPage(page - 1);
         scrollToXY(x, y);
     }
 }
 
-fz_point dodo::mapToPdf(QPointF loc) noexcept
+fz_point
+dodo::mapToPdf(QPointF loc) noexcept
 {
     double x = loc.x() / m_inv_dpr;
     double y = loc.y() / m_inv_dpr;
@@ -1665,21 +2049,24 @@ fz_point dodo::mapToPdf(QPointF loc) noexcept
     fz_matrix invTransform;
     invTransform = fz_invert_matrix(m_model->transform());
 
-    fz_point pt = { static_cast<float>(x), static_cast<float>(y) };
-    pt = fz_transform_point(pt, invTransform);
+    fz_point pt = {static_cast<float>(x), static_cast<float>(y)};
+    pt          = fz_transform_point(pt, invTransform);
     return pt;
 }
 
-void dodo::YankSelection() noexcept
+void
+dodo::YankSelection() noexcept
 {
     if (!m_model->valid())
         return;
 
-    m_clipboard->setText(m_model->getSelectionText(m_gview->selectionStart(), m_gview->selectionEnd()));
+    m_clipboard->setText(
+        m_model->getSelectionText(m_gview->selectionStart(), m_gview->selectionEnd()));
     cancelTextSelection();
 }
 
-void dodo::ToggleTextHighlight() noexcept
+void
+dodo::ToggleTextHighlight() noexcept
 {
     if (m_gview->mode() == GraphicsView::Mode::TextHighlight)
     {
@@ -1694,14 +2081,15 @@ void dodo::ToggleTextHighlight() noexcept
     }
 }
 
-void dodo::clearAnnotSelection() noexcept
+void
+dodo::clearAnnotSelection() noexcept
 {
-    for (const auto &item: m_gscene->items())
+    for (const auto& item : m_gscene->items())
     {
         if (!m_selected_annots.contains(item->data(1).toInt()))
             continue;
 
-        QGraphicsRectItem *gitem = qgraphicsitem_cast<QGraphicsRectItem*>(item);
+        QGraphicsRectItem* gitem = qgraphicsitem_cast<QGraphicsRectItem*>(item);
         if (!gitem)
             continue;
 
@@ -1709,7 +2097,8 @@ void dodo::clearAnnotSelection() noexcept
     }
 }
 
-void dodo::ToggleAnnotSelect() noexcept
+void
+dodo::ToggleAnnotSelect() noexcept
 {
     if (m_gview->mode() == GraphicsView::Mode::AnnotSelect)
     {
@@ -1724,20 +2113,21 @@ void dodo::ToggleAnnotSelect() noexcept
     }
 }
 
-
-void dodo::SelectAll() noexcept
+void
+dodo::SelectAll() noexcept
 {
     auto end = m_pix_item->boundingRect().bottomRight();
     m_clipboard->setText(m_model->selectAllText(QPointF(0, 0), end));
 }
 
-void dodo::populateRecentFiles() noexcept
+void
+dodo::populateRecentFiles() noexcept
 {
     m_recentFilesMenu->clear();
     QSqlQuery query;
     if (query.exec("SELECT file_path, page_number, last_accessed "
-                "FROM last_visited "
-                "ORDER BY last_accessed DESC"))
+                   "FROM last_visited "
+                   "ORDER BY last_accessed DESC"))
     {
         while (query.next())
         {
@@ -1746,11 +2136,12 @@ void dodo::populateRecentFiles() noexcept
                 continue;
             int page = query.value(1).toInt();
             // QDateTime accessed = query.value(2).toDateTime();
-            QAction *fileAction = new QAction(path);
-            connect(fileAction, &QAction::triggered, this, [&, path, page]() {
-                    openFile(path);
-                    gotoPage(page);
-                    });
+            QAction* fileAction = new QAction(path);
+            connect(fileAction, &QAction::triggered, this, [&, path, page]()
+            {
+                openFile(path);
+                gotoPage(page);
+            });
 
             m_recentFilesMenu->addAction(fileAction);
         }
@@ -1764,19 +2155,20 @@ void dodo::populateRecentFiles() noexcept
         m_recentFilesMenu->setDisabled(true);
     else
         m_recentFilesMenu->setEnabled(true);
-
 }
 
-void dodo::editLastPages() noexcept
+void
+dodo::editLastPages() noexcept
 {
     if (!m_last_pages_db.isValid())
     {
         QMessageBox::information(this, "Edit Last Pages",
-                "Couldn't find the database of last pages. Maybe `remember_last_visited` option is turned off in the config file");
+                                 "Couldn't find the database of last pages. Maybe "
+                                 "`remember_last_visited` option is turned off in the config file");
         return;
     }
 
-    EditLastPagesWidget *elpw = new EditLastPagesWidget(m_last_pages_db, this);
+    EditLastPagesWidget* elpw = new EditLastPagesWidget(m_last_pages_db, this);
     elpw->show();
     connect(elpw, &EditLastPagesWidget::finished, this, &dodo::populateRecentFiles);
 }

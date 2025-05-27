@@ -1,22 +1,22 @@
 #pragma once
 
 #include <QDialog>
-#include <QLabel>
-#include <QVBoxLayout>
-#include <QPushButton>
-#include <QPixmap>
 #include <QFontDatabase>
+#include <QLabel>
+#include <QPixmap>
+#include <QPushButton>
+#include <QVBoxLayout>
 
-class AboutDialog : public QDialog {
+class AboutDialog : public QDialog
+{
     Q_OBJECT
 
-    public:
-    explicit AboutDialog(QWidget *parent = nullptr);
-    void setAppInfo(const QString &version, const QString &description) noexcept;
+public:
+    explicit AboutDialog(QWidget* parent = nullptr);
+    void setAppInfo(const QString& version, const QString& description) noexcept;
 
 private:
-    QLabel *bannerLabel;
-    QLabel *infoLabel;
-    QPushButton *closeButton;
+    QLabel* bannerLabel;
+    QLabel* infoLabel;
+    QPushButton* closeButton;
 };
-
