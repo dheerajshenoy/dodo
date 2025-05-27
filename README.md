@@ -1,5 +1,7 @@
-<center><img src="./resources/dodo.svg"/></center>
-A fast and unintrusive PDF reader.
+<p align="center">
+    <img src="./resources/dodo-rounded.svg" height="200px" width="200px"/><br><br>
+<b><i>A fast and unintrusive PDF reader.</i></b>
+</p>
 
 ## Why ?
 
@@ -12,10 +14,15 @@ PDF reader, I am reading lots of PDFs for my work.
 ## Features
 
 - Fast rendering with MuPDF backend
+
+https://github.com/user-attachments/assets/a4c9ae7e-401e-4b02-9ae1-b70ff10079ab
+
 - **SyncTeX** support
+- 
 - Caching and pre-fetching pages for faster page rendering
 - Vim-like keybindings
 - Configured using TOML language
+![config](https://github.com/user-attachments/assets/59195e30-30dd-487f-8ef5-43c883063d91)
 - Faster search
 - Visited file location saving
 - Link awareness
