@@ -1,4 +1,4 @@
-<img src="./logo/banner.png"/>
+<center><img src="./resources/dodo.svg"/></center>
 A fast and unintrusive PDF reader.
 
 ## Why ?
