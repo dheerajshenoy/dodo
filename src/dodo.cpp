@@ -55,7 +55,7 @@ void dodo::initMenubar() noexcept
 {
 
     // --- File Menu ---
-    QMenu *fileMenu = m_menuBar->addMenu("File");
+    QMenu *fileMenu = m_menuBar->addMenu("&File");
     fileMenu->addAction(QString("Open File\t%1").arg(m_shortcuts_map["open_file"]),
             this, &dodo::OpenFile);
     m_actionFileProperties = fileMenu->addAction(QString("File Properties\t%1").arg(m_shortcuts_map["file_properties"]),
@@ -67,12 +67,12 @@ void dodo::initMenubar() noexcept
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, &QMainWindow::close);
 
-    QMenu *editMenu = m_menuBar->addMenu("Edit");
+    QMenu *editMenu = m_menuBar->addMenu("&Edit");
     editMenu->addAction(QString("Last Pages\t%1").arg(m_shortcuts_map["edit_last_pages"]),
             this, &dodo::editLastPages);
 
     // --- View Menu ---
-    QMenu *viewMenu = m_menuBar->addMenu("View");
+    QMenu *viewMenu = m_menuBar->addMenu("&View");
     m_actionZoomIn = viewMenu->addAction(QString("Zoom In\t%1").arg(m_shortcuts_map["zoom_in"]),
             this, &dodo::ZoomIn);
     m_actionZoomOut = viewMenu->addAction(QString("Zoom Out\t%1").arg(m_shortcuts_map["zoom_out"]),
@@ -129,7 +129,7 @@ void dodo::initMenubar() noexcept
     m_actionTogglePanel->setChecked(!m_panel->isHidden());
 
     // --- Navigation Menu ---
-    QMenu *navMenu = m_menuBar->addMenu("Navigation");
+    QMenu *navMenu = m_menuBar->addMenu("&Navigation");
     m_actionFirstPage = navMenu->addAction(QString("First Page\t%1").arg(m_shortcuts_map["first_page"]),
             this, &dodo::FirstPage);
 
@@ -144,7 +144,7 @@ void dodo::initMenubar() noexcept
     m_actionPrevLocation = navMenu->addAction(QString("Previous Location\t%1").arg(m_shortcuts_map["prev_location"]),
             this, &dodo::GoBackHistory);
 
-    QMenu *helpMenu = m_menuBar->addMenu("Help");
+    QMenu *helpMenu = m_menuBar->addMenu("&Help");
     m_actionAbout = helpMenu->addAction(QString("About\t%1").arg(m_shortcuts_map["about"]),
             this, &dodo::ShowAbout);
 
@@ -235,6 +235,8 @@ void dodo::initConnections() noexcept
             });
 
     connect(m_gview, &GraphicsView::annotSelectClearRequested, this, &dodo::clearAnnotSelection);
+    connect(m_gview, &GraphicsView::zoomInRequested, this, &dodo::ZoomIn);
+    connect(m_gview, &GraphicsView::zoomOutRequested, this, &dodo::ZoomOut);
 }
 
 void dodo::selectAnnots() noexcept
