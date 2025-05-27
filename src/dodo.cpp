@@ -828,6 +828,7 @@ dodo::updateUiEnabledState() noexcept
     m_actionInvertColor->setEnabled(hasOpenedFile);
     m_actionSaveFile->setEnabled(hasOpenedFile);
     m_actionSaveAsFile->setEnabled(hasOpenedFile);
+    m_actionPrevLocation->setEnabled(hasOpenedFile);
 }
 
 void
