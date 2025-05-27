@@ -1,5 +1,6 @@
 #include "dodo.hpp"
 #include "BrowseLinkItem.hpp"
+#include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
 #include "PropertiesWidget.hpp"
 #include <algorithm>
@@ -22,6 +23,7 @@ dodo::dodo() noexcept
 
 dodo::~dodo() noexcept
 {
+    m_last_pages_db.close();
     synctex_scanner_free(m_synctex_scanner);
 }
 
@@ -34,10 +36,7 @@ void dodo::construct() noexcept
     DPI_FRAC = m_dpi / m_low_dpi;
 
     if (m_load_default_keybinding)
-    {
-        qDebug() << "Loading default keybindings";
         initKeybinds();
-    }
 
     // QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
 
@@ -69,6 +68,10 @@ void dodo::initMenubar() noexcept
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, &QMainWindow::close);
 
+    QMenu *editMenu = m_menuBar->addMenu("Edit");
+    editMenu->addAction(QString("Last Pages\t%1").arg(m_shortcuts_map["edit_last_pages"]),
+            this, &dodo::editLastPages);
+
     // --- View Menu ---
     QMenu *viewMenu = m_menuBar->addMenu("View");
     m_actionZoomIn = viewMenu->addAction(QString("Zoom In\t%1").arg(m_shortcuts_map["zoom_in"]),
@@ -81,7 +84,6 @@ void dodo::initMenubar() noexcept
     QActionGroup *zoomModeGroup = new QActionGroup(this);
     zoomModeGroup->setExclusive(true);
 
-    m_fitMenu = new QMenu();
     m_fitMenu = viewMenu->addMenu("Fit");
 
     m_actionFitNone = m_fitMenu->addAction(QString("None\t%1").arg(m_shortcuts_map["fit_none"]),
@@ -142,6 +144,7 @@ void dodo::initMenubar() noexcept
 
     m_actionPrevLocation = navMenu->addAction(QString("Previous Location\t%1").arg(m_shortcuts_map["prev_location"]),
             this, &dodo::GoBackHistory);
+
 
     QMenu *helpMenu = m_menuBar->addMenu("Help");
     m_actionAbout = helpMenu->addAction(QString("About\t%1").arg(m_shortcuts_map["about"]),
@@ -274,9 +277,9 @@ void dodo::initDB() noexcept
     if (!m_remember_last_visited)
         return;
 
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName(m_config_dir.filePath("last_pages.db"));
-    db.open();
+    m_last_pages_db = QSqlDatabase::addDatabase("QSQLITE");
+    m_last_pages_db.setDatabaseName(m_config_dir.filePath("last_pages.db"));
+    m_last_pages_db.open();
 
     QSqlQuery query;
 
@@ -664,7 +667,6 @@ void dodo::openFile(const QString &fileName) noexcept
 
     m_pageno = -1;
     m_total_pages = m_model->numPages();
-    qDebug() << m_total_pages;
     m_panel->setTotalPageCount(m_total_pages);
 
     if (m_panel->searchMode())
@@ -1260,13 +1262,11 @@ void dodo::closeEvent(QCloseEvent *e)
     if (!m_model)
         e->accept();
 
-    if (m_remember_last_visited)
+    if (m_remember_last_visited && !m_filename.isEmpty() && m_pageno >= 0)
     {
         QSqlQuery q;
         q.prepare("INSERT OR REPLACE INTO last_visited(file_path, page_number) VALUES (?, ?)");
         q.addBindValue(m_filename);
-        if (m_pageno <= 0)
-            m_pageno = 0;
         q.addBindValue(m_pageno);
         q.exec();
     }
@@ -1735,6 +1735,7 @@ void dodo::SelectAll() noexcept
 
 void dodo::populateRecentFiles() noexcept
 {
+    m_recentFilesMenu->clear();
     QSqlQuery query;
     if (query.exec("SELECT file_path, page_number, last_accessed "
                 "FROM last_visited "
@@ -1743,6 +1744,8 @@ void dodo::populateRecentFiles() noexcept
         while (query.next())
         {
             QString path = query.value(0).toString();
+            if (path.isEmpty())
+                continue;
             int page = query.value(1).toInt();
             // QDateTime accessed = query.value(2).toDateTime();
             QAction *fileAction = new QAction(path);
@@ -1759,4 +1762,23 @@ void dodo::populateRecentFiles() noexcept
         qWarning() << "Failed to query recent files:" << query.lastError().text();
     }
 
+    if (m_recentFilesMenu->isEmpty())
+        m_recentFilesMenu->setDisabled(true);
+    else
+        m_recentFilesMenu->setEnabled(true);
+
+}
+
+void dodo::editLastPages() noexcept
+{
+    if (!m_last_pages_db.isValid())
+    {
+        QMessageBox::information(this, "Edit Last Pages",
+                "Couldn't find the database of last pages. Maybe `remember_last_visited` option is turned off in the config file");
+        return;
+    }
+
+    EditLastPagesWidget *elpw = new EditLastPagesWidget(m_last_pages_db, this);
+    elpw->show();
+    connect(elpw, &EditLastPagesWidget::finished, this, &dodo::populateRecentFiles);
 }

@@ -47,6 +47,7 @@
 #include "BrowseLinkItem.hpp"
 #include "Model.hpp"
 #include "PropertiesWidget.hpp"
+#include "EditLastPagesWidget.hpp"
 
 extern "C" {
 #include <synctex/synctex_version.h>
@@ -217,6 +218,7 @@ private:
     void selectAnnots() noexcept;
     void clearAnnotSelection() noexcept;
     void populateRecentFiles() noexcept;
+    void editLastPages() noexcept;
 
     QMenuBar *m_menuBar { nullptr };
     QMenu *m_fitMenu { nullptr };
@@ -242,9 +244,7 @@ private:
     QAction *m_actionAbout { nullptr };
 
     QCache<CacheKey, CacheValue> m_cache;
-
     QMap<int, QList<Model::SearchResult>> m_searchRectMap;
-
     QString m_filename;
     GraphicsView *m_gview = new GraphicsView();
     QGraphicsScene *m_gscene = new QGraphicsScene();
@@ -272,5 +272,6 @@ private:
     QClipboard *m_clipboard = QGuiApplication::clipboard();
     QSet<int> m_selected_annots;
     bool m_link_boundary;
+    QSqlDatabase m_last_pages_db;
 };
 

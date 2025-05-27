@@ -43,6 +43,7 @@ add_executable(${PROJECT_NAME}
     src/GraphicsView.hpp
     src/ElidableLabel.hpp
     src/HighlightItem.hpp
+    src/EditLastPagesWidget.hpp
 
 )
 
