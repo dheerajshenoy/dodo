@@ -73,7 +73,7 @@ Check out the `config.toml` file for reference
 - [X] Keyboard navigation
 - [X] Search (with highlight)
 - [X] Clicking figure names
-- [ ] file:/// link click support
+- [ ] Accelerator
 
 ## Tools Used
 
