@@ -32,7 +32,7 @@ union_quad(const fz_quad& a, const fz_quad& b);
 class Model : public QObject
 {
     Q_OBJECT
-  public:
+public:
     Model(QGraphicsScene* scene);
     ~Model();
     explicit operator bool() const noexcept
@@ -111,7 +111,6 @@ class Model : public QObject
         return m_transform;
     }
     void visitLinkKB(int pageno, float zoom) noexcept;
-    void copyLinkKB(int pageno) noexcept;
     QMap<QString, LinkInfo> hintToLinkMap()
     {
         return m_hint_to_link_map;
@@ -147,7 +146,7 @@ class Model : public QObject
                                 const QPointF& selectionEnd) noexcept;
     QString getSelectionText(const QPointF& selectionStart, const QPointF& selectionEnd) noexcept;
 
-  signals:
+signals:
     void jumpToPageRequested(int pageno);
     void jumpToLocationRequested(int pageno, const BrowseLinkItem::Location& loc);
     void imageRenderRequested(int pageno, QImage img);
@@ -157,7 +156,7 @@ class Model : public QObject
     void fitRectRequested(int pageno, float x, float y, float w, float h);
     void fitXYZRequested(int pageno, float x, float y, float zoom);
 
-  private:
+private:
     void apply_night_mode(fz_pixmap* pixmap) noexcept;
 
     QList<SearchResult> searchHelper(int pageno, const QString& term, bool caseSensitive);

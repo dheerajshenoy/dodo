@@ -96,6 +96,13 @@ public:
         }
     };
 
+    enum class LinkHintMode
+    {
+        None = 0,
+        Visit,
+        Copy
+    };
+
 public slots:
     void handleRenderResult(int pageno, QImage img);
 
@@ -253,7 +260,6 @@ private:
     QTimer* m_HQRenderTimer = new QTimer(this);
     QMap<QString, QRgb> m_colors;
     bool m_highlights_present, m_selection_present;
-    bool m_linkHintMode{false};
     bool m_full_file_path_in_panel;
     OutlineWidget* m_owidget{nullptr};
     PropertiesWidget* m_propsWidget{nullptr};
@@ -270,4 +276,5 @@ private:
     QSet<int> m_selected_annots;
     bool m_link_boundary;
     QSqlDatabase m_last_pages_db;
+    LinkHintMode m_link_hint_mode{LinkHintMode::None};
 };

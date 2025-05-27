@@ -769,15 +769,6 @@ Model::visitLinkKB(int pageno, float zoom) noexcept
 }
 
 void
-Model::copyLinkKB(int pageno) noexcept
-{
-    // TODO: copy link hint
-#ifndef NDEBUG
-    qDebug() << "Copy link hint not yet implemented";
-#endif
-}
-
-void
 Model::clearKBHintsOverlay() noexcept
 {
     for (auto& link : m_scene->items())
@@ -855,8 +846,7 @@ Model::extractPDFProperties() noexcept
                 int slen      = pdf_to_str_len(m_ctx, valObj);
 
                 if (slen >= 2 && (quint8)s[0] == 0xFE && (quint8)s[1] == 0xFF)
-                    val =
-                        QString::fromUtf16(reinterpret_cast<const ushort*>(s + 2), (slen - 2) / 2);
+                    val = QString::fromUtf16(reinterpret_cast<const ushort*>(s + 2), (slen - 2) / 2);
                 else
                     val = QString::fromUtf8(s, slen);
             }
