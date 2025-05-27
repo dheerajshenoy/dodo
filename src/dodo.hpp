@@ -135,7 +135,6 @@ private:
     void renderPixmap(const QPixmap& pix) noexcept;
     void scrollToXY(float x, float y) noexcept;
     void scrollToNormalizedTop(const double& top) noexcept;
-    bool isPrefetchPage(int page, int currentPage) noexcept;
     void prefetchAround(int currentPage) noexcept;
     void setupKeybinding(const QString& action, const QString& key) noexcept;
     void setFitMode(const FitMode& mode) noexcept;
@@ -229,6 +228,7 @@ private:
     QMenu* m_fitMenu{nullptr};
     QMenu* m_recentFilesMenu{nullptr};
 
+    QAction* m_actionFullscreen{nullptr};
     QAction* m_actionZoomIn{nullptr};
     QAction* m_actionInvertColor{nullptr};
     QAction* m_actionFileProperties{nullptr};

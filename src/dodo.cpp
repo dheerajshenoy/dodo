@@ -77,6 +77,9 @@ dodo::initMenubar() noexcept
 
     // --- View Menu ---
     QMenu* viewMenu = m_menuBar->addMenu("&View");
+    m_actionFullscreen = viewMenu->addAction(QString("Fullscreen\t%1").arg(m_shortcuts_map["fullscreen"]), this, &dodo::ToggleFullscreen);
+    m_actionFullscreen->setCheckable(true);
+
     m_actionZoomIn  = viewMenu->addAction(QString("Zoom In\t%1").arg(m_shortcuts_map["zoom_in"]), this, &dodo::ZoomIn);
     m_actionZoomOut =
         viewMenu->addAction(QString("Zoom Out\t%1").arg(m_shortcuts_map["zoom_out"]), this, &dodo::ZoomOut);
@@ -148,17 +151,17 @@ dodo::initMenubar() noexcept
     selectionActionGroup->addAction(m_actionTextSelect);
 
     m_actionTextHighlight =
-        toolsMenu->addAction(QString("Text Highlight\t%1").arg(m_shortcuts_map["text_highlight"]), this, &dodo::FirstPage);
+        toolsMenu->addAction(QString("Text Highlight\t%1").arg(m_shortcuts_map["text_highlight"]), this, &dodo::ToggleTextHighlight);
     m_actionTextHighlight->setCheckable(true);
     selectionActionGroup->addAction(m_actionTextHighlight);
 
     m_actionAnnotRect =
-        toolsMenu->addAction(QString("Annotate Rectangle\t%1").arg(m_shortcuts_map["annot_rect"]), this, &dodo::FirstPage);
+        toolsMenu->addAction(QString("Annotate Rectangle\t%1").arg(m_shortcuts_map["annot_rect"]), this, &dodo::ToggleRectAnnotation);
     m_actionAnnotRect->setCheckable(true);
     selectionActionGroup->addAction(m_actionAnnotRect);
 
     m_actionAnnotEdit =
-        toolsMenu->addAction(QString("Edit Annotations\t%1").arg(m_shortcuts_map["annot_edit"]), this, &dodo::FirstPage);
+        toolsMenu->addAction(QString("Edit Annotations\t%1").arg(m_shortcuts_map["annot_edit"]), this, &dodo::ToggleAnnotSelect);
     m_actionAnnotEdit->setCheckable(true);
     selectionActionGroup->addAction(m_actionAnnotEdit);
 
@@ -1158,7 +1161,6 @@ void
 dodo::gotoPageInternal(const int& pageno) noexcept
 {
     m_pageno = pageno;
-
     renderPage(pageno, false);
 }
 
@@ -1234,6 +1236,9 @@ dodo::renderPage(int pageno, bool renderonly) noexcept
     renderPixmap(pix);
     renderLinks(links);
     renderAnnotations(annot_highlights);
+
+    // if (m_prefetch_enabled)
+    //     prefetchAround(m_pageno);
 }
 
 void
@@ -1242,21 +1247,26 @@ dodo::renderPixmap(const QPixmap& pix) noexcept
     m_pix_item->setPixmap(pix);
 }
 
-bool
-dodo::isPrefetchPage(int page, int currentPage) noexcept
-{
-    return page == currentPage + 1 || page == currentPage - 1;
-}
-
 void
 dodo::prefetchAround(int currentPage) noexcept
 {
     for (int offset = -m_prefetch_distance; offset <= m_prefetch_distance; ++offset)
     {
-        int page = currentPage + offset;
-        if (page >= 0 && page < m_total_pages)
+        int pageno = currentPage + offset;
+        if (pageno >= 0 && pageno < m_total_pages)
         {
-            m_model->renderPage(page, m_scale_factor, m_rotation);
+            qDebug() << "Prefetching page: " << pageno;
+            CacheKey key{pageno, m_rotation, m_scale_factor};
+            if (auto cached = m_cache.object(key))
+            {
+                qDebug() << pageno << " already cached; skipping prefetch";
+                continue;
+            }
+            auto pix              = m_model->renderPage(pageno, m_scale_factor, m_rotation);
+            auto links            = m_model->getLinks();
+            auto annot_highlights = m_model->getAnnotations();
+
+            m_cache.insert(key, new CacheValue(pix, links, annot_highlights));
         }
     }
 }
@@ -1385,6 +1395,7 @@ dodo::FitHeight() noexcept
     m_scale_factor *= scale;
     zoomHelper();
     setFitMode(FitMode::Height);
+    m_actionFitHeight->setChecked(true);
 }
 
 void
@@ -1400,6 +1411,7 @@ dodo::FitWidth() noexcept
     m_scale_factor *= scale;
     zoomHelper();
     setFitMode(FitMode::Width);
+    m_actionFitWidth->setChecked(true);
 }
 
 void
@@ -1420,12 +1432,14 @@ dodo::FitWindow() noexcept
     m_scale_factor *= scale;
     zoomHelper();
     setFitMode(FitMode::Window);
+    m_actionFitWindow->setChecked(true);
 }
 
 void
 dodo::FitNone() noexcept
 {
     setFitMode(FitMode::None);
+    m_actionFitNone->setChecked(true);
 }
 
 void
@@ -1747,11 +1761,13 @@ dodo::ToggleRectAnnotation() noexcept
     {
         m_gview->setMode(GraphicsView::Mode::TextSelection);
         m_panel->setMode(GraphicsView::Mode::TextSelection);
+        m_actionTextSelect->setChecked(true);
     }
     else
     {
         m_gview->setMode(GraphicsView::Mode::AnnotRect);
         m_panel->setMode(GraphicsView::Mode::AnnotRect);
+        m_actionAnnotRect->setChecked(true);
     }
 }
 
@@ -1915,10 +1931,12 @@ dodo::TopOfThePage() noexcept
 void
 dodo::ToggleFullscreen() noexcept
 {
-    if (this->isFullScreen())
+    auto isFullscreen = this->isFullScreen();
+    if (isFullscreen)
         this->showNormal();
     else
         this->showFullScreen();
+    m_actionFullscreen->setChecked(!isFullscreen);
 }
 
 void
@@ -1937,6 +1955,7 @@ void
 dodo::ToggleAutoResize() noexcept
 {
     m_auto_resize = !m_auto_resize;
+    m_actionAutoresize->setChecked(m_auto_resize);
 }
 
 void
@@ -2136,12 +2155,14 @@ dodo::ToggleTextHighlight() noexcept
     {
         m_gview->setMode(GraphicsView::Mode::TextSelection);
         m_panel->setMode(GraphicsView::Mode::TextSelection);
+        m_actionTextSelect->setChecked(true);
     }
     else
     {
         m_gview->setMode(GraphicsView::Mode::TextHighlight);
         m_panel->setMode(GraphicsView::Mode::TextHighlight);
         clearTextSelection();
+        m_actionTextHighlight->setChecked(true);
     }
 }
 
@@ -2172,12 +2193,14 @@ dodo::ToggleAnnotSelect() noexcept
     {
         m_gview->setMode(GraphicsView::Mode::TextSelection);
         m_panel->setMode(GraphicsView::Mode::TextSelection);
+        m_actionTextSelect->setChecked(true);
     }
     else
     {
         m_gview->setMode(GraphicsView::Mode::AnnotSelect);
         m_panel->setMode(GraphicsView::Mode::AnnotSelect);
         clearAnnotSelection();
+        m_actionAnnotEdit->setChecked(true);
     }
 }
 
@@ -2250,7 +2273,7 @@ dodo::deleteKeyAction() noexcept
     {
         m_model->deleteAnnots(m_selected_annots);
         setDirty(true);
-        renderPage(m_pageno, false);
+        renderPage(m_pageno);
     }
 
 }
@@ -2286,4 +2309,6 @@ dodo::TextSelectionMode() noexcept
 
     m_gview->setMode(GraphicsView::Mode::TextSelection);
     m_panel->setMode(GraphicsView::Mode::TextSelection);
+
+    m_actionTextSelect->setChecked(true);
 }
