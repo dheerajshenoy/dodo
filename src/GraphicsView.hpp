@@ -7,6 +7,7 @@
 #include <QRubberBand>
 #include <mupdf/fitz.h>
 #include <mupdf/fitz/pixmap.h>
+#include <qevent.h>
 
 #define CLICK_THRESHOLD 10
 
@@ -61,6 +62,7 @@ protected:
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* e) override;
+    // void contextMenuEvent(QContextMenuEvent *e) override;
 
 private:
     QRect m_rect;

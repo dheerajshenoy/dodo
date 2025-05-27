@@ -40,8 +40,9 @@ GraphicsView::mousePressEvent(QMouseEvent* event)
     switch (m_mode)
     {
 
-        case Mode::AnnotRect:
         case Mode::AnnotSelect:
+            emit annotSelectClearRequested();
+        case Mode::AnnotRect:
             if (event->button() == Qt::LeftButton)
             {
                 m_start = event->pos();
@@ -82,8 +83,22 @@ GraphicsView::mousePressEvent(QMouseEvent* event)
         }
 
         case Mode::TextHighlight:
-            emit textSelectionDeletionRequested();
-            break;
+        {
+            if (event->button() == Qt::LeftButton)
+            {
+                QGuiApplication::setOverrideCursor(Qt::CursorShape::IBeamCursor);
+                m_mousePressPos = event->pos();
+                m_selecting     = true;
+                auto pos        = mapToScene(event->pos());
+                if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(pos))
+                {
+                    m_selection_start = pos;
+                    emit textSelectionDeletionRequested();
+                }
+                // QGraphicsView::mousePressEvent(event);
+            }
+        }
+        break;
     }
 }
 
@@ -147,6 +162,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent* event)
                 emit textHighlightRequested(m_selection_start, m_selection_end);
             }
             m_selecting = false;
+            emit textSelectionDeletionRequested();
         }
         break;
 

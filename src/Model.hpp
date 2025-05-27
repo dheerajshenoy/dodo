@@ -154,6 +154,7 @@ public:
     void highlightTextSelection(const QPointF& selectionStart,
                                 const QPointF& selectionEnd) noexcept;
     QString getSelectionText(const QPointF& selectionStart, const QPointF& selectionEnd) noexcept;
+    void deleteAnnots(const QSet<int> &indices) noexcept;
 
 signals:
     void jumpToPageRequested(int pageno);

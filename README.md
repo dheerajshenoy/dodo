@@ -18,7 +18,7 @@ PDF reader, I am reading lots of PDFs for my work.
 https://github.com/user-attachments/assets/a4c9ae7e-401e-4b02-9ae1-b70ff10079ab
 
 - **SyncTeX** support
-- 
+-
 - Caching and pre-fetching pages for faster page rendering
 - Vim-like keybindings
 - Configured using TOML language
@@ -58,6 +58,7 @@ Check out the `config.toml` file for reference
 
 ## TODO
 
+- [ ] OCR support
 - [ ] Tabs support
 - [X] Text mouse selection
 - [X] Synctex support

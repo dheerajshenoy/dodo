@@ -223,6 +223,7 @@ private:
     void clearAnnotSelection() noexcept;
     void populateRecentFiles() noexcept;
     void editLastPages() noexcept;
+    void deleteKeyAction() noexcept;
 
     QMenuBar* m_menuBar{nullptr};
     QMenu* m_fitMenu{nullptr};
@@ -262,7 +263,7 @@ private:
     Model* m_model{nullptr};
     QTimer* m_HQRenderTimer = new QTimer(this);
     QMap<QString, QRgb> m_colors;
-    bool m_highlights_present, m_selection_present;
+    bool m_highlights_present, m_selection_present, m_annot_selection_present;
     bool m_full_file_path_in_panel;
     OutlineWidget* m_owidget{nullptr};
     PropertiesWidget* m_propsWidget{nullptr};

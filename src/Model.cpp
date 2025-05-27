@@ -1,6 +1,7 @@
+#include "Model.hpp"
+
 #include "BrowseLinkItem.hpp"
 #include "HighlightItem.hpp"
-#include "Model.hpp"
 
 #include <QDebug>
 #include <QGraphicsRectItem>
@@ -675,7 +676,7 @@ Model::save() noexcept
 }
 
 bool
-Model::saveAs(const char *filename) noexcept
+Model::saveAs(const char* filename) noexcept
 {
     if (!filename)
         return false;
@@ -1061,14 +1062,24 @@ Model::getAnnotationsInArea(const QRectF& area) noexcept
 
     if (!m_ctx || !m_pdfpage)
         return results;
-    int index = 0;
 
     pdf_annot* annot = pdf_first_annot(m_ctx, m_pdfpage);
+
+    if (!annot)
+        return results;
+
+    int index = 0;
+
+    fz_matrix inv_mat = fz_scale(m_inv_dpr, m_inv_dpr);
+    fz_matrix mat = fz_concat(inv_mat, m_transform);
 
     while (annot)
     {
         fz_rect bbox = pdf_bound_annot(m_ctx, annot);
-        QRectF annotRect(bbox.x0 * m_dpr, bbox.y0 * m_dpr, (bbox.x1 - bbox.x0) * m_dpr, (bbox.y1 - bbox.y0) * m_dpr);
+        // bbox = fz_transform_rect(bbox, m_transform);
+        // bbox = fz_transform_rect(bbox, inv_mat);
+        bbox = fz_transform_rect(bbox, mat);
+        QRectF annotRect(bbox.x0, bbox.y0, (bbox.x1 - bbox.x0), (bbox.y1 - bbox.y0));
 
         if (area.intersects(annotRect))
             results.insert(index);
@@ -1103,4 +1114,15 @@ Model::selectAllText(const QPointF& start, const QPointF& end) noexcept
     if (selected)
         delete[] selected;
     return text;
+}
+
+void
+Model::deleteAnnots(const QSet<int> &indexes) noexcept
+{
+    for (const auto &index : indexes)
+    {
+        pdf_annot* annot = get_annot_by_index(index);
+        if (annot)
+            pdf_delete_annot(m_ctx, m_pdfpage, annot);
+    }
 }

@@ -19,12 +19,11 @@ public:
 
 signals:
     void annotDeleteRequested(int index);
+    void annotColorChangeRequested(int index); // TODO: Handle this
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* e) override
     {
-        // setBrush(Qt::red);
-        // emit annotDeleteRequested(m_index);
         QGraphicsRectItem::mousePressEvent(e);
     }
 
