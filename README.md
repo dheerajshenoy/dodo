@@ -28,7 +28,7 @@ PDF reader, I am reading lots of PDFs for my work.
 - mupdf
 - libsynctex \[(optional)for reverse searching and goto reference from LaTeX\]
 - cmake (for building)
-- make (for building)
+- ninja (for building)
 
 ## Installation
 
@@ -39,9 +39,9 @@ PDF reader, I am reading lots of PDFs for my work.
 ```bash
 mkdir build &&
 cd build &&
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr &&
-make -j$(nproc) &&
-sudo make install
+cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr &&
+ninja &&
+sudo ninja install
 ```
 
 ## Configuration
