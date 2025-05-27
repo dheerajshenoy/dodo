@@ -2,6 +2,7 @@
 
 #include "BrowseLinkItem.hpp"
 #include "HighlightItem.hpp"
+#include "LinkHint.hpp"
 #include "OutlineWidget.hpp"
 #include "RenderTask.hpp"
 
@@ -14,7 +15,6 @@
 #include <mupdf/fitz.h>
 #include <mupdf/pdf.h>
 #include <mutex>
-#include "LinkHint.hpp"
 
 #define CSTR(x) x.toStdString().c_str()
 
@@ -54,6 +54,7 @@ public:
     QPixmap renderPage(int pageno, float zoom, float rotation, bool renderonly = false) noexcept;
     QList<BrowseLinkItem*> getLinks() noexcept;
     pdf_annot* get_annot_by_index(int index) noexcept;
+    QList<pdf_annot*> get_annots_by_indexes(const QSet<int>& index) noexcept;
     void annotDeleteRequested(int index) noexcept;
     QList<HighlightItem*> getAnnotations() noexcept;
     void setLinkBoundary(bool state);
@@ -72,8 +73,7 @@ public:
         m_inv_dpr = 1 / dpr;
     }
     fz_context* clonedContext() noexcept;
-    void annotHighlightSelection(const QPointF& selectionStart,
-                                 const QPointF& selectionEnd) noexcept;
+    void annotHighlightSelection(const QPointF& selectionStart, const QPointF& selectionEnd) noexcept;
     QSet<int> getAnnotationsInArea(const QRectF& area) noexcept;
     inline fz_context* context() noexcept
     {
@@ -149,12 +149,10 @@ public:
         m_link_hint_bg = QColor::fromRgba(bg);
     }
 
-    void highlightHelper(const QPointF& selectionStart, const QPointF& selectionEnd, fz_point& a,
-                         fz_point& b) noexcept;
-    void highlightTextSelection(const QPointF& selectionStart,
-                                const QPointF& selectionEnd) noexcept;
+    void highlightHelper(const QPointF& selectionStart, const QPointF& selectionEnd, fz_point& a, fz_point& b) noexcept;
+    void highlightTextSelection(const QPointF& selectionStart, const QPointF& selectionEnd) noexcept;
     QString getSelectionText(const QPointF& selectionStart, const QPointF& selectionEnd) noexcept;
-    void deleteAnnots(const QSet<int> &indices) noexcept;
+    void deleteAnnots(const QSet<int>& indices) noexcept;
 
 signals:
     void jumpToPageRequested(int pageno);
@@ -165,7 +163,7 @@ signals:
     void verticalFitRequested(int pageno, const BrowseLinkItem::Location& location);
     void fitRectRequested(int pageno, float x, float y, float w, float h);
     void fitXYZRequested(int pageno, float x, float y, float zoom);
-    void showMessageRequested(const char *message, MessageType type);
+    void showMessageRequested(const char* message, MessageType type);
     void documentSaved();
 
 private:
@@ -191,7 +189,7 @@ private:
     fz_matrix m_transform;
     float m_height, m_width;
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
-    QColor m_link_hint_fg { QColor::fromRgba(0x000000) }, m_link_hint_bg { QColor::fromRgba(0xFFFF00) };
+    QColor m_link_hint_fg{QColor::fromRgba(0x000000)}, m_link_hint_bg{QColor::fromRgba(0xFFFF00)};
     pdf_write_options m_write_opts;
     pdf_document* m_pdfdoc{nullptr};
     float m_highlight_color[4];

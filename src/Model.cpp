@@ -540,6 +540,28 @@ Model::get_annot_by_index(int index) noexcept
     return annot; // nullptr if not found
 }
 
+QList<pdf_annot*>
+Model::get_annots_by_indexes(const QSet<int> &indexes) noexcept
+{
+    QList<pdf_annot*> result;
+
+    if (!m_pdfpage || indexes.isEmpty())
+        return result;
+
+    pdf_annot* annot = pdf_first_annot(m_ctx, m_pdfpage);
+    int i = 0;
+    while (annot)
+    {
+        if (indexes.contains(i))
+            result.append(annot);
+
+        annot = pdf_next_annot(m_ctx, annot);
+        ++i;
+    }
+
+    return result;
+}
+
 QList<BrowseLinkItem*>
 Model::getLinks() noexcept
 {
@@ -1150,9 +1172,9 @@ Model::selectAllText(const QPointF& start, const QPointF& end) noexcept
 void
 Model::deleteAnnots(const QSet<int> &indexes) noexcept
 {
-    for (const auto &index : indexes)
+    QList<pdf_annot*> annots = get_annots_by_indexes(indexes);
+    for (const auto &annot : annots)
     {
-        pdf_annot* annot = get_annot_by_index(index);
         if (annot)
             pdf_delete_annot(m_ctx, m_pdfpage, annot);
     }
