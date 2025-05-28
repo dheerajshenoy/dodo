@@ -24,7 +24,6 @@ resource usage.
 - [Configuration](#configuration)
 - [Theming dodo](#theming-dodo)
 - [Spotlight](#spotlight)
-- [TODO](#todo)
 - [Contributing](#contributing)
 - [FAQ](#faq)
 
@@ -120,39 +119,19 @@ https://github.com/user-attachments/assets/a4c9ae7e-401e-4b02-9ae1-b70ff10079ab
 
 https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
 
-## TODO
-
-- [ ] OCR support
-- [ ] Tabs support
-- [X] Text mouse selection
-- [X] Synctex support
-- [X] HiDPI support
-- [X] Annotations
-    - [X] Basic rectangle highlight
-    <!-- - [ ] Word aware highlight -->
-- [X] Table of Contents
-- [X] Keyboard link navigation
-- [ ] Complex searches
-- [X] Visited file location
-- [X] Keyboard navigation
-- [X] Search (with highlight)
-- [X] Clicking figure names
-- [ ] Undo/Redo operations
-- [ ] Accelerator
-
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
 
 ## FAQ
 
-Q: Does Dodo support tabs?
-A: Not yet. Tabs support is planned.
+#### Does Dodo support tabs?
+Not yet. Tabs support is planned.
 
-Q: Can I use Dodo on Wayland?
-A: Yes, Dodo supports Wayland natively.
+#### Can I use Dodo on Wayland?
+Yes, Dodo supports Wayland natively.
 
-Q: How do I report bugs?
-A: Open issues on the GitHub repository here.
+#### How do I report bugs?
+Open issues on the GitHub repository here.
 
 
