@@ -3,6 +3,8 @@
 <b><i>A fast and unintrusive PDF reader.</i></b>
 </p>
 
+![GitHub License](https://img.shields.io/github/license/dheerajshenoy/dodo)
+
 > [!WARNING]
 > Dodo is currently in alpha and may experience crashes or instability.
 
@@ -15,8 +17,6 @@ resource usage.
 
 ## Table of Contents
 
-- [Introduction](#-a-fast-and-unintrusive-pdf-reader)
-- [Why ?](#why-)
 - [Features](#features)
 - [Dependencies](#dependencies)
 - [Installation](#installation)
@@ -28,14 +28,10 @@ resource usage.
 ## Features
 
 - Fast rendering with MuPDF backend
-
-https://github.com/user-attachments/assets/a4c9ae7e-401e-4b02-9ae1-b70ff10079ab
-
 - **SyncTeX** support
 - Caching and pre-fetching pages for faster page rendering
 - Vim-like keybindings
 - Configured using TOML language
-![config](https://github.com/user-attachments/assets/59195e30-30dd-487f-8ef5-43c883063d91)
 - Faster search
 - Visited file location saving
 - Link awareness
@@ -43,7 +39,6 @@ https://github.com/user-attachments/assets/a4c9ae7e-401e-4b02-9ae1-b70ff10079ab
 - Text highlight
 - Jump Marker (to help locate where link takes you to)
 
-https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
 - Wayland support
 
 ## Dependencies
@@ -102,6 +97,16 @@ It supports dark themes, custom widgets, and integrates well with Qt6.
 
 Check out kvantum's install page [here](https://github.com/tsujan/Kvantum/blob/master/Kvantum/INSTALL.md)
 
+## Spotlight
+
+### Demo of speed
+
+https://github.com/user-attachments/assets/a4c9ae7e-401e-4b02-9ae1-b70ff10079ab
+
+### Jump Marker
+
+https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
+
 ## TODO
 
 - [ ] OCR support
@@ -131,4 +136,4 @@ Check out kvantum's install page [here](https://github.com/tsujan/Kvantum/blob/m
 
 ## License
 
-[![Licence](https://img.shields.io/github/license/dheerajshenoy/dodo?style=for-the-badge)](./LICENSE)
+
