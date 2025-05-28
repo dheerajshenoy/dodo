@@ -9,9 +9,10 @@
 #include "Panel.hpp"
 #include "PropertiesWidget.hpp"
 #include "RenderTask.hpp"
+#include "ShortcutsWidget.hpp"
 #include "argparse.hpp"
 #include "toml.hpp"
-#include "ShortcutsWidget.hpp"
+#include "GraphicsScene.hpp"
 
 #include <QActionGroup>
 #include <QApplication>
@@ -22,7 +23,6 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QGraphicsPixmapItem>
-#include <QGraphicsScene>
 #include <QInputDialog>
 #include <QKeySequence>
 #include <QMainWindow>
@@ -230,6 +230,10 @@ private:
     void deleteKeyAction() noexcept;
     void setDirty(bool state) noexcept;
     void fadeJumpMarker(JumpMarker *item) noexcept;
+    void populateContextMenu(QMenu *menu, const QPointF &pos) noexcept;
+    void annotChangeColor() noexcept;
+    void changeHighlighterColor() noexcept;
+    void changeAnnotRectColor() noexcept;
 
     QMenuBar *m_menuBar{nullptr};
     QMenu *m_fitMenu{nullptr};
@@ -266,7 +270,7 @@ private:
     QMap<int, QList<Model::SearchResult>> m_searchRectMap;
     QString m_filename, m_basename;
     GraphicsView *m_gview           = new GraphicsView();
-    QGraphicsScene *m_gscene        = new QGraphicsScene();
+    GraphicsScene *m_gscene        = new GraphicsScene();
     QGraphicsPixmapItem *m_pix_item = new QGraphicsPixmapItem();
     QVBoxLayout *m_layout           = new QVBoxLayout();
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
@@ -274,8 +278,8 @@ private:
     Model *m_model{nullptr};
     QTimer *m_HQRenderTimer = new QTimer(this);
     QMap<QString, QRgb> m_colors;
-    bool m_highlights_present, m_selection_present, m_annot_selection_present, m_full_file_path_in_panel,
-        m_dirty{false};
+    bool m_highlights_present, m_selection_present{false}, m_annot_selection_present{false},
+        m_full_file_path_in_panel{false}, m_dirty{false};
     OutlineWidget *m_owidget{nullptr};
     PropertiesWidget *m_propsWidget{nullptr};
     QString m_currentHintInput;

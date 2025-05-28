@@ -1,9 +1,11 @@
 #include "GraphicsView.hpp"
 
+#include "BrowseLinkItem.hpp"
+
 #include <qgraphicsview.h>
 #include <qnamespace.h>
 
-GraphicsView::GraphicsView(QWidget* parent) : QGraphicsView(parent)
+GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
 {
     setMouseTracking(true);
     setResizeAnchor(AnchorViewCenter);
@@ -32,14 +34,14 @@ GraphicsView::setMode(Mode mode) noexcept
 }
 
 void
-GraphicsView::mousePressEvent(QMouseEvent* event)
+GraphicsView::mousePressEvent(QMouseEvent *event)
 {
     switch (m_mode)
     {
-
         case Mode::AnnotSelect:
             emit annotSelectClearRequested();
         case Mode::AnnotRect:
+        {
             if (event->button() == Qt::LeftButton)
             {
                 m_start = event->pos();
@@ -52,7 +54,8 @@ GraphicsView::mousePressEvent(QMouseEvent* event)
                 m_rubberBand->show();
                 return;
             }
-            break;
+        }
+        break;
 
         case Mode::TextSelection:
         {
@@ -76,8 +79,9 @@ GraphicsView::mousePressEvent(QMouseEvent* event)
                 }
                 QGraphicsView::mousePressEvent(event); // Let QGraphicsItems (like links) respond
             }
-            break;
+            return;
         }
+        break;
 
         case Mode::TextHighlight:
         {
@@ -92,15 +96,17 @@ GraphicsView::mousePressEvent(QMouseEvent* event)
                     m_selection_start = pos;
                     emit textSelectionDeletionRequested();
                 }
-                // QGraphicsView::mousePressEvent(event);
+                return;
             }
         }
         break;
     }
+
+    QGraphicsView::mousePressEvent(event);
 }
 
 void
-GraphicsView::mouseMoveEvent(QMouseEvent* event)
+GraphicsView::mouseMoveEvent(QMouseEvent *event)
 {
     switch (m_mode)
     {
@@ -133,7 +139,7 @@ GraphicsView::mouseMoveEvent(QMouseEvent* event)
 }
 
 void
-GraphicsView::mouseReleaseEvent(QMouseEvent* event)
+GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 {
     int dist = (event->pos() - m_mousePressPos).manhattanLength();
 
@@ -206,7 +212,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent* event)
 }
 
 void
-GraphicsView::wheelEvent(QWheelEvent* e)
+GraphicsView::wheelEvent(QWheelEvent *e)
 {
     if (e->modifiers() == Qt::ControlModifier)
     {
@@ -217,4 +223,26 @@ GraphicsView::wheelEvent(QWheelEvent* e)
         return;
     }
     QGraphicsView::wheelEvent(e);
+}
+
+void
+GraphicsView::contextMenuEvent(QContextMenuEvent *e)
+{
+    // Check if item under cursor handled the event
+    QPointF scenePos    = mapToScene(e->pos());
+    QGraphicsItem *item = scene()->itemAt(scenePos, transform());
+
+    // Optional: Skip if it's a link item
+    if (item && dynamic_cast<BrowseLinkItem *>(item))
+    {
+        // let the item handle the event if it accepts context menus
+        e->ignore();
+        return;
+    }
+
+    QMenu menu(this);
+    emit populateContextMenuRequested(&menu, e->pos());
+    if (!menu.isEmpty())
+        menu.exec(e->globalPos());
+    e->accept();
 }

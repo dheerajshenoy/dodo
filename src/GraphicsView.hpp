@@ -9,8 +9,9 @@
 #include <mupdf/fitz/pixmap.h>
 #include <qevent.h>
 #include <QGuiApplication>
+#include <QMenu>
 
-#define CLICK_THRESHOLD 10
+#define CLICK_THRESHOLD 50
 
 class GraphicsView : public QGraphicsView
 {
@@ -57,13 +58,14 @@ signals:
     void annotSelectClearRequested();
     void zoomInRequested();
     void zoomOutRequested();
+    void populateContextMenuRequested(QMenu *menu, const QPointF &pos);
 
 protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* e) override;
-    // void contextMenuEvent(QContextMenuEvent *e) override;
+    void contextMenuEvent(QContextMenuEvent *e) override;
 
 private:
     QRect m_rect;
