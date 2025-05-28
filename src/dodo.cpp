@@ -76,11 +76,12 @@ dodo::initMenubar() noexcept
     editMenu->addAction(QString("Last Pages\t%1").arg(m_shortcuts_map["edit_last_pages"]), this, &dodo::editLastPages);
 
     // --- View Menu ---
-    QMenu* viewMenu = m_menuBar->addMenu("&View");
-    m_actionFullscreen = viewMenu->addAction(QString("Fullscreen\t%1").arg(m_shortcuts_map["fullscreen"]), this, &dodo::ToggleFullscreen);
+    QMenu* viewMenu    = m_menuBar->addMenu("&View");
+    m_actionFullscreen = viewMenu->addAction(QString("Fullscreen\t%1").arg(m_shortcuts_map["fullscreen"]), this,
+                                             &dodo::ToggleFullscreen);
     m_actionFullscreen->setCheckable(true);
 
-    m_actionZoomIn  = viewMenu->addAction(QString("Zoom In\t%1").arg(m_shortcuts_map["zoom_in"]), this, &dodo::ZoomIn);
+    m_actionZoomIn = viewMenu->addAction(QString("Zoom In\t%1").arg(m_shortcuts_map["zoom_in"]), this, &dodo::ZoomIn);
     m_actionZoomOut =
         viewMenu->addAction(QString("Zoom Out\t%1").arg(m_shortcuts_map["zoom_out"]), this, &dodo::ZoomOut);
 
@@ -139,32 +140,30 @@ dodo::initMenubar() noexcept
     m_actionInvertColor->setCheckable(true);
     m_actionInvertColor->setChecked(m_model->invertColor());
 
-    QMenu *toolsMenu = m_menuBar->addMenu("Tools");
+    QMenu* toolsMenu = m_menuBar->addMenu("Tools");
 
-    QActionGroup *selectionActionGroup = new QActionGroup(this);
+    QActionGroup* selectionActionGroup = new QActionGroup(this);
     selectionActionGroup->setExclusive(true);
 
-    m_actionTextSelect =
-        toolsMenu->addAction(QString("Text Selection"), this, &dodo::TextSelectionMode);
+    m_actionTextSelect = toolsMenu->addAction(QString("Text Selection"), this, &dodo::TextSelectionMode);
     m_actionTextSelect->setCheckable(true);
     m_actionTextSelect->setChecked(true);
     selectionActionGroup->addAction(m_actionTextSelect);
 
-    m_actionTextHighlight =
-        toolsMenu->addAction(QString("Text Highlight\t%1").arg(m_shortcuts_map["text_highlight"]), this, &dodo::ToggleTextHighlight);
+    m_actionTextHighlight = toolsMenu->addAction(QString("Text Highlight\t%1").arg(m_shortcuts_map["text_highlight"]),
+                                                 this, &dodo::ToggleTextHighlight);
     m_actionTextHighlight->setCheckable(true);
     selectionActionGroup->addAction(m_actionTextHighlight);
 
-    m_actionAnnotRect =
-        toolsMenu->addAction(QString("Annotate Rectangle\t%1").arg(m_shortcuts_map["annot_rect"]), this, &dodo::ToggleRectAnnotation);
+    m_actionAnnotRect = toolsMenu->addAction(QString("Annotate Rectangle\t%1").arg(m_shortcuts_map["annot_rect"]), this,
+                                             &dodo::ToggleRectAnnotation);
     m_actionAnnotRect->setCheckable(true);
     selectionActionGroup->addAction(m_actionAnnotRect);
 
-    m_actionAnnotEdit =
-        toolsMenu->addAction(QString("Edit Annotations\t%1").arg(m_shortcuts_map["annot_edit"]), this, &dodo::ToggleAnnotSelect);
+    m_actionAnnotEdit = toolsMenu->addAction(QString("Edit Annotations\t%1").arg(m_shortcuts_map["annot_edit"]), this,
+                                             &dodo::ToggleAnnotSelect);
     m_actionAnnotEdit->setCheckable(true);
     selectionActionGroup->addAction(m_actionAnnotEdit);
-
 
     // --- Navigation Menu ---
     QMenu* navMenu = m_menuBar->addMenu("&Navigation");
@@ -191,9 +190,7 @@ dodo::initMenubar() noexcept
 void
 dodo::initConnections() noexcept
 {
-    connect(m_model, &Model::documentSaved, this, [&]() {
-            setDirty(false);
-            });
+    connect(m_model, &Model::documentSaved, this, [&]() { setDirty(false); });
 
     connect(m_model, &Model::searchResultsReady, this,
             [&](const QMap<int, QList<Model::SearchResult>>& maps, int matchCount)
@@ -383,20 +380,14 @@ dodo::initConfig() noexcept
 
     auto vscrollbar_shown = ui["vscrollbar"].value_or(true);
     auto vscrollbar       = m_gview->verticalScrollBar();
-    vscrollbar->setVisible(vscrollbar_shown);
+
+    if (!vscrollbar_shown)
+        m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     auto hscrollbar_shown = ui["hscrollbar"].value_or(true);
     auto hscrollbar       = m_gview->horizontalScrollBar();
-    hscrollbar->setVisible(hscrollbar_shown);
-
-    auto auto_hide_hscrollbar = ui["auto_hide_hscrollbar"].value_or(true);
-    auto auto_hide_vscrollbar = ui["auto_hide_vscrollbar"].value_or(true);
-
-    if (auto_hide_hscrollbar)
-        m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-
-    if (auto_hide_vscrollbar)
-        m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    if (!hscrollbar_shown)
+        m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     m_full_file_path_in_panel = ui["full_file_path_in_panel"].value_or(false);
     m_scale_factor            = ui["zoom_level"].value_or(1.0);
@@ -683,7 +674,7 @@ dodo::initConfig() noexcept
     if (compact)
     {
         m_layout->setContentsMargins(0, 0, 0, 0);
-        // m_panel->layout()->setContentsMargins(0, 0, 0, 0);
+        m_panel->layout()->setContentsMargins(5, 1, 5, 1);
         m_panel->setContentsMargins(0, 0, 0, 0);
         this->setContentsMargins(0, 0, 0, 0);
     }
@@ -2275,7 +2266,6 @@ dodo::deleteKeyAction() noexcept
         setDirty(true);
         renderPage(m_pageno);
     }
-
 }
 
 void
@@ -2290,7 +2280,9 @@ dodo::setDirty(bool state) noexcept
     {
         if (!m_window_title.endsWith("*"))
             m_window_title.append("*");
-    } else {
+    }
+    else
+    {
         if (m_window_title.endsWith("*"))
             m_window_title.chop(1);
     }
