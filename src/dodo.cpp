@@ -374,7 +374,7 @@ dodo::initDefaults() noexcept
     m_window_title = "%1 - dodo";
 
     m_colors["search_index"] = QColor::fromString("#3daee944").rgba();
-    m_colors["search_match"] = QColor::fromString("#FFFF8844").rgba();
+    m_colors["search_match"] = QColor::fromString("#55FF8844").rgba();
     m_colors["accent"]       = QColor::fromString("#FF500044").rgba();
     m_colors["background"]   = Qt::transparent;
     m_colors["link_hint_fg"] = QColor::fromString("#000000").rgba();
