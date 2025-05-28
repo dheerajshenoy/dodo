@@ -5,18 +5,18 @@
 
 [![GitHub License](https://shields.io/badge/LICENSE-AGPL-3)](https://opensource.org/license/agpl-v3)
 
-> [!WARNING]
-> Dodo is currently in alpha and may experience crashes or instability.
-
-> [!NOTE]
-> dodo is at v0.2.0-alpha
-
 **Dodo** is a lightweight, high-performance PDF reader designed to provide a smooth and
 efficient document viewing experience. Built using MuPDF and Qt, it supports fast rendering,
 precise text selection, annotation handling (highlights and rects), and advanced features like
 SyncTeX integration for LaTeX users. Whether you're reading academic papers, technical manuals, or
 everyday documents, this reader offers a streamlined interface and robust functionality with minimal
 resource usage.
+
+> [!WARNING]
+> Dodo is currently in alpha and may experience crashes or instability.
+
+> [!NOTE]
+> dodo is at v0.2.0-alpha
 
 ## Table of Contents
 
