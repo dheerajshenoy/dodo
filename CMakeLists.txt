@@ -56,7 +56,8 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Widgets
     Qt6::Core
     Qt6::Sql
-    mupdf
+    libmupdf.a
+    libmupdf-third.a
     synctex
 )
 
