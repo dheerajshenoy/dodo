@@ -29,6 +29,9 @@ https://github.com/user-attachments/assets/a4c9ae7e-401e-4b02-9ae1-b70ff10079ab
 - Text highlight
 - Jump Marker (to help locate where link takes you to)
 
+https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
+
+
 ## Dependencies
 
 - Qt6
