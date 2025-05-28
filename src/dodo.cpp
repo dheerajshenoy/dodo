@@ -786,6 +786,7 @@ dodo::initKeybinds() noexcept
     m_shortcuts_map["prev_page"] = "Shift+k";
     m_shortcuts_map["first_page"] = "g,g";
     m_shortcuts_map["last_page"] = "Shift+g";
+
     std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
         {"Ctrl+Shift+m",
             [this]()
@@ -1086,8 +1087,10 @@ dodo::clearPixmapItems() noexcept
 void
 dodo::openFile(const QString &fileName) noexcept
 {
+
     if (m_model->valid())
         CloseFile();
+
     m_filename = fileName;
     m_filename.replace("~", QString::fromStdString(getenv("HOME")));
 
@@ -1158,6 +1161,13 @@ dodo::openFile(const QString &fileName) noexcept
 
     m_gview->setEnabled(true);
     gotoPage(targetPage);
+
+    // Initialize zoom to be equal to fit to height
+    int pixmapHeight = m_pix_item->pixmap().height();
+    int viewHeight   = m_gview->viewport()->height() * m_dpr;
+
+    qreal scale = static_cast<qreal>(viewHeight) / pixmapHeight;
+    m_default_zoom = scale;
 
     updateUiEnabledState();
 
@@ -1414,26 +1424,28 @@ dodo::PrevPage() noexcept
 void
 dodo::ZoomIn() noexcept
 {
-    // if (m_scale_factor < 5.0)
-    // {
-    qDebug() << m_zoom_by;
+    if (!m_model->valid())
+        return;
     m_scale_factor *= m_zoom_by;
-    // m_gview->scale(1.1, 1.1);
     zoomHelper();
-    // }
 }
 
 void
 dodo::ZoomReset() noexcept
 {
-    m_scale_factor = 1.0;
-    // m_gview->resetTransform();
+    if (!m_model->valid())
+        return;
+
+    m_scale_factor = m_default_zoom;
     zoomHelper();
 }
 
 void
 dodo::ZoomOut() noexcept
 {
+    if (!m_model->valid())
+        return;
+
     if (m_scale_factor * 1 / m_zoom_by != 0)
     {
         // m_gview->scale(0.9, 0.9);
@@ -1447,6 +1459,8 @@ void
 dodo::Zoom(float factor) noexcept
 {
     // TODO: Add constraints here
+    if (!m_model->valid())
+        return;
 
     // m_gview->scale(factor, factor);
     m_scale_factor = factor;
@@ -1456,7 +1470,7 @@ dodo::Zoom(float factor) noexcept
 void
 dodo::zoomHelper() noexcept
 {
-    renderPage(m_pageno, true);
+    renderPage(m_pageno);
     if (m_highlights_present)
     {
         highlightSingleHit();
@@ -1505,7 +1519,7 @@ dodo::FitHeight() noexcept
         return;
 
     int pixmapHeight = m_pix_item->pixmap().height();
-    int viewHeight   = m_gview->viewport()->height() * m_gview->window()->devicePixelRatioF();
+    int viewHeight   = m_gview->viewport()->height() * m_dpr;
 
     qreal scale = static_cast<qreal>(viewHeight) / pixmapHeight;
     m_scale_factor *= scale;
@@ -1521,7 +1535,7 @@ dodo::FitWidth() noexcept
         return;
 
     int pixmapWidth = m_pix_item->pixmap().width();
-    int viewWidth   = m_gview->viewport()->width() * m_gview->window()->devicePixelRatioF();
+    int viewWidth   = m_gview->viewport()->width() * m_dpr;
 
     qreal scale = static_cast<qreal>(viewWidth) / pixmapWidth;
     m_scale_factor *= scale;
@@ -1535,8 +1549,8 @@ dodo::FitWindow() noexcept
 {
     const int pixmapWidth  = m_pix_item->pixmap().width();
     const int pixmapHeight = m_pix_item->pixmap().height();
-    const int viewWidth    = m_gview->viewport()->width() * m_gview->window()->devicePixelRatioF();
-    const int viewHeight   = m_gview->viewport()->height() * m_gview->window()->devicePixelRatioF();
+    const int viewWidth    = m_gview->viewport()->width() * m_dpr;
+    const int viewHeight   = m_gview->viewport()->height() * m_dpr;
 
     // Calculate scale factors for both dimensions
     const qreal scaleX = static_cast<qreal>(viewWidth) / pixmapWidth;
