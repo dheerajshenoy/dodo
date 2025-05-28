@@ -2262,7 +2262,7 @@ dodo::populateRecentFiles() noexcept
 void
 dodo::editLastPages() noexcept
 {
-    if (!m_last_pages_db.isValid())
+    if (m_last_pages_db.isOpen() && !m_last_pages_db.isValid())
     {
         QMessageBox::information(this, "Edit Last Pages",
                                  "Couldn't find the database of last pages. Maybe "
