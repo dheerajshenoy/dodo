@@ -122,7 +122,7 @@ dodo::initMenubar() noexcept
     m_actionAutoresize = m_fitMenu->addAction(QString("Auto Resize\t%1").arg(m_shortcuts_map["auto_resize"]), this,
                                               &dodo::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
-    m_actionAutoresize->setChecked(true); // default on or off
+    m_actionAutoresize->setChecked(m_auto_resize); // default on or off
 
     viewMenu->addSeparator();
 
@@ -337,7 +337,7 @@ dodo::scrollToXY(float x, float y) noexcept
 
     if (m_jump_marker_shown)
     {
-        m_jump_marker->setRect(QRectF(point.x, point.y + 5, 10, 10));
+        m_jump_marker->setRect(QRectF(point.x, point.y + 10, 10, 10));
 
         m_jump_marker->show();
         QTimer::singleShot(1000, [=]() { fadeJumpMarker(m_jump_marker); });
@@ -1309,7 +1309,7 @@ dodo::renderPage(int pageno, bool renderonly) noexcept
     m_cache.insert(key, new CacheValue(pix, links, annot_highlights));
     renderPixmap(pix);
     renderLinks(links);
-    renderAnnotations(annot_highlights);
+    // renderAnnotations(annot_highlights);
 
     // if (m_prefetch_enabled)
     //     prefetchAround(m_pageno);
