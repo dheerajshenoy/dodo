@@ -20,11 +20,12 @@ resource usage.
 - [Features](#features)
 - [Dependencies](#dependencies)
 - [Installation](#installation)
+- [Usage](#usage)
 - [Configuration](#configuration)
 - [Theming dodo](#theming-dodo)
 - [Spotlight](#spotlight)
 - [TODO](#todo)
-- [Tools Used](#tools-used)
+- [Contributing](#contributing)
 
 ## Features
 
@@ -84,6 +85,10 @@ ninja
 sudo ninja install
 ```
 
+# Usage
+
+Check out [usage](./USAGE.md) to learn how to use dodo.
+
 ## Configuration
 
 Dodo will search for `config.toml` file in the `~/.config/dodo` directory, and load it if it exists.
@@ -97,6 +102,10 @@ Kvantum is a powerful SVG-based theme engine for Qt.
 It supports dark themes, custom widgets, and integrates well with Qt6.
 
 Check out kvantum's install page [here](https://github.com/tsujan/Kvantum/blob/master/Kvantum/INSTALL.md)
+
+Once installed, you can select a theme you like in the `kvantummanager` app and
+add `QT_STYLE_OVERRIDE=kvantum` env variable. On the next launch, you should have
+the specified theme loaded in dodo.
 
 ## Spotlight
 
@@ -130,13 +139,9 @@ https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
 - [ ] Undo/Redo operations
 - [ ] Accelerator
 
-## Tools Used
+## Contributing
 
-- **Neovim** - my beloved text editor, without which I wouldn't be so fast in my commits :)
-- **ChatGPT** - ofc, it's 2025, I'm not gonna lie...
-- Qt forums and other websites
-- MuPDF discord channel
+Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
 
-## License
 
 
