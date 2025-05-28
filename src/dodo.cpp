@@ -329,8 +329,8 @@ dodo::scrollToXY(float x, float y) noexcept
     if (!m_pix_item || !m_gview)
         return;
 
-    fz_point point = { .x = x * m_inv_dpr, .y = y * m_inv_dpr };
-    point = fz_transform_point(point, m_model->transform());
+    fz_point point = {.x = x * m_inv_dpr, .y = y * m_inv_dpr};
+    point          = fz_transform_point(point, m_model->transform());
 
     if (m_jump_marker_shown)
     {
@@ -362,10 +362,69 @@ dodo::initDB() noexcept
 }
 
 void
+dodo::initDefaults() noexcept
+{
+    m_jump_marker_shown       = true;
+    m_full_file_path_in_panel = true;
+    m_scale_factor            = 1.0f;
+    m_model->setLinkBoundary(false);
+    m_window_title = "%1 - dodo";
+
+    m_colors["search_index"] = QColor::fromString("#3daee944").rgba();
+    m_colors["search_match"] = QColor::fromString("#FFFF8844").rgba();
+    m_colors["accent"]       = QColor::fromString("#FF500044").rgba();
+    m_colors["background"]   = QColor::fromString("#FFFFFF").rgba();
+    m_colors["link_hint_fg"] = QColor::fromString("#000000").rgba();
+    m_colors["link_hint_bg"] = QColor::fromString("#FFFF00").rgba();
+    m_colors["highlight"]    = QColor::fromString("#55FFFF00").rgba();
+    m_colors["selection"]    = QColor::fromString("#550000FF").rgba();
+    m_colors["jump_marker"]  = QColor::fromString("#FFFF0000").rgba();
+
+    m_model->setSelectionColor(m_colors["selection"]);
+    m_model->setHighlightColor(m_colors["highlight"]);
+    m_model->setLinkHintBackground(m_colors["link_hint_bg"]);
+    m_model->setLinkHintForeground(m_colors["link_hint_fg"]);
+    m_gview->setBackgroundBrush(QColor::fromRgba(m_colors["background"]));
+
+    m_dpi = 300.0f;
+    m_model->setDPI(m_dpi);
+    int cache_pages = 10;
+    m_cache.setMaxCost(cache_pages);
+
+    m_remember_last_visited = true;
+    m_page_history_limit    = 10;
+    m_model->setAntialiasingBits(8);
+    m_auto_resize               = false;
+    m_zoom_by                   = 1.25;
+    m_model->enableICC();
+    auto initial_fit = "width";
+
+    if (strcmp(initial_fit, "height") == 0)
+        m_initial_fit = FitMode::Height;
+    else if (strcmp(initial_fit, "width") == 0)
+        m_initial_fit = FitMode::Width;
+    else if (strcmp(initial_fit, "window") == 0)
+        m_initial_fit = FitMode::Window;
+    else
+        m_initial_fit = FitMode::None;
+
+    m_layout->setContentsMargins(0, 0, 0, 0);
+    m_panel->layout()->setContentsMargins(5, 1, 5, 1);
+    m_panel->setContentsMargins(0, 0, 0, 0);
+    this->setContentsMargins(0, 0, 0, 0);
+}
+
+void
 dodo::initConfig() noexcept
 {
     m_config_dir          = QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
     auto config_file_path = m_config_dir.filePath("config.toml");
+
+    if (!QFile::exists(config_file_path))
+    {
+        initDefaults();
+        return;
+    }
 
     toml::table toml;
 
@@ -1308,6 +1367,7 @@ dodo::ZoomIn() noexcept
 {
     // if (m_scale_factor < 5.0)
     // {
+    qDebug() << m_zoom_by;
     m_scale_factor *= m_zoom_by;
     // m_gview->scale(1.1, 1.1);
     zoomHelper();
@@ -1855,7 +1915,7 @@ dodo::eventFilter(QObject *obj, QEvent *event)
             m_currentHintInput.removeLast();
 #else
             if (!m_currentHintInput.isEmpty())
-                m_currentHintInput.chop(1);  // Removes the last character
+                m_currentHintInput.chop(1); // Removes the last character
 #endif
             return true;
         }
@@ -2262,7 +2322,7 @@ dodo::populateRecentFiles() noexcept
 void
 dodo::editLastPages() noexcept
 {
-    if (!m_remember_last_visited || !m_last_pages_db.isValid())
+    if (!m_remember_last_visited || !m_last_pages_db.isOpen() && !m_last_pages_db.isValid())
     {
         QMessageBox::information(this, "Edit Last Pages",
                                  "Couldn't find the database of last pages. Maybe "

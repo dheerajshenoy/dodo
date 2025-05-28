@@ -65,11 +65,11 @@ public:
     dodo() noexcept;
     ~dodo() noexcept;
 
-    inline QWindow* windowHandle() noexcept
+    inline QWindow *windowHandle() noexcept
     {
         return this->windowHandle();
     }
-    void readArgsParser(argparse::ArgumentParser& argparser) noexcept;
+    void readArgsParser(argparse::ArgumentParser &argparser) noexcept;
     void construct() noexcept;
 
     struct CacheKey
@@ -78,7 +78,7 @@ public:
         int rotation;
         float scale;
 
-        bool operator==(const CacheKey& other) const
+        bool operator==(const CacheKey &other) const
         {
             return page == other.page && rotation == other.rotation && qFuzzyCompare(scale, other.scale);
         }
@@ -87,10 +87,10 @@ public:
     struct CacheValue
     {
         QPixmap pixmap;
-        QList<BrowseLinkItem*> links;
-        QList<HighlightItem*> annot_highlights;
+        QList<BrowseLinkItem *> links;
+        QList<HighlightItem *> annot_highlights;
 
-        CacheValue(const QPixmap& pix, const QList<BrowseLinkItem*>& lnks, QList<HighlightItem*> annoth)
+        CacheValue(const QPixmap &pix, const QList<BrowseLinkItem *> &lnks, QList<HighlightItem *> annoth)
             : pixmap(pix), links(lnks), annot_highlights(annoth)
         {
         }
@@ -107,9 +107,9 @@ public slots:
     void handleRenderResult(int pageno, QImage img);
 
 protected:
-    void closeEvent(QCloseEvent* e) override;
-    bool eventFilter(QObject* obj, QEvent* event) override;
-    void resizeEvent(QResizeEvent* e) override;
+    void closeEvent(QCloseEvent *e) override;
+    bool eventFilter(QObject *obj, QEvent *event) override;
+    void resizeEvent(QResizeEvent *e) override;
 
 private:
     enum class FitMode
@@ -120,28 +120,30 @@ private:
         Window,
     };
 
+    void initDefaults() noexcept;
     void initSynctex() noexcept;
+    void synctexLocateInFile(const char *texFile, int line) noexcept;
+    void synctexLocateInPdf(const QString &texFile, int line, int column) noexcept;
+
     void initConnections() noexcept;
     void initMenubar() noexcept;
     void initDB() noexcept;
     void initGui() noexcept;
     void initConfig() noexcept;
     void initKeybinds() noexcept;
-    void gotoPage(const int& pageno) noexcept;
-    void gotoPageInternal(const int& pageno) noexcept;
-    void openFile(const QString& fileName) noexcept;
-    void search(const QString& term) noexcept;
+    void gotoPage(const int &pageno) noexcept;
+    void gotoPageInternal(const int &pageno) noexcept;
+    void openFile(const QString &fileName) noexcept;
+    void search(const QString &term) noexcept;
     void renderPage(int pageno, bool renderonly = false) noexcept;
-    void renderLinks(const QList<BrowseLinkItem*>& links) noexcept;
-    void renderAnnotations(const QList<HighlightItem*>& annots) noexcept;
-    void renderPixmap(const QPixmap& pix) noexcept;
+    void renderLinks(const QList<BrowseLinkItem *> &links) noexcept;
+    void renderAnnotations(const QList<HighlightItem *> &annots) noexcept;
+    void renderPixmap(const QPixmap &pix) noexcept;
     void scrollToXY(float x, float y) noexcept;
-    void scrollToNormalizedTop(const double& top) noexcept;
+    void scrollToNormalizedTop(const double &top) noexcept;
     void prefetchAround(int currentPage) noexcept;
-    void setupKeybinding(const QString& action, const QString& key) noexcept;
-    void setFitMode(const FitMode& mode) noexcept;
-    void synctexLocateInFile(const char* texFile, int line) noexcept;
-    void synctexLocateInPdf(const QString& texFile, int line, int column) noexcept;
+    void setupKeybinding(const QString &action, const QString &key) noexcept;
+    void setFitMode(const FitMode &mode) noexcept;
     fz_point mapToPdf(QPointF loc) noexcept;
     void clearLinks() noexcept;
     void clearAnnots() noexcept;
@@ -193,17 +195,17 @@ private:
     void SelectAll() noexcept;
 
     QDir m_config_dir;
-    bool m_prefetch_enabled, m_suppressHistory{false}, m_remember_last_visited, m_jump_marker_shown;
+    bool m_prefetch_enabled, m_suppressHistory{false}, m_remember_last_visited{true}, m_jump_marker_shown{true};
 
     synctex_scanner_p m_synctex_scanner{nullptr};
 
     int m_pageno{-1}, m_start_page_override{-1}, m_rotation{0}, m_search_index{-1}, m_total_pages{0},
-        m_search_hit_page{-1}, m_prefetch_distance, m_page_history_limit;
+        m_search_hit_page{-1}, m_prefetch_distance, m_page_history_limit{5};
     QList<int> m_page_history_list;
-    float m_scale_factor{1.0f}, m_zoom_by;
+    float m_scale_factor{1.0f}, m_zoom_by{1.25f};
     QString m_last_search_term;
-    Panel* m_panel{nullptr};
-    float m_dpi;
+    Panel *m_panel{nullptr};
+    float m_dpi{300};
 
     void updateUiEnabledState() noexcept;
     void jumpToHit(int page, int index);
@@ -214,10 +216,10 @@ private:
     void clearHighlights();
     void prevHit();
     void nextHit();
-    bool hasUpperCase(const QString& text) noexcept;
+    bool hasUpperCase(const QString &text) noexcept;
     void rehighlight() noexcept;
     void zoomHelper() noexcept;
-    QRectF fzQuadToQRect(const fz_quad& q) noexcept;
+    QRectF fzQuadToQRect(const fz_quad &q) noexcept;
     void clearTextSelection() noexcept;
     void selectAnnots() noexcept;
     void clearAnnotSelection() noexcept;
@@ -225,55 +227,55 @@ private:
     void editLastPages() noexcept;
     void deleteKeyAction() noexcept;
     void setDirty(bool state) noexcept;
-    void fadeJumpMarker(JumpMarker* item) noexcept;
+    void fadeJumpMarker(JumpMarker *item) noexcept;
 
-    QMenuBar* m_menuBar{nullptr};
-    QMenu* m_fitMenu{nullptr};
-    QMenu* m_recentFilesMenu{nullptr};
+    QMenuBar *m_menuBar{nullptr};
+    QMenu *m_fitMenu{nullptr};
+    QMenu *m_recentFilesMenu{nullptr};
 
-    QAction* m_actionFullscreen{nullptr};
-    QAction* m_actionZoomIn{nullptr};
-    QAction* m_actionInvertColor{nullptr};
-    QAction* m_actionFileProperties{nullptr};
-    QAction* m_actionSaveFile{nullptr};
-    QAction* m_actionSaveAsFile{nullptr};
-    QAction* m_actionCloseFile{nullptr};
-    QAction* m_actionZoomOut{nullptr};
-    QAction* m_actionFitWidth{nullptr};
-    QAction* m_actionFitHeight{nullptr};
-    QAction* m_actionFitWindow{nullptr};
-    QAction* m_actionFitNone{nullptr};
-    QAction* m_actionAutoresize{nullptr};
-    QAction* m_actionToggleMenubar{nullptr};
-    QAction* m_actionTogglePanel{nullptr};
-    QAction* m_actionToggleOutline{nullptr};
-    QAction* m_actionFirstPage{nullptr};
-    QAction* m_actionPrevPage{nullptr};
-    QAction* m_actionNextPage{nullptr};
-    QAction* m_actionLastPage{nullptr};
-    QAction* m_actionPrevLocation{nullptr};
-    QAction* m_actionAbout{nullptr};
-    QAction* m_actionTextHighlight{nullptr};
-    QAction* m_actionAnnotRect{nullptr};
-    QAction* m_actionTextSelect{nullptr};
-    QAction* m_actionAnnotEdit{nullptr};
+    QAction *m_actionFullscreen{nullptr};
+    QAction *m_actionZoomIn{nullptr};
+    QAction *m_actionInvertColor{nullptr};
+    QAction *m_actionFileProperties{nullptr};
+    QAction *m_actionSaveFile{nullptr};
+    QAction *m_actionSaveAsFile{nullptr};
+    QAction *m_actionCloseFile{nullptr};
+    QAction *m_actionZoomOut{nullptr};
+    QAction *m_actionFitWidth{nullptr};
+    QAction *m_actionFitHeight{nullptr};
+    QAction *m_actionFitWindow{nullptr};
+    QAction *m_actionFitNone{nullptr};
+    QAction *m_actionAutoresize{nullptr};
+    QAction *m_actionToggleMenubar{nullptr};
+    QAction *m_actionTogglePanel{nullptr};
+    QAction *m_actionToggleOutline{nullptr};
+    QAction *m_actionFirstPage{nullptr};
+    QAction *m_actionPrevPage{nullptr};
+    QAction *m_actionNextPage{nullptr};
+    QAction *m_actionLastPage{nullptr};
+    QAction *m_actionPrevLocation{nullptr};
+    QAction *m_actionAbout{nullptr};
+    QAction *m_actionTextHighlight{nullptr};
+    QAction *m_actionAnnotRect{nullptr};
+    QAction *m_actionTextSelect{nullptr};
+    QAction *m_actionAnnotEdit{nullptr};
 
     QCache<CacheKey, CacheValue> m_cache;
     QMap<int, QList<Model::SearchResult>> m_searchRectMap;
     QString m_filename, m_basename;
-    GraphicsView* m_gview           = new GraphicsView();
-    QGraphicsScene* m_gscene        = new QGraphicsScene();
-    QGraphicsPixmapItem* m_pix_item = new QGraphicsPixmapItem();
-    QVBoxLayout* m_layout           = new QVBoxLayout();
+    GraphicsView *m_gview           = new GraphicsView();
+    QGraphicsScene *m_gscene        = new QGraphicsScene();
+    QGraphicsPixmapItem *m_pix_item = new QGraphicsPixmapItem();
+    QVBoxLayout *m_layout           = new QVBoxLayout();
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
 
-    Model* m_model{nullptr};
-    QTimer* m_HQRenderTimer = new QTimer(this);
+    Model *m_model{nullptr};
+    QTimer *m_HQRenderTimer = new QTimer(this);
     QMap<QString, QRgb> m_colors;
     bool m_highlights_present, m_selection_present, m_annot_selection_present, m_full_file_path_in_panel,
         m_dirty{false};
-    OutlineWidget* m_owidget{nullptr};
-    PropertiesWidget* m_propsWidget{nullptr};
+    OutlineWidget *m_owidget{nullptr};
+    PropertiesWidget *m_propsWidget{nullptr};
     QString m_currentHintInput;
     QMap<QString, Model::LinkInfo> m_link_hint_map;
     QMap<QString, QString> m_shortcuts_map;
@@ -283,10 +285,10 @@ private:
     FitMode m_fit_mode, m_initial_fit{FitMode::None};
     QString m_window_title;
     QString m_synctex_editor_command;
-    QClipboard* m_clipboard = QGuiApplication::clipboard();
+    QClipboard *m_clipboard = QGuiApplication::clipboard();
     QSet<int> m_selected_annots;
     bool m_link_boundary;
     QSqlDatabase m_last_pages_db;
     LinkHintMode m_link_hint_mode{LinkHintMode::None};
-    JumpMarker* m_jump_marker{nullptr};
+    JumpMarker *m_jump_marker{nullptr};
 };
