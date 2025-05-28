@@ -378,13 +378,8 @@ Model::searchHelper(int pageno, const QString& term, bool caseSensitive)
 
     fz_try(m_ctx)
     {
-        if (!m_text_page)
-        {
-            qWarning() << "Unable to get texts from page";
-            return {};
-        }
-
-        for (fz_stext_block* block = m_text_page->first_block; block; block = block->next)
+        fz_stext_page *text_page = fz_new_stext_page_from_page_number(m_ctx, m_doc, pageno, nullptr);
+        for (fz_stext_block* block = text_page->first_block; block; block = block->next)
         {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
                 continue;
@@ -480,6 +475,7 @@ Model::searchAll(const QString& term, bool caseSensitive)
         QList<Model::SearchResult> results;
 
         results = searchHelper(pageNum, term, caseSensitive);
+        qDebug() << pageNum << " has " << results.size() << " matches";
 
         if (!results.isEmpty())
             resultsMap[pageNum] = results;

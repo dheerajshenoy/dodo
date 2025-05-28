@@ -5,13 +5,12 @@ fullscreen = false # fullscreen or not on startup
 zoom_level = 1.0 # Default zoom factor
 compact = true # Minimal margins in dodo
 link_boundary = false # show link boundary box
-hscrollbar = true # show/hide horizontal scrollbar
-vscrollbar = true # show/hide vertical scrollbar
-auto_hide_hscrollbar = true # autohide horizontal scrollbar
-auto_hide_vscrollbar = true # autohide vertical scrollbar
+hscrollbar = false # show/hide horizontal scrollbar
+vscrollbar = false # show/hide vertical scrollbar
 full_file_path_in_panel = false
 menubar = true # show/hide menubar
 window_title = "{} - dodo" # '{}' will be replaced with the base name of the opened file
+jump_marker = true # show/hide markers at the location of the destination after jump
 
 # Format is #AARRGGBB (ARGB format)
 [colors]
@@ -23,6 +22,7 @@ link_hint_bg = "#8800FF00"
 link_hint_fg = "#FF000000"
 selection = "#44FF5000"
 highlight = "#55FFFF00"
+jump_marker = "#FFFF0000"
 
 # ===== Rendering Settings =====
 [rendering]
@@ -72,9 +72,10 @@ zoom_reset = "0"
 zoom_in = "="
 zoom_out = "-"
 
-annot_highlight = "Alt+1"
+text_highlight = "Alt+1"
 annot_rect = "Alt+2"
-annot_select = "Alt+3"
+annot_edit = "Alt+3"
+delete = "d"
 
 file_properties = "Ctrl+Shift+F"
 invert_color = "i"
