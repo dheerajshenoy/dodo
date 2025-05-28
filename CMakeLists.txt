@@ -20,13 +20,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "-ggdb -O0 -Wall -Wextra")
 # Set flags for Release build
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-find_program(MUPDF mupdf)
-if(MUPDF)
-    message(STATUS "MuPDF library found: ${MUPDF}")
-else()
-    message(FATAL_ERROR "MuPDF library not found")
-endif()
-
 find_package(Qt6 REQUIRED COMPONENTS Widgets Core Sql)
 
 add_executable(${PROJECT_NAME}
