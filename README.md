@@ -27,6 +27,7 @@ resource usage.
 - [Configuration](#configuration)
 - [Theming dodo](#theming-dodo)
 - [Spotlight](#spotlight)
+- [TODO](#todo)
 - [Contributing](#contributing)
 - [FAQ](#faq)
 
@@ -121,6 +122,10 @@ https://github.com/user-attachments/assets/a4c9ae7e-401e-4b02-9ae1-b70ff10079ab
 ### Jump Marker
 
 https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
+
+## TODO
+
+Check out [TODO.md](./TODO.md)
 
 ## Contributing
 
