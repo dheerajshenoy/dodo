@@ -11,6 +11,9 @@ PDF reader, I am reading lots of PDFs for my work.
 
 ![dodo in action](./demo_pic.png)
 
+> [!NOTE]
+> Dodo is currently in alpha and may experience crashes or instability.
+
 ## Features
 
 - Fast rendering with MuPDF backend
@@ -31,7 +34,6 @@ https://github.com/user-attachments/assets/a4c9ae7e-401e-4b02-9ae1-b70ff10079ab
 
 https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
 
-
 ## Dependencies
 
 - Qt6
@@ -43,6 +45,25 @@ https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
 ## Installation
 
 1. Install the required dependencies
+
+    a. For Arch Linux Users
+
+    ``sudo pacman -Syu qt6-base mupdf mupdf-tools libsynctex cmake ninja``
+
+    b. For Debian/Ubuntu Users
+
+        You can install all the dependencies except for mupdf which has to be downloaded and built from source
+
+        ``sudo apt install qt6-base-dev libsynctex-dev cmake ninja-build``
+
+        1. Get the mupdf source code from the [release](https://mupdf.com/releases) page.
+        2. Extract and run the following command inside the directory
+
+        ```bash
+        make HAVE_X11=no prefix=/usr build=release -j$(nproc)
+        sudo make install
+        ```
+
 2. Clone this repo
 3. Once inside the repo directory, run the following commands
 
