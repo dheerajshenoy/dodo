@@ -13,6 +13,18 @@ SyncTeX integration for LaTeX users. Whether you're reading academic papers, tec
 everyday documents, this reader offers a streamlined interface and robust functionality with minimal
 resource usage.
 
+## Table of Contents
+
+- [Introduction](#-a-fast-and-unintrusive-pdf-reader)
+- [Why ?](#why-)
+- [Features](#features)
+- [Dependencies](#dependencies)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Theming dodo](#theming-dodo)
+- [TODO](#todo)
+- [Tools Used](#tools-used)
+
 ## Features
 
 - Fast rendering with MuPDF backend
@@ -116,3 +128,7 @@ Check out kvantum's install page [here](https://github.com/tsujan/Kvantum/blob/m
 - **ChatGPT** - ofc, it's 2025, I'm not gonna lie...
 - Qt forums and other websites
 - MuPDF discord channel
+
+## License
+
+[![Licence](https://img.shields.io/github/license/dheerajshenoy/dodo?style=for-the-badge)](./LICENSE)
