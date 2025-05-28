@@ -44,19 +44,32 @@ Show command line help.
 
 ## Keybindings
 
-| Key      | Action             |
-| -------- | ------------------ |
-| `j`      | Scroll down        |
-| `k`      | Scroll up          |
-| `h`      | Scroll left        |
-| `l`      | Scroll right       |
-| `gg`     | Go to first page   |
-| `G`      | Go to last page    |
-| `+`      | Zoom In            |
-| `-`      | Zoom Out           |
-| '/'      | Search             |
-| 'n'      | jump to forward match |
-| 'Shift+n' | jump to backward match |
+| Shortcut       | Action            |
+|----------------|-------------------|
+| Ctrl+Shift+m   | toggle_menubar    |
+| b              | invert_color      |
+| f              | link_hint_visit   |
+| Ctrl+s         | save              |
+| Alt+1          | text_highlight    |
+| Alt+2          | annot_rect        |
+| Alt+3          | annot_edit        |
+| t              | outline           |
+| /              | search            |
+| n              | search_next       |
+| Shift+n        | search_prev       |
+| +              | zoom_in           |
+| -              | zoom_out          |
+| 0              | zoom_reset        |
+| Ctrl+o         | prev_location     |
+| o              | open              |
+| h              | scroll_left       |
+| j              | scroll_down       |
+| k              | scroll_up         |
+| l              | scroll_right      |
+| Shift+j        | next_page         |
+| Shift+k        | prev_page         |
+| g,g            | first_page        |
+| Shift+g        | last_page         |
 
 ## Search
 
