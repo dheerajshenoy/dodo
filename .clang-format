@@ -14,7 +14,7 @@ AlwaysBreakAfterReturnType: TopLevel
 SortIncludes: true
 IncludeBlocks: Regroup
 
-PointerAlignment: Left
+PointerAlignment: Right
 DerivePointerAlignment: false
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: false

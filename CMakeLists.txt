@@ -46,6 +46,7 @@ add_executable(${PROJECT_NAME}
     src/HighlightItem.hpp
     src/EditLastPagesWidget.hpp
     src/LinkHint.hpp
+    src/JumpMarker.hpp
 
 )
 

@@ -12,7 +12,7 @@
 #include <qthread.h>
 
 inline uint
-qHash(const dodo::CacheKey& key, uint seed = 0)
+qHash(const dodo::CacheKey &key, uint seed = 0)
 {
     seed ^= uint(key.page) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     seed ^= uint(key.rotation) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -46,6 +46,8 @@ dodo::construct() noexcept
     initConnections();
     m_pix_item->setScale(m_scale_factor);
     populateRecentFiles();
+    m_jump_marker = new JumpMarker(m_colors["jump_marker"]);
+    m_gscene->addItem(m_jump_marker);
     this->show();
 }
 
@@ -54,7 +56,7 @@ dodo::initMenubar() noexcept
 {
 
     // --- File Menu ---
-    QMenu* fileMenu = m_menuBar->addMenu("&File");
+    QMenu *fileMenu = m_menuBar->addMenu("&File");
     fileMenu->addAction(QString("Open File\t%1").arg(m_shortcuts_map["open_file"]), this, &dodo::OpenFile);
     m_actionFileProperties = fileMenu->addAction(QString("File Properties\t%1").arg(m_shortcuts_map["file_properties"]),
                                                  this, &dodo::FileProperties);
@@ -72,11 +74,11 @@ dodo::initMenubar() noexcept
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, &QMainWindow::close);
 
-    QMenu* editMenu = m_menuBar->addMenu("&Edit");
+    QMenu *editMenu = m_menuBar->addMenu("&Edit");
     editMenu->addAction(QString("Last Pages\t%1").arg(m_shortcuts_map["edit_last_pages"]), this, &dodo::editLastPages);
 
     // --- View Menu ---
-    QMenu* viewMenu    = m_menuBar->addMenu("&View");
+    QMenu *viewMenu    = m_menuBar->addMenu("&View");
     m_actionFullscreen = viewMenu->addAction(QString("Fullscreen\t%1").arg(m_shortcuts_map["fullscreen"]), this,
                                              &dodo::ToggleFullscreen);
     m_actionFullscreen->setCheckable(true);
@@ -88,7 +90,7 @@ dodo::initMenubar() noexcept
     viewMenu->addSeparator();
 
     // Zoom Mode Actions (exclusive)
-    QActionGroup* zoomModeGroup = new QActionGroup(this);
+    QActionGroup *zoomModeGroup = new QActionGroup(this);
     zoomModeGroup->setExclusive(true);
 
     m_fitMenu = viewMenu->addMenu("Fit");
@@ -140,9 +142,9 @@ dodo::initMenubar() noexcept
     m_actionInvertColor->setCheckable(true);
     m_actionInvertColor->setChecked(m_model->invertColor());
 
-    QMenu* toolsMenu = m_menuBar->addMenu("Tools");
+    QMenu *toolsMenu = m_menuBar->addMenu("Tools");
 
-    QActionGroup* selectionActionGroup = new QActionGroup(this);
+    QActionGroup *selectionActionGroup = new QActionGroup(this);
     selectionActionGroup->setExclusive(true);
 
     m_actionTextSelect = toolsMenu->addAction(QString("Text Selection"), this, &dodo::TextSelectionMode);
@@ -166,7 +168,7 @@ dodo::initMenubar() noexcept
     selectionActionGroup->addAction(m_actionAnnotEdit);
 
     // --- Navigation Menu ---
-    QMenu* navMenu = m_menuBar->addMenu("&Navigation");
+    QMenu *navMenu = m_menuBar->addMenu("&Navigation");
     m_actionFirstPage =
         navMenu->addAction(QString("First Page\t%1").arg(m_shortcuts_map["first_page"]), this, &dodo::FirstPage);
 
@@ -181,7 +183,7 @@ dodo::initMenubar() noexcept
     m_actionPrevLocation = navMenu->addAction(QString("Previous Location\t%1").arg(m_shortcuts_map["prev_location"]),
                                               this, &dodo::GoBackHistory);
 
-    QMenu* helpMenu = m_menuBar->addMenu("&Help");
+    QMenu *helpMenu = m_menuBar->addMenu("&Help");
     m_actionAbout   = helpMenu->addAction(QString("About\t%1").arg(m_shortcuts_map["about"]), this, &dodo::ShowAbout);
 
     updateUiEnabledState();
@@ -193,7 +195,7 @@ dodo::initConnections() noexcept
     connect(m_model, &Model::documentSaved, this, [&]() { setDirty(false); });
 
     connect(m_model, &Model::searchResultsReady, this,
-            [&](const QMap<int, QList<Model::SearchResult>>& maps, int matchCount)
+            [&](const QMap<int, QList<Model::SearchResult>> &maps, int matchCount)
     {
         if (matchCount == 0)
         {
@@ -206,24 +208,26 @@ dodo::initConnections() noexcept
         jumpToHit(page, 0);
     });
 
-    connect(m_gview, &GraphicsView::highlightDrawn, m_model, [&](const QRectF& rect)
+    connect(m_gview, &GraphicsView::highlightDrawn, m_model, [&](const QRectF &rect)
     {
         m_model->addRectAnnotation(rect);
         setDirty(true);
         renderPage(m_pageno);
     });
 
-    connect(m_model, &Model::horizontalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location& location)
+    connect(m_model, &Model::horizontalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location)
     {
         gotoPage(pageno);
         FitWidth();
+        qDebug() << location.y;
         scrollToNormalizedTop(location.y);
     });
 
-    connect(m_model, &Model::verticalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location& location)
+    connect(m_model, &Model::verticalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location)
     {
         gotoPage(pageno);
         FitHeight();
+        qDebug() << location.y;
         scrollToNormalizedTop(location.y);
     });
 
@@ -233,9 +237,10 @@ dodo::initConnections() noexcept
         TopOfThePage();
     });
 
-    connect(m_model, &Model::jumpToLocationRequested, this, [&](int pageno, const BrowseLinkItem::Location& loc)
+    connect(m_model, &Model::jumpToLocationRequested, this, [&](int pageno, const BrowseLinkItem::Location &loc)
     {
         gotoPage(pageno);
+        FitWidth();
         scrollToXY(loc.x, loc.y);
     });
 
@@ -262,13 +267,13 @@ dodo::initConnections() noexcept
         }
     });
 
-    connect(m_gview, &GraphicsView::textSelectionRequested, m_model, [&](const QPointF& start, const QPointF& end)
+    connect(m_gview, &GraphicsView::textSelectionRequested, m_model, [&](const QPointF &start, const QPointF &end)
     {
         m_model->highlightTextSelection(start, end);
         m_selection_present = true;
     });
 
-    connect(m_gview, &GraphicsView::textHighlightRequested, m_model, [&](const QPointF& start, const QPointF& end)
+    connect(m_gview, &GraphicsView::textHighlightRequested, m_model, [&](const QPointF &start, const QPointF &end)
     {
         m_model->annotHighlightSelection(start, end);
         setDirty(true);
@@ -277,7 +282,7 @@ dodo::initConnections() noexcept
 
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, &dodo::clearTextSelection);
 
-    connect(m_gview, &GraphicsView::annotSelectRequested, m_model, [&](const QRectF& area)
+    connect(m_gview, &GraphicsView::annotSelectRequested, m_model, [&](const QRectF &area)
     {
         m_selected_annots = m_model->getAnnotationsInArea(area);
         // TODO: Show number of annots selected ?
@@ -292,12 +297,12 @@ dodo::initConnections() noexcept
 void
 dodo::selectAnnots() noexcept
 {
-    for (const auto& item : m_gscene->items())
+    for (const auto &item : m_gscene->items())
     {
         if (item->data(0).toString() != "annot" || !m_selected_annots.contains(item->data(1).toInt()))
             continue;
 
-        QGraphicsRectItem* gitem = qgraphicsitem_cast<QGraphicsRectItem*>(item);
+        QGraphicsRectItem *gitem = qgraphicsitem_cast<QGraphicsRectItem *>(item);
         if (!gitem)
             continue;
 
@@ -313,7 +318,7 @@ dodo::clearTextSelection() noexcept
     if (!m_selection_present)
         return;
 
-    for (auto& object : m_gscene->items())
+    for (auto &object : m_gscene->items())
     {
         if (object->data(0).toString() == "selection")
             m_gscene->removeItem(object);
@@ -326,8 +331,15 @@ dodo::scrollToXY(float x, float y) noexcept
 {
     if (!m_pix_item || !m_gview)
         return;
+    auto pos = QPointF(x * m_dpr, y * m_dpr);
+    m_gview->centerOn(pos);
 
-    m_gview->centerOn(QPointF(x, y));
+    if (m_jump_marker_shown)
+    {
+        m_jump_marker->setRect(QRectF(pos.x() - 5 - 5, pos.y() - 5, 10, 10));
+        m_jump_marker->show();
+        QTimer::singleShot(1000, [=]() { fadeJumpMarker(m_jump_marker); });
+    }
 }
 
 void
@@ -361,7 +373,7 @@ dodo::initConfig() noexcept
     {
         toml = toml::parse_file(config_file_path.toStdString());
     }
-    catch (std::exception& e)
+    catch (std::exception &e)
     {
         QMessageBox::critical(this, "Error in configuration file",
                               QString("There are one or more error(s) in your config "
@@ -389,6 +401,7 @@ dodo::initConfig() noexcept
     if (!hscrollbar_shown)
         m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
+    m_jump_marker_shown       = ui["jump_marker"].value_or(true);
     m_full_file_path_in_panel = ui["full_file_path_in_panel"].value_or(false);
     m_scale_factor            = ui["zoom_level"].value_or(1.0);
     bool compact              = ui["compact"].value_or(false);
@@ -407,6 +420,7 @@ dodo::initConfig() noexcept
     m_colors["link_hint_bg"] = QColor::fromString(colors["link_hint_bg"].value_or("#FFFF00")).rgba();
     m_colors["highlight"]    = QColor::fromString(colors["highlight"].value_or("#55FFFF00")).rgba();
     m_colors["selection"]    = QColor::fromString(colors["selection"].value_or("#550000FF")).rgba();
+    m_colors["jump_marker"]  = QColor::fromString(colors["jump_marker"].value_or("#FFFF0000")).rgba();
 
     m_model->setSelectionColor(m_colors["selection"]);
     m_model->setHighlightColor(m_colors["highlight"]);
@@ -663,7 +677,7 @@ dodo::initConfig() noexcept
 
         };
 
-        for (auto& [action, value] : *keys.as_table())
+        for (auto &[action, value] : *keys.as_table())
         {
             if (value.is_value())
                 setupKeybinding(QString::fromStdString(std::string(action.str())),
@@ -802,9 +816,9 @@ dodo::initKeybinds() noexcept
     }},
     };
 
-    for (const auto& [key, func] : shortcuts)
+    for (const auto &[key, func] : shortcuts)
     {
-        auto* sc = new QShortcut(QKeySequence(key), this);
+        auto *sc = new QShortcut(QKeySequence(key), this);
         connect(sc, &QShortcut::activated, func);
     }
 }
@@ -812,7 +826,7 @@ dodo::initKeybinds() noexcept
 void
 dodo::initGui() noexcept
 {
-    QWidget* widget = new QWidget();
+    QWidget *widget = new QWidget();
     // Panel
     m_panel = new Panel(this);
     m_panel->setMode(GraphicsView::Mode::TextSelection);
@@ -832,7 +846,7 @@ dodo::initGui() noexcept
     auto win = m_gview->window()->windowHandle();
     if (win)
     {
-        connect(win, &QWindow::screenChanged, m_gview, [&](QScreen* screen)
+        connect(win, &QWindow::screenChanged, m_gview, [&](QScreen *screen)
         {
             m_cache.clear();
             auto dpr = m_gview->window()->devicePixelRatioF();
@@ -953,8 +967,8 @@ dodo::clearPixmapItems() noexcept
     if (m_pix_item->pixmap().isNull())
         return;
 
-    QList<QGraphicsItem*> items = m_pix_item->childItems();
-    for (const auto& item : items)
+    QList<QGraphicsItem *> items = m_pix_item->childItems();
+    for (const auto &item : items)
         m_gscene->removeItem(item);
     qDeleteAll(items);
 }
@@ -962,7 +976,7 @@ dodo::clearPixmapItems() noexcept
 /* Function for opening the file using the model.
    For internal usage only */
 void
-dodo::openFile(const QString& fileName) noexcept
+dodo::openFile(const QString &fileName) noexcept
 {
     if (m_model->valid())
         CloseFile();
@@ -1109,7 +1123,7 @@ dodo::RotateAntiClock() noexcept
 }
 
 void
-dodo::gotoPage(const int& pageno) noexcept
+dodo::gotoPage(const int &pageno) noexcept
 {
     if (!m_model->valid())
     {
@@ -1149,7 +1163,7 @@ dodo::gotoPage(const int& pageno) noexcept
 }
 
 void
-dodo::gotoPageInternal(const int& pageno) noexcept
+dodo::gotoPageInternal(const int &pageno) noexcept
 {
     m_pageno = pageno;
     renderPage(pageno, false);
@@ -1158,7 +1172,7 @@ dodo::gotoPageInternal(const int& pageno) noexcept
 void
 dodo::clearLinks() noexcept
 {
-    for (auto& link : m_gscene->items())
+    for (auto &link : m_gscene->items())
     {
         if (link->data(0).toString() == "link")
             m_gscene->removeItem(link);
@@ -1166,10 +1180,10 @@ dodo::clearLinks() noexcept
 }
 
 void
-dodo::renderAnnotations(const QList<HighlightItem*>& annots) noexcept
+dodo::renderAnnotations(const QList<HighlightItem *> &annots) noexcept
 {
     clearAnnots();
-    for (auto* annot : annots)
+    for (auto *annot : annots)
     {
         connect(annot, &HighlightItem::annotDeleteRequested, m_model, [&](int index)
         {
@@ -1184,7 +1198,7 @@ dodo::renderAnnotations(const QList<HighlightItem*>& annots) noexcept
 void
 dodo::clearAnnots() noexcept
 {
-    for (auto& link : m_gscene->items())
+    for (auto &link : m_gscene->items())
     {
         if (link->data(0).toString() == "annot")
             m_gscene->removeItem(link);
@@ -1192,10 +1206,10 @@ dodo::clearAnnots() noexcept
 }
 
 void
-dodo::renderLinks(const QList<BrowseLinkItem*>& links) noexcept
+dodo::renderLinks(const QList<BrowseLinkItem *> &links) noexcept
 {
     clearLinks();
-    for (auto* link : links)
+    for (auto *link : links)
         m_gscene->addItem(link);
 }
 
@@ -1233,7 +1247,7 @@ dodo::renderPage(int pageno, bool renderonly) noexcept
 }
 
 void
-dodo::renderPixmap(const QPixmap& pix) noexcept
+dodo::renderPixmap(const QPixmap &pix) noexcept
 {
     m_pix_item->setPixmap(pix);
 }
@@ -1434,7 +1448,7 @@ dodo::FitNone() noexcept
 }
 
 void
-dodo::setFitMode(const FitMode& mode) noexcept
+dodo::setFitMode(const FitMode &mode) noexcept
 {
     m_fit_mode = mode;
     switch (m_fit_mode)
@@ -1459,7 +1473,7 @@ dodo::setFitMode(const FitMode& mode) noexcept
 
 // Single page search
 void
-dodo::search(const QString& term) noexcept
+dodo::search(const QString &term) noexcept
 {
     m_last_search_term = term;
     // m_pdf_backend->search();
@@ -1488,11 +1502,11 @@ dodo::highlightHitsInPage()
 
     auto results = m_searchRectMap[m_pageno];
 
-    for (const auto& result : results)
+    for (const auto &result : results)
     {
         fz_quad quad      = result.quad;
         QRectF scaledRect = fzQuadToQRect(quad);
-        auto* highlight   = new QGraphicsRectItem(scaledRect);
+        auto *highlight   = new QGraphicsRectItem(scaledRect);
 
         highlight->setBrush(QColor::fromRgba(m_colors["search_match"]));
         highlight->setPen(Qt::NoPen);
@@ -1512,7 +1526,7 @@ dodo::highlightSingleHit() noexcept
     fz_quad quad = m_searchRectMap[m_pageno][m_search_index].quad;
 
     QRectF scaledRect = fzQuadToQRect(quad);
-    auto* highlight   = new QGraphicsRectItem(scaledRect);
+    auto *highlight   = new QGraphicsRectItem(scaledRect);
     highlight->setBrush(QColor::fromRgba(m_colors["search_index"]));
     highlight->setPen(Qt::NoPen);
     highlight->setData(0, "searchIndexHighlight");
@@ -1527,7 +1541,7 @@ dodo::clearIndexHighlights()
 {
     for (auto item : m_gscene->items())
     {
-        if (auto rect = qgraphicsitem_cast<QGraphicsRectItem*>(item))
+        if (auto rect = qgraphicsitem_cast<QGraphicsRectItem *>(item))
         {
             if (rect->data(0).toString() == "searchIndexHighlight")
             {
@@ -1544,7 +1558,7 @@ dodo::clearHighlights()
 {
     for (auto item : m_gscene->items())
     {
-        if (auto rect = qgraphicsitem_cast<QGraphicsRectItem*>(item))
+        if (auto rect = qgraphicsitem_cast<QGraphicsRectItem *>(item))
         {
             if (rect->data(0).toString() == "searchHighlight")
             {
@@ -1633,13 +1647,13 @@ dodo::prevHit()
 }
 
 void
-dodo::setupKeybinding(const QString& action, const QString& key) noexcept
+dodo::setupKeybinding(const QString &action, const QString &key) noexcept
 {
     auto it = m_actionMap.find(action);
     if (it == m_actionMap.end())
         return;
 
-    QShortcut* shortcut = new QShortcut(QKeySequence(key), this);
+    QShortcut *shortcut = new QShortcut(QKeySequence(key), this);
     connect(shortcut, &QShortcut::activated, this, [=]() { it.value()(); });
 
     m_shortcuts_map[action] = key;
@@ -1658,7 +1672,7 @@ dodo::GoBackHistory() noexcept
 }
 
 void
-dodo::closeEvent(QCloseEvent* e)
+dodo::closeEvent(QCloseEvent *e)
 {
     if (!m_model)
         e->accept();
@@ -1700,7 +1714,7 @@ dodo::closeEvent(QCloseEvent* e)
 }
 
 void
-dodo::scrollToNormalizedTop(const double& ntop) noexcept
+dodo::scrollToNormalizedTop(const double &ntop) noexcept
 {
     // 1. Get scene Y position of the top of the page
     qreal pageSceneY = m_pix_item->sceneBoundingRect().top();
@@ -1734,7 +1748,7 @@ dodo::TableOfContents() noexcept
 
     if (!m_owidget->hasOutline())
     {
-        fz_outline* outline = m_model->getOutline();
+        fz_outline *outline = m_model->getOutline();
         if (!outline)
         {
             QMessageBox::information(this, "Outline", "Document does not have outline information");
@@ -1815,7 +1829,7 @@ dodo::CopyLinkKB() noexcept
 }
 
 bool
-dodo::eventFilter(QObject* obj, QEvent* event)
+dodo::eventFilter(QObject *obj, QEvent *event)
 {
     if (m_link_hint_map.isEmpty())
     {
@@ -1825,7 +1839,7 @@ dodo::eventFilter(QObject* obj, QEvent* event)
     }
     if (event->type() == QEvent::KeyPress)
     {
-        QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
         if (keyEvent->key() == Qt::Key_Escape)
         {
             m_currentHintInput.clear();
@@ -1869,7 +1883,7 @@ dodo::eventFilter(QObject* obj, QEvent* event)
 
     if (event->type() == QEvent::ShortcutOverride)
     {
-        QShortcutEvent* stEvent = static_cast<QShortcutEvent*>(event);
+        QShortcutEvent *stEvent = static_cast<QShortcutEvent *>(event);
         stEvent->accept();
         return true;
     }
@@ -1887,9 +1901,9 @@ dodo::GotoPage() noexcept
 }
 
 bool
-dodo::hasUpperCase(const QString& text) noexcept
+dodo::hasUpperCase(const QString &text) noexcept
 {
-    for (const auto& c : text)
+    for (const auto &c : text)
         if (c.isUpper())
             return true;
 
@@ -1950,7 +1964,7 @@ dodo::ToggleAutoResize() noexcept
 }
 
 void
-dodo::resizeEvent(QResizeEvent* e)
+dodo::resizeEvent(QResizeEvent *e)
 {
     if (m_auto_resize)
     {
@@ -1992,13 +2006,13 @@ dodo::ToggleMenubar() noexcept
 void
 dodo::ShowAbout() noexcept
 {
-    AboutDialog* abw = new AboutDialog(this);
+    AboutDialog *abw = new AboutDialog(this);
     abw->setAppInfo("v0.2.0", "A fast, unintrusive pdf reader");
     abw->exec();
 }
 
 void
-dodo::readArgsParser(argparse::ArgumentParser& argparser) noexcept
+dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 {
     if (argparser["--version"] == true)
     {
@@ -2057,7 +2071,7 @@ dodo::readArgsParser(argparse::ArgumentParser& argparser) noexcept
 }
 
 QRectF
-dodo::fzQuadToQRect(const fz_quad& q) noexcept
+dodo::fzQuadToQRect(const fz_quad &q) noexcept
 {
     fz_quad tq = fz_transform_quad(q, m_model->transform());
 
@@ -2077,7 +2091,7 @@ dodo::initSynctex() noexcept
 }
 
 void
-dodo::synctexLocateInFile(const char* texFile, int line) noexcept
+dodo::synctexLocateInFile(const char *texFile, int line) noexcept
 {
     auto tmp = m_synctex_editor_command;
     if (!tmp.contains("{file}") || !tmp.contains("{line}"))
@@ -2096,7 +2110,7 @@ dodo::synctexLocateInFile(const char* texFile, int line) noexcept
 }
 
 void
-dodo::synctexLocateInPdf(const QString& texFile, int line, int column) noexcept
+dodo::synctexLocateInPdf(const QString &texFile, int line, int column) noexcept
 {
     if (synctex_display_query(m_synctex_scanner, CSTR(texFile), line, column, -1) > 0)
     {
@@ -2163,12 +2177,12 @@ dodo::clearAnnotSelection() noexcept
     if (!m_annot_selection_present)
         return;
 
-    for (const auto& item : m_gscene->items())
+    for (const auto &item : m_gscene->items())
     {
         if (!m_selected_annots.contains(item->data(1).toInt()))
             continue;
 
-        QGraphicsRectItem* gitem = qgraphicsitem_cast<QGraphicsRectItem*>(item);
+        QGraphicsRectItem *gitem = qgraphicsitem_cast<QGraphicsRectItem *>(item);
         if (!gitem)
             continue;
 
@@ -2218,7 +2232,7 @@ dodo::populateRecentFiles() noexcept
                 continue;
             int page = query.value(1).toInt();
             // QDateTime accessed = query.value(2).toDateTime();
-            QAction* fileAction = new QAction(path);
+            QAction *fileAction = new QAction(path);
             connect(fileAction, &QAction::triggered, this, [&, path, page]()
             {
                 openFile(path);
@@ -2250,7 +2264,7 @@ dodo::editLastPages() noexcept
         return;
     }
 
-    EditLastPagesWidget* elpw = new EditLastPagesWidget(m_last_pages_db, this);
+    EditLastPagesWidget *elpw = new EditLastPagesWidget(m_last_pages_db, this);
     elpw->show();
     connect(elpw, &EditLastPagesWidget::finished, this, &dodo::populateRecentFiles);
 }
@@ -2303,4 +2317,23 @@ dodo::TextSelectionMode() noexcept
     m_panel->setMode(GraphicsView::Mode::TextSelection);
 
     m_actionTextSelect->setChecked(true);
+}
+
+void
+dodo::fadeJumpMarker(JumpMarker *marker) noexcept
+{
+    auto *animation = new QPropertyAnimation(marker, "opacity");
+    animation->setDuration(500); // 0.5 seconds fade
+    animation->setStartValue(1.0);
+    animation->setEndValue(0.0);
+    animation->start(QAbstractAnimation::DeleteWhenStopped);
+
+    QObject::connect(animation, &QPropertyAnimation::finished, [marker]()
+    {
+        // if (marker->scene())
+        //     marker->scene()->removeItem(marker);
+        // delete marker;
+        marker->hide();
+        marker->setOpacity(1.0);
+    });
 }

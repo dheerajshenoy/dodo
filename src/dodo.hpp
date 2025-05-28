@@ -4,6 +4,7 @@
 #include "BrowseLinkItem.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
+#include "JumpMarker.hpp"
 #include "Model.hpp"
 #include "Panel.hpp"
 #include "PropertiesWidget.hpp"
@@ -29,6 +30,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPainter>
+#include <QPropertyAnimation>
 #include <QResizeEvent>
 #include <QScrollBar>
 #include <QShortcut>
@@ -191,7 +193,7 @@ private:
     void SelectAll() noexcept;
 
     QDir m_config_dir;
-    bool m_prefetch_enabled, m_suppressHistory{false}, m_remember_last_visited;
+    bool m_prefetch_enabled, m_suppressHistory{false}, m_remember_last_visited, m_jump_marker_shown;
 
     synctex_scanner_p m_synctex_scanner{nullptr};
 
@@ -223,6 +225,7 @@ private:
     void editLastPages() noexcept;
     void deleteKeyAction() noexcept;
     void setDirty(bool state) noexcept;
+    void fadeJumpMarker(JumpMarker* item) noexcept;
 
     QMenuBar* m_menuBar{nullptr};
     QMenu* m_fitMenu{nullptr};
@@ -285,4 +288,5 @@ private:
     bool m_link_boundary;
     QSqlDatabase m_last_pages_db;
     LinkHintMode m_link_hint_mode{LinkHintMode::None};
+    JumpMarker* m_jump_marker{nullptr};
 };
