@@ -34,7 +34,6 @@ add_executable(${PROJECT_NAME}
     src/dodo.cpp
     src/Panel.cpp
     src/Model.cpp
-    src/RenderTask.cpp
     src/PropertiesWidget.cpp
     src/AboutDialog.cpp
     src/GraphicsView.cpp
