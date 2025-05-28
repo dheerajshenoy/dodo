@@ -3,7 +3,7 @@
 <b><i>A fast and unintrusive PDF reader.</i></b>
 </p>
 
-[![GitHub License](https://img.shields.io/github/license/dheerajshenoy/dodo)](https://opensource.org/license/agpl-v3)
+[![GitHub License](https://shields.io/badge/LICENSE-AGPL-3)](https://opensource.org/license/agpl-v3)
 
 > [!WARNING]
 > Dodo is currently in alpha and may experience crashes or instability.
@@ -22,6 +22,7 @@ resource usage.
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Theming dodo](#theming-dodo)
+- [Spotlight](#spotlight)
 - [TODO](#todo)
 - [Tools Used](#tools-used)
 
@@ -98,6 +99,8 @@ It supports dark themes, custom widgets, and integrates well with Qt6.
 Check out kvantum's install page [here](https://github.com/tsujan/Kvantum/blob/master/Kvantum/INSTALL.md)
 
 ## Spotlight
+
+Demo video of few of the features of dodo
 
 ### Demo of speed
 
