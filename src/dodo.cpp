@@ -48,6 +48,8 @@ dodo::construct() noexcept
     populateRecentFiles();
     m_jump_marker = new JumpMarker(m_colors["jump_marker"]);
     m_gscene->addItem(m_jump_marker);
+
+    setMinimumSize(600, 400);
     this->show();
 }
 
