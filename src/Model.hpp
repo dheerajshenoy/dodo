@@ -194,6 +194,7 @@ private:
     pdf_document* m_pdfdoc{nullptr};
     float m_highlight_color[4];
     QRgb m_selection_color;
+    float m_page_height{0.0f};
 
     QMap<QString, LinkInfo> m_hint_to_link_map;
 };

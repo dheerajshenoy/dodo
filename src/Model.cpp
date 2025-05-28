@@ -286,6 +286,7 @@ Model::renderPage(int pageno, float zoom, float rotation, bool renderonly) noexc
 
         fz_rect bounds;
         bounds = fz_bound_page(m_ctx, m_page);
+        m_page_height = bounds.y1 - bounds.y0;
 
         m_transform         = fz_transform_page(bounds, scale, rotation);
         fz_rect transformed = fz_transform_rect(bounds, m_transform);
@@ -576,12 +577,12 @@ Model::getLinks() noexcept
                 fz_rect r = fz_transform_rect(link->rect, m_transform);
 
                 float x = r.x0 * m_inv_dpr;
-                float y = (r.y0) * m_inv_dpr;
+                float y = r.y0 * m_inv_dpr;
                 float w = (r.x1 - r.x0) * m_inv_dpr;
                 float h = (r.y1 - r.y0) * m_inv_dpr;
 
                 QRectF qtRect(x, y, w, h);
-                BrowseLinkItem* item;
+                BrowseLinkItem* item{nullptr};
                 QString link_str(link->uri);
                 bool external = fz_is_external_link(m_ctx, link->uri);
                 if (!external)
@@ -634,6 +635,14 @@ Model::getLinks() noexcept
                                 break;
 
                             case FZ_LINK_DEST_FIT_R:
+                                {
+                                    item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::Section,
+                                            m_link_boundary);
+                                    item->setGotoPageNo(pageno);
+                                    item->setXYZ({.x = dest.x, .y = (m_page_height - dest.y), .zoom = dest.zoom});
+                                    connect(item, &BrowseLinkItem::jumpToLocationRequested, this,
+                                            &Model::jumpToLocationRequested);
+                                }
                                 break;
 
                             case FZ_LINK_DEST_XYZ:
@@ -657,9 +666,12 @@ Model::getLinks() noexcept
                 {
                     item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::External, m_link_boundary);
                 }
-                item->setData(0, "link");
-                // m_scene->addItem(item);
-                items.append(item);
+                if (item)
+                {
+                    item->setData(0, "link");
+                    // m_scene->addItem(item);
+                    items.append(item);
+                }
             }
             link = link->next;
         }

@@ -111,7 +111,7 @@ protected:
     }
 
 private:
-    Location _loc{-1, -1, 0};
+    Location _loc{0, 0, 0};
     int _pageno{-1};
     QString _link;
     LinkType _type;
