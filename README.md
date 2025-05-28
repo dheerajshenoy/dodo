@@ -27,6 +27,7 @@ https://github.com/user-attachments/assets/a4c9ae7e-401e-4b02-9ae1-b70ff10079ab
 - Link awareness
 - Save annotations (highlights only for now)
 - Text highlight
+- Jump Marker (to help locate where link takes you to)
 
 ## Dependencies
 
