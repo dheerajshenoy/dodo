@@ -13,13 +13,6 @@ SyncTeX integration for LaTeX users. Whether you're reading academic papers, tec
 everyday documents, this reader offers a streamlined interface and robust functionality with minimal
 resource usage.
 
-## Why ?
-
-- Wayland support
-- Because okular is bloated and it is the only good pdf reader that seems to exist.
-- Also, because I always wanted to create a PDF reader because when I am not developing a
-PDF reader, I am reading lots of PDFs for my work.
-
 ## Features
 
 - Fast rendering with MuPDF backend
