@@ -3,11 +3,13 @@
 <b><i>A fast and unintrusive PDF reader.</i></b>
 </p>
 
-![Version](https://img.shields.io/github/v/release/dheerajshenoy/dodo?label=App%20Version)
 [![GitHub License](https://shields.io/badge/LICENSE-AGPL-3)](https://opensource.org/license/agpl-v3)
 
 > [!WARNING]
 > Dodo is currently in alpha and may experience crashes or instability.
+
+> [!NOTE]
+> dodo is at v0.2.0-alpha
 
 **Dodo** is a lightweight, high-performance PDF reader designed to provide a smooth and
 efficient document viewing experience. Built using MuPDF and Qt, it supports fast rendering,
