@@ -36,11 +36,10 @@ dodo::construct() noexcept
 {
     initGui();
     initConfig();
-    initMenubar();
-    initDB();
-
     if (m_load_default_keybinding)
         initKeybinds();
+    initMenubar();
+    initDB();
 
     m_page_history_list.reserve(m_page_history_limit);
     initConnections();
@@ -527,7 +526,6 @@ dodo::initConfig() noexcept
 
     if (toml.contains("keybindings"))
     {
-        qDebug() << "Loading custom keybindings";
         m_load_default_keybinding = false;
         auto keys                 = toml["keybindings"];
         m_actionMap               = {
@@ -764,123 +762,166 @@ dodo::initConfig() noexcept
 void
 dodo::initKeybinds() noexcept
 {
+    m_shortcuts_map["toggle_menubar"] = "Ctrl+Shift+m";
+    m_shortcuts_map["invert_color"] = "b";
+    m_shortcuts_map["link_hint_visit"] = "f";
+    m_shortcuts_map["save"] = "Ctrl+s";
+    m_shortcuts_map["text_highlight"] = "Alt+1";
+    m_shortcuts_map["annot_rect"] = "Alt+2";
+    m_shortcuts_map["annot_edit"] = "Alt+3";
+    m_shortcuts_map["outline"] = "t";
+    m_shortcuts_map["search"] = "/";
+    m_shortcuts_map["search_next"] = "n";
+    m_shortcuts_map["search_prev"] = "Shift+n";
+    m_shortcuts_map["zoom_in"] = "+";
+    m_shortcuts_map["zoom_out"] = "-";
+    m_shortcuts_map["zoom_reset"] = "0";
+    m_shortcuts_map["prev_location"] = "Ctrl+o";
+    m_shortcuts_map["open"] = "o";
+    m_shortcuts_map["scroll_left"] = "h";
+    m_shortcuts_map["scroll_down"] = "j";
+    m_shortcuts_map["scroll_up"] = "k";
+    m_shortcuts_map["scroll_right"] = "l";
+    m_shortcuts_map["next_page"] = "Shift+j";
+    m_shortcuts_map["prev_page"] = "Shift+k";
+    m_shortcuts_map["first_page"] = "g,g";
+    m_shortcuts_map["last_page"] = "Shift+g";
     std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
-
+        {"Ctrl+Shift+m",
+            [this]()
+            {
+                ToggleMenubar();
+            }},
+        {"i",
+            [this]()
+            {
+                InvertColor();
+            }},
         {"b",
-         [this]()
-    {
-        GotoPage();
-    }},
+            [this]()
+            {
+                GotoPage();
+            }},
         {"f",
-         [this]()
-    {
-        VisitLinkKB();
-    }},
+            [this]()
+            {
+                VisitLinkKB();
+            }},
         {"Ctrl+s",
-         [this]()
-    {
-        SaveFile();
-    }},
+            [this]()
+            {
+                SaveFile();
+            }},
         {"Alt+1",
-         [this]()
-    {
-        ToggleRectAnnotation();
-    }},
+            [this]()
+            {
+                ToggleTextHighlight();
+            }},
+        {"Alt+2",
+            [this]()
+            {
+                ToggleRectAnnotation();
+            }},
+        {"Alt+3",
+            [this]()
+            {
+                ToggleAnnotSelect();
+            }},
         {"t",
-         [this]()
-    {
-        TableOfContents();
-    }},
+            [this]()
+            {
+                TableOfContents();
+            }},
         {"/",
-         [this]()
-    {
-        Search();
-    }},
+            [this]()
+            {
+                Search();
+            }},
         {"n",
-         [this]()
-    {
-        nextHit();
-    }},
+            [this]()
+            {
+                nextHit();
+            }},
         {"Shift+n",
-         [this]()
-    {
-        prevHit();
-    }},
+            [this]()
+            {
+                prevHit();
+            }},
         {"Ctrl+o",
-         [this]()
-    {
-        GoBackHistory();
-    }},
+            [this]()
+            {
+                GoBackHistory();
+            }},
         {"o",
-         [this]()
-    {
-        OpenFile();
-    }},
+            [this]()
+            {
+                OpenFile();
+            }},
         {"j",
-         [this]()
-    {
-        ScrollDown();
-    }},
+            [this]()
+            {
+                ScrollDown();
+            }},
         {"k",
-         [this]()
-    {
-        ScrollUp();
-    }},
+            [this]()
+            {
+                ScrollUp();
+            }},
         {"h",
-         [this]()
-    {
-        ScrollLeft();
-    }},
+            [this]()
+            {
+                ScrollLeft();
+            }},
         {"l",
-         [this]()
-    {
-        ScrollRight();
-    }},
+            [this]()
+            {
+                ScrollRight();
+            }},
         {"Shift+j",
-         [this]()
-    {
-        NextPage();
-    }},
+            [this]()
+            {
+                NextPage();
+            }},
         {"Shift+k",
-         [this]()
-    {
-        PrevPage();
-    }},
+            [this]()
+            {
+                PrevPage();
+            }},
         {"g,g",
-         [this]()
-    {
-        FirstPage();
-    }},
+            [this]()
+            {
+                FirstPage();
+            }},
         {"Shift+g",
-         [this]()
-    {
-        LastPage();
-    }},
+            [this]()
+            {
+                LastPage();
+            }},
         {"0",
-         [this]()
-    {
-        ZoomReset();
-    }},
+            [this]()
+            {
+                ZoomReset();
+            }},
         {"=",
-         [this]()
-    {
-        ZoomIn();
-    }},
+            [this]()
+            {
+                ZoomIn();
+            }},
         {"-",
-         [this]()
-    {
-        ZoomOut();
-    }},
+            [this]()
+            {
+                ZoomOut();
+            }},
         {"<",
-         [this]()
-    {
-        RotateAntiClock();
-    }},
+            [this]()
+            {
+                RotateAntiClock();
+            }},
         {">",
-         [this]()
-    {
-        RotateClock();
-    }},
+            [this]()
+            {
+                RotateClock();
+            }},
     };
 
     for (const auto &[key, func] : shortcuts)
