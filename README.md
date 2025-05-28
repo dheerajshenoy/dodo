@@ -45,7 +45,7 @@ https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
 
 - Qt6
 - mupdf
-- libsynctex \[(optional)for reverse searching and goto reference from LaTeX\]
+- libsynctex \[for reverse searching and goto reference from LaTeX\]
 - cmake (for building)
 - ninja (for building)
 
