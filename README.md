@@ -9,7 +9,7 @@
 - Also, because I always wanted to create a PDF reader because when I am not developing a
 PDF reader, I am reading lots of PDFs for my work.
 
-> [!NOTE]
+> [!WARNING]
 > Dodo is currently in alpha and may experience crashes or instability.
 
 ## Features
