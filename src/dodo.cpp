@@ -219,7 +219,6 @@ dodo::initConnections() noexcept
     {
         gotoPage(pageno);
         FitWidth();
-        qDebug() << location.y;
         scrollToNormalizedTop(location.y);
     });
 
@@ -227,7 +226,6 @@ dodo::initConnections() noexcept
     {
         gotoPage(pageno);
         FitHeight();
-        qDebug() << location.y;
         scrollToNormalizedTop(location.y);
     });
 
@@ -240,7 +238,6 @@ dodo::initConnections() noexcept
     connect(m_model, &Model::jumpToLocationRequested, this, [&](int pageno, const BrowseLinkItem::Location &loc)
     {
         gotoPage(pageno);
-        FitWidth();
         scrollToXY(loc.x, loc.y);
     });
 
@@ -331,15 +328,18 @@ dodo::scrollToXY(float x, float y) noexcept
 {
     if (!m_pix_item || !m_gview)
         return;
-    auto pos = QPointF(x * m_dpr, y * m_dpr);
-    m_gview->centerOn(pos);
+
+    fz_point point = { .x = x, .y = y };
+    point = fz_transform_point(point, m_model->transform());
 
     if (m_jump_marker_shown)
     {
-        m_jump_marker->setRect(QRectF(pos.x() - 5 - 5, pos.y() - 5, 10, 10));
+        m_jump_marker->setRect(QRectF(point.x, point.y + 5, 10, 10));
+
         m_jump_marker->show();
         QTimer::singleShot(1000, [=]() { fadeJumpMarker(m_jump_marker); });
     }
+    m_gview->centerOn(QPointF(point.x, point.y));
 }
 
 void
@@ -447,7 +447,7 @@ dodo::initConfig() noexcept
         m_synctex_editor_command = QString::fromStdString(synctex_editor_command.value());
 
     if (behavior["invert_mode"].value_or(false))
-        m_model->invertColor();
+        m_model->toggleInvertColor();
 
     if (behavior["icc_color_profile"].value_or(true))
         m_model->enableICC();
@@ -1151,6 +1151,8 @@ dodo::gotoPage(const int &pageno) noexcept
     {
         clearHighlights();
         clearIndexHighlights();
+        // highlightHitsInPage();
+        // highlightSingleHit();
     }
 
     if (m_annot_selection_present)
@@ -1482,7 +1484,7 @@ dodo::search(const QString &term) noexcept
 void
 dodo::jumpToHit(int page, int index)
 {
-    if (!m_searchRectMap.contains(page) || index < 0 || index >= m_searchRectMap[page].size())
+    if (m_searchRectMap[page].empty() || index < 0 || index >= m_searchRectMap[page].size())
         return;
 
     m_search_index    = index;
@@ -1532,7 +1534,7 @@ dodo::highlightSingleHit() noexcept
     highlight->setData(0, "searchIndexHighlight");
 
     m_gscene->addItem(highlight);
-    // m_gview->centerOn(highlight);
+    m_gview->centerOn(highlight);
     m_highlights_present = true;
 }
 
@@ -1949,8 +1951,7 @@ dodo::InvertColor() noexcept
 {
     if (!m_model->valid())
         return;
-
-    m_model->invertColor();
+    m_model->toggleInvertColor();
     renderPage(m_pageno);
 
     m_actionInvertColor->setChecked(m_model->invertColor());
@@ -2131,8 +2132,8 @@ dodo::synctexLocateInPdf(const QString &texFile, int line, int column) noexcept
 fz_point
 dodo::mapToPdf(QPointF loc) noexcept
 {
-    double x = loc.x() / m_inv_dpr;
-    double y = loc.y() / m_inv_dpr;
+    double x = loc.x() * m_dpr;
+    double y = loc.y() * m_dpr;
 
     // Apply inverse of rendering transform
     fz_matrix invTransform;
