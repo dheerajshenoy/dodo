@@ -6,7 +6,12 @@
 > [!WARNING]
 > Dodo is currently in alpha and may experience crashes or instability.
 
-**Dodo** is a lightweight, high-performance PDF reader designed to provide a smooth and efficient document viewing experience. Built using MuPDF and Qt, it supports fast rendering, precise text selection, annotation handling (highlights and rects), and advanced features like SyncTeX integration for LaTeX users. Whether you're reading academic papers, technical manuals, or everyday documents, this reader offers a streamlined interface and robust functionality with minimal resource usage.
+**Dodo** is a lightweight, high-performance PDF reader designed to provide a smooth and
+efficient document viewing experience. Built using MuPDF and Qt, it supports fast rendering,
+precise text selection, annotation handling (highlights and rects), and advanced features like
+SyncTeX integration for LaTeX users. Whether you're reading academic papers, technical manuals, or
+everyday documents, this reader offers a streamlined interface and robust functionality with minimal
+resource usage.
 
 ## Why ?
 
@@ -62,7 +67,7 @@ https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
 
     1. Get the mupdf source code from the [release](https://mupdf.com/releases) page.
     2. Extract and run the following command inside the directory
-   
+
 
     ```bash
     make HAVE_X11=no prefix=/usr build=release -j$(nproc)
