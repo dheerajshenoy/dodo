@@ -3,6 +3,7 @@
 <b><i>A fast and unintrusive PDF reader.</i></b>
 </p>
 
+![Version](https://img.shields.io/github/v/release/dheerajshenoy/dodo?label=App%20Version)
 [![GitHub License](https://shields.io/badge/LICENSE-AGPL-3)](https://opensource.org/license/agpl-v3)
 
 > [!WARNING]
