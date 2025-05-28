@@ -88,6 +88,15 @@ sudo ninja install
 Dodo will search for `config.toml` file in the `~/.config/dodo` directory, and load it if it exists.
 Check out the `config.toml` file for reference
 
+## Theming dodo
+
+**Kvantum (Recommended)**
+
+    Kvantum is a powerful SVG-based theme engine for Qt.
+    It supports dark themes, custom widgets, and integrates well with Qt6.
+
+    Check out kvantum's install page [here](https://github.com/tsujan/Kvantum/blob/master/Kvantum/INSTALL.md)
+
 ## TODO
 
 - [ ] OCR support
