@@ -1851,7 +1851,12 @@ dodo::eventFilter(QObject *obj, QEvent *event)
         }
         else if (keyEvent->key() == Qt::Key_Backspace)
         {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
             m_currentHintInput.removeLast();
+#else
+            if (!m_currentHintInput.isEmpty())
+                m_currentHintInput.chop(1);  // Removes the last character
+#endif
             return true;
         }
 
