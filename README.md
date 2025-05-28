@@ -3,7 +3,7 @@
 <b><i>A fast and unintrusive PDF reader.</i></b>
 </p>
 
-![GitHub License](https://img.shields.io/github/license/dheerajshenoy/dodo)
+[![GitHub License](https://img.shields.io/github/license/dheerajshenoy/dodo)](https://opensource.org/license/agpl-v3)
 
 > [!WARNING]
 > Dodo is currently in alpha and may experience crashes or instability.
