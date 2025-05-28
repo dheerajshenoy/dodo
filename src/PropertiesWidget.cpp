@@ -7,7 +7,7 @@ PropertiesWidget::PropertiesWidget(QWidget* parent) : QDialog(parent)
     // setMinimumSize(400, 300);
     m_formLayout = new QFormLayout(this);
     setLayout(m_formLayout);
-    adjustSize();
+    // adjustSize();
 }
 
 void
@@ -27,6 +27,11 @@ PropertiesWidget::setProperties(const QList<QPair<QString, QString>>& properties
         QLabel* keyLabel   = new QLabel(k + ":", this);
         QLabel* valueLabel = new QLabel(v, this);
         valueLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        valueLabel->setWordWrap(true); // <-- wrap long text
+        valueLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred); // allow horizontal growth
+
         m_formLayout->addRow(keyLabel, valueLabel);
     }
+
+    adjustSize(); // optional: resize to fit new content
 }

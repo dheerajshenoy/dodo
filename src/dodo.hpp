@@ -11,6 +11,7 @@
 #include "RenderTask.hpp"
 #include "argparse.hpp"
 #include "toml.hpp"
+#include "ShortcutsWidget.hpp"
 
 #include <QActionGroup>
 #include <QApplication>
@@ -189,6 +190,7 @@ private:
     void ToggleMenubar() noexcept;
     void TogglePanel() noexcept;
     void ShowAbout() noexcept;
+    void ShowKeybindings() noexcept;
     void YankSelection() noexcept;
     void ToggleTextHighlight() noexcept;
     void TextSelectionMode() noexcept;

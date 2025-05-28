@@ -912,6 +912,7 @@ Model::extractPDFProperties() noexcept
     props.append(qMakePair("Page Count", QString::number(pdf_count_pages(m_ctx, pdfdoc))));
     props.append(qMakePair("Encrypted", pdf_needs_password(m_ctx, pdfdoc) ? "Yes" : "No"));
     props.append(qMakePair("PDF Version", QString("%1.%2").arg(pdfdoc->version / 10).arg(pdfdoc->version % 10)));
+    props.append(qMakePair("File Path", m_filename));
 
     return props;
 }

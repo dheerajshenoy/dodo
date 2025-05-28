@@ -185,6 +185,7 @@ dodo::initMenubar() noexcept
 
     QMenu *helpMenu = m_menuBar->addMenu("&Help");
     m_actionAbout   = helpMenu->addAction(QString("About\t%1").arg(m_shortcuts_map["about"]), this, &dodo::ShowAbout);
+    helpMenu->addAction(QString("Keybindings\t%1").arg(m_shortcuts_map["keybindings"]), this, &dodo::ShowKeybindings);
 
     updateUiEnabledState();
 }
@@ -365,7 +366,7 @@ void
 dodo::initDefaults() noexcept
 {
     m_jump_marker_shown       = true;
-    m_full_file_path_in_panel = true;
+    m_full_file_path_in_panel = false;
     m_scale_factor            = 1.0f;
     m_model->setLinkBoundary(false);
     m_window_title = "%1 - dodo";
@@ -373,7 +374,7 @@ dodo::initDefaults() noexcept
     m_colors["search_index"] = QColor::fromString("#3daee944").rgba();
     m_colors["search_match"] = QColor::fromString("#FFFF8844").rgba();
     m_colors["accent"]       = QColor::fromString("#FF500044").rgba();
-    m_colors["background"]   = QColor::fromString("#FFFFFF").rgba();
+    m_colors["background"]   = Qt::transparent;
     m_colors["link_hint_fg"] = QColor::fromString("#000000").rgba();
     m_colors["link_hint_bg"] = QColor::fromString("#FFFF00").rgba();
     m_colors["highlight"]    = QColor::fromString("#55FFFF00").rgba();
@@ -394,8 +395,8 @@ dodo::initDefaults() noexcept
     m_remember_last_visited = true;
     m_page_history_limit    = 10;
     m_model->setAntialiasingBits(8);
-    m_auto_resize               = false;
-    m_zoom_by                   = 1.25;
+    m_auto_resize = false;
+    m_zoom_by     = 1.25;
     m_model->enableICC();
     auto initial_fit = "width";
 
@@ -532,6 +533,11 @@ dodo::initConfig() noexcept
                            [this]()
                       {
             deleteKeyAction();
+        }},
+            {"keybindings",
+                           [this]()
+                      {
+            ShowKeybindings();
         }},
             {"select_all",
                            [this]()
@@ -2402,4 +2408,11 @@ dodo::fadeJumpMarker(JumpMarker *marker) noexcept
         marker->hide();
         marker->setOpacity(1.0);
     });
+}
+
+void
+dodo::ShowKeybindings() noexcept
+{
+    ShortcutsWidget *widget = new ShortcutsWidget(m_shortcuts_map, this);
+    widget->show();
 }
