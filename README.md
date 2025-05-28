@@ -92,10 +92,10 @@ Check out the `config.toml` file for reference
 
 **Kvantum (Recommended)**
 
-    Kvantum is a powerful SVG-based theme engine for Qt.
-    It supports dark themes, custom widgets, and integrates well with Qt6.
+Kvantum is a powerful SVG-based theme engine for Qt.
+It supports dark themes, custom widgets, and integrates well with Qt6.
 
-    Check out kvantum's install page [here](https://github.com/tsujan/Kvantum/blob/master/Kvantum/INSTALL.md)
+Check out kvantum's install page [here](https://github.com/tsujan/Kvantum/blob/master/Kvantum/INSTALL.md)
 
 ## TODO
 
