@@ -26,6 +26,7 @@ resource usage.
 - [Spotlight](#spotlight)
 - [TODO](#todo)
 - [Contributing](#contributing)
+- [FAQ](#faq)
 
 ## Features
 
@@ -143,5 +144,15 @@ https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
 
+## FAQ
+
+Q: Does Dodo support tabs?
+A: Not yet. Tabs support is planned.
+
+Q: Can I use Dodo on Wayland?
+A: Yes, Dodo supports Wayland natively.
+
+Q: How do I report bugs?
+A: Open issues on the GitHub repository here.
 
 
