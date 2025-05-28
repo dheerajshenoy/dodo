@@ -475,7 +475,6 @@ Model::searchAll(const QString& term, bool caseSensitive)
         QList<Model::SearchResult> results;
 
         results = searchHelper(pageNum, term, caseSensitive);
-        qDebug() << pageNum << " has " << results.size() << " matches";
 
         if (!results.isEmpty())
             resultsMap[pageNum] = results;
