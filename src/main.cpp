@@ -13,7 +13,7 @@ init_args(argparse::ArgumentParser& program)
         .default_value(-1);
 
     program.add_argument("--synctex-forward")
-        .help("Page number to go to")
+        .help("Format: --synctex-forward={pdf-file-path}#{src-file-path}:{line}:{column}")
         .default_value(std::string{});
 
     program.add_argument("files").remaining();
