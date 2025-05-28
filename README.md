@@ -3,14 +3,17 @@
 <b><i>A fast and unintrusive PDF reader.</i></b>
 </p>
 
+> [!WARNING]
+> Dodo is currently in alpha and may experience crashes or instability.
+
+**Dodo** is a lightweight, high-performance PDF reader designed to provide a smooth and efficient document viewing experience. Built using MuPDF and Qt, it supports fast rendering, precise text selection, annotation handling (highlights and rects), and advanced features like SyncTeX integration for LaTeX users. Whether you're reading academic papers, technical manuals, or everyday documents, this reader offers a streamlined interface and robust functionality with minimal resource usage.
+
 ## Why ?
 
+- Wayland support
 - Because okular is bloated and it is the only good pdf reader that seems to exist.
 - Also, because I always wanted to create a PDF reader because when I am not developing a
 PDF reader, I am reading lots of PDFs for my work.
-
-> [!WARNING]
-> Dodo is currently in alpha and may experience crashes or instability.
 
 ## Features
 
@@ -31,6 +34,7 @@ https://github.com/user-attachments/assets/a4c9ae7e-401e-4b02-9ae1-b70ff10079ab
 - Jump Marker (to help locate where link takes you to)
 
 https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
+- Wayland support
 
 ## Dependencies
 
@@ -44,32 +48,35 @@ https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
 
 1. Install the required dependencies
 
-    a. For Arch Linux Users
+    a. **Arch Linux Users**
 
     ``sudo pacman -Syu qt6-base mupdf mupdf-tools libsynctex cmake ninja``
 
-    b. For Debian/Ubuntu Users
+    b. **Debian/Ubuntu Users**
 
-        You can install all the dependencies except for mupdf which has to be downloaded and built from source
+    You can install all the dependencies except for mupdf which has to be downloaded and built from source
 
-        ``sudo apt install qt6-base-dev libsynctex-dev cmake ninja-build``
+    ``sudo apt install qt6-base-dev libsynctex-dev cmake ninja-build``
 
-        1. Get the mupdf source code from the [release](https://mupdf.com/releases) page.
-        2. Extract and run the following command inside the directory
+    MuPDF:
 
-        ```bash
-        make HAVE_X11=no prefix=/usr build=release -j$(nproc)
-        sudo make install
-        ```
+    1. Get the mupdf source code from the [release](https://mupdf.com/releases) page.
+    2. Extract and run the following command inside the directory
+   
 
-2. Clone this repo
-3. Once inside the repo directory, run the following commands
+    ```bash
+    make HAVE_X11=no prefix=/usr build=release -j$(nproc)
+    sudo make install
+    ```
+
+3. Clone this repo
+4. Once inside the repo directory, run the following commands
 
 ```bash
-mkdir build &&
-cd build &&
-cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr &&
-ninja &&
+mkdir build
+cd build
+cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+ninja
 sudo ninja install
 ```
 
