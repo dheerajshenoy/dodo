@@ -8,6 +8,7 @@
 #include <mupdf/fitz.h>
 #include <mupdf/fitz/pixmap.h>
 #include <qevent.h>
+#include <QGuiApplication>
 
 #define CLICK_THRESHOLD 10
 
