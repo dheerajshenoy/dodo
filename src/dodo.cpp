@@ -329,7 +329,7 @@ dodo::scrollToXY(float x, float y) noexcept
     if (!m_pix_item || !m_gview)
         return;
 
-    fz_point point = { .x = x, .y = y };
+    fz_point point = { .x = x * m_inv_dpr, .y = y * m_inv_dpr };
     point = fz_transform_point(point, m_model->transform());
 
     if (m_jump_marker_shown)
