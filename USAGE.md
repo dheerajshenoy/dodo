@@ -68,6 +68,8 @@ Show command line help.
 
 * Use `n` and `N` to jump forward and backward between matches.
 
+* To cancel the current search and clear all the search matches, **search for an empty string**.
+
 # Annotations
 
 * Select the annotations tool from `Tools`
