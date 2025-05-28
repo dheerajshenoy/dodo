@@ -68,10 +68,8 @@ https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
     1. Get the mupdf source code from the [release](https://mupdf.com/releases) page.
     2. Extract and run the following command inside the directory
 
-
     ```bash
-    make HAVE_X11=no prefix=/usr build=release -j$(nproc)
-    sudo make install
+    sudo make HAVE_X11=no HAVE_GLUT=no prefix=/usr build=release -j$(nproc) install
     ```
 
 3. Clone this repo
