@@ -24,7 +24,7 @@ resource usage.
 - [Dependencies](#dependencies)
 - [Installation](#installation)
     - [Arch Linux](#arch-linux)
-    - [Debian/Ubuntu](#debian/ubuntu)
+    - [Debian/Ubuntu](#debianubuntu)
     - [Others](#others)
 - [Usage](#usage)
 - [Configuration](#configuration)
