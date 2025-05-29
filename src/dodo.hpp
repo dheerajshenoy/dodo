@@ -235,6 +235,7 @@ private:
     void annotChangeColor() noexcept;
     void changeHighlighterColor() noexcept;
     void changeAnnotRectColor() noexcept;
+    void mouseWheelScrollRequested(int direction) noexcept;
 
     QMenuBar *m_menuBar{nullptr};
     QMenu *m_fitMenu{nullptr};
@@ -275,12 +276,13 @@ private:
     QGraphicsPixmapItem *m_pix_item = new QGraphicsPixmapItem();
     QVBoxLayout *m_layout           = new QVBoxLayout();
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
+    QScrollBar *m_vscrollbar{nullptr};
 
     Model *m_model{nullptr};
     QTimer *m_HQRenderTimer = new QTimer(this);
     QMap<QString, QRgb> m_colors;
     bool m_highlights_present, m_selection_present{false}, m_annot_selection_present{false},
-        m_full_file_path_in_panel{false}, m_dirty{false};
+        m_full_file_path_in_panel{false}, m_dirty{false}, m_page_nav_with_mouse{true};
     OutlineWidget *m_owidget{nullptr};
     PropertiesWidget *m_propsWidget{nullptr};
     QString m_currentHintInput;

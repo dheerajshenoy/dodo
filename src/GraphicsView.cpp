@@ -227,6 +227,14 @@ GraphicsView::wheelEvent(QWheelEvent *e)
         else
             emit zoomOutRequested();
         return;
+    } else {
+        if (m_page_nav_with_mouse)
+        {
+            if (e->angleDelta().y() > 0)
+                emit scrollRequested(-1); // Up
+            else
+                emit scrollRequested(1); // Down
+        }
     }
     QGraphicsView::wheelEvent(e);
 }

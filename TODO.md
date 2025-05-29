@@ -1,3 +1,3 @@
-- [ ] Multiple click to select words/paragraphs
-- [ ] Scroll to nav pages using delta thresholding
+# TODO
+- [X] Scroll to nav pages using delta thresholding
 - [ ] Undo/Redo operations

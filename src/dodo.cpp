@@ -44,6 +44,7 @@ dodo::construct() noexcept
 
     m_page_history_list.reserve(m_page_history_limit);
     initConnections();
+    m_gview->setPageNavWithMouse(m_page_nav_with_mouse);
     m_pix_item->setScale(m_scale_factor);
     populateRecentFiles();
     m_jump_marker = new JumpMarker(m_colors["jump_marker"]);
@@ -183,6 +184,8 @@ dodo::initMenubar() noexcept
 void
 dodo::initConnections() noexcept
 {
+
+    connect(m_gview, &GraphicsView::scrollRequested, this, &dodo::mouseWheelScrollRequested);
     connect(m_gview, &GraphicsView::populateContextMenuRequested, this, &dodo::populateContextMenu);
 
     connect(m_model, &Model::documentSaved, this, [&]() { setDirty(false); });
@@ -444,7 +447,6 @@ dodo::initConfig() noexcept
         ToggleFullscreen();
 
     auto vscrollbar_shown = ui["vscrollbar"].value_or(true);
-    auto vscrollbar       = m_gview->verticalScrollBar();
 
     if (!vscrollbar_shown)
         m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -495,6 +497,7 @@ dodo::initConfig() noexcept
     m_model->setAntialiasingBits(behavior["antialasing_bits"].value_or(8));
     m_auto_resize               = behavior["auto_resize"].value_or(false);
     m_zoom_by                   = behavior["zoom_factor"].value_or(1.25);
+    m_page_nav_with_mouse       = behavior["page_nav_with_mouse"].value_or(true);
     auto synctex_editor_command = behavior["synctex_editor_command"].value<std::string>();
     if (synctex_editor_command.has_value())
         m_synctex_editor_command = QString::fromStdString(synctex_editor_command.value());
@@ -942,7 +945,8 @@ dodo::initGui() noexcept
     m_gscene->addItem(m_pix_item);
     m_gview->setPixmapItem(m_pix_item);
     m_gview->setEnabled(false);
-    m_model = new Model(m_gscene);
+    m_model      = new Model(m_gscene);
+    m_vscrollbar = m_gview->verticalScrollBar();
 
     auto win = m_gview->window()->windowHandle();
     if (win)
@@ -1498,23 +1502,20 @@ dodo::zoomHelper() noexcept
     if (m_selection_present)
         clearTextSelection();
     m_gview->setSceneRect(m_pix_item->boundingRect());
-    auto vscrollbar = m_gview->verticalScrollBar();
-    vscrollbar->setValue(vscrollbar->value());
+    m_vscrollbar->setValue(m_vscrollbar->value());
     m_cache.clear();
 }
 
 void
 dodo::ScrollDown() noexcept
 {
-    auto vscrollbar = m_gview->verticalScrollBar();
-    vscrollbar->setValue(vscrollbar->value() + 50);
+    m_vscrollbar->setValue(m_vscrollbar->value() + 50);
 }
 
 void
 dodo::ScrollUp() noexcept
 {
-    auto vscrollbar = m_gview->verticalScrollBar();
-    vscrollbar->setValue(vscrollbar->value() - 50);
+    m_vscrollbar->setValue(m_vscrollbar->value() - 50);
 }
 
 void
@@ -1873,9 +1874,9 @@ dodo::scrollToNormalizedTop(const double &ntop) noexcept
     QPointF targetViewportPoint = m_gview->mapFromScene(QPointF(0, targetSceneY));
 
     // 5. Compute the scroll position required
-    int scrollPos = m_gview->verticalScrollBar()->value() + targetViewportPoint.y();
+    int scrollPos = m_vscrollbar->value() + targetViewportPoint.y();
 
-    m_gview->verticalScrollBar()->setValue(scrollPos);
+    m_vscrollbar->setValue(scrollPos);
 }
 
 void
@@ -2079,8 +2080,7 @@ dodo::FileProperties() noexcept
 void
 dodo::TopOfThePage() noexcept
 {
-    auto vscrollbar = m_gview->verticalScrollBar();
-    vscrollbar->setValue(0);
+    m_vscrollbar->setValue(0);
 }
 
 void
@@ -2497,8 +2497,9 @@ dodo::ShowKeybindings() noexcept
 void
 dodo::populateContextMenu(QMenu *menu) noexcept
 {
-    auto addAction = [menu, this](const QString &text, const auto &slot) {
-        QAction *action = new QAction(text, menu);  // sets parent = menu
+    auto addAction = [menu, this](const QString &text, const auto &slot)
+    {
+        QAction *action = new QAction(text, menu); // sets parent = menu
         connect(action, &QAction::triggered, this, slot);
         menu->addAction(action);
     };
@@ -2517,11 +2518,11 @@ dodo::populateContextMenu(QMenu *menu) noexcept
 
         case GraphicsView::Mode::TextHighlight:
             addAction("Change color", &dodo::changeHighlighterColor);
-        break;
+            break;
 
         case GraphicsView::Mode::AnnotRect:
-        addAction("Change color", &dodo::changeAnnotRectColor);
-        break;
+            addAction("Change color", &dodo::changeAnnotRectColor);
+            break;
     }
 }
 
@@ -2560,5 +2561,26 @@ dodo::changeAnnotRectColor() noexcept
         m_colors["annot_rect"] = color.rgba();
         m_model->setHighlightColor(color);
         m_panel->setHighlightColor(color);
+    }
+}
+
+void
+dodo::mouseWheelScrollRequested(int direction) noexcept
+{
+    if (direction < 0) // Up
+    {
+        if (m_vscrollbar->value() == m_vscrollbar->minimum())
+        {
+            PrevPage();
+            m_vscrollbar->setValue(m_vscrollbar->maximum());
+        }
+    }
+    else
+    { // Down
+        if (m_vscrollbar->value() == m_vscrollbar->maximum())
+        {
+            NextPage();
+            m_vscrollbar->setValue(m_vscrollbar->minimum());
+        }
     }
 }

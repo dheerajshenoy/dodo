@@ -47,6 +47,7 @@ public:
         return m_pixmapItem;
     }
     void setMode(Mode mode) noexcept;
+    void setPageNavWithMouse(bool state) { m_page_nav_with_mouse = state; }
 
 signals:
     void highlightDrawn(const QRectF &pdfRect);
@@ -59,6 +60,7 @@ signals:
     void zoomInRequested();
     void zoomOutRequested();
     void populateContextMenuRequested(QMenu *menu);
+    void scrollRequested(int direction);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -73,6 +75,7 @@ private:
     QPoint m_mousePressPos;
     QPointF m_selection_start, m_selection_end;
     bool m_selecting{false};
+    bool m_page_nav_with_mouse{true};
     Mode m_mode{Mode::TextSelection};
     QGraphicsPixmapItem *m_pixmapItem{nullptr};
     QRubberBand *m_rubberBand{nullptr};
