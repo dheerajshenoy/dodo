@@ -75,7 +75,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                     return;
                 }
 
-                m_mousePressPos = event->pos();
+                m_mousePressPos = mapToScene(event->pos());
                 QGuiApplication::setOverrideCursor(Qt::CursorShape::IBeamCursor);
                 m_selecting   = true;
                 if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(m_mousePressPos))
@@ -150,7 +150,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     {
         case Mode::TextSelection:
         {
-            if (event->button() == Qt::LeftButton && dist > CLICK_THRESHOLD)
+            if (event->button() == Qt::LeftButton && dist > m_drag_threshold)
             {
                 m_selection_end = mapToScene(event->pos());
                 emit textSelectionRequested(m_selection_start, m_selection_end);
@@ -162,7 +162,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 
         case Mode::TextHighlight:
         {
-            if (dist > CLICK_THRESHOLD)
+            if (dist > m_drag_threshold)
             {
                 m_selection_end = mapToScene(event->pos());
                 emit textHighlightRequested(m_selection_start, m_selection_end);

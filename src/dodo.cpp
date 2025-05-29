@@ -335,7 +335,9 @@ dodo::scrollToXY(float x, float y) noexcept
         m_jump_marker->show();
         QTimer::singleShot(1000, [=]() { fadeJumpMarker(m_jump_marker); });
     }
+
     m_gview->centerOn(QPointF(point.x, point.y));
+    clearTextSelection();
 }
 
 void
@@ -456,6 +458,8 @@ dodo::initConfig() noexcept
     auto hscrollbar       = m_gview->horizontalScrollBar();
     if (!hscrollbar_shown)
         m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    m_gview->setSelectionDragThreshold(ui["selection_drag_threshold"].value_or(50));
 
     m_jump_marker_shown       = ui["jump_marker"].value_or(true);
     m_full_file_path_in_panel = ui["full_file_path_in_panel"].value_or(false);
@@ -671,7 +675,7 @@ dodo::initConfig() noexcept
                       {
             ZoomReset();
         }},
-            {"annot_select",
+            {"annot_edit",
                            [this]()
                       {
             ToggleAnnotSelect();
@@ -1238,19 +1242,19 @@ dodo::RotateAntiClock() noexcept
     m_gview->centerOn(m_pix_item); // center view
 }
 
-void
+bool
 dodo::gotoPage(const int &pageno) noexcept
 {
     if (!m_model->valid())
     {
         qWarning("Trying to go to page but no document loaded");
-        return;
+        return false;
     }
 
     if (pageno < 0 || pageno >= m_total_pages)
     {
         qWarning("Page number %d out of range", pageno);
-        return;
+        return false;
     }
 
     // boundary condition
@@ -1277,14 +1281,14 @@ dodo::gotoPage(const int &pageno) noexcept
     if (m_selection_present)
         clearTextSelection();
 
-    gotoPageInternal(pageno);
+    return gotoPageInternal(pageno);
 }
 
-void
+bool
 dodo::gotoPageInternal(const int &pageno) noexcept
 {
     m_pageno = pageno;
-    renderPage(pageno, false);
+    return renderPage(pageno);
 }
 
 void
@@ -1358,11 +1362,11 @@ dodo::renderLinks(const QList<BrowseLinkItem *> &links) noexcept
     }
 }
 
-void
+bool
 dodo::renderPage(int pageno, bool renderonly) noexcept
 {
     if (!m_model->valid())
-        return;
+        return false;
 
     CacheKey key{pageno, m_rotation, m_scale_factor};
     m_panel->setPageNo(m_pageno + 1);
@@ -1374,7 +1378,7 @@ dodo::renderPage(int pageno, bool renderonly) noexcept
             qDebug() << "Using cached pixmap";
             renderPixmap(cached->pixmap);
             renderLinks(cached->links);
-            return;
+            return true;
         }
     }
 
@@ -1387,6 +1391,7 @@ dodo::renderPage(int pageno, bool renderonly) noexcept
     renderLinks(links);
     renderAnnotations(annot_highlights);
 
+    return true;
     // if (m_prefetch_enabled)
     //     prefetchAround(m_pageno);
 }
@@ -1421,29 +1426,33 @@ dodo::prefetchAround(int currentPage) noexcept
     }
 }
 
-void
+bool
 dodo::FirstPage() noexcept
 {
-    gotoPage(0);
-    TopOfThePage();
+    auto dd = gotoPage(0);
+    if (dd)
+        TopOfThePage();
+    else
+        return false;
+    return true;
 }
 
-void
+bool
 dodo::LastPage() noexcept
 {
-    gotoPage(m_total_pages - 1);
+    return gotoPage(m_total_pages - 1);
 }
 
-void
+bool
 dodo::NextPage() noexcept
 {
-    gotoPage(m_pageno + 1);
+    return gotoPage(m_pageno + 1);
 }
 
-void
+bool
 dodo::PrevPage() noexcept
 {
-    gotoPage(m_pageno - 1);
+    return gotoPage(m_pageno - 1);
 }
 
 void
@@ -2573,16 +2582,16 @@ dodo::mouseWheelScrollRequested(int direction) noexcept
     {
         if (m_vscrollbar->value() == m_vscrollbar->minimum())
         {
-            PrevPage();
-            m_vscrollbar->setValue(m_vscrollbar->maximum());
+            if (PrevPage())
+                QTimer::singleShot(0, this, [this]() { m_vscrollbar->setValue(m_vscrollbar->maximum()); });
         }
     }
     else
     { // Down
         if (m_vscrollbar->value() == m_vscrollbar->maximum())
         {
-            NextPage();
-            m_vscrollbar->setValue(m_vscrollbar->minimum());
+            if (NextPage())
+                QTimer::singleShot(0, this, [this]() { m_vscrollbar->setValue(m_vscrollbar->minimum()); });
         }
     }
 }

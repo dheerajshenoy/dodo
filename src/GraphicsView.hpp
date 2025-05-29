@@ -11,7 +11,6 @@
 #include <qevent.h>
 #include <qgraphicssceneevent.h>
 
-#define CLICK_THRESHOLD 50
 
 class GraphicsView : public QGraphicsView
 {
@@ -47,7 +46,8 @@ public:
         return m_pixmapItem;
     }
     void setMode(Mode mode) noexcept;
-    void setPageNavWithMouse(bool state) { m_page_nav_with_mouse = state; }
+    void setPageNavWithMouse(bool state) noexcept { m_page_nav_with_mouse = state; }
+    void setSelectionDragThreshold(int value) noexcept { m_drag_threshold = value; }
 
 signals:
     void highlightDrawn(const QRectF &pdfRect);
@@ -72,11 +72,12 @@ protected:
 private:
     QRect m_rect;
     QPoint m_start;
-    QPoint m_mousePressPos;
+    QPointF m_mousePressPos;
     QPointF m_selection_start, m_selection_end;
     bool m_selecting{false};
     bool m_page_nav_with_mouse{true};
     Mode m_mode{Mode::TextSelection};
     QGraphicsPixmapItem *m_pixmapItem{nullptr};
     QRubberBand *m_rubberBand{nullptr};
+    int m_drag_threshold{50};
 };
