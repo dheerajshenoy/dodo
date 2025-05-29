@@ -224,28 +224,3 @@ GraphicsView::wheelEvent(QWheelEvent *e)
     QGraphicsView::wheelEvent(e);
 }
 
-void
-GraphicsView::contextMenuEvent(QContextMenuEvent *e)
-{
-    // Check if item under cursor handled the event
-    QPointF scenePos    = mapToScene(e->pos());
-    QGraphicsItem *item = scene()->itemAt(scenePos, transform());
-
-    // Optional: Skip if it's a link item
-    if (item)
-    {
-        if (dynamic_cast<BrowseLinkItem *>(item) || dynamic_cast<HighlightItem*> (item))
-        {
-            e->ignore();
-            QGraphicsView::contextMenuEvent(e);
-        }
-    }
-    else
-    {
-        QMenu menu(this);
-        emit populateContextMenuRequested(&menu, e->pos());
-        if (!menu.isEmpty())
-            menu.exec(e->globalPos());
-        e->accept();
-    }
-}

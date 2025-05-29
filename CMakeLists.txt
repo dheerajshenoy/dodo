@@ -30,6 +30,7 @@ add_executable(${PROJECT_NAME}
     src/PropertiesWidget.cpp
     src/AboutDialog.cpp
     src/GraphicsView.cpp
+    src/GraphicsScene.cpp
 
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp
