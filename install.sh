@@ -2,7 +2,7 @@
 
 set -e
 
-PREFIX="$1"
+PREFIX="${1:-/usr/}"
 
 echo "Installing dodo with install prefix: $PREFIX"
 
@@ -23,30 +23,47 @@ download_mupdf () {
 
     echo "Downloading MuPDF ${MUPDF_VERSION}..."
     wget -c "$MUPDF_URL"
+    cd ..
 }
 
 build_mupdf () {
-    if [ -d "mupdf-${MUPDF_VERSION}-source.tar.gz" ]; then
-        echo "Mupdf already extracted"
-    else
+    cd extern
+
+    if [ -d "$MUPDF_DIR" ]; then
+        echo "Extracting MuPDF..."
         tar -xf "mupdf-${MUPDF_VERSION}-source.tar.gz"
         mv "mupdf-${MUPDF_VERSION}-source" mupdf
+    else
+        echo "Mupdf already extracted"
     fi
 
     cd mupdf
 
     # === Step 5: Build ===
     echo "Building MuPDF..."
-    make HAVE_X11=no HAVE_GLUT=no prefix=$PREFIX build=release -j$(nproc)
+    make -j$(nproc) HAVE_X11=no HAVE_GLUT=no prefix="$PREFIX" build=release
 
     echo "MuPDF built successfully."
+    cd ../..
 }
 
 build_dodo() {
-    cd ../../build
+    echo "Building Dodo"
+
+    mkdir -p build
+    cd build
+
     cmake .. -G Ninja -DCMAKE_INSTALL_PREFIX="$PREFIX" -DCMAKE_BUILD_TYPE=Release
     ninja
-    sudo ninja install
+
+    if [ -w "$PREFIX" ] || [ -w "$(dirname "$PREFIX")" ]; then
+        ninja install
+    else
+        echo "Installing to $PREFIX requires elevated permissions."
+        sudo ninja install
+    fi
 }
 
-download_mupdf && build_mupdf && build_dodo
+download_mupdf
+build_mupdf
+build_dodo
