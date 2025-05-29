@@ -37,6 +37,7 @@ public:
         if (!boundary)
             setPen(Qt::NoPen);
         // setBrush(Qt::transparent);
+        setZValue(2);
         setAcceptHoverEvents(true);
         setToolTip(link);
         setCursor(Qt::PointingHandCursor);
