@@ -60,6 +60,7 @@ resource usage.
 
 ## Installation
 
+
 ### Arch Linux
 
 1. Install Required Dependencies
@@ -101,6 +102,10 @@ git clone https://github.com/dheerajshenoy/dodo
 cd dodo
 ./install.sh
 ```
+
+> [!NOTE]
+> For debian/ubuntu case, there is `install.sh` script which installs latest version of MuPDF library
+> required for dodo
 
 ### Others
 
