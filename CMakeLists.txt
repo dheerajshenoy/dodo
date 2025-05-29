@@ -39,6 +39,7 @@ add_executable(${PROJECT_NAME}
     src/EditLastPagesWidget.hpp
     src/LinkHint.hpp
     src/JumpMarker.hpp
+    src/CircleLabel.hpp
 )
 
 qt_add_resources(RESOURCES resources.qrc)

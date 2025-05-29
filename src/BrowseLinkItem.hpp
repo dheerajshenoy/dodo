@@ -126,7 +126,6 @@ protected:
 
         menu.exec(e->screenPos());
         e->accept();
-        qDebug() << "DD";
     }
 
 private:

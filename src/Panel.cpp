@@ -1,5 +1,6 @@
 #include "Panel.hpp"
 #include "GraphicsView.hpp"
+#include <qsizepolicy.h>
 
 Panel::Panel(QWidget *parent)
 : QWidget(parent)
@@ -9,12 +10,13 @@ Panel::Panel(QWidget *parent)
 
 void Panel::initGui() noexcept
 {
-    this->setLayout(m_layout);
+    setLayout(m_layout);
 
     // Left widgets
-    m_layout->addWidget(m_filename_label);
+    m_layout->addWidget(m_filename_label, 1);
 
     // Right widgets
+    m_layout->addWidget(m_mode_color_label);
     m_layout->addWidget(m_mode_label);
     m_layout->addWidget(new QLabel("["));
     m_layout->addWidget(m_pageno_label);
@@ -38,7 +40,6 @@ void Panel::labelBG(QLabel *label, const QColor &color) noexcept
     label->setPalette(palette);
 }
 
-
 void Panel::setTotalPageCount(int total) noexcept
 {
     m_totalpage_label->setText(QString::number(total));
@@ -53,7 +54,6 @@ void Panel::setPageNo(int pageno) noexcept
 {
     m_pageno_label->setText(QString::number(pageno));
 }
-
 
 void Panel::setSearchCount(int count) noexcept
 {
@@ -89,15 +89,24 @@ void Panel::setMode(GraphicsView::Mode mode) noexcept
     {
         case GraphicsView::Mode::TextSelection:
             m_mode_label->setText("Selection");
+            m_mode_color_label->hide();
             break;
         case GraphicsView::Mode::TextHighlight:
             m_mode_label->setText("Text Highlight");
+            m_mode_color_label->show();
             break;
         case GraphicsView::Mode::AnnotSelect:
             m_mode_label->setText("Annot Select");
+            m_mode_color_label->hide();
             break;
         case GraphicsView::Mode::AnnotRect:
             m_mode_label->setText("Annot Rect");
+            m_mode_color_label->show();
             break;
     }
+}
+
+void Panel::setHighlightColor(const QColor &color) noexcept
+{
+    m_mode_color_label->setColor(color);
 }

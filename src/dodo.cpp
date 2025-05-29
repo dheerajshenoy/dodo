@@ -371,9 +371,11 @@ dodo::initDefaults() noexcept
     m_colors["highlight"]    = QColor::fromString("#55FFFF00").rgba();
     m_colors["selection"]    = QColor::fromString("#550000FF").rgba();
     m_colors["jump_marker"]  = QColor::fromString("#FFFF0000").rgba();
+    m_colors["annot_rect"]   = QColor::fromString("#55FF0000").rgba();
 
     m_model->setSelectionColor(m_colors["selection"]);
     m_model->setHighlightColor(m_colors["highlight"]);
+    m_model->setAnnotRectColor(m_colors["annot_rect"]);
     m_model->setLinkHintBackground(m_colors["link_hint_bg"]);
     m_model->setLinkHintForeground(m_colors["link_hint_fg"]);
     m_gview->setBackgroundBrush(QColor::fromRgba(m_colors["background"]));
@@ -1900,6 +1902,7 @@ dodo::ToggleRectAnnotation() noexcept
     else
     {
         m_gview->setMode(GraphicsView::Mode::AnnotRect);
+        m_panel->setHighlightColor(m_colors["annot_rect"]);
         m_panel->setMode(GraphicsView::Mode::AnnotRect);
         m_actionAnnotRect->setChecked(true);
     }
@@ -2298,6 +2301,7 @@ dodo::ToggleTextHighlight() noexcept
     else
     {
         m_gview->setMode(GraphicsView::Mode::TextHighlight);
+        m_panel->setHighlightColor(m_colors["highlight"]);
         m_panel->setMode(GraphicsView::Mode::TextHighlight);
         clearTextSelection();
         m_actionTextHighlight->setChecked(true);
@@ -2527,20 +2531,40 @@ dodo::populateContextMenu(QMenu *menu, const QPointF &pos) noexcept
     }
 }
 
+// Change color for annots in the selection area
 void
 dodo::annotChangeColor() noexcept
 {
-    // TODO:
+    auto color =
+        QColorDialog::getColor(Qt::red, this, "Highlight Color", QColorDialog::ColorDialogOption::ShowAlphaChannel);
+    if (color.isValid())
+    {
+        m_model->annotChangeColorForIndexes(m_selected_annots, color);
+    }
 }
 
 void
 dodo::changeHighlighterColor() noexcept
 {
-    // TODO:
+    auto color = QColorDialog::getColor(m_colors["highlight"], this, "Highlighter Color",
+                                        QColorDialog::ColorDialogOption::ShowAlphaChannel);
+    if (color.isValid())
+    {
+        m_colors["highlight"] = color.rgba();
+        m_model->setHighlightColor(color);
+        m_panel->setHighlightColor(color);
+    }
 }
 
 void
 dodo::changeAnnotRectColor() noexcept
 {
-    // TODO:
+    auto color = QColorDialog::getColor(m_colors["annot_rect"], this, "Annot Rect Color",
+                                        QColorDialog::ColorDialogOption::ShowAlphaChannel);
+    if (color.isValid())
+    {
+        m_colors["annot_rect"] = color.rgba();
+        m_model->setHighlightColor(color);
+        m_panel->setHighlightColor(color);
+    }
 }
