@@ -122,6 +122,12 @@ private:
         Window,
     };
 
+    struct HistoryLocation
+    {
+        float x, y, zoom;
+        int pageno;
+    };
+
     void initDefaults() noexcept;
     void initSynctex() noexcept;
     void synctexLocateInFile(const char *texFile, int line) noexcept;
@@ -149,7 +155,6 @@ private:
     fz_point mapToPdf(QPointF loc) noexcept;
     void clearLinks() noexcept;
     void clearAnnots() noexcept;
-
     void clearPixmapItems() noexcept;
 
     // Interactive functions
@@ -204,7 +209,7 @@ private:
 
     int m_pageno{-1}, m_start_page_override{-1}, m_rotation{0}, m_search_index{-1}, m_total_pages{0},
         m_search_hit_page{-1}, m_prefetch_distance, m_page_history_limit{5};
-    QList<int> m_page_history_list;
+    QList<HistoryLocation> m_page_history_list;
     float m_scale_factor{1.0f}, m_zoom_by{1.25f}, m_default_zoom{0.0f};
     QString m_last_search_term;
     Panel *m_panel{nullptr};

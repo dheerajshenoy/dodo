@@ -2453,7 +2453,7 @@ dodo::setDirty(bool state) noexcept
 
     m_dirty = state;
 
-    QString title = m_window_title;
+    QString title     = m_window_title;
     QString panelName = m_filename;
 
     if (m_dirty)
@@ -2623,7 +2623,7 @@ dodo::openLastVisitedFile() noexcept
     if (q.next())
     {
         QString last_visited_file = q.value(0).toString();
-        int pageno = q.value(1).toInt();
+        int pageno                = q.value(1).toInt();
 
         if (QFile::exists(last_visited_file))
         {
