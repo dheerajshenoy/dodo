@@ -23,6 +23,9 @@ resource usage.
 - [Features](#features)
 - [Dependencies](#dependencies)
 - [Installation](#installation)
+    - [Arch Linux](#arch-linux)
+    - [Debian/Ubuntu](#debian/ubuntu)
+    - [Others](#others)
 - [Usage](#usage)
 - [Configuration](#configuration)
 - [Theming dodo](#theming-dodo)
@@ -59,20 +62,20 @@ resource usage.
 
 ### Arch Linux
 
-Install Required Dependencies
+1. Install Required Dependencies
 
 ```bash
 sudo pacman -Syu qt6-base mupdf mupdf-tools libsynctex cmake ninja
 ```
 
-Clone the Repository
+2. Clone the Repository
 
 ```bash
 git clone https://github.com/dheerajshenoy/dodo
 cd dodo
 ```
 
-Build and Install
+3. Build and Install
 
 ```bash
 mkdir build
@@ -82,22 +85,27 @@ ninja
 sudo ninja install
 ```
 
-### Debian/Ubuntu users
+### Debian/Ubuntu
 
-Install Required Dependencies
+1. Install Required Dependencies
 
 ```bash
 sudo apt update
 sudo apt install qt6-base-dev libsynctex-dev cmake ninja-build
 ```
 
-Clone the Repository and Run the Install Script
+2. Clone the Repository and Run the Install Script
 
 ```bash
 git clone https://github.com/dheerajshenoy/dodo
 cd dodo
 ./install.sh
 ```
+
+### Others
+
+1. Install the required dependencies
+2. Clone the repository and build similar to the Arch Linux build approach.
 
 # Usage
 
