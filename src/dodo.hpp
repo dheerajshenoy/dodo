@@ -236,6 +236,7 @@ private:
     void changeHighlighterColor() noexcept;
     void changeAnnotRectColor() noexcept;
     void mouseWheelScrollRequested(int direction) noexcept;
+    void openLastVisitedFile() noexcept;
 
     QMenuBar *m_menuBar{nullptr};
     QMenu *m_fitMenu{nullptr};
@@ -282,7 +283,8 @@ private:
     QTimer *m_HQRenderTimer = new QTimer(this);
     QMap<QString, QRgb> m_colors;
     bool m_highlights_present, m_selection_present{false}, m_annot_selection_present{false},
-        m_full_file_path_in_panel{false}, m_dirty{false}, m_page_nav_with_mouse{true};
+        m_full_file_path_in_panel{false}, m_dirty{false}, m_page_nav_with_mouse{true},
+        m_open_last_visited{false};
     OutlineWidget *m_owidget{nullptr};
     PropertiesWidget *m_propsWidget{nullptr};
     QString m_currentHintInput;
@@ -300,4 +302,5 @@ private:
     QSqlDatabase m_last_pages_db;
     LinkHintMode m_link_hint_mode{LinkHintMode::None};
     JumpMarker *m_jump_marker{nullptr};
+
 };

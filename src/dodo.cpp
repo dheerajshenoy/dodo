@@ -52,6 +52,8 @@ dodo::construct() noexcept
 
     setMinimumSize(600, 400);
     this->show();
+    if (m_open_last_visited)
+        openLastVisitedFile();
 }
 
 void
@@ -329,8 +331,7 @@ dodo::scrollToXY(float x, float y) noexcept
 
     if (m_jump_marker_shown)
     {
-        m_jump_marker->setRect(QRectF(point.x, point.y + 10, 10, 10));
-
+        m_jump_marker->setRect(QRectF(point.x, point.y, 10, 10));
         m_jump_marker->show();
         QTimer::singleShot(1000, [=]() { fadeJumpMarker(m_jump_marker); });
     }
@@ -491,6 +492,7 @@ dodo::initConfig() noexcept
 
     auto behavior           = toml["behavior"];
     m_remember_last_visited = behavior["remember_last_visited"].value_or(true);
+    m_open_last_visited     = behavior["open_last_visited"].value_or(false);
     // m_prefetch_enabled = behavior["enable_prefetch"].value_or(true);
     // m_prefetch_distance = behavior["prefetch_distance"].value_or(2);
     m_page_history_limit = behavior["page_history"].value_or(100);
@@ -2581,6 +2583,34 @@ dodo::mouseWheelScrollRequested(int direction) noexcept
         {
             NextPage();
             m_vscrollbar->setValue(m_vscrollbar->minimum());
+        }
+    }
+}
+
+void
+dodo::openLastVisitedFile() noexcept
+{
+    if (!m_last_pages_db.isOpen() || !m_last_pages_db.isValid())
+        return;
+
+    QSqlQuery q;
+    q.prepare("SELECT file_path, page_number FROM last_visited ORDER BY last_accessed DESC");
+
+    if (!q.exec())
+    {
+        qWarning() << "DB Error: " << q.lastError().text();
+        return;
+    }
+
+    if (q.next())
+    {
+        QString last_visited_file = q.value(0).toString();
+        int pageno = q.value(1).toInt();
+
+        if (QFile::exists(last_visited_file))
+        {
+            openFile(last_visited_file);
+            gotoPage(pageno);
         }
     }
 }
