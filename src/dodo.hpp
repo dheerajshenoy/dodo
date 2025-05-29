@@ -59,7 +59,7 @@ extern "C"
 #include <synctex/synctex_version.h>
 }
 
-#define __DODO_VERSION "0.2.0"
+#define __DODO_VERSION "v0.2.1-alpha"
 
 class dodo : public QMainWindow
 {

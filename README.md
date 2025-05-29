@@ -16,7 +16,7 @@ resource usage.
 > Dodo is currently in alpha and may experience crashes or instability.
 
 > [!NOTE]
-> dodo is at v0.2.0-alpha
+> dodo version is v0.2.1-alpha
 
 ## Table of Contents
 
