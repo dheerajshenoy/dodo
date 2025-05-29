@@ -77,7 +77,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 
                 m_mousePressPos = mapToScene(event->pos());
                 QGuiApplication::setOverrideCursor(Qt::CursorShape::IBeamCursor);
-                m_selecting   = true;
+                m_selecting = true;
                 if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(m_mousePressPos))
                 {
                     m_selection_start = m_mousePressPos;
@@ -227,7 +227,9 @@ GraphicsView::wheelEvent(QWheelEvent *e)
         else
             emit zoomOutRequested();
         return;
-    } else {
+    }
+    else
+    {
         if (m_page_nav_with_mouse)
         {
             if (e->angleDelta().y() > 0)

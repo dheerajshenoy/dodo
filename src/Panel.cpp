@@ -18,12 +18,9 @@ void Panel::initGui() noexcept
     // Right widgets
     m_layout->addWidget(m_mode_color_label);
     m_layout->addWidget(m_mode_label);
-    m_layout->addWidget(new QLabel("["));
     m_layout->addWidget(m_pageno_label);
     m_layout->addWidget(new QLabel("/"));
     m_layout->addWidget(m_totalpage_label);
-    m_layout->addWidget(new QLabel("]"));
-
     m_layout->addWidget(m_fitmode_label);
     m_layout->addWidget(m_search_label);
     m_layout->addWidget(m_search_index_label);

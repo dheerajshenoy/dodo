@@ -2207,8 +2207,6 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
             texPath.replace("~", getenv("HOME"));
             int line   = match.captured(3).toInt();
             int column = match.captured(4).toInt();
-
-            qDebug() << "PDF:" << pdfPath << "Source:" << texPath << "Line:" << line << "Column:" << column;
             openFile(pdfPath);
             synctexLocateInPdf(texPath, line, column);
         }
@@ -2453,18 +2451,27 @@ dodo::setDirty(bool state) noexcept
 
     m_dirty = state;
 
+    QString title = m_window_title;
+    QString panelName = m_filename;
+
     if (m_dirty)
     {
-        if (!m_window_title.endsWith("*"))
-            m_window_title.append("*");
+        if (!title.endsWith("*"))
+            title.append("*");
+        if (!panelName.endsWith("*"))
+            panelName.append("*");
     }
     else
     {
-        if (m_window_title.endsWith("*"))
-            m_window_title.chop(1);
+        if (title.endsWith("*"))
+            title.chop(1);
+        if (panelName.endsWith("*"))
+            panelName.chop(1);
     }
 
-    this->setWindowTitle(QString(m_window_title).arg(m_basename));
+    m_window_title = title;
+    m_panel->setFileName(panelName);
+    this->setWindowTitle(title);
 }
 
 void
