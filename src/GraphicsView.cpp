@@ -75,12 +75,12 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                     return;
                 }
 
-                QPoint pos = event->pos();
+                m_mousePressPos = event->pos();
                 QGuiApplication::setOverrideCursor(Qt::CursorShape::IBeamCursor);
                 m_selecting   = true;
-                if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(pos))
+                if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(m_mousePressPos))
                 {
-                    m_selection_start = pos;
+                    m_selection_start = m_mousePressPos;
                     emit textSelectionDeletionRequested();
                 }
             }
