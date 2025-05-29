@@ -1213,8 +1213,50 @@ Model::annotChangeColorForIndexes(const QSet<int> &indexes, const QColor &color)
         pdf_annot *annot = get_annot_by_index(index);
         if (annot)
         {
-            pdf_set_annot_color(m_ctx, annot, 3, pdf_color);
+            enum pdf_annot_type type = pdf_annot_type(m_ctx, annot);
+
+            switch (type)
+            {
+
+                case PDF_ANNOT_TEXT:
+                case PDF_ANNOT_LINK:
+                case PDF_ANNOT_FREE_TEXT:
+                case PDF_ANNOT_LINE:
+                case PDF_ANNOT_SQUARE:
+                    pdf_set_annot_interior_color(m_ctx, annot, 3, pdf_color);
+                    break;
+
+                case PDF_ANNOT_CIRCLE:
+                case PDF_ANNOT_POLYGON:
+                case PDF_ANNOT_POLY_LINE:
+                case PDF_ANNOT_HIGHLIGHT:
+                    pdf_set_annot_color(m_ctx, annot, 3, pdf_color);
+                    break;
+
+                case PDF_ANNOT_UNDERLINE:
+                case PDF_ANNOT_SQUIGGLY:
+                case PDF_ANNOT_STRIKE_OUT:
+                case PDF_ANNOT_REDACT:
+                case PDF_ANNOT_STAMP:
+                case PDF_ANNOT_CARET:
+                case PDF_ANNOT_INK:
+                case PDF_ANNOT_POPUP:
+                case PDF_ANNOT_FILE_ATTACHMENT:
+                case PDF_ANNOT_SOUND:
+                case PDF_ANNOT_MOVIE:
+                case PDF_ANNOT_RICH_MEDIA:
+                case PDF_ANNOT_WIDGET:
+                case PDF_ANNOT_SCREEN:
+                case PDF_ANNOT_PRINTER_MARK:
+                case PDF_ANNOT_TRAP_NET:
+                case PDF_ANNOT_WATERMARK:
+                case PDF_ANNOT_3D:
+                case PDF_ANNOT_PROJECTION:
+                case PDF_ANNOT_UNKNOWN:
+                    break;
+            }
             pdf_set_annot_opacity(m_ctx, annot, alpha);
+            pdf_update_annot(m_ctx, annot);
         }
     }
 }

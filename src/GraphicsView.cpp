@@ -188,9 +188,8 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 
                 QRectF clippedRect = sceneRect.intersected(m_pixmapItem->boundingRect());
                 if (!clippedRect.isEmpty())
-                {
                     emit annotSelectRequested(clippedRect);
-                }
+
             }
         }
         break;
@@ -245,21 +244,24 @@ GraphicsView::wheelEvent(QWheelEvent *e)
 void
 GraphicsView::contextMenuEvent(QContextMenuEvent *e)
 {
-    QGraphicsItem *item = scene()->itemAt(mapToScene(e->pos()), transform());
 
-    if (item)
+    if (m_mode == Mode::AnnotSelect)
     {
-        e->ignore();
-        QGraphicsView::contextMenuEvent(e);
-        return;
+        QGraphicsItem *item = scene()->itemAt(mapToScene(e->pos()), transform());
+
+        if (!item || item == m_pixmapItem)
+        {
+            qDebug() << "DD";
+            QMenu menu(this);
+            emit populateContextMenuRequested(&menu);
+            if (!menu.isEmpty())
+                menu.exec(e->globalPos());
+            e->accept();
+            return;
+        }
     }
 
-    QMenu menu(this);
-    emit populateContextMenuRequested(&menu);
-    if (!menu.isEmpty())
-        menu.exec(e->globalPos());
-    e->accept();
-    return;
+    QGraphicsView::contextMenuEvent(e);
 }
 
 QPointF
