@@ -1260,7 +1260,8 @@ dodo::gotoPage(const int &pageno) noexcept
     // boundary condition
     if (!m_suppressHistory)
     {
-        m_page_history_list.push_back(m_pageno);
+        fz_point p = mapToPdf(m_gview->getCursorPos());
+        m_page_history_list.push_back((HistoryLocation){.x = p.x, .y = p.y, .zoom = 1, .pageno = m_pageno});
         if (m_page_history_list.size() > m_page_history_limit)
             m_page_history_list.removeFirst();
     }
@@ -1820,9 +1821,10 @@ dodo::GoBackHistory() noexcept
 {
     if (!m_page_history_list.isEmpty())
     {
-        int lastPage      = m_page_history_list.takeLast(); // Pop last page
-        m_suppressHistory = true;
-        gotoPage(lastPage);
+        HistoryLocation loc = m_page_history_list.takeLast(); // Pop last page
+        m_suppressHistory   = true;
+        gotoPage(loc.pageno);
+        scrollToXY(loc.x, loc.y);
         m_suppressHistory = false;
     }
 }

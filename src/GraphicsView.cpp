@@ -1,4 +1,5 @@
 #include "GraphicsView.hpp"
+
 #include <qgraphicssceneevent.h>
 #include <qgraphicsview.h>
 #include <qmenu.h>
@@ -259,4 +260,10 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *e)
         menu.exec(e->globalPos());
     e->accept();
     return;
+}
+
+QPointF
+GraphicsView::getCursorPos() noexcept
+{
+    return mapToScene(mapFromGlobal(QCursor::pos()));
 }

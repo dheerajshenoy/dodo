@@ -11,7 +11,6 @@
 #include <qevent.h>
 #include <qgraphicssceneevent.h>
 
-
 class GraphicsView : public QGraphicsView
 {
     Q_OBJECT
@@ -24,6 +23,7 @@ public:
         AnnotRect
     };
 
+    QPointF getCursorPos() noexcept;
     explicit GraphicsView(QWidget *parent = nullptr);
     inline QPointF selectionStart() noexcept
     {
