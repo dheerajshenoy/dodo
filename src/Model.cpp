@@ -201,14 +201,15 @@ Model::reloadDocument() noexcept
     // load accelerator
     fz_try(m_ctx)
     {
-        m_doc    = fz_open_document(m_ctx, CSTR(m_filename));
-        m_pdfdoc = pdf_specifics(m_ctx, m_doc);
-
+        m_doc = fz_open_document(m_ctx, CSTR(m_filename));
         if (!m_doc)
         {
             qWarning("Unable to open document");
             return;
         }
+        m_pdfdoc    = pdf_specifics(m_ctx, m_doc);
+        m_pdfpage   = pdf_page_from_fz_page(m_ctx, m_page);
+        m_text_page = fz_new_stext_page_from_page(m_ctx, m_page, nullptr);
     }
     fz_catch(m_ctx)
     {
@@ -1094,7 +1095,7 @@ Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF &sel
             fz_quad q = hits[i];
             pdf_set_annot_quad_points(m_ctx, annot, 1, &q);
             pdf_set_annot_color(m_ctx, annot, 3, m_highlight_color);
-            pdf_set_annot_opacity(m_ctx, annot, 0.2);
+            pdf_set_annot_opacity(m_ctx, annot, m_highlight_color[3]);
             pdf_update_annot(m_ctx, annot);
             pdf_drop_annot(m_ctx, annot);
         }
@@ -1188,22 +1189,72 @@ Model::deleteAnnots(const QSet<int> &indexes) noexcept
 void
 Model::annotChangeColorForIndexes(const QSet<int> &indexes, const QColor &color) noexcept
 {
-    float pdf_color[4] = { color.redF(), color.greenF(), color.blueF(), color.alphaF() };
+    float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
+    float alpha = color.alphaF();
 
     for (const auto &index : indexes)
     {
         pdf_annot *annot = get_annot_by_index(index);
         if (annot)
+        {
             pdf_set_annot_color(m_ctx, annot, 3, pdf_color);
+            pdf_set_annot_opacity(m_ctx, annot, alpha);
+        }
     }
 }
 
 void
 Model::annotChangeColorForIndex(const int index, const QColor &color) noexcept
 {
-    float pdf_color[4] = { color.redF(), color.greenF(), color.blueF(), color.alphaF() };
+    float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
+    float alpha = color.alphaF();
 
     pdf_annot *annot = get_annot_by_index(index);
     if (annot)
-        pdf_set_annot_color(m_ctx, annot, 3, pdf_color);
+    {
+        enum pdf_annot_type type = pdf_annot_type(m_ctx, annot);
+
+        switch(type)
+        {
+
+            case PDF_ANNOT_TEXT:
+            case PDF_ANNOT_LINK:
+            case PDF_ANNOT_FREE_TEXT:
+            case PDF_ANNOT_LINE:
+            case PDF_ANNOT_SQUARE:
+                pdf_set_annot_interior_color(m_ctx, annot, 3, pdf_color);
+                break;
+
+            case PDF_ANNOT_CIRCLE:
+            case PDF_ANNOT_POLYGON:
+            case PDF_ANNOT_POLY_LINE:
+            case PDF_ANNOT_HIGHLIGHT:
+                pdf_set_annot_color(m_ctx, annot, 3, pdf_color);
+                break;
+
+            case PDF_ANNOT_UNDERLINE:
+            case PDF_ANNOT_SQUIGGLY:
+            case PDF_ANNOT_STRIKE_OUT:
+            case PDF_ANNOT_REDACT:
+            case PDF_ANNOT_STAMP:
+            case PDF_ANNOT_CARET:
+            case PDF_ANNOT_INK:
+            case PDF_ANNOT_POPUP:
+            case PDF_ANNOT_FILE_ATTACHMENT:
+            case PDF_ANNOT_SOUND:
+            case PDF_ANNOT_MOVIE:
+            case PDF_ANNOT_RICH_MEDIA:
+            case PDF_ANNOT_WIDGET:
+            case PDF_ANNOT_SCREEN:
+            case PDF_ANNOT_PRINTER_MARK:
+            case PDF_ANNOT_TRAP_NET:
+            case PDF_ANNOT_WATERMARK:
+            case PDF_ANNOT_3D:
+            case PDF_ANNOT_PROJECTION:
+            case PDF_ANNOT_UNKNOWN:
+                break;
+        }
+        pdf_set_annot_opacity(m_ctx, annot, alpha);
+        pdf_update_annot(m_ctx, annot);
+    }
 }

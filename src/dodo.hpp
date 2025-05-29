@@ -231,7 +231,7 @@ private:
     void deleteKeyAction() noexcept;
     void setDirty(bool state) noexcept;
     void fadeJumpMarker(JumpMarker *item) noexcept;
-    void populateContextMenu(QMenu *menu, const QPointF &pos) noexcept;
+    void populateContextMenu(QMenu *menu) noexcept;
     void annotChangeColor() noexcept;
     void changeHighlighterColor() noexcept;
     void changeAnnotRectColor() noexcept;

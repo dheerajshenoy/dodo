@@ -29,7 +29,6 @@ protected:
     {
         updateElidedText();
         QLabel::resizeEvent(e);
-        qDebug() << "DD";
     }
 
 private:

@@ -3,6 +3,7 @@
 #include "BrowseLinkItem.hpp"
 #include "HighlightItem.hpp"
 
+#include <qgraphicssceneevent.h>
 #include <qgraphicsview.h>
 #include <qnamespace.h>
 
@@ -21,6 +22,7 @@ GraphicsView::setMode(Mode mode) noexcept
         case Mode::TextSelection:
         case Mode::TextHighlight:
             emit textSelectionDeletionRequested();
+            m_has_text_selection = false;
             break;
 
         case Mode::AnnotRect:
@@ -40,7 +42,10 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     switch (m_mode)
     {
         case Mode::AnnotSelect:
-            emit annotSelectClearRequested();
+        {
+            if (event->button() == Qt::LeftButton)
+                emit annotSelectClearRequested();
+        }
         case Mode::AnnotRect:
         {
             if (event->button() == Qt::LeftButton)
@@ -77,6 +82,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                 {
                     m_selection_start = pos;
                     emit textSelectionDeletionRequested();
+                    m_has_text_selection = false;
                 }
             }
         }
@@ -149,6 +155,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
             {
                 m_selection_end = mapToScene(event->pos());
                 emit textSelectionRequested(m_selection_start, m_selection_end);
+                m_has_text_selection = true;
             }
             QGuiApplication::restoreOverrideCursor();
             m_selecting = false;
@@ -224,3 +231,31 @@ GraphicsView::wheelEvent(QWheelEvent *e)
     QGraphicsView::wheelEvent(e);
 }
 
+void
+GraphicsView::contextMenuEvent(QContextMenuEvent *e)
+{
+    if (m_has_text_selection)
+    {
+        QMenu menu(this);
+        emit populateContextMenuRequested(&menu);
+        if (!menu.isEmpty())
+            menu.exec(e->globalPos());
+        e->accept();
+        return;
+    }
+    else
+    {
+        // Check if item under cursor handled the event
+        QGraphicsItem *item = scene()->itemAt(mapToScene(e->pos()), transform());
+
+        // Optional: Skip if it's a link item
+        if (item)
+        {
+            e->ignore();
+            QGraphicsView::contextMenuEvent(e);
+        }
+        else
+        {
+        }
+    }
+}

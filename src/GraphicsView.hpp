@@ -9,6 +9,7 @@
 #include <mupdf/fitz/pixmap.h>
 #include <qevent.h>
 #include <QGuiApplication>
+#include <qgraphicssceneevent.h>
 
 #define CLICK_THRESHOLD 50
 
@@ -57,12 +58,14 @@ signals:
     void annotSelectClearRequested();
     void zoomInRequested();
     void zoomOutRequested();
+    void populateContextMenuRequested(QMenu *menu);
 
 protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* e) override;
+    void contextMenuEvent(QContextMenuEvent *e) override;
 
 private:
     QRect m_rect;
@@ -73,4 +76,5 @@ private:
     Mode m_mode{Mode::TextSelection};
     QGraphicsPixmapItem* m_pixmapItem{nullptr};
     QRubberBand* m_rubberBand{nullptr};
+    bool m_has_text_selection{false};
 };

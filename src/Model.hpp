@@ -191,17 +191,19 @@ private:
     float m_dpi;
     bool m_link_boundary, m_invert_color_mode{false};
     QGraphicsScene *m_scene{nullptr};
+
     fz_context *m_ctx{nullptr};
     fz_document *m_doc{nullptr};
     fz_page *m_page{nullptr};
     pdf_page *m_pdfpage{nullptr};
     fz_stext_page *m_text_page{nullptr};
+    pdf_document *m_pdfdoc{nullptr};
+    pdf_write_options m_write_opts;
     fz_matrix m_transform;
+
     float m_height, m_width;
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
     QColor m_link_hint_fg{QColor::fromRgba(0x000000)}, m_link_hint_bg{QColor::fromRgba(0xFFFF00)};
-    pdf_write_options m_write_opts;
-    pdf_document *m_pdfdoc{nullptr};
     float m_highlight_color[4], m_annot_rect_color[4];
     QRgb m_selection_color;
     float m_page_height{0.0f};

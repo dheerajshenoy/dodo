@@ -183,7 +183,7 @@ dodo::initMenubar() noexcept
 void
 dodo::initConnections() noexcept
 {
-    connect(m_gscene, &GraphicsScene::populateContextMenuRequested, this, &dodo::populateContextMenu);
+    connect(m_gview, &GraphicsView::populateContextMenuRequested, this, &dodo::populateContextMenu);
 
     connect(m_model, &Model::documentSaved, this, [&]() { setDirty(false); });
 
@@ -1312,7 +1312,7 @@ dodo::renderAnnotations(const QList<HighlightItem *> &annots) noexcept
             {
                 m_model->annotChangeColorForIndex(index, color);
                 setDirty(true);
-                renderPage(m_pageno, false);
+                renderPage(m_pageno);
             }
         });
 
@@ -2337,7 +2337,7 @@ dodo::clearAnnotSelection() noexcept
         if (!gitem)
             continue;
 
-        gitem->unselect();
+        gitem->restoreBrushPen();
     }
     m_annot_selection_present = false;
 }
@@ -2479,11 +2479,8 @@ dodo::fadeJumpMarker(JumpMarker *marker) noexcept
     animation->setEndValue(0.0);
     animation->start(QAbstractAnimation::DeleteWhenStopped);
 
-    QObject::connect(animation, &QPropertyAnimation::finished, [marker]()
+    connect(animation, &QPropertyAnimation::finished, [marker]()
     {
-        // if (marker->scene())
-        //     marker->scene()->removeItem(marker);
-        // delete marker;
         marker->hide();
         marker->setOpacity(1.0);
     });
@@ -2497,7 +2494,7 @@ dodo::ShowKeybindings() noexcept
 }
 
 void
-dodo::populateContextMenu(QMenu *menu, const QPointF &pos) noexcept
+dodo::populateContextMenu(QMenu *menu) noexcept
 {
     switch (m_gview->mode())
     {
@@ -2514,6 +2511,7 @@ dodo::populateContextMenu(QMenu *menu, const QPointF &pos) noexcept
             if (!m_annot_selection_present)
                 return;
 
+            qDebug() << "DD";
             QAction *deleteAction = new QAction("Delete Annotations");
             connect(deleteAction, &QAction::triggered, this, &dodo::deleteKeyAction);
 
