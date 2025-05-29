@@ -3,6 +3,7 @@
 #include "AboutDialog.hpp"
 #include "BrowseLinkItem.hpp"
 #include "EditLastPagesWidget.hpp"
+#include "GraphicsScene.hpp"
 #include "GraphicsView.hpp"
 #include "JumpMarker.hpp"
 #include "Model.hpp"
@@ -13,12 +14,12 @@
 #include "argparse.hpp"
 #include "toml.hpp"
 
-#include <QColorDialog>
 #include <QActionGroup>
 #include <QApplication>
 #include <QCache>
 #include <QClipboard>
 #include <QCloseEvent>
+#include <QColorDialog>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
@@ -270,7 +271,7 @@ private:
     QMap<int, QList<Model::SearchResult>> m_searchRectMap;
     QString m_filename, m_basename;
     GraphicsView *m_gview           = new GraphicsView();
-    QGraphicsScene *m_gscene        = new QGraphicsScene();
+    GraphicsScene *m_gscene         = new GraphicsScene();
     QGraphicsPixmapItem *m_pix_item = new QGraphicsPixmapItem();
     QVBoxLayout *m_layout           = new QVBoxLayout();
     float m_dpr{1.0f}, m_inv_dpr{1.0f};

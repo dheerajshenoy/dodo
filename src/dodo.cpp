@@ -183,7 +183,7 @@ dodo::initMenubar() noexcept
 void
 dodo::initConnections() noexcept
 {
-    connect(m_gview, &GraphicsView::populateContextMenuRequested, this, &dodo::populateContextMenu);
+    connect(m_gscene, &GraphicsScene::populateContextMenuRequested, this, &dodo::populateContextMenu);
 
     connect(m_model, &Model::documentSaved, this, [&]() { setDirty(false); });
 
@@ -289,12 +289,8 @@ dodo::selectAnnots() noexcept
 {
     for (const auto &item : m_gscene->items())
     {
-        qDebug() << item->data(0).toString();
         if (item->data(0).toString() == "annot" && m_selected_annots.contains(item->data(1).toInt()))
         {
-
-            qDebug() << "EE";
-
             HighlightItem *gitem = dynamic_cast<HighlightItem *>(item);
             if (!gitem)
                 continue;
@@ -302,7 +298,6 @@ dodo::selectAnnots() noexcept
             gitem->select(Qt::red);
         }
     }
-
     m_annot_selection_present = true;
 }
 
@@ -1384,7 +1379,7 @@ dodo::renderPage(int pageno, bool renderonly) noexcept
     m_cache.insert(key, new CacheValue(pix, links, annot_highlights));
     renderPixmap(pix);
     renderLinks(links);
-    // renderAnnotations(annot_highlights);
+    renderAnnotations(annot_highlights);
 
     // if (m_prefetch_enabled)
     //     prefetchAround(m_pageno);

@@ -25,8 +25,8 @@ public:
         m_originalBrush = brush();
         m_originalPen = pen();
 
-        setBrush(color);
-        setPen(QPen(color, 5, Qt::DotLine));
+        // setBrush(color);
+        setPen(QPen(color, 1, Qt::PenStyle::SolidLine));
     }
 
     void unselect() noexcept
