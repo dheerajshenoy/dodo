@@ -60,52 +60,26 @@ resource usage.
 
 ## Installation
 
+> [!NOTE]
+> The `install.sh` script installs latest version of MuPDF library required for dodo
 
 ### Arch Linux
 
-1. Install Required Dependencies
-
 ```bash
-sudo pacman -Syu qt6-base mupdf mupdf-tools libsynctex cmake ninja
-```
-
-2. Clone the Repository
-
-```bash
-git clone https://github.com/dheerajshenoy/dodo
-cd dodo
-```
-
-3. Build and Install
-
-```bash
-mkdir build
-cd build
-cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
-ninja
-sudo ninja install
-```
-
-### Debian/Ubuntu
-
-1. Install Required Dependencies
-
-```bash
-sudo apt update
-sudo apt install qt6-base-dev libsynctex-dev cmake ninja-build
-```
-
-2. Clone the Repository and Run the Install Script
-
-```bash
+sudo pacman -Syu qt6-base libsynctex cmake ninja
 git clone https://github.com/dheerajshenoy/dodo
 cd dodo
 ./install.sh
 ```
 
-> [!NOTE]
-> For debian/ubuntu case, there is `install.sh` script which installs latest version of MuPDF library
-> required for dodo
+### Debian/Ubuntu
+
+```bash
+sudo apt update && sudo apt install qt6-base-dev libsynctex-dev cmake ninja-build
+git clone https://github.com/dheerajshenoy/dodo
+cd dodo
+./install.sh
+```
 
 ### Others
 
