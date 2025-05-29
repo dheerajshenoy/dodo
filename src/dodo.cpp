@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <qcolordialog.h>
 #include <qcontainerinfo.h>
 #include <qgraphicsitem.h>
 #include <qthread.h>
@@ -288,14 +289,18 @@ dodo::selectAnnots() noexcept
 {
     for (const auto &item : m_gscene->items())
     {
-        if (item->data(0).toString() != "annot" || !m_selected_annots.contains(item->data(1).toInt()))
-            continue;
+        qDebug() << item->data(0).toString();
+        if (item->data(0).toString() == "annot" && m_selected_annots.contains(item->data(1).toInt()))
+        {
 
-        QGraphicsRectItem *gitem = qgraphicsitem_cast<QGraphicsRectItem *>(item);
-        if (!gitem)
-            continue;
+            qDebug() << "EE";
 
-        gitem->setBrush(QColor(255, 0, 0, 120));
+            HighlightItem *gitem = dynamic_cast<HighlightItem *>(item);
+            if (!gitem)
+                continue;
+
+            gitem->select(Qt::red);
+        }
     }
 
     m_annot_selection_present = true;
@@ -1303,6 +1308,19 @@ dodo::renderAnnotations(const QList<HighlightItem *> &annots) noexcept
             setDirty(true);
             renderPage(m_pageno, false);
         });
+
+        connect(annot, &HighlightItem::annotColorChangeRequested, m_model, [&](int index)
+        {
+            auto color = QColorDialog::getColor(Qt::white, this, "Highlight Color",
+                                                QColorDialog::ColorDialogOption::ShowAlphaChannel);
+            if (color.isValid())
+            {
+                m_model->annotChangeColorForIndex(index, color);
+                setDirty(true);
+                renderPage(m_pageno, false);
+            }
+        });
+
         m_gscene->addItem(annot);
     }
 }
@@ -2319,11 +2337,12 @@ dodo::clearAnnotSelection() noexcept
         if (!m_selected_annots.contains(item->data(1).toInt()))
             continue;
 
-        QGraphicsRectItem *gitem = qgraphicsitem_cast<QGraphicsRectItem *>(item);
+        HighlightItem *gitem = dynamic_cast<HighlightItem *>(item);
+
         if (!gitem)
             continue;
 
-        gitem->setBrush(Qt::transparent);
+        gitem->unselect();
     }
     m_annot_selection_present = false;
 }

@@ -24,26 +24,26 @@ class QGraphicsScene;
 QString
 generateHint(int index) noexcept;
 void
-lock_mutex(void* user, int lock);
+lock_mutex(void *user, int lock);
 void
-unlock_mutex(void* user, int lock);
+unlock_mutex(void *user, int lock);
 fz_quad
-union_quad(const fz_quad& a, const fz_quad& b);
+union_quad(const fz_quad &a, const fz_quad &b);
 
 class Model : public QObject
 {
     Q_OBJECT
 public:
-    Model(QGraphicsScene* scene);
+    Model(QGraphicsScene *scene);
     ~Model();
     explicit operator bool() const noexcept
     {
         return m_doc != nullptr;
     }
 
-    bool authenticate(const QString& pwd) noexcept;
+    bool authenticate(const QString &pwd) noexcept;
     bool passwordRequired() noexcept;
-    bool openFile(const QString& fileName);
+    bool openFile(const QString &fileName);
     void closeFile() noexcept;
     bool valid();
     inline void setDPI(float dpi)
@@ -52,17 +52,17 @@ public:
     }
     int numPages();
     QPixmap renderPage(int pageno, float zoom, float rotation, bool renderonly = false) noexcept;
-    QList<BrowseLinkItem*> getLinks() noexcept;
-    pdf_annot* get_annot_by_index(int index) noexcept;
-    QList<pdf_annot*> get_annots_by_indexes(const QSet<int>& index) noexcept;
+    QList<BrowseLinkItem *> getLinks() noexcept;
+    pdf_annot *get_annot_by_index(int index) noexcept;
+    QList<pdf_annot *> get_annots_by_indexes(const QSet<int> &index) noexcept;
     void annotDeleteRequested(int index) noexcept;
-    QList<HighlightItem*> getAnnotations() noexcept;
+    QList<HighlightItem *> getAnnotations() noexcept;
     void setLinkBoundary(bool state);
-    void searchAll(const QString& term, bool caseSensitive);
-    void addRectAnnotation(const QRectF& rect) noexcept;
+    void searchAll(const QString &term, bool caseSensitive);
+    void addRectAnnotation(const QRectF &rect) noexcept;
     bool save() noexcept;
-    bool saveAs(const char* filename) noexcept;
-    fz_rect convertToMuPdfRect(const QRectF& qtRect) noexcept;
+    bool saveAs(const char *filename) noexcept;
+    fz_rect convertToMuPdfRect(const QRectF &qtRect) noexcept;
     bool hasUnsavedChanges() noexcept;
     void enableICC() noexcept;
     void setAntialiasingBits(int bits) noexcept;
@@ -72,24 +72,32 @@ public:
         m_dpr     = dpr;
         m_inv_dpr = 1 / dpr;
     }
-    fz_context* clonedContext() noexcept;
-    void annotHighlightSelection(const QPointF& selectionStart, const QPointF& selectionEnd) noexcept;
-    QSet<int> getAnnotationsInArea(const QRectF& area) noexcept;
-    inline fz_context* context() noexcept
+    fz_context *clonedContext() noexcept;
+    void annotHighlightSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
+    QSet<int> getAnnotationsInArea(const QRectF &area) noexcept;
+    inline fz_context *context() noexcept
     {
         return m_ctx;
     }
-    inline void setSelectionColor(const QRgb& color) noexcept
+    inline void setSelectionColor(const QRgb &color) noexcept
     {
         m_selection_color = color;
     }
 
-    inline void setHighlightColor(const QColor& color) noexcept
+    inline void setHighlightColor(const QColor &color) noexcept
     {
         m_highlight_color[0] = color.redF();
         m_highlight_color[1] = color.greenF();
         m_highlight_color[2] = color.blueF();
         m_highlight_color[3] = color.alphaF();
+    }
+
+    inline void setAnnotRectColor(const QColor &color) noexcept
+    {
+        m_annot_rect_color[0] = color.redF();
+        m_annot_rect_color[1] = color.greenF();
+        m_annot_rect_color[2] = color.blueF();
+        m_annot_rect_color[3] = color.alphaF();
     }
 
     enum class MessageType
@@ -112,9 +120,9 @@ public:
         int index;
     };
 
-    QString selectAllText(const QPointF& start, const QPointF& end) noexcept;
+    QString selectAllText(const QPointF &start, const QPointF &end) noexcept;
     void initSaveOptions() noexcept;
-    fz_outline* getOutline() noexcept;
+    fz_outline *getOutline() noexcept;
     inline fz_matrix transform() noexcept
     {
         return m_transform;
@@ -125,8 +133,8 @@ public:
         return m_hint_to_link_map;
     };
     void clearKBHintsOverlay() noexcept;
-    void followLink(const LinkInfo& info) noexcept;
-    void loadColorProfile(const QString& profileName) noexcept;
+    void followLink(const LinkInfo &info) noexcept;
+    void loadColorProfile(const QString &profileName) noexcept;
     inline bool invertColor() noexcept
     {
         return m_invert_color_mode;
@@ -149,30 +157,32 @@ public:
         m_link_hint_bg = QColor::fromRgba(bg);
     }
 
-    void highlightHelper(const QPointF& selectionStart, const QPointF& selectionEnd, fz_point& a, fz_point& b) noexcept;
-    void highlightTextSelection(const QPointF& selectionStart, const QPointF& selectionEnd) noexcept;
-    QString getSelectionText(const QPointF& selectionStart, const QPointF& selectionEnd) noexcept;
-    void deleteAnnots(const QSet<int>& indices) noexcept;
+    void highlightHelper(const QPointF &selectionStart, const QPointF &selectionEnd, fz_point &a, fz_point &b) noexcept;
+    void highlightTextSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
+    QString getSelectionText(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
+    void deleteAnnots(const QSet<int> &indices) noexcept;
+    void annotChangeColorForIndexes(const QSet<int> &indexes, const QColor &color) noexcept;
+    void annotChangeColorForIndex(const int index, const QColor &color) noexcept;
 
 signals:
     void jumpToPageRequested(int pageno);
-    void jumpToLocationRequested(int pageno, const BrowseLinkItem::Location& loc);
+    void jumpToLocationRequested(int pageno, const BrowseLinkItem::Location &loc);
     void imageRenderRequested(int pageno, QImage img);
-    void searchResultsReady(const QMap<int, QList<SearchResult>>& results, int matchCount);
-    void horizontalFitRequested(int pageno, const BrowseLinkItem::Location& location);
-    void verticalFitRequested(int pageno, const BrowseLinkItem::Location& location);
+    void searchResultsReady(const QMap<int, QList<SearchResult>> &results, int matchCount);
+    void horizontalFitRequested(int pageno, const BrowseLinkItem::Location &location);
+    void verticalFitRequested(int pageno, const BrowseLinkItem::Location &location);
     void fitRectRequested(int pageno, float x, float y, float w, float h);
     void fitXYZRequested(int pageno, float x, float y, float zoom);
-    void showMessageRequested(const char* message, MessageType type);
+    void showMessageRequested(const char *message, MessageType type);
     void documentSaved();
 
 private:
-    void apply_night_mode(fz_pixmap* pixmap) noexcept;
+    void apply_night_mode(fz_pixmap *pixmap) noexcept;
     void reloadDocument() noexcept;
 
-    QList<SearchResult> searchHelper(int pageno, const QString& term, bool caseSensitive);
+    QList<SearchResult> searchHelper(int pageno, const QString &term, bool caseSensitive);
 
-    fz_colorspace* m_colorspace;
+    fz_colorspace *m_colorspace;
 
     QString m_filename;
     int m_match_count{0};
@@ -180,21 +190,22 @@ private:
     std::mutex m_locks[FZ_LOCK_MAX];
     float m_dpi;
     bool m_link_boundary, m_invert_color_mode{false};
-    QGraphicsScene* m_scene{nullptr};
-    fz_context* m_ctx{nullptr};
-    fz_document* m_doc{nullptr};
-    fz_page* m_page{nullptr};
-    pdf_page* m_pdfpage{nullptr};
-    fz_stext_page* m_text_page{nullptr};
+    QGraphicsScene *m_scene{nullptr};
+    fz_context *m_ctx{nullptr};
+    fz_document *m_doc{nullptr};
+    fz_page *m_page{nullptr};
+    pdf_page *m_pdfpage{nullptr};
+    fz_stext_page *m_text_page{nullptr};
     fz_matrix m_transform;
     float m_height, m_width;
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
     QColor m_link_hint_fg{QColor::fromRgba(0x000000)}, m_link_hint_bg{QColor::fromRgba(0xFFFF00)};
     pdf_write_options m_write_opts;
-    pdf_document* m_pdfdoc{nullptr};
-    float m_highlight_color[4];
+    pdf_document *m_pdfdoc{nullptr};
+    float m_highlight_color[4], m_annot_rect_color[4];
     QRgb m_selection_color;
     float m_page_height{0.0f};
 
     QMap<QString, LinkInfo> m_hint_to_link_map;
 };
+

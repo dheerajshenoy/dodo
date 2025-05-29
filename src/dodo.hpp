@@ -13,6 +13,7 @@
 #include "argparse.hpp"
 #include "toml.hpp"
 
+#include <QColorDialog>
 #include <QActionGroup>
 #include <QApplication>
 #include <QCache>

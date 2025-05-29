@@ -23,7 +23,7 @@
 #include <synctex/synctex_parser.h>
 
 fz_quad
-union_quad(const fz_quad& a, const fz_quad& b)
+union_quad(const fz_quad &a, const fz_quad &b)
 {
     float min_x = std::min({a.ul.x, a.ur.x, a.ll.x, a.lr.x, b.ul.x, b.ur.x, b.ll.x, b.lr.x});
     float min_y = std::min({a.ul.y, a.ur.y, a.ll.y, a.lr.y, b.ul.y, b.ur.y, b.ll.y, b.lr.y});
@@ -45,20 +45,20 @@ union_quad(const fz_quad& a, const fz_quad& b)
 }
 
 void
-lock_mutex(void* user, int lock)
+lock_mutex(void *user, int lock)
 {
-    auto mutex = static_cast<std::mutex*>(user);
+    auto mutex = static_cast<std::mutex *>(user);
     std::lock_guard<std::mutex> guard(mutex[lock]);
 }
 
 void
-unlock_mutex(void* user, int lock)
+unlock_mutex(void *user, int lock)
 {
-    auto mutex = static_cast<std::mutex*>(user);
+    auto mutex = static_cast<std::mutex *>(user);
     // Do nothing – std::lock_guard handles unlocking
 }
 
-Model::Model(QGraphicsScene* scene) : m_scene(scene)
+Model::Model(QGraphicsScene *scene) : m_scene(scene)
 {
     fz_locks_context lock_context;
     lock_context.user   = m_locks;
@@ -77,7 +77,7 @@ Model::Model(QGraphicsScene* scene) : m_scene(scene)
     m_highlight_color[0] = 1.0f; // Red
     m_highlight_color[1] = 1.0f; // Green
     m_highlight_color[2] = 0.0f; // Blue
-    m_highlight_color[3] = 0.4f; // Alpha (translucent yellow)
+    m_highlight_color[3] = 0.0f; // Alpha (translucent yellow)
 
     m_colorspace = fz_device_rgb(m_ctx);
     fz_register_document_handlers(m_ctx);
@@ -123,18 +123,18 @@ Model::passwordRequired() noexcept
 }
 
 bool
-Model::authenticate(const QString& pwd) noexcept
+Model::authenticate(const QString &pwd) noexcept
 {
     return fz_authenticate_password(m_ctx, m_doc, pwd.toStdString().c_str());
 }
 
-fz_outline*
+fz_outline *
 Model::getOutline() noexcept
 {
     return fz_load_outline(m_ctx, m_doc);
 }
 
-fz_context*
+fz_context *
 Model::clonedContext() noexcept
 {
     if (m_ctx)
@@ -161,7 +161,7 @@ Model::closeFile() noexcept
 }
 
 bool
-Model::openFile(const QString& fileName)
+Model::openFile(const QString &fileName)
 {
     m_filename = fileName;
     fz_try(m_ctx)
@@ -201,7 +201,7 @@ Model::reloadDocument() noexcept
     // load accelerator
     fz_try(m_ctx)
     {
-        m_doc = fz_open_document(m_ctx, CSTR(m_filename));
+        m_doc    = fz_open_document(m_ctx, CSTR(m_filename));
         m_pdfdoc = pdf_specifics(m_ctx, m_doc);
 
         if (!m_doc)
@@ -209,7 +209,6 @@ Model::reloadDocument() noexcept
             qWarning("Unable to open document");
             return;
         }
-
     }
     fz_catch(m_ctx)
     {
@@ -219,9 +218,9 @@ Model::reloadDocument() noexcept
 }
 
 void
-Model::loadColorProfile(const QString& profileName) noexcept
+Model::loadColorProfile(const QString &profileName) noexcept
 {
-    fz_buffer* profile_data = nullptr;
+    fz_buffer *profile_data = nullptr;
     fz_var(profile_data);
     fz_try(m_ctx)
     {
@@ -269,8 +268,8 @@ Model::renderPage(int pageno, float zoom, float rotation, bool renderonly) noexc
         return qpix;
 
     float scale = zoom * m_dpr;
-    fz_device* dev{nullptr};
-    fz_pixmap* pix{nullptr};
+    fz_device *dev{nullptr};
+    fz_pixmap *pix{nullptr};
 
     fz_try(m_ctx)
     {
@@ -285,7 +284,7 @@ Model::renderPage(int pageno, float zoom, float rotation, bool renderonly) noexc
             return qpix;
 
         fz_rect bounds;
-        bounds = fz_bound_page(m_ctx, m_page);
+        bounds        = fz_bound_page(m_ctx, m_page);
         m_page_height = bounds.y1 - bounds.y0;
 
         m_transform         = fz_transform_page(bounds, scale, rotation);
@@ -322,7 +321,7 @@ Model::renderPage(int pageno, float zoom, float rotation, bool renderonly) noexc
         // Convert fz_pixmap to QImage
         m_width                = fz_pixmap_width(m_ctx, pix);
         m_height               = fz_pixmap_height(m_ctx, pix);
-        unsigned char* samples = fz_pixmap_samples(m_ctx, pix);
+        unsigned char *samples = fz_pixmap_samples(m_ctx, pix);
         int stride             = fz_pixmap_stride(m_ctx, pix);
         int n                  = fz_pixmap_components(m_ctx, pix);
         QImage image;
@@ -370,7 +369,7 @@ Model::renderPage(int pageno, float zoom, float rotation, bool renderonly) noexc
 }
 
 QList<Model::SearchResult>
-Model::searchHelper(int pageno, const QString& term, bool caseSensitive)
+Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
 {
     QList<SearchResult> results;
 
@@ -380,17 +379,17 @@ Model::searchHelper(int pageno, const QString& term, bool caseSensitive)
     fz_try(m_ctx)
     {
         fz_stext_page *text_page = fz_new_stext_page_from_page_number(m_ctx, m_doc, pageno, nullptr);
-        for (fz_stext_block* block = text_page->first_block; block; block = block->next)
+        for (fz_stext_block *block = text_page->first_block; block; block = block->next)
         {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
                 continue;
 
-            for (fz_stext_line* line = block->u.t.first_line; line; line = line->next)
+            for (fz_stext_line *line = block->u.t.first_line; line; line = line->next)
             {
                 QString currentWord;
                 fz_quad currentQuad = {{0}};
 
-                for (fz_stext_char* ch = line->first_char; ch; ch = ch->next)
+                for (fz_stext_char *ch = line->first_char; ch; ch = ch->next)
                 {
                     if (!ch->c)
                         continue;
@@ -466,7 +465,7 @@ Model::searchHelper(int pageno, const QString& term, bool caseSensitive)
 }
 
 void
-Model::searchAll(const QString& term, bool caseSensitive)
+Model::searchAll(const QString &term, bool caseSensitive)
 {
     QMap<int, QList<Model::SearchResult>> resultsMap;
     m_match_count = 0;
@@ -484,10 +483,10 @@ Model::searchAll(const QString& term, bool caseSensitive)
     emit searchResultsReady(resultsMap, m_match_count);
 }
 
-QList<HighlightItem*>
+QList<HighlightItem *>
 Model::getAnnotations() noexcept
 {
-    QList<HighlightItem*> annots;
+    QList<HighlightItem *> annots;
     int index = 0;
 
     fz_try(m_ctx)
@@ -497,14 +496,14 @@ Model::getAnnotations() noexcept
         if (!m_pdfpage)
             return annots;
 
-        pdf_annot* annot = pdf_first_annot(m_ctx, m_pdfpage);
+        pdf_annot *annot = pdf_first_annot(m_ctx, m_pdfpage);
         while (annot)
         {
             fz_rect bbox = pdf_bound_annot(m_ctx, annot);
             bbox         = fz_transform_rect(bbox, m_transform);
             QRectF qrect(bbox.x0 * m_inv_dpr, bbox.y0 * m_inv_dpr, (bbox.x1 - bbox.x0) * m_inv_dpr,
                          (bbox.y1 - bbox.y0) * m_inv_dpr);
-            HighlightItem* annot_item = new HighlightItem(qrect, index);
+            HighlightItem *annot_item = new HighlightItem(qrect, index);
             annot_item->setData(0, "annot");
             annot_item->setData(1, index);
             annots.push_back(annot_item);
@@ -520,13 +519,13 @@ Model::getAnnotations() noexcept
     return annots;
 }
 
-pdf_annot*
+pdf_annot *
 Model::get_annot_by_index(int index) noexcept
 {
     if (!m_pdfpage)
         return nullptr;
 
-    pdf_annot* annot = pdf_first_annot(m_ctx, m_pdfpage);
+    pdf_annot *annot = pdf_first_annot(m_ctx, m_pdfpage);
     int i            = 0;
     while (annot && i < index)
     {
@@ -536,16 +535,16 @@ Model::get_annot_by_index(int index) noexcept
     return annot; // nullptr if not found
 }
 
-QList<pdf_annot*>
+QList<pdf_annot *>
 Model::get_annots_by_indexes(const QSet<int> &indexes) noexcept
 {
-    QList<pdf_annot*> result;
+    QList<pdf_annot *> result;
 
     if (!m_pdfpage || indexes.isEmpty())
         return result;
 
-    pdf_annot* annot = pdf_first_annot(m_ctx, m_pdfpage);
-    int i = 0;
+    pdf_annot *annot = pdf_first_annot(m_ctx, m_pdfpage);
+    int i            = 0;
     while (annot)
     {
         if (indexes.contains(i))
@@ -558,17 +557,17 @@ Model::get_annots_by_indexes(const QSet<int> &indexes) noexcept
     return result;
 }
 
-QList<BrowseLinkItem*>
+QList<BrowseLinkItem *>
 Model::getLinks() noexcept
 {
-    QList<BrowseLinkItem*> items;
+    QList<BrowseLinkItem *> items;
     fz_try(m_ctx)
     {
-        fz_link* head = fz_load_links(m_ctx, m_page);
+        fz_link *head = fz_load_links(m_ctx, m_page);
         if (!head)
             return items;
 
-        fz_link* link = head;
+        fz_link *link = head;
 
         while (link)
         {
@@ -637,15 +636,15 @@ Model::getLinks() noexcept
                                 break;
 
                             case FZ_LINK_DEST_FIT_R:
-                                {
-                                    item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::Section,
-                                            m_link_boundary);
-                                    item->setGotoPageNo(pageno);
-                                    item->setXYZ({.x = dest.x, .y = (m_page_height - dest.y), .zoom = dest.zoom});
-                                    connect(item, &BrowseLinkItem::jumpToLocationRequested, this,
-                                            &Model::jumpToLocationRequested);
-                                }
-                                break;
+                            {
+                                item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::Section,
+                                                          m_link_boundary);
+                                item->setGotoPageNo(pageno);
+                                item->setXYZ({.x = dest.x, .y = (m_page_height - dest.y), .zoom = dest.zoom});
+                                connect(item, &BrowseLinkItem::jumpToLocationRequested, this,
+                                        &Model::jumpToLocationRequested);
+                            }
+                            break;
 
                             case FZ_LINK_DEST_XYZ:
                             {
@@ -689,21 +688,18 @@ Model::getLinks() noexcept
 }
 
 void
-Model::addRectAnnotation(const QRectF& pdfRect) noexcept
+Model::addRectAnnotation(const QRectF &pdfRect) noexcept
 {
     auto bbox = convertToMuPdfRect(pdfRect);
     fz_try(m_ctx)
     {
-        pdf_annot* annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_SQUARE);
+        pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_SQUARE);
 
         if (!annot)
             return;
 
-        float yellow[] = {1.0f, 1.0f, 0.0f};
-        int n          = 3;
-
         pdf_set_annot_rect(m_ctx, annot, bbox);
-        pdf_set_annot_interior_color(m_ctx, annot, n, yellow);
+        pdf_set_annot_interior_color(m_ctx, annot, 3, m_annot_rect_color);
         pdf_set_annot_opacity(m_ctx, annot, 0.2);
         pdf_update_annot(m_ctx, annot);
         pdf_drop_annot(m_ctx, annot);
@@ -738,7 +734,7 @@ Model::save() noexcept
 }
 
 bool
-Model::saveAs(const char* filename) noexcept
+Model::saveAs(const char *filename) noexcept
 {
     if (!filename)
         return false;
@@ -757,7 +753,7 @@ Model::saveAs(const char* filename) noexcept
 }
 
 fz_rect
-Model::convertToMuPdfRect(const QRectF& qtRect) noexcept
+Model::convertToMuPdfRect(const QRectF &qtRect) noexcept
 {
     // Undo DPI scaling
     float x0 = qtRect.left() * m_dpr;
@@ -786,8 +782,8 @@ Model::visitLinkKB(int pageno, float zoom) noexcept
     fz_try(m_ctx)
     {
         // fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
-        fz_link* head = fz_load_links(m_ctx, m_page);
-        fz_link* link = head;
+        fz_link *head = fz_load_links(m_ctx, m_page);
+        fz_link *link = head;
 
         if (!link)
         {
@@ -810,7 +806,7 @@ Model::visitLinkKB(int pageno, float zoom) noexcept
 
                 float w = 0.25 * zoom;
                 QRect rect(x, y, w, w);
-                LinkHint* linkHint = new LinkHint(rect, m_link_hint_bg, m_link_hint_fg, hint, w * 0.5);
+                LinkHint *linkHint = new LinkHint(rect, m_link_hint_bg, m_link_hint_fg, hint, w * 0.5);
                 m_scene->addItem(linkHint);
             }
             link = link->next;
@@ -829,7 +825,7 @@ Model::visitLinkKB(int pageno, float zoom) noexcept
 void
 Model::clearKBHintsOverlay() noexcept
 {
-    for (auto& link : m_scene->items())
+    for (auto &link : m_scene->items())
     {
         if (link->data(0).toString() == "kb_link_overlay")
             m_scene->removeItem(link);
@@ -837,7 +833,7 @@ Model::clearKBHintsOverlay() noexcept
 }
 
 void
-Model::followLink(const LinkInfo& info) noexcept
+Model::followLink(const LinkInfo &info) noexcept
 {
     QString link_str = info.uri;
     auto link_dest   = info.dest;
@@ -877,20 +873,20 @@ Model::extractPDFProperties() noexcept
     if (!m_ctx || !m_doc)
         return props;
 
-    pdf_document* pdfdoc = pdf_specifics(m_ctx, m_doc);
+    pdf_document *pdfdoc = pdf_specifics(m_ctx, m_doc);
 
     if (!pdfdoc)
         return props;
 
     // ========== Info Dictionary ==========
-    pdf_obj* info = pdf_dict_get(m_ctx, pdf_trailer(m_ctx, pdfdoc), PDF_NAME(Info));
+    pdf_obj *info = pdf_dict_get(m_ctx, pdf_trailer(m_ctx, pdfdoc), PDF_NAME(Info));
     if (info && pdf_is_dict(m_ctx, info))
     {
         int len = pdf_dict_len(m_ctx, info);
         for (int i = 0; i < len; ++i)
         {
-            pdf_obj* keyObj = pdf_dict_get_key(m_ctx, info, i);
-            pdf_obj* valObj = pdf_dict_get_val(m_ctx, info, i);
+            pdf_obj *keyObj = pdf_dict_get_key(m_ctx, info, i);
+            pdf_obj *valObj = pdf_dict_get_val(m_ctx, info, i);
 
             if (!pdf_is_name(m_ctx, keyObj))
                 continue;
@@ -900,11 +896,11 @@ Model::extractPDFProperties() noexcept
 
             if (pdf_is_string(m_ctx, valObj))
             {
-                const char* s = pdf_to_str_buf(m_ctx, valObj);
+                const char *s = pdf_to_str_buf(m_ctx, valObj);
                 int slen      = pdf_to_str_len(m_ctx, valObj);
 
                 if (slen >= 2 && (quint8)s[0] == 0xFE && (quint8)s[1] == 0xFF)
-                    val = QString::fromUtf16(reinterpret_cast<const ushort*>(s + 2), (slen - 2) / 2);
+                    val = QString::fromUtf16(reinterpret_cast<const ushort *>(s + 2), (slen - 2) / 2);
                 else
                     val = QString::fromUtf8(s, slen);
             }
@@ -937,9 +933,9 @@ Model::toggleInvertColor() noexcept
 }
 
 void
-Model::apply_night_mode(fz_pixmap* pixmap) noexcept
+Model::apply_night_mode(fz_pixmap *pixmap) noexcept
 {
-    unsigned char* samples = fz_pixmap_samples(m_ctx, pixmap);
+    unsigned char *samples = fz_pixmap_samples(m_ctx, pixmap);
     int n                  = fz_pixmap_components(m_ctx, pixmap); // usually 4 for RGBA
     int w                  = fz_pixmap_width(m_ctx, pixmap);
     int h                  = fz_pixmap_height(m_ctx, pixmap);
@@ -947,11 +943,11 @@ Model::apply_night_mode(fz_pixmap* pixmap) noexcept
 
     for (int y = 0; y < h; ++y)
     {
-        unsigned char* row = samples + y * stride;
+        unsigned char *row = samples + y * stride;
 
         for (int x = 0; x < w; ++x)
         {
-            unsigned char* px = row + x * n;
+            unsigned char *px = row + x * n;
 
             // Skip alpha channel
             for (int c = 0; c < n - 1; ++c)
@@ -968,7 +964,7 @@ Model::apply_night_mode(fz_pixmap* pixmap) noexcept
 }
 
 void
-Model::highlightHelper(const QPointF& selectionStart, const QPointF& selectionEnd, fz_point& a, fz_point& b) noexcept
+Model::highlightHelper(const QPointF &selectionStart, const QPointF &selectionEnd, fz_point &a, fz_point &b) noexcept
 {
     a = {static_cast<float>(selectionStart.x()), static_cast<float>(selectionStart.y())};
     b = {static_cast<float>(selectionEnd.x()), static_cast<float>(selectionEnd.y())};
@@ -994,9 +990,9 @@ Model::highlightHelper(const QPointF& selectionStart, const QPointF& selectionEn
 }
 
 void
-Model::highlightTextSelection(const QPointF& selectionStart, const QPointF& selectionEnd) noexcept
+Model::highlightTextSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
 {
-    for (auto* object : m_scene->items())
+    for (auto *object : m_scene->items())
     {
         if (object->data(0).toString() == "selection")
         {
@@ -1032,7 +1028,7 @@ Model::highlightTextSelection(const QPointF& selectionStart, const QPointF& sele
         poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr) << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
              << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr) << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
 
-        QGraphicsPolygonItem* item = m_scene->addPolygon(poly, Qt::NoPen, brush);
+        QGraphicsPolygonItem *item = m_scene->addPolygon(poly, Qt::NoPen, brush);
         item->setData(0, "selection");
         // item->setZValue(10); // Ensure it draws over the page
         item->setFlag(QGraphicsItem::ItemIsSelectable, false);
@@ -1041,12 +1037,12 @@ Model::highlightTextSelection(const QPointF& selectionStart, const QPointF& sele
 }
 
 QString
-Model::getSelectionText(const QPointF& selectionStart, const QPointF& selectionEnd) noexcept
+Model::getSelectionText(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
 {
     QString text;
     fz_point a, b;
     highlightHelper(selectionStart, selectionEnd, a, b);
-    char* selected{nullptr};
+    char *selected{nullptr};
 
     fz_try(m_ctx)
     {
@@ -1065,7 +1061,7 @@ Model::getSelectionText(const QPointF& selectionStart, const QPointF& selectionE
 }
 
 void
-Model::annotHighlightSelection(const QPointF& selectionStart, const QPointF& selectionEnd) noexcept
+Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
 {
     fz_point a, b;
     highlightHelper(selectionStart, selectionEnd, a, b);
@@ -1088,14 +1084,13 @@ Model::annotHighlightSelection(const QPointF& selectionStart, const QPointF& sel
     {
         for (int i = 0; i < count; ++i)
         {
-            pdf_annot* annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
+            pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
 
             if (!annot)
             {
                 return;
             }
 
-            // fz_quad q = fz_transform_quad(hits[i], m_transform);
             fz_quad q = hits[i];
             pdf_set_annot_quad_points(m_ctx, annot, 1, &q);
             pdf_set_annot_color(m_ctx, annot, 3, m_highlight_color);
@@ -1113,20 +1108,20 @@ Model::annotHighlightSelection(const QPointF& selectionStart, const QPointF& sel
 void
 Model::annotDeleteRequested(int index) noexcept
 {
-    pdf_annot* annot = get_annot_by_index(index);
+    pdf_annot *annot = get_annot_by_index(index);
     if (annot)
         pdf_delete_annot(m_ctx, m_pdfpage, annot);
 }
 
 QSet<int>
-Model::getAnnotationsInArea(const QRectF& area) noexcept
+Model::getAnnotationsInArea(const QRectF &area) noexcept
 {
     QSet<int> results;
 
     if (!m_ctx || !m_pdfpage)
         return results;
 
-    pdf_annot* annot = pdf_first_annot(m_ctx, m_pdfpage);
+    pdf_annot *annot = pdf_first_annot(m_ctx, m_pdfpage);
 
     if (!annot)
         return results;
@@ -1134,7 +1129,7 @@ Model::getAnnotationsInArea(const QRectF& area) noexcept
     int index = 0;
 
     fz_matrix inv_mat = fz_scale(m_inv_dpr, m_inv_dpr);
-    fz_matrix mat = fz_concat(inv_mat, m_transform);
+    fz_matrix mat     = fz_concat(inv_mat, m_transform);
 
     while (annot)
     {
@@ -1156,12 +1151,12 @@ Model::getAnnotationsInArea(const QRectF& area) noexcept
 // Select all text from a page
 
 QString
-Model::selectAllText(const QPointF& start, const QPointF& end) noexcept
+Model::selectAllText(const QPointF &start, const QPointF &end) noexcept
 {
     QString text;
     fz_point a, b;
     highlightHelper(start, end, a, b);
-    char* selected{nullptr};
+    char *selected{nullptr};
     fz_rect area = fz_make_rect(a.x, a.y, b.x, b.y);
 
     fz_try(m_ctx)
@@ -1182,10 +1177,33 @@ Model::selectAllText(const QPointF& start, const QPointF& end) noexcept
 void
 Model::deleteAnnots(const QSet<int> &indexes) noexcept
 {
-    QList<pdf_annot*> annots = get_annots_by_indexes(indexes);
+    QList<pdf_annot *> annots = get_annots_by_indexes(indexes);
     for (const auto &annot : annots)
     {
         if (annot)
             pdf_delete_annot(m_ctx, m_pdfpage, annot);
     }
+}
+
+void
+Model::annotChangeColorForIndexes(const QSet<int> &indexes, const QColor &color) noexcept
+{
+    float pdf_color[4] = { color.redF(), color.greenF(), color.blueF(), color.alphaF() };
+
+    for (const auto &index : indexes)
+    {
+        pdf_annot *annot = get_annot_by_index(index);
+        if (annot)
+            pdf_set_annot_color(m_ctx, annot, 3, pdf_color);
+    }
+}
+
+void
+Model::annotChangeColorForIndex(const int index, const QColor &color) noexcept
+{
+    float pdf_color[4] = { color.redF(), color.greenF(), color.blueF(), color.alphaF() };
+
+    pdf_annot *annot = get_annot_by_index(index);
+    if (annot)
+        pdf_set_annot_color(m_ctx, annot, 3, pdf_color);
 }
