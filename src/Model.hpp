@@ -157,12 +157,17 @@ public:
         m_link_hint_bg = QColor::fromRgba(bg);
     }
 
+    void selectWord(const QPointF &loc) noexcept;
+    void selectLine(const QPointF &loc) noexcept;
     void highlightHelper(const QPointF &selectionStart, const QPointF &selectionEnd, fz_point &a, fz_point &b) noexcept;
     void highlightTextSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
+    void highlightQuad(fz_quad quad) noexcept;
     QString getSelectionText(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
     void deleteAnnots(const QSet<int> &indices) noexcept;
     void annotChangeColorForIndexes(const QSet<int> &indexes, const QColor &color) noexcept;
     void annotChangeColorForIndex(const int index, const QColor &color) noexcept;
+    fz_point mapToPdf(QPointF loc) noexcept;
+    bool isBreak(int c) noexcept;
 
 signals:
     void jumpToPageRequested(int pageno);

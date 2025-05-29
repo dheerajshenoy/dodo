@@ -1,10 +1,7 @@
 #include "GraphicsView.hpp"
-
-#include "BrowseLinkItem.hpp"
-#include "HighlightItem.hpp"
-
 #include <qgraphicssceneevent.h>
 #include <qgraphicsview.h>
+#include <qmenu.h>
 #include <qnamespace.h>
 
 GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
@@ -22,7 +19,6 @@ GraphicsView::setMode(Mode mode) noexcept
         case Mode::TextSelection:
         case Mode::TextHighlight:
             emit textSelectionDeletionRequested();
-            m_has_text_selection = false;
             break;
 
         case Mode::AnnotRect:
@@ -41,6 +37,7 @@ GraphicsView::setMode(Mode mode) noexcept
 void
 GraphicsView::mousePressEvent(QMouseEvent *event)
 {
+
     switch (m_mode)
     {
         case Mode::AnnotSelect:
@@ -78,15 +75,13 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                     return;
                 }
 
+                QPoint pos = event->pos();
                 QGuiApplication::setOverrideCursor(Qt::CursorShape::IBeamCursor);
-                m_mousePressPos = event->pos();
-                m_selecting     = true;
-                auto pos        = mapToScene(event->pos());
+                m_selecting   = true;
                 if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(pos))
                 {
                     m_selection_start = pos;
                     emit textSelectionDeletionRequested();
-                    m_has_text_selection = false;
                 }
             }
         }
@@ -159,7 +154,6 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
             {
                 m_selection_end = mapToScene(event->pos());
                 emit textSelectionRequested(m_selection_start, m_selection_end);
-                m_has_text_selection = true;
             }
             QGuiApplication::restoreOverrideCursor();
             m_selecting = false;
@@ -255,5 +249,4 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *e)
         menu.exec(e->globalPos());
     e->accept();
     return;
-
 }

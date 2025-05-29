@@ -991,6 +991,32 @@ Model::highlightHelper(const QPointF &selectionStart, const QPointF &selectionEn
 }
 
 void
+Model::highlightQuad(fz_quad quad) noexcept
+{
+    for (auto *object : m_scene->items())
+    {
+        if (object->data(0).toString() == "selection")
+        {
+            m_scene->removeItem(object);
+        }
+    }
+
+    QBrush brush(QColor::fromRgba(m_selection_color));
+
+    fz_quad q = fz_transform_quad(quad, m_transform);
+
+    QPolygonF poly;
+    poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr) << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
+        << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr) << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
+
+    QGraphicsPolygonItem *item = m_scene->addPolygon(poly, Qt::NoPen, brush);
+    item->setData(0, "selection");
+    // item->setZValue(10); // Ensure it draws over the page
+    item->setFlag(QGraphicsItem::ItemIsSelectable, false);
+    item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
+}
+
+void
 Model::highlightTextSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
 {
     for (auto *object : m_scene->items())
@@ -1010,7 +1036,7 @@ Model::highlightTextSelection(const QPointF &selectionStart, const QPointF &sele
 
     fz_try(m_ctx)
     {
-        // fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_CHARS);
+        fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_CHARS);
         count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, 1000);
     }
     fz_catch(m_ctx)
@@ -1257,4 +1283,23 @@ Model::annotChangeColorForIndex(const int index, const QColor &color) noexcept
         pdf_set_annot_opacity(m_ctx, annot, alpha);
         pdf_update_annot(m_ctx, annot);
     }
+}
+
+bool
+Model::isBreak(int c) noexcept
+{
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == 0 || c == 0x200B; // include zero-width space
+}
+
+fz_point
+Model::mapToPdf(QPointF loc) noexcept
+{
+    double x = loc.x() * m_dpr;
+    double y = loc.y() * m_dpr;
+
+    fz_matrix invTransform = fz_invert_matrix(m_transform);
+
+    fz_point pt = {static_cast<float>(x), static_cast<float>(y)};
+    pt          = fz_transform_point(pt, invTransform);
+    return pt;
 }
