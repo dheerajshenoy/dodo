@@ -1,6 +1,7 @@
 #include "GraphicsView.hpp"
 
 #include "BrowseLinkItem.hpp"
+#include "HighlightItem.hpp"
 
 #include <qgraphicsview.h>
 #include <qnamespace.h>
@@ -122,8 +123,8 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
         }
         break;
 
-        case Mode::AnnotRect:
         case Mode::AnnotSelect:
+        case Mode::AnnotRect:
         {
             m_rect = QRect(m_start, event->pos()).normalized();
             if (m_rubberBand)
@@ -231,10 +232,13 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *e)
     QGraphicsItem *item = scene()->itemAt(scenePos, transform());
 
     // Optional: Skip if it's a link item
-    if (item && dynamic_cast<BrowseLinkItem *>(item))
+    if (item)
     {
-        e->ignore();
-        QGraphicsView::contextMenuEvent(e);
+        if (dynamic_cast<BrowseLinkItem *>(item) || dynamic_cast<HighlightItem*> (item))
+        {
+            e->ignore();
+            QGraphicsView::contextMenuEvent(e);
+        }
     }
     else
     {
