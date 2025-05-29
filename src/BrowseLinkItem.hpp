@@ -6,8 +6,10 @@
 #include <QDesktopServices>
 #include <QGraphicsRectItem>
 #include <QGraphicsSceneHoverEvent>
+#include <QMenu>
 #include <QPen>
 #include <QUrl>
+#include <qevent.h>
 #include <qgraphicsitem.h>
 #include <qnamespace.h>
 
@@ -29,7 +31,7 @@ public:
         External
     };
 
-    BrowseLinkItem(const QRectF& rect, const QString& link, LinkType type, bool boundary = false)
+    BrowseLinkItem(const QRectF &rect, const QString &link, LinkType type, bool boundary = false)
         : QGraphicsRectItem(rect), _link(link), _type(type)
     {
         if (!boundary)
@@ -38,7 +40,8 @@ public:
         setAcceptHoverEvents(true);
         setToolTip(link);
         setCursor(Qt::PointingHandCursor);
-        setFlag(QGraphicsItem::ItemIsSelectable);
+        setAcceptedMouseButtons(Qt::AllButtons);
+        setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsFocusable);
     }
 
     inline void setGotoPageNo(int pageno) noexcept
@@ -49,7 +52,7 @@ public:
     {
         return _pageno;
     }
-    inline void setXYZ(const Location& loc) noexcept
+    inline void setXYZ(const Location &loc) noexcept
     {
         _loc = loc;
     }
@@ -60,54 +63,70 @@ public:
 
 signals:
     void jumpToPageRequested(int pageno);
-    void jumpToLocationRequested(int pageno, const Location& loc);
-    void verticalFitRequested(int pageno, const Location& loc);
-    void horizontalFitRequested(int pageno, const Location& loc);
+    void jumpToLocationRequested(int pageno, const Location &loc);
+    void verticalFitRequested(int pageno, const Location &loc);
+    void horizontalFitRequested(int pageno, const Location &loc);
+    void linkCopyRequested(const QString &link);
 
 protected:
-    void mousePressEvent(QGraphicsSceneMouseEvent*) override
+    void mousePressEvent(QGraphicsSceneMouseEvent *e) override
     {
-        switch (_type)
+        if (e->button() == Qt::LeftButton)
         {
-            case LinkType::Page:
-                if (_pageno)
-                    emit jumpToPageRequested(_pageno);
-                else
-                    qWarning() << "No page number found!";
-                break;
+            switch (_type)
+            {
+                case LinkType::Page:
+                    if (_pageno)
+                        emit jumpToPageRequested(_pageno);
+                    else
+                        qWarning() << "No page number found!";
+                    break;
 
-            case LinkType::Section:
-                emit jumpToLocationRequested(_pageno, _loc);
-                break;
+                case LinkType::Section:
+                    emit jumpToLocationRequested(_pageno, _loc);
+                    break;
 
-            case LinkType::FitV:
-                emit verticalFitRequested(_pageno, _loc);
-                break;
+                case LinkType::FitV:
+                    emit verticalFitRequested(_pageno, _loc);
+                    break;
 
-            case LinkType::FitH:
-                emit horizontalFitRequested(_pageno, _loc);
-                break;
+                case LinkType::FitH:
+                    emit horizontalFitRequested(_pageno, _loc);
+                    break;
 
-            case LinkType::External:
-                QDesktopServices::openUrl(QUrl(_link));
-                break;
+                case LinkType::External:
+                    QDesktopServices::openUrl(QUrl(_link));
+                    break;
+            }
+            setBrush(Qt::transparent);
         }
-
-        setBrush(Qt::transparent);
+        QGraphicsRectItem::mousePressEvent(e);
     }
 
-    void hoverEnterEvent(QGraphicsSceneHoverEvent* e) override
+    void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override
     {
-        // QApplication::setOverrideCursor(Qt::PointingHandCursor);
         setBrush(QBrush(QColor(1.0, 1.0, 0.0, 125)));
         QGraphicsRectItem::hoverEnterEvent(e);
     }
 
-    void hoverLeaveEvent(QGraphicsSceneHoverEvent* e) override
+    void hoverLeaveEvent(QGraphicsSceneHoverEvent *e) override
     {
         setBrush(Qt::transparent);
         QGraphicsRectItem::hoverLeaveEvent(e);
-        // QApplication::restoreOverrideCursor();
+    }
+
+    void contextMenuEvent(QGraphicsSceneContextMenuEvent *e) override
+    {
+        QMenu menu;
+        QAction *copyLinkLocationAction = menu.addAction("Copy Link Location");
+
+        connect(copyLinkLocationAction, &QAction::triggered, this, [this]() {
+                emit linkCopyRequested(_link);
+                });
+
+        menu.exec(e->screenPos());
+        e->accept();
+        qDebug() << "DD";
     }
 
 private:

@@ -31,7 +31,6 @@ add_executable(${PROJECT_NAME}
     src/AboutDialog.cpp
     src/GraphicsView.cpp
 
-    src/GraphicsScene.hpp
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp
     src/OutlineModel.hpp
@@ -40,7 +39,6 @@ add_executable(${PROJECT_NAME}
     src/EditLastPagesWidget.hpp
     src/LinkHint.hpp
     src/JumpMarker.hpp
-
 )
 
 qt_add_resources(RESOURCES resources.qrc)

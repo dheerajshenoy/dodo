@@ -12,7 +12,6 @@
 #include "ShortcutsWidget.hpp"
 #include "argparse.hpp"
 #include "toml.hpp"
-#include "GraphicsScene.hpp"
 
 #include <QActionGroup>
 #include <QApplication>
@@ -270,7 +269,7 @@ private:
     QMap<int, QList<Model::SearchResult>> m_searchRectMap;
     QString m_filename, m_basename;
     GraphicsView *m_gview           = new GraphicsView();
-    GraphicsScene *m_gscene        = new GraphicsScene();
+    QGraphicsScene *m_gscene        = new QGraphicsScene();
     QGraphicsPixmapItem *m_pix_item = new QGraphicsPixmapItem();
     QVBoxLayout *m_layout           = new QVBoxLayout();
     float m_dpr{1.0f}, m_inv_dpr{1.0f};

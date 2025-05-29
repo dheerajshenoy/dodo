@@ -90,30 +90,18 @@ dodo::initMenubar() noexcept
 
     viewMenu->addSeparator();
 
-    // Zoom Mode Actions (exclusive)
-    QActionGroup *zoomModeGroup = new QActionGroup(this);
-    zoomModeGroup->setExclusive(true);
-
     m_fitMenu = viewMenu->addMenu("Fit");
 
     m_actionFitNone = m_fitMenu->addAction(QString("None\t%1").arg(m_shortcuts_map["fit_none"]), this, &dodo::FitNone);
-    m_actionFitNone->setCheckable(true);
-    zoomModeGroup->addAction(m_actionFitNone);
 
     m_actionFitWidth =
         m_fitMenu->addAction(QString("Width\t%1").arg(m_shortcuts_map["fit_width"]), this, &dodo::FitWidth);
-    m_actionFitWidth->setCheckable(true);
-    zoomModeGroup->addAction(m_actionFitWidth);
 
     m_actionFitHeight =
         m_fitMenu->addAction(QString("Height\t%1").arg(m_shortcuts_map["fit_height"]), this, &dodo::FitHeight);
-    m_actionFitHeight->setCheckable(true);
-    zoomModeGroup->addAction(m_actionFitHeight);
 
     m_actionFitWindow =
         m_fitMenu->addAction(QString("Window\t%1").arg(m_shortcuts_map["fit_window"]), this, &dodo::FitWindow);
-    m_actionFitWindow->setCheckable(true);
-    zoomModeGroup->addAction(m_actionFitWindow);
 
     m_fitMenu->addSeparator();
 
@@ -1333,9 +1321,18 @@ dodo::renderLinks(const QList<BrowseLinkItem *> &links) noexcept
     clearLinks();
     for (auto *link : links)
     {
-        connect(link, &BrowseLinkItem::linkCopyRequested, this, [&](const QString &link) {
+        connect(link, &BrowseLinkItem::linkCopyRequested, this, [&](const QString &link)
+        {
+            if (link.startsWith("#"))
+            {
+                auto equal_pos = link.indexOf("=");
+                m_clipboard->setText(m_filename + "#" + link.mid(equal_pos + 1));
+            }
+            else
+            {
                 m_clipboard->setText(link);
-                });
+            }
+        });
         m_gscene->addItem(link);
     }
 }
@@ -2530,17 +2527,20 @@ dodo::populateContextMenu(QMenu *menu, const QPointF &pos) noexcept
     }
 }
 
-void dodo::annotChangeColor() noexcept
+void
+dodo::annotChangeColor() noexcept
 {
     // TODO:
 }
 
-void dodo::changeHighlighterColor() noexcept
+void
+dodo::changeHighlighterColor() noexcept
 {
     // TODO:
 }
 
-void dodo::changeAnnotRectColor() noexcept
+void
+dodo::changeAnnotRectColor() noexcept
 {
     // TODO:
 }

@@ -77,9 +77,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                     m_selection_start = pos;
                     emit textSelectionDeletionRequested();
                 }
-                QGraphicsView::mousePressEvent(event); // Let QGraphicsItems (like links) respond
             }
-            return;
         }
         break;
 
@@ -101,8 +99,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         }
         break;
     }
-
-    QGraphicsView::mousePressEvent(event);
+    QGraphicsView::mousePressEvent(event); // Let QGraphicsItems (like links) respond
 }
 
 void
@@ -147,7 +144,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     {
         case Mode::TextSelection:
         {
-            if (dist > CLICK_THRESHOLD)
+            if (event->button() == Qt::LeftButton && dist > CLICK_THRESHOLD)
             {
                 m_selection_end = mapToScene(event->pos());
                 emit textSelectionRequested(m_selection_start, m_selection_end);
@@ -208,6 +205,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
         break;
     }
 
+    QGuiApplication::restoreOverrideCursor();
     QGraphicsView::mouseReleaseEvent(event); // Let items handle clicks
 }
 
@@ -235,14 +233,15 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *e)
     // Optional: Skip if it's a link item
     if (item && dynamic_cast<BrowseLinkItem *>(item))
     {
-        // let the item handle the event if it accepts context menus
         e->ignore();
-        return;
+        QGraphicsView::contextMenuEvent(e);
     }
-
-    QMenu menu(this);
-    emit populateContextMenuRequested(&menu, e->pos());
-    if (!menu.isEmpty())
-        menu.exec(e->globalPos());
-    e->accept();
+    else
+    {
+        QMenu menu(this);
+        emit populateContextMenuRequested(&menu, e->pos());
+        if (!menu.isEmpty())
+            menu.exec(e->globalPos());
+        e->accept();
+    }
 }
