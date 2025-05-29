@@ -46,18 +46,18 @@ protected:
         QGraphicsRectItem::mousePressEvent(e);
     }
 
-    void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override {
-        m_originalBrush = brush();
-        m_originalPen = pen();
-        QGraphicsRectItem::hoverEnterEvent(e);
-        setPen(QPen(Qt::red, 2, Qt::SolidLine));
-    }
-
-    void hoverLeaveEvent(QGraphicsSceneHoverEvent *e) override {
-        QGraphicsRectItem::hoverLeaveEvent(e);
-        restoreBrushPen();
-        QGuiApplication::restoreOverrideCursor();
-    }
+    // void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override {
+    //     m_originalBrush = brush();
+    //     m_originalPen = pen();
+    //     QGraphicsRectItem::hoverEnterEvent(e);
+    //     setPen(QPen(Qt::red, 2, Qt::SolidLine));
+    // }
+    //
+    // void hoverLeaveEvent(QGraphicsSceneHoverEvent *e) override {
+    //     QGraphicsRectItem::hoverLeaveEvent(e);
+    //     restoreBrushPen();
+    //     QGuiApplication::restoreOverrideCursor();
+    // }
 
     void contextMenuEvent(QGraphicsSceneContextMenuEvent *e) override {
         QMenu menu;

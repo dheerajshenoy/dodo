@@ -47,6 +47,7 @@ public:
         return m_pixmapItem;
     }
     void setMode(Mode mode) noexcept;
+    void setHasAnnotSelection(bool state) noexcept { m_has_annot_selection = state; }
 
 signals:
     void highlightDrawn(const QRectF& pdfRect);
@@ -76,5 +77,5 @@ private:
     Mode m_mode{Mode::TextSelection};
     QGraphicsPixmapItem* m_pixmapItem{nullptr};
     QRubberBand* m_rubberBand{nullptr};
-    bool m_has_text_selection{false};
+    bool m_has_text_selection{false}, m_has_annot_selection{false};
 };

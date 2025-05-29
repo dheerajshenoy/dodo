@@ -29,8 +29,10 @@ GraphicsView::setMode(Mode mode) noexcept
             break;
 
         case Mode::AnnotSelect:
+        {
             emit annotSelectClearRequested();
-            break;
+        }
+        break;
     }
 
     m_mode = mode;
@@ -44,7 +46,9 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         case Mode::AnnotSelect:
         {
             if (event->button() == Qt::LeftButton)
+            {
                 emit annotSelectClearRequested();
+            }
         }
         case Mode::AnnotRect:
         {
@@ -189,7 +193,9 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 
                 QRectF clippedRect = sceneRect.intersected(m_pixmapItem->boundingRect());
                 if (!clippedRect.isEmpty())
+                {
                     emit annotSelectRequested(clippedRect);
+                }
             }
         }
         break;
@@ -234,28 +240,20 @@ GraphicsView::wheelEvent(QWheelEvent *e)
 void
 GraphicsView::contextMenuEvent(QContextMenuEvent *e)
 {
-    if (m_has_text_selection)
+    QGraphicsItem *item = scene()->itemAt(mapToScene(e->pos()), transform());
+
+    if (item)
     {
-        QMenu menu(this);
-        emit populateContextMenuRequested(&menu);
-        if (!menu.isEmpty())
-            menu.exec(e->globalPos());
-        e->accept();
+        e->ignore();
+        QGraphicsView::contextMenuEvent(e);
         return;
     }
-    else
-    {
-        // Check if item under cursor handled the event
-        QGraphicsItem *item = scene()->itemAt(mapToScene(e->pos()), transform());
 
-        // Optional: Skip if it's a link item
-        if (item)
-        {
-            e->ignore();
-            QGraphicsView::contextMenuEvent(e);
-        }
-        else
-        {
-        }
-    }
+    QMenu menu(this);
+    emit populateContextMenuRequested(&menu);
+    if (!menu.isEmpty())
+        menu.exec(e->globalPos());
+    e->accept();
+    return;
+
 }

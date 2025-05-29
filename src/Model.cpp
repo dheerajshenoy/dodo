@@ -1190,7 +1190,7 @@ void
 Model::annotChangeColorForIndexes(const QSet<int> &indexes, const QColor &color) noexcept
 {
     float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
-    float alpha = color.alphaF();
+    float alpha        = color.alphaF();
 
     for (const auto &index : indexes)
     {
@@ -1207,14 +1207,14 @@ void
 Model::annotChangeColorForIndex(const int index, const QColor &color) noexcept
 {
     float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
-    float alpha = color.alphaF();
+    float alpha        = color.alphaF();
 
     pdf_annot *annot = get_annot_by_index(index);
     if (annot)
     {
         enum pdf_annot_type type = pdf_annot_type(m_ctx, annot);
 
-        switch(type)
+        switch (type)
         {
 
             case PDF_ANNOT_TEXT:

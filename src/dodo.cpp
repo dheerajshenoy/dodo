@@ -2339,6 +2339,7 @@ dodo::clearAnnotSelection() noexcept
 
         gitem->restoreBrushPen();
     }
+
     m_annot_selection_present = false;
 }
 
@@ -2496,49 +2497,30 @@ dodo::ShowKeybindings() noexcept
 void
 dodo::populateContextMenu(QMenu *menu) noexcept
 {
+    auto addAction = [menu, this](const QString &text, const auto &slot) {
+        QAction *action = new QAction(text, menu);  // sets parent = menu
+        connect(action, &QAction::triggered, this, slot);
+        menu->addAction(action);
+    };
     switch (m_gview->mode())
     {
         case GraphicsView::Mode::TextSelection:
-        {
-            QAction *copyAction = new QAction("Copy Text");
-            connect(copyAction, &QAction::triggered, this, &dodo::YankSelection);
-            menu->addAction(copyAction);
-        }
-        break;
+            addAction("Copy Text", &dodo::YankSelection);
+            break;
 
         case GraphicsView::Mode::AnnotSelect:
-        {
             if (!m_annot_selection_present)
                 return;
-
-            qDebug() << "DD";
-            QAction *deleteAction = new QAction("Delete Annotations");
-            connect(deleteAction, &QAction::triggered, this, &dodo::deleteKeyAction);
-
-            QAction *changeColorAction = new QAction("Change color");
-            connect(changeColorAction, &QAction::triggered, this, &dodo::annotChangeColor);
-
-            menu->addAction(deleteAction);
-            menu->addAction(changeColorAction);
-        }
-        break;
+            addAction("Delete Annotations", &dodo::deleteKeyAction);
+            addAction("Change color", &dodo::annotChangeColor);
+            break;
 
         case GraphicsView::Mode::TextHighlight:
-        {
-            QAction *changeColorAction = new QAction("Change color");
-            connect(changeColorAction, &QAction::triggered, this, &dodo::changeHighlighterColor);
-
-            menu->addAction(changeColorAction);
-        }
+            addAction("Change color", &dodo::changeHighlighterColor);
         break;
 
         case GraphicsView::Mode::AnnotRect:
-        {
-            QAction *changeColorAction = new QAction("Change color");
-            connect(changeColorAction, &QAction::triggered, this, &dodo::changeAnnotRectColor);
-
-            menu->addAction(changeColorAction);
-        }
+        addAction("Change color", &dodo::changeAnnotRectColor);
         break;
     }
 }

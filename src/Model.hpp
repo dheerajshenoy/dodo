@@ -210,4 +210,3 @@ private:
 
     QMap<QString, LinkInfo> m_hint_to_link_map;
 };
-
