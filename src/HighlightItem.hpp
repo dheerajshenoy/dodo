@@ -5,6 +5,9 @@
 #include <QObject>
 #include <QPen>
 #include <qgraphicsitem.h>
+#include <qnamespace.h>
+#include <QGraphicsSceneContextMenuEvent>
+#include <QMenu>
 
 class HighlightItem : public QObject, public QGraphicsRectItem
 {
@@ -15,6 +18,21 @@ public:
     {
         setPen(Qt::NoPen);
         setBrush(Qt::transparent);
+    }
+
+    void select(const QColor& color) noexcept
+    {
+        m_originalBrush = brush();
+        m_originalPen = pen();
+
+        setBrush(color);
+        setPen(QPen(color, 5, Qt::DotLine));
+    }
+
+    void unselect() noexcept
+    {
+        setBrush(m_originalBrush);
+        setPen(m_originalPen);
     }
 
 signals:
@@ -38,6 +56,28 @@ protected:
     //     QApplication::restoreOverrideCursor();
     // }
 
+    void contextMenuEvent(QGraphicsSceneContextMenuEvent *e) override {
+        QMenu menu;
+
+        QAction *deleteAction = new QAction("Delete");
+        QAction *changeColorAction = new QAction("Change Color");
+
+        connect(deleteAction, &QAction::triggered, this, [this]() {
+                emit annotDeleteRequested(m_index);
+                });
+
+        connect(changeColorAction, &QAction::triggered, this, [this]() {
+                emit annotColorChangeRequested(m_index);
+                });
+
+        menu.addAction(deleteAction);
+        menu.addAction(changeColorAction);
+        menu.exec(e->screenPos());
+        e->accept();
+    }
+
 private:
     int m_index{-1};
+    QBrush m_originalBrush;
+    QPen m_originalPen;
 };
