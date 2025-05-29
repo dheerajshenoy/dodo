@@ -57,29 +57,22 @@ resource usage.
 
 ## Installation
 
-1. Install the required dependencies
+### Arch Linux
 
-    a. **Arch Linux Users**
+Install Required Dependencies
 
-    ``sudo pacman -Syu qt6-base mupdf mupdf-tools libsynctex cmake ninja``
+```bash
+sudo pacman -Syu qt6-base mupdf mupdf-tools libsynctex cmake ninja
+```
 
-    b. **Debian/Ubuntu Users**
+Clone the Repository
 
-    You can install all the dependencies except for mupdf which has to be downloaded and built from source
+```bash
+git clone https://github.com/dheerajshenoy/dodo
+cd dodo
+```
 
-    ``sudo apt install qt6-base-dev libsynctex-dev cmake ninja-build``
-
-    MuPDF:
-
-    1. Get the mupdf source code from the [release](https://mupdf.com/releases) page.
-    2. Extract and run the following command inside the directory
-
-    ```bash
-    sudo make HAVE_X11=no HAVE_GLUT=no prefix=/usr build=release -j$(nproc) install
-    ```
-
-3. Clone this repo
-4. Once inside the repo directory, run the following commands
+Build and Install
 
 ```bash
 mkdir build
@@ -87,6 +80,23 @@ cd build
 cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
 ninja
 sudo ninja install
+```
+
+### Debian/Ubuntu users
+
+Install Required Dependencies
+
+```bash
+sudo apt update
+sudo apt install qt6-base-dev libsynctex-dev cmake ninja-build
+```
+
+Clone the Repository and Run the Install Script
+
+```bash
+git clone https://github.com/dheerajshenoy/dodo
+cd dodo
+./install.sh
 ```
 
 # Usage
