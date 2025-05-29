@@ -582,16 +582,18 @@ Model::getLinks() noexcept
                 float h = (r.y1 - r.y0) * m_inv_dpr;
 
                 QRectF qtRect(x, y, w, h);
-                BrowseLinkItem* item{nullptr};
+                BrowseLinkItem *item{nullptr};
                 QString link_str(link->uri);
                 bool external = fz_is_external_link(m_ctx, link->uri);
+
                 if (!external)
                 {
                     if (link_str.startsWith("#page"))
                     {
-                        int page = link_str.mid(6).toInt();
+                        float xp, yp;
+                        fz_location loc = fz_resolve_link(m_ctx, m_doc, link->uri, &xp, &yp);
                         item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::Page, m_link_boundary);
-                        item->setGotoPageNo(page - 1);
+                        item->setGotoPageNo(loc.page);
                         connect(item, &BrowseLinkItem::jumpToPageRequested, this, &Model::jumpToPageRequested);
                     }
                     else
