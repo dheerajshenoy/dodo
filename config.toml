@@ -23,6 +23,7 @@ link_hint_fg = "#FF000000"
 selection = "#44FF5000"
 highlight = "#55FFFF00"
 jump_marker = "#FFFF0000"
+annot_rect = "#55FF0000"
 
 # ===== Rendering Settings =====
 [rendering]
@@ -41,6 +42,7 @@ zoom_factor = 1.25 # Factor by which to zoom in/out
 initial_fit = "width" # Fit applied once every file opened; values: "none", "width", "height", "window":
 invert_mode = false # Start in invert color mode
 synctex_editor_command = "kitty -e nvim +{line} {file}"
+page_nav_with_mouse = false # scrolling to the top/bottom goes to the prev/next page
 
 # ===== Shortcuts =====
 [keybindings]
