@@ -535,6 +535,11 @@ dodo::initConfig() noexcept
                       {
             deleteKeyAction();
         }},
+            {"text_highlight_current_selection",
+                           [this]()
+                      {
+            textHighlightCurrentSelection();
+        }},
             {"keybindings",
                            [this]()
                       {
@@ -2636,4 +2641,14 @@ dodo::openLastVisitedFile() noexcept
             gotoPage(pageno);
         }
     }
+}
+
+void dodo::textHighlightCurrentSelection() noexcept
+{
+    qDebug() << "DD";
+    if (!m_selection_present)
+        return;
+
+    m_model->annotHighlightSelection(m_gview->selectionStart(), m_gview->selectionEnd());
+    renderPage(m_pageno);
 }

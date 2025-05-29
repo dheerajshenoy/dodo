@@ -242,6 +242,7 @@ private:
     void changeAnnotRectColor() noexcept;
     void mouseWheelScrollRequested(int direction) noexcept;
     void openLastVisitedFile() noexcept;
+    void textHighlightCurrentSelection() noexcept;
 
     QMenuBar *m_menuBar{nullptr};
     QMenu *m_fitMenu{nullptr};
