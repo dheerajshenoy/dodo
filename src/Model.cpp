@@ -970,16 +970,6 @@ Model::highlightHelper(const QPointF &selectionStart, const QPointF &selectionEn
     a = {static_cast<float>(selectionStart.x()), static_cast<float>(selectionStart.y())};
     b = {static_cast<float>(selectionEnd.x()), static_cast<float>(selectionEnd.y())};
 
-    fz_point topLeft, bottomRight;
-
-    topLeft.x     = std::min(a.x, b.x);
-    topLeft.y     = std::min(a.y, b.y);
-    bottomRight.x = std::max(a.x, b.x);
-    bottomRight.y = std::max(a.y, b.y);
-
-    a = topLeft;
-    b = bottomRight;
-
     fz_matrix inv_transform = fz_invert_matrix(m_transform);
     a                       = fz_transform_point(a, inv_transform);
     b                       = fz_transform_point(b, inv_transform);
