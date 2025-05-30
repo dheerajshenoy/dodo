@@ -1309,12 +1309,14 @@ dodo::handleCurrentTabChanged(int index) noexcept
     {
         m_panel->hidePageInfo(true);
         updateMenuActions();
+        updateUiEnabledState();
         return;
     }
 
     m_doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
 
     updateMenuActions();
+    updateUiEnabledState();
     updatePanel();
 
     this->setWindowTitle(m_doc->windowTitle());
@@ -1413,7 +1415,6 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
             [this](const QString &name) { m_panel->setFileName(name); });
 
     connect(docwidget, &DocumentView::fileNameChanged, this, &dodo::handleFileNameChanged);
-    updateUiEnabledState();
 
     connect(docwidget, &DocumentView::pageNumberChanged, m_panel, &Panel::setPageNo);
     connect(docwidget, &DocumentView::searchCountChanged, m_panel, &Panel::setSearchCount);
@@ -1437,9 +1438,12 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
 void
 dodo::updateMenuActions() noexcept
 {
-    m_actionCloseFile->setEnabled(m_doc->model()->valid());
+    auto valid = m_doc->model()->valid();
+    m_panel->hidePageInfo(!valid);
+    m_actionCloseFile->setEnabled(valid);
     m_actionInvertColor->setEnabled(m_doc->model()->invertColor());
     m_actionAutoresize->setCheckable(m_doc->autoResize());
+
     switch (m_doc->selectionMode())
     {
         case GraphicsView::Mode::TextSelection:
