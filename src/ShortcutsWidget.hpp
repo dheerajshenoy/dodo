@@ -3,6 +3,7 @@
 #include <QDialog>
 #include <QTableWidget>
 #include <QVBoxLayout>
+#include <QHeaderView>
 
 class ShortcutsWidget : public QDialog
 {
@@ -25,7 +26,7 @@ public:
             tableWidget->setItem(i, 1, new QTableWidgetItem(it.value()));
         }
 
-        tableWidget->horizontalHeader()->setStretchLastSection(true);
+        tableWidget->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeMode::Stretch);
         tableWidget->verticalHeader()->setVisible(false);
         tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
         tableWidget->setSelectionMode(QAbstractItemView::NoSelection);
