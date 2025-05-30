@@ -167,6 +167,13 @@ Model::openFile(const QString &fileName)
     fz_try(m_ctx)
     {
         m_doc = fz_open_document(m_ctx, CSTR(fileName));
+        // TODO: Implement accelerator
+        // if (fz_document_supports_accelerator(m_ctx, m_doc))
+        // {
+        //     fz_save_accelerator(m_ctx, m_doc, "/home/neo/accel");
+        //     fz_drop_document(m_ctx, m_doc);
+        //     m_doc = fz_open_accelerated_document(m_ctx, CSTR(fileName), "/home/neo/accel");
+        // }
 
         if (!m_doc)
         {
