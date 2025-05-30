@@ -16,7 +16,7 @@ resource usage.
 > Dodo is currently in alpha and may experience crashes or instability.
 
 > [!NOTE]
-> dodo version is v0.2.1-alpha
+> dodo version is v0.2.2-alpha
 
 ## Table of Contents
 
@@ -41,13 +41,13 @@ resource usage.
 - Caching and pre-fetching pages for faster page rendering
 - Vim-like keybindings
 - Configured using TOML language
+- Tabs support
 - Faster search
 - Visited file location saving
 - Link awareness
 - Save annotations (highlights only for now)
 - Text highlight
 - Jump Marker (to help locate where link takes you to)
-
 - Wayland support
 
 ## Dependencies
@@ -59,6 +59,16 @@ resource usage.
 - ninja (for building)
 
 ## Installation
+
+> [!NOTE]
+> There are two branches in dodo.
+>
+> 1. `main (default)`
+> 2. `untabbed`
+>
+> `untabbed` is dodo without tab support and many other features present in the main branch like session management etc.
+> No further updates will be pushed to the untabbed branch. If you don't want tabs, go for `untabbed` branch else stick with
+> the default branch.
 
 > [!NOTE]
 > The `install.sh` script installs latest version of MuPDF library required for dodo

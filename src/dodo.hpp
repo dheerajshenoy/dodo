@@ -23,7 +23,7 @@
 #include <QStandardPaths>
 #include <QTabWidget>
 
-#define __DODO_VERSION "v0.2.1-alpha"
+#define __DODO_VERSION "v0.2.2-alpha"
 
 class dodo : public QMainWindow
 {

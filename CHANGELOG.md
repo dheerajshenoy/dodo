@@ -1,5 +1,12 @@
 # dodo
 
+## 0.2.2
+
+- Tabs support
+- Sessions support
+
+## 0.2.1
+
 ## 0.2.0
 
 - Page visit history
