@@ -28,8 +28,7 @@ PropertiesWidget::setProperties(const QList<QPair<QString, QString>> &properties
         QLabel *valueLabel = new QLabel(v, this);
         valueLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
         valueLabel->setWordWrap(true);                                             // <-- wrap long text
-        valueLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred); // allow horizontal growth
-
+        valueLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed); // allow horizontal growth
         m_formLayout->addRow(keyLabel, valueLabel);
     }
 

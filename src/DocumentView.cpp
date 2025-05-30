@@ -1286,13 +1286,13 @@ DocumentView::FileProperties() noexcept
     if (!m_model->valid())
         return;
 
-    // if (!m_propsWidget)
-    // {
-    //     m_propsWidget = new PropertiesWidget(this);
-    //     auto props    = m_model->extractPDFProperties();
-    //     m_propsWidget->setProperties(props);
-    // }
-    // m_propsWidget->exec();
+    if (!m_propsWidget)
+    {
+        m_propsWidget = new PropertiesWidget(this);
+        auto props    = m_model->extractPDFProperties();
+        m_propsWidget->setProperties(props);
+    }
+    m_propsWidget->exec();
 }
 
 // Puts the viewport to the top of the page

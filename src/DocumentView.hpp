@@ -8,6 +8,7 @@
 #include "JumpMarker.hpp"
 #include "Model.hpp"
 #include "OutlineWidget.hpp"
+#include "PropertiesWidget.hpp"
 
 #include <QFileDialog>
 #include <QInputDialog>
@@ -16,7 +17,6 @@
 #include <QWidget>
 #include <QWindow>
 #include <qboxlayout.h>
-
 
 extern "C"
 {
@@ -78,7 +78,10 @@ public:
         int pageno;
     };
 
-    bool autoResize() noexcept { return m_auto_resize; }
+    bool autoResize() noexcept
+    {
+        return m_auto_resize;
+    }
     // void OpenFile(const QString &filePath) noexcept;
     void setDPR(qreal DPR) noexcept;
     void CloseFile() noexcept;
@@ -135,13 +138,31 @@ public:
         return m_filename;
     }
 
-    inline int pageNo() noexcept { return m_pageno + 1; }
-    inline GraphicsView* gview() noexcept { return m_gview; }
-    inline GraphicsView::Mode selectionMode() noexcept { return m_gview->mode(); }
-    inline FitMode fitMode() noexcept { return m_fit_mode; }
-    inline float zoom() noexcept { return m_scale_factor; }
+    inline int pageNo() noexcept
+    {
+        return m_pageno + 1;
+    }
+    inline GraphicsView *gview() noexcept
+    {
+        return m_gview;
+    }
+    inline GraphicsView::Mode selectionMode() noexcept
+    {
+        return m_gview->mode();
+    }
+    inline FitMode fitMode() noexcept
+    {
+        return m_fit_mode;
+    }
+    inline float zoom() noexcept
+    {
+        return m_scale_factor;
+    }
     void Fit(DocumentView::FitMode mode) noexcept;
-    inline float rotation() noexcept { return m_rotation; }
+    inline float rotation() noexcept
+    {
+        return m_rotation;
+    }
 
 signals:
     void pageNumberChanged(int pageno);
@@ -207,6 +228,7 @@ private:
     void changeAnnotRectColor() noexcept;
     void mouseWheelScrollRequested(int direction) noexcept;
 
+    PropertiesWidget *m_propsWidget{nullptr};
     OutlineWidget *m_owidget{nullptr};
     QCache<CacheKey, CacheValue> m_cache;
     QMap<int, QList<Model::SearchResult>> m_searchRectMap;
@@ -239,5 +261,5 @@ private:
     int m_scroll_accumulator = 0;
     QElapsedTimer m_scroll_cooldown;
     const int kScrollCooldownMs = 300; // Prevent rapid-fire page turns
-    const int kPageThreshold = 300;
+    const int kPageThreshold    = 300;
 };
