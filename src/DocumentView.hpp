@@ -120,15 +120,20 @@ public:
     void SelectAll() noexcept;
     void PrevHit();
     void NextHit();
+    void ClearTextSelection() noexcept;
+
     inline Model *model() noexcept
     {
         return m_model;
     }
+
     // inline QString windowTitle() noexcept { return m_config.window_title_format; }
+
     inline QString fileName() noexcept
     {
         return m_filename;
     }
+
     inline int pageNo() noexcept { return m_pageno + 1; }
     inline GraphicsView* gview() noexcept { return m_gview; }
     inline GraphicsView::Mode selectionMode() noexcept { return m_gview->mode(); }
@@ -190,7 +195,6 @@ private:
     void rehighlight() noexcept;
     void zoomHelper() noexcept;
     QRectF fzQuadToQRect(const fz_quad &q) noexcept;
-    void clearTextSelection() noexcept;
     void selectAnnots() noexcept;
     void clearAnnotSelection() noexcept;
     void deleteKeyAction() noexcept;

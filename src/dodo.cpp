@@ -852,10 +852,10 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 
     try
     {
-        auto file = argparser.get<std::vector<std::string>>("files");
-        if (!file.empty())
+        auto files = argparser.get<std::vector<std::string>>("files");
+        if (!files.empty())
         {
-            OpenFile(QString::fromStdString(file[0]));
+            OpenFiles(files);
             m_config.open_last_visited = false;
         }
 
@@ -959,136 +959,125 @@ dodo::openLastVisitedFile() noexcept
 void
 dodo::Search() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->Search();
+    if (m_doc)
+        m_doc->Search();
 }
 
 void
 dodo::ZoomOut() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->ZoomOut();
+    if (m_doc)
+        m_doc->ZoomOut();
 }
 
 void
 dodo::ZoomIn() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->ZoomIn();
+    if (m_doc)
+        m_doc->ZoomIn();
 }
 
 void
 dodo::ZoomReset() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->ZoomReset();
+    if (m_doc)
+        m_doc->ZoomReset();
 }
 
 void
 dodo::GotoPage(int pageno) noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->GotoPage(pageno);
+    if (m_doc)
+        m_doc->GotoPage(pageno);
 }
 
 void
 dodo::NextHit() noexcept
 {
-
-    if (!m_doc)
-        return;
-
-    m_doc->NextHit();
+    if (m_doc)
+        m_doc->NextHit();
 }
 
 void
 dodo::PrevHit() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->PrevHit();
+    if (m_doc)
+        m_doc->PrevHit();
 }
 
 void
 dodo::ScrollLeft() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->ScrollLeft();
+    if (m_doc)
+        m_doc->ScrollLeft();
 }
 
 void
 dodo::ScrollRight() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->ScrollRight();
+    if (m_doc)
+        m_doc->ScrollRight();
 }
 
 void
 dodo::ScrollUp() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->ScrollUp();
+    if (m_doc)
+        m_doc->ScrollUp();
 }
 
 void
 dodo::ScrollDown() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->ScrollDown();
+    if (m_doc)
+        m_doc->ScrollDown();
 }
 
 void
 dodo::RotateClock() noexcept
 {
+    // TODO:
 }
 
 void
 dodo::RotateAnticlock() noexcept
 {
+    // TODO:
 }
 
 void
 dodo::VisitLinkKB() noexcept
 {
+    if (m_doc)
+        m_doc->VisitLinkKB();
 }
 
 void
 dodo::CopyLinkKB() noexcept
 {
+    if (m_doc)
+        m_doc->CopyLinkKB();
 }
 
 void
 dodo::ClearTextSelection() noexcept
 {
+    if (m_doc)
+        m_doc->ClearTextSelection();
 }
 
 void
 dodo::YankSelection() noexcept
 {
+    if (m_doc)
+        m_doc->YankSelection();
 }
 
 void
 dodo::SelectAll() noexcept
 {
+    if (m_doc)
+        m_doc->SelectAll();
 }
 
 void
@@ -1099,6 +1088,13 @@ dodo::FitNone() noexcept
 void
 dodo::TextSelectionMode() noexcept
 {
+}
+
+void
+dodo::OpenFiles(const std::vector<std::string> &files) noexcept
+{
+    for (const auto &s : files)
+        OpenFile(QString::fromStdString(s));
 }
 
 void
@@ -1127,158 +1123,125 @@ dodo::OpenFile(QString filePath) noexcept
 void
 dodo::FileProperties() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->FileProperties();
+    if (m_doc)
+        m_doc->FileProperties();
 }
 void
 dodo::SaveFile() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->SaveFile();
+    if (m_doc)
+        m_doc->SaveFile();
 }
 void
 dodo::SaveAsFile() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->SaveAsFile();
+    if (m_doc)
+        m_doc->SaveAsFile();
 }
 void
 dodo::CloseFile() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->CloseFile();
+    if (m_doc)
+        m_doc->CloseFile();
 }
 void
 dodo::FitWidth() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->FitWidth();
+    if (m_doc)
+        m_doc->FitWidth();
 }
 void
 dodo::FitHeight() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->FitHeight();
+    if (m_doc)
+        m_doc->FitHeight();
 }
 void
 dodo::FitWindow() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->FitWindow();
+    if (m_doc)
+        m_doc->FitWindow();
 }
 void
 dodo::ToggleAutoResize() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->ToggleAutoResize();
+    if (m_doc)
+        m_doc->ToggleAutoResize();
 }
 void
 dodo::TableOfContents() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->TableOfContents();
+    if (m_doc)
+        m_doc->TableOfContents();
 }
 void
 dodo::InvertColor() noexcept
 {
-    if (!m_doc)
-        return;
-    m_doc->InvertColor();
+    if (m_doc)
+        m_doc->InvertColor();
 }
 
 void
 dodo::ToggleTextHighlight() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->ToggleTextHighlight();
+    if (m_doc)
+        m_doc->ToggleTextHighlight();
 }
 
 void
 dodo::ToggleRectAnnotation() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->ToggleRectAnnotation();
+    if (m_doc)
+        m_doc->ToggleRectAnnotation();
 }
 
 void
 dodo::ToggleAnnotSelect() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->ToggleAnnotSelect();
+    if (m_doc)
+        m_doc->ToggleAnnotSelect();
 }
 
 void
 dodo::FirstPage() noexcept
 {
-    if (!m_doc)
-        return;
-    m_doc->FirstPage();
+    if (m_doc)
+        m_doc->FirstPage();
 }
 
 void
 dodo::PrevPage() noexcept
 {
-    if (!m_doc)
-        return;
-    m_doc->PrevPage();
+    if (m_doc)
+        m_doc->PrevPage();
 }
 
 void
 dodo::NextPage() noexcept
 {
-    if (!m_doc)
-        return;
-    m_doc->NextPage();
+    if (m_doc)
+        m_doc->NextPage();
 }
 
 void
 dodo::LastPage() noexcept
 {
-    if (!m_doc)
-        return;
-    m_doc->LastPage();
+    if (m_doc)
+        m_doc->LastPage();
 }
 
 void
 dodo::GoBackHistory() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->GoBackHistory();
+    if (m_doc)
+        m_doc->GoBackHistory();
 }
 
 void
 dodo::TextHighlightCurrentSelection() noexcept
 {
-    if (!m_doc)
-        return;
-
-    m_doc->TextHighlightCurrentSelection();
+    if (m_doc)
+        m_doc->TextHighlightCurrentSelection();
 }
 
 void
@@ -1297,10 +1260,10 @@ dodo::initConnections() noexcept
     {
         connect(win, &QWindow::screenChanged, this, [&](QScreen *)
         {
-            m_dpr = static_cast<QPaintDevice*>(this)->devicePixelRatioF();
+            m_dpr = static_cast<QPaintDevice *>(this)->devicePixelRatioF();
 
             if (m_doc)
-            m_doc->setDPR(m_dpr);
+                m_doc->setDPR(m_dpr);
         });
     }
 

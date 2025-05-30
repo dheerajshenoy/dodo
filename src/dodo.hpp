@@ -83,6 +83,8 @@ private:
     void GoBackHistory() noexcept;
     void LastPage() noexcept;
     void NextPage() noexcept;
+    void OpenFiles(const std::vector<std::string> &files) noexcept;
+    // void OpenFiles(const QList<QString> &files) noexcept;
     void OpenFile(QString filename = QString()) noexcept;
     void OpenFile(DocumentView *view) noexcept;
     void PrevPage() noexcept;
