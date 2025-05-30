@@ -131,6 +131,9 @@ public:
     inline int pageNo() noexcept { return m_pageno + 1; }
     inline GraphicsView::Mode selectionMode() noexcept { return m_gview->mode(); }
     inline FitMode fitMode() noexcept { return m_fit_mode; }
+    inline float zoom() noexcept { return m_scale_factor; }
+    void Fit(DocumentView::FitMode mode) noexcept;
+    inline float rotation() noexcept { return m_rotation; }
 
 signals:
     void pageNumberChanged(int pageno);
@@ -162,7 +165,7 @@ private:
     bool gotoPage(int pageno) noexcept;
     bool gotoPageInternal(int pageno) noexcept;
     void search(const QString &term) noexcept;
-
+    void setFitMode(const FitMode &mode) noexcept;
     bool renderPage(int pageno, bool renderonly = false) noexcept;
     void renderLinks(const QList<BrowseLinkItem *> &links) noexcept;
     void renderPixmap(const QPixmap &pix) noexcept;
@@ -170,7 +173,6 @@ private:
 
     void scrollToXY(float x, float y) noexcept;
     void scrollToNormalizedTop(double top) noexcept;
-    void setFitMode(const FitMode &mode) noexcept;
     fz_point mapToPdf(QPointF loc) noexcept;
     void clearLinks() noexcept;
     void clearAnnots() noexcept;

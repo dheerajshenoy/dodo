@@ -41,6 +41,7 @@ public:
         return m_doc != nullptr;
     }
 
+
     bool authenticate(const QString &pwd) noexcept;
     bool passwordRequired() noexcept;
     bool openFile(const QString &fileName);

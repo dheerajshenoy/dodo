@@ -1102,7 +1102,7 @@ DocumentView::TableOfContents() noexcept
     if (!m_model->valid())
         return;
 
-    TODO:
+TODO:
     if (!m_owidget)
     {
         m_owidget = new OutlineWidget(m_model->clonedContext(), this);
@@ -1670,4 +1670,24 @@ DocumentView::TextHighlightCurrentSelection() noexcept
 
     m_model->annotHighlightSelection(m_gview->selectionStart(), m_gview->selectionEnd());
     renderPage(m_pageno);
+}
+
+// Convenience function for setting the fit mode from outside this class
+void
+DocumentView::Fit(DocumentView::FitMode mode) noexcept
+{
+    switch (mode)
+    {
+        case FitMode::None:
+            break;
+        case FitMode::Width:
+            FitWidth();
+            break;
+        case FitMode::Height:
+            FitHeight();
+            break;
+        case FitMode::Window:
+            FitWindow();
+            break;
+    }
 }

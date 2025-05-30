@@ -84,6 +84,7 @@ private:
     void LastPage() noexcept;
     void NextPage() noexcept;
     void OpenFile(QString filename = QString()) noexcept;
+    void OpenFile(DocumentView *view) noexcept;
     void PrevPage() noexcept;
     void FirstPage() noexcept;
     void ToggleTextHighlight() noexcept;
@@ -105,6 +106,9 @@ private:
     void PrevHit() noexcept;
     void ZoomReset() noexcept;
     void GotoPage(int pageno = -1) noexcept;
+    void LoadSession(QString name = QString()) noexcept;
+    void SaveSession(QString name = QString()) noexcept;
+    void SaveAsSession(const QString &name = QString()) noexcept;
 
     void handleFileNameChanged(const QString &name) noexcept;
     void handleCurrentTabChanged(int index) noexcept;
@@ -112,8 +116,9 @@ private:
     void filePropertiesForIndex(int index) noexcept;
     void updateMenuActions() noexcept;
     void updatePanel() noexcept;
+    QStringList getSessionFiles() noexcept;
 
-    QDir m_config_dir;
+    QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};
     Panel *m_panel{nullptr};
 
@@ -150,6 +155,7 @@ private:
     QAction *m_actionAnnotEdit{nullptr};
 
     DodoConfig m_config;
+    float m_dpr;
 
     DocumentView *m_doc{nullptr};
     TabWidget *m_tab_widget = new TabWidget();
@@ -160,4 +166,5 @@ private:
     bool m_load_default_keybinding{true};
     QClipboard *m_clipboard = QGuiApplication::clipboard();
     QSqlDatabase m_last_pages_db;
+    QString m_session_name;
 };

@@ -5,6 +5,7 @@
 #include "EditLastPagesWidget.hpp"
 #include "toml.hpp"
 
+#include <QJsonArray>
 #include <qdesktopservices.h>
 #include <qnamespace.h>
 
@@ -48,6 +49,12 @@ dodo::initMenubar() noexcept
 
     m_actionSaveAsFile = fileMenu->addAction(QString("Save As File\t%1").arg(m_config.shortcuts_map["save_as"]), this,
                                              &dodo::SaveAsFile);
+
+    QMenu *sessionMenu = fileMenu->addMenu("Session");
+
+    sessionMenu->addAction("Save", this, [&]() { SaveSession(); });
+    sessionMenu->addAction("Save As", this, [&]() { SaveAsSession(); });
+    sessionMenu->addAction("Load", this, [&]() { LoadSession(); });
 
     m_actionCloseFile = fileMenu->addAction(QString("Close File\t%1").arg(m_config.shortcuts_map["close_file"]), this,
                                             &dodo::CloseFile);
@@ -228,6 +235,7 @@ dodo::initConfig() noexcept
 {
     m_config_dir          = QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
     auto config_file_path = m_config_dir.filePath("config.toml");
+    m_session_dir         = QDir(m_config_dir.filePath("sessions"));
 
     if (!QFile::exists(config_file_path))
     {
@@ -731,10 +739,7 @@ dodo::initGui() noexcept
 void
 dodo::updateUiEnabledState() noexcept
 {
-    if (!m_doc)
-        return;
-
-    const bool hasOpenedFile = m_doc->model()->valid();
+    const bool hasOpenedFile = m_doc ? true : false;
 
     m_actionZoomIn->setEnabled(hasOpenedFile);
     m_actionZoomOut->setEnabled(hasOpenedFile);
@@ -750,7 +755,6 @@ dodo::updateUiEnabledState() noexcept
     m_actionSaveFile->setEnabled(hasOpenedFile);
     m_actionSaveAsFile->setEnabled(hasOpenedFile);
     m_actionPrevLocation->setEnabled(hasOpenedFile);
-
 }
 
 void
@@ -1098,6 +1102,13 @@ dodo::TextSelectionMode() noexcept
 }
 
 void
+dodo::OpenFile(DocumentView *view) noexcept
+{
+    initTabConnections(view);
+    m_tab_widget->addTab(view, QFileInfo(view->fileName()).fileName());
+}
+
+void
 dodo::OpenFile(QString filePath) noexcept
 {
     if (filePath.isEmpty())
@@ -1284,8 +1295,10 @@ dodo::initConnections() noexcept
     {
         connect(win, &QWindow::screenChanged, this, [&](QScreen *screen)
         {
+            float dpr = screen->devicePixelRatio();
             if (m_doc)
-                m_doc->setDPR(screen->devicePixelRatio());
+                m_doc->setDPR(dpr);
+            m_dpr = dpr;
         });
     }
 
@@ -1428,24 +1441,23 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::selectionModeChanged, m_panel, &Panel::setMode);
     connect(docwidget, &DocumentView::highlightColorChanged, m_panel, &Panel::setHighlightColor);
     connect(docwidget, &DocumentView::selectionModeChanged, m_panel, &Panel::setMode);
-    connect(docwidget, &DocumentView::clipboardContentChanged, this, [&](const QString &text) {
-            m_clipboard->setText(text);
-            });
+    connect(docwidget, &DocumentView::clipboardContentChanged, this,
+            [&](const QString &text) { m_clipboard->setText(text); });
 
-    connect(docwidget, &DocumentView::invertColorActionUpdate, this, [&](bool state) {
-            m_actionInvertColor->setChecked(state);
-            });
+    connect(docwidget, &DocumentView::invertColorActionUpdate, this,
+            [&](bool state) { m_actionInvertColor->setChecked(state); });
 
-    connect(docwidget, &DocumentView::autoResizeActionUpdate, this, [&](bool state) {
-            m_actionAutoresize->setChecked(state);
-            });
+    connect(docwidget, &DocumentView::autoResizeActionUpdate, this,
+            [&](bool state) { m_actionAutoresize->setChecked(state); });
 }
 
-void dodo::updateMenuActions() noexcept
+void
+dodo::updateMenuActions() noexcept
 {
 }
 
-void dodo::updatePanel() noexcept
+void
+dodo::updatePanel() noexcept
 {
     auto model = m_doc->model();
     m_panel->setFileName(m_doc->fileName());
@@ -1454,4 +1466,130 @@ void dodo::updatePanel() noexcept
     m_panel->setTotalPageCount(model->numPages());
     m_panel->setPageNo(m_doc->pageNo());
     m_panel->setFitMode(m_doc->fitMode());
+}
+
+void
+dodo::LoadSession(QString sessionName) noexcept
+{
+    QStringList existingSessions = getSessionFiles();
+    if (sessionName.isEmpty())
+    {
+        bool ok;
+        sessionName = QInputDialog::getItem(this, "Save Session",
+                                            "Enter name for session (existing sessions are listed): ", existingSessions,
+                                            0, true, &ok);
+    }
+
+    QFile file(m_session_dir.filePath(sessionName));
+    if (file.open(QIODevice::ReadOnly))
+    {
+        QJsonDocument doc       = QJsonDocument::fromJson(file.readAll());
+        QJsonArray sessionArray = doc.array();
+
+        for (const QJsonValue &value : sessionArray)
+        {
+            QJsonObject entry = value.toObject();
+            QString filePath  = entry["file_path"].toString();
+            int page          = entry["current_page"].toInt();
+            double zoom       = entry["zoom"].toDouble();
+            int fitMode       = entry["fit_mode"].toInt();
+            bool invert       = entry["invert_color"].toBool();
+
+            DocumentView *view = new DocumentView(filePath, m_config, m_tab_widget);
+            view->setDPR(m_dpr);
+            view->GotoPage(page);
+            view->Zoom(zoom);
+            view->Fit(static_cast<DocumentView::FitMode>(fitMode));
+            OpenFile(view);
+        }
+    }
+}
+
+QStringList
+dodo::getSessionFiles() noexcept
+{
+    QStringList sessions;
+
+    if (!m_session_dir.exists())
+    {
+        if (!m_session_dir.mkpath("."))
+        {
+            QMessageBox::warning(this, "Session Directory", "Unable to create sessions directory for some reason");
+            return sessions;
+        }
+    }
+
+    for (const QString& file : m_session_dir.entryList(QStringList() << "*.dodo", QDir::Files | QDir::NoSymLinks)) {
+        sessions << QFileInfo(file).completeBaseName();
+    }
+{};
+    return sessions;
+}
+
+void
+dodo::SaveSession(QString sessionName) noexcept
+{
+    if (!m_doc)
+    {
+        QMessageBox::information(this, "Save Session", "No files in session to save the session");
+        return;
+    }
+
+    if (m_session_name.isEmpty())
+    {
+        QStringList existingSessions = getSessionFiles();
+        if (sessionName.isEmpty())
+        {
+            bool ok;
+            sessionName = QInputDialog::getItem(
+                this, "Save Session", "Enter name for session (existing sessions are listed): ", existingSessions, 0,
+                true, &ok);
+            if (sessionName.isEmpty())
+                return;
+        }
+        else
+        {
+            if (existingSessions.contains(sessionName))
+            {
+                QMessageBox::warning(this, "Save Session", QString("Session name %1 already exists").arg(sessionName));
+                return;
+            }
+        }
+    }
+
+    m_session_name = sessionName;
+
+    QJsonArray sessionArray;
+
+    for (int i = 0; i < m_tab_widget->count(); ++i)
+    {
+        DocumentView *doc = qobject_cast<DocumentView *>(m_tab_widget->widget(i));
+        if (!doc || !doc->model()->valid())
+            continue;
+
+        QJsonObject entry;
+        entry["file_path"]    = doc->fileName();
+        entry["current_page"] = doc->pageNo();
+        entry["zoom"]         = doc->zoom();
+        entry["invert_color"] = doc->model()->invertColor();
+        entry["rotation"]     = doc->rotation();
+        entry["fit_mode"]     = static_cast<int>(doc->fitMode());
+
+        sessionArray.append(entry);
+    }
+
+    QJsonDocument doc(sessionArray);
+    QFile file(m_session_dir.filePath(m_session_name + ".dodo"));
+    file.open(QIODevice::WriteOnly);
+    file.write(doc.toJson());
+    file.write("\n\n// vim:ft=json");
+    file.close();
+
+    m_session_name = sessionName;
+}
+
+void
+dodo::SaveAsSession(const QString &sessionPath) noexcept
+{
+    // TODO:
 }
