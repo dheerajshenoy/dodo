@@ -255,9 +255,14 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *e)
             e->accept();
             return;
         }
+        QGraphicsView::contextMenuEvent(e);
+    } else {
+        QMenu menu(this);
+        emit populateContextMenuRequested(&menu);
+        if (!menu.isEmpty())
+            menu.exec(e->globalPos());
+        e->accept();
     }
-
-    QGraphicsView::contextMenuEvent(e);
 }
 
 QPointF
