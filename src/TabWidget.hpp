@@ -19,9 +19,12 @@ public:
         setStyleSheet(R"(
 QTabWidget::pane {
     border: 0;
-    margin: -13px -9px -13px -9px;
+    margin: 0;
 }
         )");
+
+
+
     }
 
 signals:
