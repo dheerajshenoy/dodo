@@ -2,6 +2,7 @@
 
 #include <qfont.h>
 #include <qnamespace.h>
+#include <QTextEdit>
 
 AboutDialog::AboutDialog(QWidget *parent)
     : QDialog(parent), bannerLabel(new QLabel), infoLabel(new QLabel), closeButton(new QPushButton("Close"))
@@ -37,6 +38,22 @@ AboutDialog::AboutDialog(QWidget *parent)
 
     auto *otherLayout = new QVBoxLayout();
     otherLayout->addWidget(infoLabel);
+
+    QTextEdit *licenseTextEdit = new QTextEdit(this);
+    licenseTextEdit->setReadOnly(true);
+    otherLayout->addWidget(licenseTextEdit);
+
+    QFile file(":/LICENSE");  // Or use an absolute/relative path
+
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&file);
+        QString text = in.readAll();
+        licenseTextEdit->setPlainText(text);
+        file.close();
+    } else {
+        licenseTextEdit->setPlainText("Could not load license text.");
+    }
+
     otherLayout->addWidget(closeButton, 0, Qt::AlignCenter);
     otherLayout->setContentsMargins(10, 10, 10, 10);
 

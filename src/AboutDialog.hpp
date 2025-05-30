@@ -6,6 +6,7 @@
 #include <QPixmap>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QFile>
 
 class AboutDialog : public QDialog
 {

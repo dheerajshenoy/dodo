@@ -2,6 +2,7 @@
     <qresource prefix="/">
         <file>resources/dodo.svg</file>
         <file>resources/fonts/comfortaa.ttf</file>
+        <file>LICENSE</file>
     </qresource>
 </RCC>
 
