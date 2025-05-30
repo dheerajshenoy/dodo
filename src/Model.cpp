@@ -7,6 +7,7 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsScene>
 #include <QImage>
+extern "C" {
 #include <mupdf/fitz.h>
 #include <mupdf/fitz/context.h>
 #include <mupdf/fitz/document.h>
@@ -19,8 +20,10 @@
 #include <mupdf/pdf/document.h>
 #include <mupdf/pdf/object.h>
 #include <mupdf/pdf/xref.h>
-#include <qgraphicsitem.h>
 #include <synctex/synctex_parser.h>
+}
+#include <qgraphicsitem.h>
+#include <QStringDecoder>
 
 fz_quad
 union_quad(const fz_quad &a, const fz_quad &b)
@@ -908,9 +911,12 @@ Model::extractPDFProperties() noexcept
                 int slen      = pdf_to_str_len(m_ctx, valObj);
 
                 if (slen >= 2 && (quint8)s[0] == 0xFE && (quint8)s[1] == 0xFF)
-                    val = QString::fromUtf16(reinterpret_cast<const ushort *>(s + 2), (slen - 2) / 2);
-                else
+                {
+                    QStringDecoder decoder(QStringDecoder::Utf16BE);
+                    val = decoder(QByteArray(s + 2, slen - 2));
+                } else {
                     val = QString::fromUtf8(s, slen);
+                }
             }
             else if (pdf_is_int(m_ctx, valObj))
                 val = QString::number(pdf_to_int(m_ctx, valObj));
