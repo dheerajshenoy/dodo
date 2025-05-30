@@ -129,6 +129,7 @@ public:
         return m_filename;
     }
     inline int pageNo() noexcept { return m_pageno + 1; }
+    inline GraphicsView* gview() noexcept { return m_gview; }
     inline GraphicsView::Mode selectionMode() noexcept { return m_gview->mode(); }
     inline FitMode fitMode() noexcept { return m_fit_mode; }
     inline float zoom() noexcept { return m_scale_factor; }

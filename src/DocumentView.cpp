@@ -434,7 +434,7 @@ DocumentView::openFile(const QString &fileName) noexcept
     initSynctex();
 
     setWindowTitle(m_basename);
-    emit fileNameChanged(m_filename);
+    emit fileNameChanged(m_basename);
 }
 
 bool

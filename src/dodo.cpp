@@ -1105,6 +1105,7 @@ void
 dodo::OpenFile(DocumentView *view) noexcept
 {
     initTabConnections(view);
+    view->setDPR(m_dpr);
     m_tab_widget->addTab(view, QFileInfo(view->fileName()).fileName());
 }
 
@@ -1118,6 +1119,7 @@ dodo::OpenFile(QString filePath) noexcept
             return;
     }
     DocumentView *docwidget = new DocumentView(filePath, m_config, m_tab_widget);
+    docwidget->setDPR(m_dpr);
     initTabConnections(docwidget);
     m_tab_widget->addTab(docwidget, QFileInfo(filePath).fileName());
 }
@@ -1293,16 +1295,16 @@ dodo::initConnections() noexcept
     auto win = window()->windowHandle();
     if (win)
     {
-        connect(win, &QWindow::screenChanged, this, [&](QScreen *screen)
+        connect(win, &QWindow::screenChanged, this, [&](QScreen *)
         {
-            float dpr = screen->devicePixelRatio();
+            m_dpr = static_cast<QPaintDevice*>(this)->devicePixelRatioF();
+
             if (m_doc)
-                m_doc->setDPR(dpr);
-            m_dpr = dpr;
+            m_doc->setDPR(m_dpr);
         });
     }
 
-    connect(m_tab_widget, &QTabWidget::tabCloseRequested, this, [=](int index)
+    connect(m_tab_widget, &QTabWidget::tabCloseRequested, this, [this](int index)
     {
         DocumentView *doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
         m_tab_widget->removeTab(index);
@@ -1393,9 +1395,9 @@ dodo::eventFilter(QObject *object, QEvent *event)
         if (index != -1)
         {
             QMenu menu;
-            menu.addAction("Open Location", this, [=]() { openInExplorerForIndex(index); });
-            menu.addAction("File Properties", this, [=]() { filePropertiesForIndex(index); });
-            menu.addAction("Close Tab", this, [=]() { m_tab_widget->tabCloseRequested(index); });
+            menu.addAction("Open Location", this, [this, index]() { openInExplorerForIndex(index); });
+            menu.addAction("File Properties", this, [this, index]() { filePropertiesForIndex(index); });
+            menu.addAction("Close Tab", this, [this, index]() { m_tab_widget->tabCloseRequested(index); });
 
             menu.exec(contextEvent->globalPos());
         }
@@ -1472,6 +1474,12 @@ void
 dodo::LoadSession(QString sessionName) noexcept
 {
     QStringList existingSessions = getSessionFiles();
+    if (existingSessions.empty())
+    {
+        QMessageBox::information(this, "Load Session", "No sessions found");
+        return;
+    }
+
     if (sessionName.isEmpty())
     {
         bool ok;
@@ -1496,7 +1504,6 @@ dodo::LoadSession(QString sessionName) noexcept
             bool invert       = entry["invert_color"].toBool();
 
             DocumentView *view = new DocumentView(filePath, m_config, m_tab_widget);
-            view->setDPR(m_dpr);
             view->GotoPage(page);
             view->Zoom(zoom);
             view->Fit(static_cast<DocumentView::FitMode>(fitMode));
@@ -1519,10 +1526,11 @@ dodo::getSessionFiles() noexcept
         }
     }
 
-    for (const QString& file : m_session_dir.entryList(QStringList() << "*.dodo", QDir::Files | QDir::NoSymLinks)) {
+    for (const QString &file : m_session_dir.entryList(QStringList() << "*.dodo", QDir::Files | QDir::NoSymLinks))
+    {
         sessions << QFileInfo(file).completeBaseName();
     }
-{};
+    {};
     return sessions;
 }
 
@@ -1591,5 +1599,35 @@ dodo::SaveSession(QString sessionName) noexcept
 void
 dodo::SaveAsSession(const QString &sessionPath) noexcept
 {
-    // TODO:
+    if (m_session_name.isEmpty())
+    {
+        QMessageBox::information(this, "Save As Session", "Cannot save session as you are not currently in a session");
+        return;
+    }
+
+    QStringList existingSessions = getSessionFiles();
+
+    QString selectedPath = QFileDialog::getSaveFileName(this, "Save As Session", m_session_dir.absolutePath(),
+                                                        "dodo session files (*.dodo); All Files (*.*)");
+
+    if (selectedPath.isEmpty())
+        return;
+
+    if (QFile::exists(selectedPath))
+    {
+        auto choice = QMessageBox::warning(this, "Overwrite Session",
+                                           QString("Session named \"%1\" already exists. Do you want to overwrite it?")
+                                               .arg(QFileInfo(selectedPath).fileName()),
+                                           QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+
+        if (choice != QMessageBox::Yes)
+            return;
+    }
+
+    // Save the session
+    QString currentSessionPath = m_session_dir.filePath(m_session_name + ".dodo");
+    if (!QFile::copy(currentSessionPath, selectedPath))
+    {
+        QMessageBox::critical(this, "Save As Session", "Failed to save session.");
+    }
 }
