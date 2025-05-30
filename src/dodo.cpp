@@ -319,6 +319,11 @@ dodo::initConfig() noexcept
                       {
             TextHighlightCurrentSelection();
         }},
+            {"toggle_tabs",
+                           [this]()
+                      {
+            ToggleTabBar();
+        }},
             {"keybindings",
                            [this]()
                       {
@@ -1141,39 +1146,44 @@ dodo::SaveAsFile() noexcept
 void
 dodo::CloseFile() noexcept
 {
-    if (m_doc)
-        m_doc->CloseFile();
+    m_tab_widget->tabCloseRequested(m_tab_widget->currentIndex());
 }
+
 void
 dodo::FitWidth() noexcept
 {
     if (m_doc)
         m_doc->FitWidth();
 }
+
 void
 dodo::FitHeight() noexcept
 {
     if (m_doc)
         m_doc->FitHeight();
 }
+
 void
 dodo::FitWindow() noexcept
 {
     if (m_doc)
         m_doc->FitWindow();
 }
+
 void
 dodo::ToggleAutoResize() noexcept
 {
     if (m_doc)
         m_doc->ToggleAutoResize();
 }
+
 void
 dodo::TableOfContents() noexcept
 {
     if (m_doc)
         m_doc->TableOfContents();
 }
+
 void
 dodo::InvertColor() noexcept
 {
@@ -1419,6 +1429,29 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
 void
 dodo::updateMenuActions() noexcept
 {
+    if (!m_doc)
+        return;
+
+    m_actionInvertColor->setEnabled(m_doc->model()->invertColor());
+    m_actionAutoresize->setCheckable(m_doc->autoResize());
+    switch(m_doc->selectionMode())
+    {
+        case GraphicsView::Mode::TextSelection:
+            m_actionTextSelect->setChecked(true);
+            break;
+
+        case GraphicsView::Mode::TextHighlight:
+            m_actionTextHighlight->setChecked(true);
+            break;
+
+        case GraphicsView::Mode::AnnotSelect:
+            m_actionAnnotEdit->setChecked(true);
+            break;
+
+        case GraphicsView::Mode::AnnotRect:
+            m_actionAnnotRect->setChecked(true);
+            break;
+    }
 }
 
 void
