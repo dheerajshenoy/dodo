@@ -78,6 +78,7 @@ public:
         int pageno;
     };
 
+    bool autoResize() noexcept { return m_auto_resize; }
     // void OpenFile(const QString &filePath) noexcept;
     void setDPR(qreal DPR) noexcept;
     void CloseFile() noexcept;
