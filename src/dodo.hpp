@@ -7,6 +7,7 @@
 #include "PropertiesWidget.hpp"
 #include "ShortcutsWidget.hpp"
 #include "argparse.hpp"
+#include "TabWidget.hpp"
 
 #include <QActionGroup>
 #include <QApplication>
@@ -39,6 +40,7 @@ public:
 protected:
     void resizeEvent(QResizeEvent *e) override;
     void closeEvent(QCloseEvent *e) override;
+    bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
     void initDB() noexcept;
@@ -59,6 +61,7 @@ private:
     void TextHighlightCurrentSelection() noexcept;
     void ShowKeybindings() noexcept;
     void ToggleMenubar() noexcept;
+    void ToggleTabBar() noexcept;
     void TogglePanel() noexcept;
     void ToggleFullscreen() noexcept;
     void FileProperties() noexcept;
@@ -103,6 +106,8 @@ private:
 
     void handleFileNameChanged(const QString &name) noexcept;
     void handleCurrentTabChanged(int index) noexcept;
+    void openInExplorerForIndex(int index) noexcept;
+    void filePropertiesForIndex(int index) noexcept;
 
     QDir m_config_dir;
     float m_default_zoom{0.0f};
@@ -112,6 +117,7 @@ private:
     QMenu *m_fitMenu{nullptr};
     QMenu *m_recentFilesMenu{nullptr};
 
+    QAction *m_actionToggleTabBar{nullptr};
     QAction *m_actionFullscreen{nullptr};
     QAction *m_actionZoomIn{nullptr};
     QAction *m_actionInvertColor{nullptr};
@@ -142,7 +148,7 @@ private:
     DodoConfig m_config;
 
     DocumentView *m_doc{nullptr};
-    QTabWidget *m_tab_widget = new QTabWidget();
+    TabWidget *m_tab_widget = new TabWidget();
     QVBoxLayout *m_layout    = new QVBoxLayout();
     OutlineWidget *m_owidget{nullptr};
     PropertiesWidget *m_propsWidget{nullptr};

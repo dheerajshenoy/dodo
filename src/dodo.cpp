@@ -5,6 +5,9 @@
 #include "EditLastPagesWidget.hpp"
 #include "toml.hpp"
 
+#include <qdesktopservices.h>
+#include <qnamespace.h>
+
 dodo::dodo() noexcept
 {
     setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
@@ -101,6 +104,11 @@ dodo::initMenubar() noexcept
                                                 this, &dodo::ToggleMenubar);
     m_actionToggleMenubar->setCheckable(true);
     m_actionToggleMenubar->setChecked(!m_menuBar->isHidden());
+
+    m_actionToggleTabBar =
+        viewMenu->addAction(QString("Tabs\t%1").arg(m_config.shortcuts_map["toggle_tabs"]), this, &dodo::ToggleTabBar);
+    m_actionToggleTabBar->setCheckable(true);
+    m_actionToggleTabBar->setChecked(!m_tab_widget->tabBar()->isHidden());
 
     m_actionTogglePanel =
         viewMenu->addAction(QString("Panel\t%1").arg(m_config.shortcuts_map["toggle_panel"]), this, &dodo::TogglePanel);
@@ -212,12 +220,6 @@ dodo::initDefaults() noexcept
     m_layout->setContentsMargins(0, 0, 0, 0);
     m_panel->layout()->setContentsMargins(5, 1, 5, 1);
     m_panel->setContentsMargins(0, 0, 0, 0);
-    m_tab_widget->setStyleSheet(R"(
-QTabWidget::pane {
-    border: 0;
-    margin: -13px -9px -13px -9px;
-}
-        )");
     this->setContentsMargins(0, 0, 0, 0);
 }
 
@@ -249,11 +251,14 @@ dodo::initConfig() noexcept
     }
 
     auto ui = toml["ui"];
-    m_panel->setHidden(!ui["panel"].value_or(true));
-    m_menuBar->setHidden(!ui["menubar"].value_or(true));
+
+    m_tab_widget->tabBar()->setVisible(ui["tabs"].value_or(true));
+    m_tab_widget->setTabBarAutoHide(ui["auto_hide_tabs"].value_or(false));
+    m_panel->setVisible(ui["panel"].value_or(true));
+    m_menuBar->setVisible(ui["menubar"].value_or(true));
 
     if (ui["fullscreen"].value_or(false))
-        ToggleFullscreen();
+        this->showFullScreen();
 
     m_config.vscrollbar_shown         = ui["vscrollbar"].value_or(true);
     m_config.hscrollbar_shown         = ui["hscrollbar"].value_or(true);
@@ -718,8 +723,8 @@ dodo::initGui() noexcept
     m_layout->addWidget(m_panel);
     this->setCentralWidget(widget);
 
-    m_tab_widget->setMovable(true);
-    m_tab_widget->setTabsClosable(true);
+    m_tab_widget->tabBar()->installEventFilter(this);
+
     m_menuBar = this->menuBar(); // initialize here so that the config visibility works
 }
 
@@ -1102,7 +1107,7 @@ dodo::OpenFile(QString filePath) noexcept
     }
     DocumentView *docwidget = new DocumentView(filePath, m_config, m_tab_widget);
 
-    int index = m_tab_widget->addTab(docwidget, QString());
+    int index = m_tab_widget->addTab(docwidget, QFileInfo(filePath).fileName());
     connect(docwidget, &DocumentView::panelNameChanged, this, [=](const QString &name) { m_panel->setFileName(name); });
 
     updateUiEnabledState();
@@ -1348,4 +1353,60 @@ dodo::closeEvent(QCloseEvent *e)
     }
 
     e->accept();
+}
+
+void
+dodo::ToggleTabBar() noexcept
+{
+    auto bar = m_tab_widget->tabBar();
+
+    if (bar->isVisible())
+        bar->hide();
+    else
+        bar->show();
+}
+
+bool
+dodo::eventFilter(QObject *object, QEvent *event)
+{
+    if (object == m_tab_widget->tabBar() && event->type() == QEvent::ContextMenu)
+    {
+        QContextMenuEvent *contextEvent = static_cast<QContextMenuEvent *>(event);
+        int index = m_tab_widget->tabBar()->tabAt(contextEvent->pos());
+
+        if (index != -1)
+        {
+            QMenu menu;
+            menu.addAction("Open Location", this,
+                    [=]() { openInExplorerForIndex(index); });
+            menu.addAction("File Properties", this,
+                    [=]() { filePropertiesForIndex(index); });
+            menu.addAction("Close Tab", this,
+                    [=]() { m_tab_widget->tabCloseRequested(index); });
+
+            menu.exec(contextEvent->globalPos());
+        }
+        return true;
+    }
+
+    return QMainWindow::eventFilter(object, event);
+}
+
+void
+dodo::openInExplorerForIndex(int index) noexcept
+{
+    auto doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
+    if (doc)
+    {
+        QString filepath = doc->fileName();
+        QDesktopServices::openUrl(QUrl(QFileInfo(filepath).absolutePath()));
+    }
+}
+
+void
+dodo::filePropertiesForIndex(int index) noexcept
+{
+    auto doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
+    if (doc)
+        doc->FileProperties();
 }

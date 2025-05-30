@@ -41,6 +41,7 @@ add_executable(${PROJECT_NAME}
     src/LinkHint.hpp
     src/JumpMarker.hpp
     src/CircleLabel.hpp
+    src/TabWidget.hpp
 )
 
 qt_add_resources(RESOURCES resources.qrc)
