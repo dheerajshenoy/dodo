@@ -174,7 +174,7 @@ DocumentView::initConnections() noexcept
         renderPage(m_pageno);
     });
 
-    connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, &DocumentView::clearTextSelection);
+    connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, &DocumentView::ClearTextSelection);
 
     connect(m_gview, &GraphicsView::annotSelectRequested, m_model, [&](const QRectF &area)
     {
@@ -215,7 +215,7 @@ DocumentView::selectAnnots() noexcept
 }
 
 void
-DocumentView::clearTextSelection() noexcept
+DocumentView::ClearTextSelection() noexcept
 {
     if (!m_selection_present)
         return;
@@ -245,7 +245,7 @@ DocumentView::scrollToXY(float x, float y) noexcept
     }
 
     m_gview->centerOn(QPointF(point.x, point.y));
-    clearTextSelection();
+    ClearTextSelection();
 }
 
 void
@@ -286,7 +286,7 @@ DocumentView::CloseFile() noexcept
     }
 
     if (m_selection_present)
-        clearTextSelection();
+        ClearTextSelection();
 
     if (m_annot_selection_present)
         clearAnnotSelection();
@@ -520,7 +520,7 @@ DocumentView::gotoPage(int pageno) noexcept
         clearAnnotSelection();
 
     if (m_selection_present)
-        clearTextSelection();
+        ClearTextSelection();
 
     return gotoPageInternal(pageno);
 }
@@ -728,7 +728,7 @@ DocumentView::zoomHelper() noexcept
         highlightHitsInPage();
     }
     if (m_selection_present)
-        clearTextSelection();
+        ClearTextSelection();
     m_gview->setSceneRect(m_pix_item->boundingRect());
     m_vscrollbar->setValue(m_vscrollbar->value());
     m_cache.clear();
@@ -1427,7 +1427,7 @@ DocumentView::YankSelection() noexcept
         return;
 
     emit clipboardContentChanged(m_model->getSelectionText(m_gview->selectionStart(), m_gview->selectionEnd()));
-    clearTextSelection();
+    ClearTextSelection();
 }
 
 void
@@ -1444,7 +1444,7 @@ DocumentView::ToggleTextHighlight() noexcept
         m_gview->setMode(GraphicsView::Mode::TextHighlight);
         emit highlightColorChanged(m_config.colors["highlight"]);
         emit selectionModeChanged(GraphicsView::Mode::TextHighlight);
-        clearTextSelection();
+        ClearTextSelection();
     }
 }
 
@@ -1546,7 +1546,7 @@ DocumentView::TextSelectionMode() noexcept
         clearAnnotSelection();
 
     if (m_selection_present)
-        clearTextSelection();
+        ClearTextSelection();
 
     m_gview->setMode(GraphicsView::Mode::TextSelection);
     emit selectionModeChanged(GraphicsView::Mode::TextSelection);
