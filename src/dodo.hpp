@@ -9,6 +9,7 @@
 #include "argparse.hpp"
 #include "TabWidget.hpp"
 
+#include <QClipboard>
 #include <QActionGroup>
 #include <QApplication>
 #include <QDir>
@@ -55,6 +56,7 @@ private:
     void editLastPages() noexcept;
     void openLastVisitedFile() noexcept;
     void initConnections() noexcept;
+    void initTabConnections(DocumentView *) noexcept;
 
     // Interactive functions
     void ShowAbout() noexcept;
@@ -108,6 +110,8 @@ private:
     void handleCurrentTabChanged(int index) noexcept;
     void openInExplorerForIndex(int index) noexcept;
     void filePropertiesForIndex(int index) noexcept;
+    void updateMenuActions() noexcept;
+    void updatePanel() noexcept;
 
     QDir m_config_dir;
     float m_default_zoom{0.0f};

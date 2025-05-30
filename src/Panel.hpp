@@ -3,6 +3,7 @@
 #include "CircleLabel.hpp"
 #include "ElidableLabel.hpp"
 #include "GraphicsView.hpp"
+#include "DocumentView.hpp"
 
 #include <QVBoxLayout>
 #include <QWidget>
@@ -19,7 +20,7 @@ public:
     void setPageNo(int pageno) noexcept;
     void setSearchCount(int count) noexcept;
     void setSearchIndex(int index) noexcept;
-    void setFitMode(const QString &mode) noexcept;
+    void setFitMode(DocumentView::FitMode mode) noexcept;
     void setMode(GraphicsView::Mode) noexcept;
     inline bool searchMode() noexcept
     {

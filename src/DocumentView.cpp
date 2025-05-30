@@ -1102,24 +1102,24 @@ DocumentView::TableOfContents() noexcept
     if (!m_model->valid())
         return;
 
-    // TODO:
-    // if (!m_owidget)
-    // {
-    //     m_owidget = new OutlineWidget(m_model->clonedContext(), this);
-    //     connect(m_owidget, &OutlineWidget::jumpToPageRequested, this, &DocumentView::gotoPage);
-    // }
-    //
-    // if (!m_owidget->hasOutline())
-    // {
-    //     fz_outline *outline = m_model->getOutline();
-    //     if (!outline)
-    //     {
-    //         QMessageBox::information(this, "Outline", "Document does not have outline information");
-    //         return;
-    //     }
-    //     m_owidget->setOutline(outline);
-    // }
-    // m_owidget->open();
+    TODO:
+    if (!m_owidget)
+    {
+        m_owidget = new OutlineWidget(m_model->clonedContext(), this);
+        connect(m_owidget, &OutlineWidget::jumpToPageRequested, this, &DocumentView::gotoPage);
+    }
+
+    if (!m_owidget->hasOutline())
+    {
+        fz_outline *outline = m_model->getOutline();
+        if (!outline)
+        {
+            QMessageBox::information(this, "Outline", "Document does not have outline information");
+            return;
+        }
+        m_owidget->setOutline(outline);
+    }
+    m_owidget->open();
 }
 
 void
@@ -1129,14 +1129,12 @@ DocumentView::ToggleRectAnnotation() noexcept
     {
         m_gview->setMode(GraphicsView::Mode::TextSelection);
         emit selectionModeChanged(GraphicsView::Mode::TextSelection);
-        // m_actionTextSelect->setChecked(true);
     }
     else
     {
         m_gview->setMode(GraphicsView::Mode::AnnotRect);
         emit highlightColorChanged(m_config.colors["annot_rect"]);
         emit selectionModeChanged(GraphicsView::Mode::AnnotRect);
-        // m_actionAnnotRect->setChecked(true);
     }
 }
 
@@ -1312,36 +1310,39 @@ DocumentView::InvertColor() noexcept
     m_model->toggleInvertColor();
     renderPage(m_pageno);
 
-    // m_actionInvertColor->setChecked(m_model->invertColor());
+    emit invertColorActionUpdate(m_model->invertColor());
 }
 
 void
 DocumentView::ToggleAutoResize() noexcept
 {
-    // m_auto_resize = !m_auto_resize;
-    // m_actionAutoresize->setChecked(m_auto_resize);
+    m_auto_resize = !m_auto_resize;
+    emit autoResizeActionUpdate(m_auto_resize);
 }
 
 void
 DocumentView::resizeEvent(QResizeEvent *e)
 {
-    // if (m_auto_resize)
-    // {
-    //     switch (m_fit_mode)
-    //     {
-    //         case FitMode::Height:
-    //             FitHeight();
-    //             break;
-    //
-    //         case FitMode::Width:
-    //             FitWidth();
-    //             break;
-    //
-    //         case FitMode::Window:
-    //             FitWindow();
-    //             break;
-    //     }
-    // }
+    if (m_auto_resize)
+    {
+        switch (m_fit_mode)
+        {
+            case FitMode::Height:
+                FitHeight();
+                break;
+
+            case FitMode::Width:
+                FitWidth();
+                break;
+
+            case FitMode::Window:
+                FitWindow();
+                break;
+
+            case FitMode::None:
+                break;
+        }
+    }
 
     e->accept();
 }
@@ -1444,7 +1445,6 @@ DocumentView::ToggleTextHighlight() noexcept
         emit highlightColorChanged(m_config.colors["highlight"]);
         emit selectionModeChanged(GraphicsView::Mode::TextHighlight);
         clearTextSelection();
-        // m_actionTextHighlight->setChecked(true);
     }
 }
 
@@ -1550,7 +1550,6 @@ DocumentView::TextSelectionMode() noexcept
 
     m_gview->setMode(GraphicsView::Mode::TextSelection);
     emit selectionModeChanged(GraphicsView::Mode::TextSelection);
-    // m_actionTextSelect->setChecked(true);
 }
 
 void

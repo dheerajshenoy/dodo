@@ -84,6 +84,13 @@ public:
         m_selection_color = color;
     }
 
+    inline QColor highlightColor() noexcept {
+        return QColor(m_highlight_color[0],
+                m_highlight_color[1],
+                m_highlight_color[2],
+                m_highlight_color[3]);
+    }
+
     inline void setHighlightColor(const QColor &color) noexcept
     {
         m_highlight_color[0] = color.redF();

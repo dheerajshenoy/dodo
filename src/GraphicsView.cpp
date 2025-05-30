@@ -250,7 +250,6 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *e)
 
         if (!item || item == m_pixmapItem)
         {
-            qDebug() << "DD";
             QMenu menu(this);
             emit populateContextMenuRequested(&menu);
             if (!menu.isEmpty())

@@ -750,6 +750,7 @@ dodo::updateUiEnabledState() noexcept
     m_actionSaveFile->setEnabled(hasOpenedFile);
     m_actionSaveAsFile->setEnabled(hasOpenedFile);
     m_actionPrevLocation->setEnabled(hasOpenedFile);
+
 }
 
 void
@@ -1106,12 +1107,8 @@ dodo::OpenFile(QString filePath) noexcept
             return;
     }
     DocumentView *docwidget = new DocumentView(filePath, m_config, m_tab_widget);
-
-    int index = m_tab_widget->addTab(docwidget, QFileInfo(filePath).fileName());
-    connect(docwidget, &DocumentView::panelNameChanged, this, [=](const QString &name) { m_panel->setFileName(name); });
-
-    updateUiEnabledState();
-    connect(docwidget, &DocumentView::fileNameChanged, this, &dodo::handleFileNameChanged);
+    initTabConnections(docwidget);
+    m_tab_widget->addTab(docwidget, QFileInfo(filePath).fileName());
 }
 
 void
@@ -1302,6 +1299,9 @@ dodo::initConnections() noexcept
             doc->deleteLater();
         }
     });
+
+    void invertColorActionUpdate(bool state);
+    void autoResizeActionUpdate(bool state);
 }
 
 void
@@ -1315,10 +1315,13 @@ void
 dodo::handleCurrentTabChanged(int index) noexcept
 {
     m_doc = qobject_cast<DocumentView *>(m_tab_widget->currentWidget());
+
     if (!m_doc)
         return;
 
-    m_panel->setFileName(m_doc->fileName());
+    updateMenuActions();
+    updatePanel();
+
     this->setWindowTitle(m_doc->windowTitle());
 }
 
@@ -1372,17 +1375,14 @@ dodo::eventFilter(QObject *object, QEvent *event)
     if (object == m_tab_widget->tabBar() && event->type() == QEvent::ContextMenu)
     {
         QContextMenuEvent *contextEvent = static_cast<QContextMenuEvent *>(event);
-        int index = m_tab_widget->tabBar()->tabAt(contextEvent->pos());
+        int index                       = m_tab_widget->tabBar()->tabAt(contextEvent->pos());
 
         if (index != -1)
         {
             QMenu menu;
-            menu.addAction("Open Location", this,
-                    [=]() { openInExplorerForIndex(index); });
-            menu.addAction("File Properties", this,
-                    [=]() { filePropertiesForIndex(index); });
-            menu.addAction("Close Tab", this,
-                    [=]() { m_tab_widget->tabCloseRequested(index); });
+            menu.addAction("Open Location", this, [=]() { openInExplorerForIndex(index); });
+            menu.addAction("File Properties", this, [=]() { filePropertiesForIndex(index); });
+            menu.addAction("Close Tab", this, [=]() { m_tab_widget->tabCloseRequested(index); });
 
             menu.exec(contextEvent->globalPos());
         }
@@ -1409,4 +1409,49 @@ dodo::filePropertiesForIndex(int index) noexcept
     auto doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
     if (doc)
         doc->FileProperties();
+}
+
+void
+dodo::initTabConnections(DocumentView *docwidget) noexcept
+{
+    connect(docwidget, &DocumentView::panelNameChanged, this, [=](const QString &name) { m_panel->setFileName(name); });
+
+    connect(docwidget, &DocumentView::fileNameChanged, this, &dodo::handleFileNameChanged);
+    updateUiEnabledState();
+
+    connect(docwidget, &DocumentView::pageNumberChanged, m_panel, &Panel::setPageNo);
+    connect(docwidget, &DocumentView::searchCountChanged, m_panel, &Panel::setSearchCount);
+    connect(docwidget, &DocumentView::searchModeChanged, m_panel, &Panel::setSearchMode);
+    connect(docwidget, &DocumentView::searchIndexChanged, m_panel, &Panel::setSearchIndex);
+    connect(docwidget, &DocumentView::totalPageCountChanged, m_panel, &Panel::setTotalPageCount);
+    connect(docwidget, &DocumentView::fitModeChanged, m_panel, &Panel::setFitMode);
+    connect(docwidget, &DocumentView::selectionModeChanged, m_panel, &Panel::setMode);
+    connect(docwidget, &DocumentView::highlightColorChanged, m_panel, &Panel::setHighlightColor);
+    connect(docwidget, &DocumentView::selectionModeChanged, m_panel, &Panel::setMode);
+    connect(docwidget, &DocumentView::clipboardContentChanged, this, [&](const QString &text) {
+            m_clipboard->setText(text);
+            });
+
+    connect(docwidget, &DocumentView::invertColorActionUpdate, this, [&](bool state) {
+            m_actionInvertColor->setChecked(state);
+            });
+
+    connect(docwidget, &DocumentView::autoResizeActionUpdate, this, [&](bool state) {
+            m_actionAutoresize->setChecked(state);
+            });
+}
+
+void dodo::updateMenuActions() noexcept
+{
+}
+
+void dodo::updatePanel() noexcept
+{
+    auto model = m_doc->model();
+    m_panel->setFileName(m_doc->fileName());
+    m_panel->setHighlightColor(model->highlightColor());
+    m_panel->setMode(m_doc->selectionMode());
+    m_panel->setTotalPageCount(model->numPages());
+    m_panel->setPageNo(m_doc->pageNo());
+    m_panel->setFitMode(m_doc->fitMode());
 }

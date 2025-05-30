@@ -7,6 +7,7 @@
 #include "HighlightItem.hpp"
 #include "JumpMarker.hpp"
 #include "Model.hpp"
+#include "OutlineWidget.hpp"
 
 #include <QFileDialog>
 #include <QInputDialog>
@@ -127,6 +128,9 @@ public:
     {
         return m_filename;
     }
+    inline int pageNo() noexcept { return m_pageno + 1; }
+    inline GraphicsView::Mode selectionMode() noexcept { return m_gview->mode(); }
+    inline FitMode fitMode() noexcept { return m_fit_mode; }
 
 signals:
     void pageNumberChanged(int pageno);
@@ -140,6 +144,8 @@ signals:
     void selectionModeChanged(GraphicsView::Mode mode);
     void highlightColorChanged(const QColor &color);
     void panelNameChanged(const QString &name);
+    void invertColorActionUpdate(bool state);
+    void autoResizeActionUpdate(bool state);
 
 protected:
     void closeEvent(QCloseEvent *e) override;
@@ -192,6 +198,7 @@ private:
     void changeAnnotRectColor() noexcept;
     void mouseWheelScrollRequested(int direction) noexcept;
 
+    OutlineWidget *m_owidget{nullptr};
     QCache<CacheKey, CacheValue> m_cache;
     QMap<int, QList<Model::SearchResult>> m_searchRectMap;
     QString m_filename, m_basename;
@@ -206,7 +213,8 @@ private:
         m_search_hit_page{-1}, m_page_history_limit{5};
     float m_scale_factor{1.0f}, m_default_zoom{0.0}, m_zoom_by{1.25};
     bool m_suppressHistory{false}, m_highlights_present{false}, m_selection_present{false},
-        m_annot_selection_present{false}, m_dirty{false}, m_page_nav_with_mouse{true}, m_jump_marker_shown{true};
+        m_annot_selection_present{false}, m_dirty{false}, m_page_nav_with_mouse{true}, m_jump_marker_shown{true},
+        m_auto_resize{false};
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
     QString m_last_search_term;
     QMap<QString, Model::LinkInfo> m_link_hint_map;

@@ -85,9 +85,24 @@ Panel::setSearchMode(bool state) noexcept
 }
 
 void
-Panel::setFitMode(const QString &fit) noexcept
+Panel::setFitMode(DocumentView::FitMode mode) noexcept
 {
-    m_fitmode_label->setText(fit);
+    switch(mode)
+    {
+        case DocumentView::FitMode::None:
+            m_fitmode_label->clear();
+            break;
+
+        case DocumentView::FitMode::Width:
+            m_fitmode_label->setText("Width");
+            break;
+        case DocumentView::FitMode::Height:
+            m_fitmode_label->setText("Height");
+            break;
+        case DocumentView::FitMode::Window:
+            m_fitmode_label->setText("Window");
+            break;
+    }
 }
 
 void
