@@ -7,6 +7,8 @@
 
 ## 0.2.1
 
+- Bug fixes
+
 ## 0.2.0
 
 - Page visit history
