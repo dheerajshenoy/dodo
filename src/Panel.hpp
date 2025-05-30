@@ -1,9 +1,9 @@
 #pragma once
 
 #include "CircleLabel.hpp"
+#include "DocumentView.hpp"
 #include "ElidableLabel.hpp"
 #include "GraphicsView.hpp"
-#include "DocumentView.hpp"
 
 #include <QVBoxLayout>
 #include <QWidget>
@@ -15,6 +15,7 @@ class Panel : public QWidget
 public:
     Panel(QWidget *parent = nullptr);
 
+    void hidePageInfo(bool state) noexcept;
     void setTotalPageCount(int total) noexcept;
     void setFileName(const QString &name) noexcept;
     void setPageNo(int pageno) noexcept;
@@ -37,6 +38,7 @@ private:
     CircleLabel *m_mode_color_label = new CircleLabel();
     QLabel *m_pageno_label          = new QLabel();
     QLabel *m_totalpage_label       = new QLabel();
+    QLabel *m_pageno_separator      = new QLabel("/");
     QLabel *m_search_count_label    = new QLabel();
     QLabel *m_search_index_label    = new QLabel();
     QLabel *m_search_label          = new QLabel("Search: ");

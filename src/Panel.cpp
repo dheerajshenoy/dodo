@@ -20,9 +20,11 @@ Panel::initGui() noexcept
     // Right widgets
     m_layout->addWidget(m_mode_color_label);
     m_layout->addWidget(m_mode_label);
+
     m_layout->addWidget(m_pageno_label);
-    m_layout->addWidget(new QLabel("/"));
+    m_layout->addWidget(m_pageno_separator);
     m_layout->addWidget(m_totalpage_label);
+
     m_layout->addWidget(m_fitmode_label);
     m_layout->addWidget(m_search_label);
     m_layout->addWidget(m_search_index_label);
@@ -133,4 +135,12 @@ void
 Panel::setHighlightColor(const QColor &color) noexcept
 {
     m_mode_color_label->setColor(color);
+}
+
+
+void Panel::hidePageInfo(bool state) noexcept
+{
+    m_pageno_label->setVisible(state);
+    m_pageno_separator->setVisible(state);
+    m_totalpage_label->setVisible(state);
 }

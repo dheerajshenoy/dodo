@@ -1280,13 +1280,15 @@ dodo::initConnections() noexcept
 
     connect(m_tab_widget, &QTabWidget::tabCloseRequested, this, [this](int index)
     {
-        DocumentView *doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
-        m_tab_widget->removeTab(index);
+        QWidget *widget   = m_tab_widget->widget(index);
+        DocumentView *doc = qobject_cast<DocumentView *>(widget);
+
         if (doc)
-        {
             doc->CloseFile();
-            doc->deleteLater();
-        }
+
+        if (widget)
+            widget->deleteLater();
+        m_tab_widget->removeTab(index);
     });
 
     void invertColorActionUpdate(bool state);
@@ -1303,10 +1305,14 @@ dodo::handleFileNameChanged(const QString &name) noexcept
 void
 dodo::handleCurrentTabChanged(int index) noexcept
 {
-    m_doc = qobject_cast<DocumentView *>(m_tab_widget->currentWidget());
-
-    if (!m_doc)
+    if (index == -1)
+    {
+        m_panel->hidePageInfo(true);
+        updateMenuActions();
         return;
+    }
+
+    m_doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
 
     updateMenuActions();
     updatePanel();
@@ -1431,9 +1437,7 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
 void
 dodo::updateMenuActions() noexcept
 {
-    if (!m_doc)
-        return;
-
+    m_actionCloseFile->setEnabled(m_doc->model()->valid());
     m_actionInvertColor->setEnabled(m_doc->model()->invertColor());
     m_actionAutoresize->setCheckable(m_doc->autoResize());
     switch (m_doc->selectionMode())
@@ -1460,7 +1464,7 @@ void
 dodo::updatePanel() noexcept
 {
     auto model = m_doc->model();
-    m_panel->setFileName(m_doc->fileName());
+    m_panel->setFileName(m_doc->windowTitle());
     m_panel->setHighlightColor(model->highlightColor());
     m_panel->setMode(m_doc->selectionMode());
     m_panel->setTotalPageCount(model->numPages());
