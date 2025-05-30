@@ -1122,7 +1122,8 @@ dodo::OpenFile(QString filePath) noexcept
     DocumentView *docwidget = new DocumentView(filePath, m_config, m_tab_widget);
     docwidget->setDPR(m_dpr);
     initTabConnections(docwidget);
-    m_tab_widget->addTab(docwidget, QFileInfo(filePath).fileName());
+    int index = m_tab_widget->addTab(docwidget, QFileInfo(filePath).fileName());
+    m_tab_widget->setCurrentIndex(index);
 }
 
 void
@@ -1402,7 +1403,8 @@ dodo::filePropertiesForIndex(int index) noexcept
 void
 dodo::initTabConnections(DocumentView *docwidget) noexcept
 {
-    connect(docwidget, &DocumentView::panelNameChanged, this, [=](const QString &name) { m_panel->setFileName(name); });
+    connect(docwidget, &DocumentView::panelNameChanged, this,
+            [this](const QString &name) { m_panel->setFileName(name); });
 
     connect(docwidget, &DocumentView::fileNameChanged, this, &dodo::handleFileNameChanged);
     updateUiEnabledState();
@@ -1434,7 +1436,7 @@ dodo::updateMenuActions() noexcept
 
     m_actionInvertColor->setEnabled(m_doc->model()->invertColor());
     m_actionAutoresize->setCheckable(m_doc->autoResize());
-    switch(m_doc->selectionMode())
+    switch (m_doc->selectionMode())
     {
         case GraphicsView::Mode::TextSelection:
             m_actionTextSelect->setChecked(true);
