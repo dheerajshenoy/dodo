@@ -1642,23 +1642,53 @@ DocumentView::changeAnnotRectColor() noexcept
 }
 
 void
-DocumentView::mouseWheelScrollRequested(int direction) noexcept
+DocumentView::mouseWheelScrollRequested(int delta) noexcept
 {
-    if (direction < 0) // Up
+    if (!m_scroll_cooldown.isValid())
+        m_scroll_cooldown.start();
+
+    if (m_scroll_cooldown.elapsed() < kScrollCooldownMs)
+        return;
+
+    m_scroll_accumulator += delta;
+
+    bool atTop = m_vscrollbar->value() == m_vscrollbar->minimum();
+    bool atBottom = m_vscrollbar->value() == m_vscrollbar->maximum();
+
+    // Only accumulate if we're at the page edge
+    if (atTop || atBottom)
     {
-        if (m_vscrollbar->value() == m_vscrollbar->minimum())
+        m_scroll_accumulator += delta;
+
+        if (m_scroll_accumulator >= kPageThreshold && atTop)
         {
             if (PrevPage())
-                QTimer::singleShot(0, this, [this]() { m_vscrollbar->setValue(m_vscrollbar->maximum()); });
+            {
+                m_scroll_cooldown.restart();
+                m_scroll_accumulator = 0;
+
+                QTimer::singleShot(0, this, [this]() {
+                        m_vscrollbar->setValue(m_vscrollbar->maximum());
+                        });
+            }
+        }
+        else if (m_scroll_accumulator <= -kPageThreshold && atBottom)
+        {
+            if (NextPage())
+            {
+                m_scroll_cooldown.restart();
+                m_scroll_accumulator = 0;
+
+                QTimer::singleShot(0, this, [this]() {
+                        m_vscrollbar->setValue(m_vscrollbar->minimum());
+                        });
+            }
         }
     }
     else
-    { // Down
-        if (m_vscrollbar->value() == m_vscrollbar->maximum())
-        {
-            if (NextPage())
-                QTimer::singleShot(0, this, [this]() { m_vscrollbar->setValue(m_vscrollbar->minimum()); });
-        }
+    {
+        // Reset accumulator if user scrolls mid-page
+        m_scroll_accumulator = 0;
     }
 }
 

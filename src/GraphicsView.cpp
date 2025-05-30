@@ -231,10 +231,8 @@ GraphicsView::wheelEvent(QWheelEvent *e)
     {
         if (m_page_nav_with_mouse)
         {
-            if (e->angleDelta().y() > 0)
-                emit scrollRequested(-1); // Up
-            else
-                emit scrollRequested(1); // Down
+            int delta = !e->pixelDelta().isNull() ? e->pixelDelta().y() : e->angleDelta().y();
+            emit scrollRequested(delta);
         }
     }
     QGraphicsView::wheelEvent(e);

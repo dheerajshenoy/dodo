@@ -17,6 +17,7 @@
 #include <QWindow>
 #include <qboxlayout.h>
 
+
 extern "C"
 {
 #include <mupdf/fitz/geometry.h>
@@ -228,4 +229,10 @@ private:
     FitMode m_fit_mode, m_initial_fit{FitMode::None};
     QScrollBar *m_vscrollbar{nullptr};
     QString m_currentHintInput, m_synctex_editor_command;
+
+    // Add this to your class header:
+    int m_scroll_accumulator = 0;
+    QElapsedTimer m_scroll_cooldown;
+    const int kScrollCooldownMs = 300; // Prevent rapid-fire page turns
+    const int kPageThreshold = 300;
 };
