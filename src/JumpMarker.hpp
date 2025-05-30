@@ -10,7 +10,7 @@ class JumpMarker : public QObject, public QGraphicsRectItem
     Q_PROPERTY(qreal opacity READ opacity WRITE setOpacity)
 
 public:
-    JumpMarker(const QRectF& rect, const QColor& color, QGraphicsItem* parent = nullptr)
+    JumpMarker(const QRectF &rect, const QColor &color, QGraphicsItem *parent = nullptr)
         : QGraphicsRectItem(rect, parent)
     {
         setOpacity(1.0);
@@ -18,12 +18,10 @@ public:
         setPen(Qt::NoPen);
     }
 
-    JumpMarker(const QColor& color, QGraphicsItem* parent = nullptr)
-        : QGraphicsRectItem(parent)
+    JumpMarker(const QColor &color, QGraphicsItem *parent = nullptr) : QGraphicsRectItem(parent)
     {
         setOpacity(1.0);
         setBrush(color);
         setPen(Qt::NoPen);
     }
-
 };

@@ -189,7 +189,6 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
                 QRectF clippedRect = sceneRect.intersected(m_pixmapItem->boundingRect());
                 if (!clippedRect.isEmpty())
                     emit annotSelectRequested(clippedRect);
-
             }
         }
         break;

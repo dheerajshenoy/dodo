@@ -121,9 +121,7 @@ protected:
         QMenu menu;
         QAction *copyLinkLocationAction = menu.addAction("Copy Link Location");
 
-        connect(copyLinkLocationAction, &QAction::triggered, this, [this]() {
-                emit linkCopyRequested(_link);
-                });
+        connect(copyLinkLocationAction, &QAction::triggered, this, [this]() { emit linkCopyRequested(_link); });
 
         menu.exec(e->screenPos());
         e->accept();

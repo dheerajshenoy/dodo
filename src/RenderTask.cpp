@@ -3,8 +3,7 @@
 #include <mupdf/fitz/context.h>
 #include <mupdf/pdf/event.h>
 
-RenderTask::RenderTask(fz_context* ctx, fz_document* doc, fz_colorspace* colorspace, int pageno,
-                       fz_matrix transform)
+RenderTask::RenderTask(fz_context *ctx, fz_document *doc, fz_colorspace *colorspace, int pageno, fz_matrix transform)
     : m_ctx(ctx), m_doc(doc), m_colorspace(colorspace), m_pageno(pageno), m_transform(transform)
 {
     setAutoDelete(true); // let threadpool clean this up automatically
@@ -19,7 +18,7 @@ RenderTask::run()
 
     fz_try(m_ctx)
     {
-        fz_page* page = fz_load_page(m_ctx, m_doc, m_pageno);
+        fz_page *page = fz_load_page(m_ctx, m_doc, m_pageno);
         if (!page)
         {
             emit finished(m_pageno, image);
@@ -32,7 +31,7 @@ RenderTask::run()
         fz_rect transformed = fz_transform_rect(bounds, m_transform);
         fz_irect bbox       = fz_round_rect(transformed);
 
-        fz_pixmap* pix;
+        fz_pixmap *pix;
         pix = fz_new_pixmap_with_bbox(m_ctx, m_colorspace, bbox, nullptr, 0);
         if (!pix)
         {
@@ -42,7 +41,7 @@ RenderTask::run()
         }
 
         fz_clear_pixmap_with_value(m_ctx, pix, 255); // 255 = white
-        fz_device* dev = fz_new_draw_device(m_ctx, m_transform, pix);
+        fz_device *dev = fz_new_draw_device(m_ctx, m_transform, pix);
 
         if (!dev)
         {
@@ -55,7 +54,7 @@ RenderTask::run()
         // Convert fz_pixmap to QImage
         int width              = fz_pixmap_width(m_ctx, pix);
         int height             = fz_pixmap_height(m_ctx, pix);
-        unsigned char* samples = fz_pixmap_samples(m_ctx, pix);
+        unsigned char *samples = fz_pixmap_samples(m_ctx, pix);
         int stride             = fz_pixmap_stride(m_ctx, pix);
 
         // Assume RGB, 8-bit per channel (no alpha)

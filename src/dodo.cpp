@@ -2477,7 +2477,7 @@ dodo::setDirty(bool state) noexcept
             panelName.chop(1);
     }
 
-    title = title.arg(m_basename);
+    title          = title.arg(m_basename);
     m_window_title = title;
     m_panel->setFileName(panelName);
     this->setWindowTitle(title);
@@ -2537,13 +2537,13 @@ dodo::populateContextMenu(QMenu *menu) noexcept
             break;
 
         case GraphicsView::Mode::AnnotSelect:
-            {
-                if (!m_annot_selection_present)
-                    return;
-                addAction("Delete Annotations", &dodo::deleteKeyAction);
-                addAction("Change color", &dodo::annotChangeColor);
-            }
-            break;
+        {
+            if (!m_annot_selection_present)
+                return;
+            addAction("Delete Annotations", &dodo::deleteKeyAction);
+            addAction("Change color", &dodo::annotChangeColor);
+        }
+        break;
 
         case GraphicsView::Mode::TextHighlight:
             addAction("Change color", &dodo::changeHighlighterColor);
@@ -2643,7 +2643,8 @@ dodo::openLastVisitedFile() noexcept
     }
 }
 
-void dodo::textHighlightCurrentSelection() noexcept
+void
+dodo::textHighlightCurrentSelection() noexcept
 {
     qDebug() << "DD";
     if (!m_selection_present)

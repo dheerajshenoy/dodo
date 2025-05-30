@@ -18,9 +18,9 @@ public:
 
         tableWidget->setHorizontalHeaderLabels({"Action", "Shortcut"});
 
-
         int i = 0;
-        for (auto it = shortcutsMap.constBegin(); it != shortcutsMap.constEnd(); ++it, ++i) {
+        for (auto it = shortcutsMap.constBegin(); it != shortcutsMap.constEnd(); ++it, ++i)
+        {
             tableWidget->setItem(i, 0, new QTableWidgetItem(it.key()));
             tableWidget->setItem(i, 1, new QTableWidgetItem(it.value()));
         }

@@ -1,6 +1,6 @@
 #include "PropertiesWidget.hpp"
 
-PropertiesWidget::PropertiesWidget(QWidget* parent) : QDialog(parent)
+PropertiesWidget::PropertiesWidget(QWidget *parent) : QDialog(parent)
 {
     setWindowTitle("PDF Document Properties");
     setModal(true);
@@ -11,10 +11,10 @@ PropertiesWidget::PropertiesWidget(QWidget* parent) : QDialog(parent)
 }
 
 void
-PropertiesWidget::setProperties(const QList<QPair<QString, QString>>& properties) noexcept
+PropertiesWidget::setProperties(const QList<QPair<QString, QString>> &properties) noexcept
 {
     // Clear previous content
-    QLayoutItem* child;
+    QLayoutItem *child;
     while ((child = m_formLayout->takeAt(0)) != nullptr)
     {
         delete child->widget();
@@ -22,12 +22,12 @@ PropertiesWidget::setProperties(const QList<QPair<QString, QString>>& properties
     }
 
     // Add new labels
-    for (const auto& [k, v] : properties)
+    for (const auto &[k, v] : properties)
     {
-        QLabel* keyLabel   = new QLabel(k + ":", this);
-        QLabel* valueLabel = new QLabel(v, this);
+        QLabel *keyLabel   = new QLabel(k + ":", this);
+        QLabel *valueLabel = new QLabel(v, this);
         valueLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        valueLabel->setWordWrap(true); // <-- wrap long text
+        valueLabel->setWordWrap(true);                                             // <-- wrap long text
         valueLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred); // allow horizontal growth
 
         m_formLayout->addRow(keyLabel, valueLabel);

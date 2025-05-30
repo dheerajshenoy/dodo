@@ -1,14 +1,16 @@
 #include "Panel.hpp"
+
 #include "GraphicsView.hpp"
+
 #include <qsizepolicy.h>
 
-Panel::Panel(QWidget *parent)
-: QWidget(parent)
+Panel::Panel(QWidget *parent) : QWidget(parent)
 {
     initGui();
 }
 
-void Panel::initGui() noexcept
+void
+Panel::initGui() noexcept
 {
     setLayout(m_layout);
 
@@ -29,40 +31,47 @@ void Panel::initGui() noexcept
     this->setSearchMode(false);
 }
 
-void Panel::labelBG(QLabel *label, const QColor &color) noexcept
+void
+Panel::labelBG(QLabel *label, const QColor &color) noexcept
 {
     QPalette palette = label->palette();
     palette.setColor(QPalette::Window, color);
-    label->setAutoFillBackground(true);  // REQUIRED for background to show
+    label->setAutoFillBackground(true); // REQUIRED for background to show
     label->setPalette(palette);
 }
 
-void Panel::setTotalPageCount(int total) noexcept
+void
+Panel::setTotalPageCount(int total) noexcept
 {
     m_totalpage_label->setText(QString::number(total));
 }
 
-void Panel::setFileName(const QString &name) noexcept
+void
+Panel::setFileName(const QString &name) noexcept
 {
     m_filename_label->setFullText(name);
 }
 
-void Panel::setPageNo(int pageno) noexcept
+void
+Panel::setPageNo(int pageno) noexcept
 {
     m_pageno_label->setText(QString::number(pageno));
 }
 
-void Panel::setSearchCount(int count) noexcept
+void
+Panel::setSearchCount(int count) noexcept
 {
     m_search_count_label->setText(QString::number(count));
 }
 
-void Panel::setSearchIndex(int index) noexcept
+void
+Panel::setSearchIndex(int index) noexcept
 {
     m_search_index_label->setText(QString::number(index));
 }
 
-void Panel::setSearchMode(bool state) noexcept
+void
+Panel::setSearchMode(bool state) noexcept
 {
     if (!state)
     {
@@ -75,14 +84,16 @@ void Panel::setSearchMode(bool state) noexcept
     m_search_mode = state;
 }
 
-void Panel::setFitMode(const QString &fit) noexcept
+void
+Panel::setFitMode(const QString &fit) noexcept
 {
     m_fitmode_label->setText(fit);
 }
 
-void Panel::setMode(GraphicsView::Mode mode) noexcept
+void
+Panel::setMode(GraphicsView::Mode mode) noexcept
 {
-    switch(mode)
+    switch (mode)
     {
         case GraphicsView::Mode::TextSelection:
             m_mode_label->setText("Selection");
@@ -103,7 +114,8 @@ void Panel::setMode(GraphicsView::Mode mode) noexcept
     }
 }
 
-void Panel::setHighlightColor(const QColor &color) noexcept
+void
+Panel::setHighlightColor(const QColor &color) noexcept
 {
     m_mode_color_label->setColor(color);
 }

@@ -46,8 +46,14 @@ public:
         return m_pixmapItem;
     }
     void setMode(Mode mode) noexcept;
-    void setPageNavWithMouse(bool state) noexcept { m_page_nav_with_mouse = state; }
-    void setSelectionDragThreshold(int value) noexcept { m_drag_threshold = value; }
+    void setPageNavWithMouse(bool state) noexcept
+    {
+        m_page_nav_with_mouse = state;
+    }
+    void setSelectionDragThreshold(int value) noexcept
+    {
+        m_drag_threshold = value;
+    }
 
 signals:
     void highlightDrawn(const QRectF &pdfRect);

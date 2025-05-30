@@ -1004,7 +1004,7 @@ Model::highlightQuad(fz_quad quad) noexcept
 
     QPolygonF poly;
     poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr) << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
-        << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr) << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
+         << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr) << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
 
     QGraphicsPolygonItem *item = m_scene->addPolygon(poly, Qt::NoPen, brush);
     item->setData(0, "selection");

@@ -3,14 +3,11 @@
 #include "dodo.hpp"
 
 void
-init_args(argparse::ArgumentParser& program)
+init_args(argparse::ArgumentParser &program)
 {
     program.add_argument("-v", "--version").help("Show version number").flag();
 
-    program.add_argument("-p", "--page")
-        .help("Page number to go to")
-        .scan<'i', int>()
-        .default_value(-1);
+    program.add_argument("-p", "--page").help("Page number to go to").scan<'i', int>().default_value(-1);
 
     program.add_argument("--synctex-forward")
         .help("Format: --synctex-forward={pdf-file-path}#{src-file-path}:{line}:{column}")
@@ -20,7 +17,7 @@ init_args(argparse::ArgumentParser& program)
 }
 
 int
-main(int argc, char* argv[])
+main(int argc, char *argv[])
 {
     argparse::ArgumentParser program("dodo", __DODO_VERSION, argparse::default_arguments::all);
     init_args(program);
@@ -28,7 +25,7 @@ main(int argc, char* argv[])
     {
         program.parse_args(argc, argv);
     }
-    catch (std::exception& e)
+    catch (std::exception &e)
     {
         qDebug() << e.what();
     }
