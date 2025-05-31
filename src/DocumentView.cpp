@@ -9,6 +9,12 @@
 #include <qgraphicsitem.h>
 #include <qthread.h>
 
+#ifdef NDEBUG
+#else
+#include <sys/resource.h>
+struct rusage usage;
+#endif
+
 DocumentView::DocumentView(const QString &fileName, const DodoConfig &config, QWidget *parent)
     : m_config(config), QWidget(parent)
 {
@@ -64,6 +70,12 @@ DocumentView::DocumentView(const QString &fileName, const DodoConfig &config, QW
 
     initConnections();
     openFile(fileName);
+
+#ifdef NDEBUG
+#else
+    getrusage(RUSAGE_SELF, &usage);
+    qDebug() << "Mem (MB): " << usage.ru_maxrss / 1024;
+#endif
 }
 
 DocumentView::~DocumentView()
