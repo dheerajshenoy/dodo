@@ -207,6 +207,7 @@ Model::reloadDocument() noexcept
     if (!m_doc)
         return;
 
+    fz_drop_stext_page(m_ctx, m_text_page);
     fz_drop_document(m_ctx, m_doc);
 
     // load accelerator
