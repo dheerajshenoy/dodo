@@ -1522,6 +1522,31 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
 
     connect(docwidget, &DocumentView::autoResizeActionUpdate, this,
             [&](bool state) { m_actionAutoresize->setChecked(state); });
+
+    connect(docwidget, &DocumentView::insertToDBRequested, this, &dodo::insertFileToDB);
+}
+
+void
+dodo::insertFileToDB(const QString &fname, int pageno) noexcept
+{
+    if (m_last_pages_db.isValid() && m_last_pages_db.isOpen())
+    {
+        QSqlQuery q(m_last_pages_db);
+        q.prepare("UPDATE last_visited SET page_number = ?, last_accessed = ? WHERE file_path = ?");
+        q.bindValue(0, pageno);
+        q.bindValue(1, QDateTime::currentDateTime());
+        q.bindValue(2, fname);
+        q.exec();
+
+        if (!q.exec() || q.numRowsAffected() == 0)
+        {
+            q.prepare("INSERT INTO last_visited (file_path, page_number, last_accessed) VALUES (?, ?, ?)");
+            q.bindValue(0, fname);
+            q.bindValue(1, pageno);
+            q.bindValue(2, QDateTime::currentDateTime());
+            q.exec();
+        }
+    }
 }
 
 void
