@@ -33,13 +33,6 @@ public:
     DocumentView(const QString &fileName, const DodoConfig &config, QWidget *parent = nullptr);
     ~DocumentView();
 
-    enum class LinkHintMode
-    {
-        None = 0,
-        Visit,
-        Copy
-    };
-
     enum class FitMode
     {
         None = 0,
