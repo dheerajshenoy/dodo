@@ -1052,15 +1052,10 @@ DocumentView::closeEvent(QCloseEvent *e)
     if (!m_model)
         e->accept();
 
-    // TODO:
-    // if (m_remember_last_visited && !m_filename.isEmpty() && m_pageno >= 0)
-    // {
-    //     QSqlQuery q;
-    //     q.prepare("INSERT OR REPLACE INTO last_visited(file_path, page_number) VALUES (?, ?)");
-    //     q.addBindValue(m_filename);
-    //     q.addBindValue(m_pageno);
-    //     q.exec();
-    // }
+    if (m_config.remember_last_visited && !m_filename.isEmpty() && m_pageno >= 0)
+    {
+        emit insertToDBRequested(m_filename, m_pageno);
+    }
 
     if (m_model->hasUnsavedChanges())
     {
