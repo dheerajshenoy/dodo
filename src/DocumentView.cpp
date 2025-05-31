@@ -540,7 +540,6 @@ DocumentView::clearLinks() noexcept
         if (link->data(0).toString() == "link")
         {
             m_gscene->removeItem(link);
-            delete link;
         }
     }
 }
