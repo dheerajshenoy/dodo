@@ -62,7 +62,7 @@ union_quad(const fz_quad &a, const fz_quad &b)
 //     // Do nothing – std::lock_guard handles unlocking
 // }
 
-Model::Model(QGraphicsScene *scene) : m_scene(scene)
+Model::Model(QGraphicsScene *scene, QObject *parent) : m_scene(scene), QObject(parent)
 {
     // fz_locks_context lock_context;
     // lock_context.user   = m_locks;
