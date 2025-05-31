@@ -34,13 +34,12 @@ class Model : public QObject
 {
     Q_OBJECT
 public:
-    Model(QGraphicsScene *scene);
+    Model(QGraphicsScene *scene, QObject *parent = nullptr);
     ~Model();
     explicit operator bool() const noexcept
     {
         return m_doc != nullptr;
     }
-
 
     bool authenticate(const QString &pwd) noexcept;
     bool passwordRequired() noexcept;
