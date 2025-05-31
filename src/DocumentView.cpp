@@ -723,11 +723,9 @@ DocumentView::ZoomOut() noexcept
 void
 DocumentView::Zoom(float factor) noexcept
 {
-    // TODO: Add constraints here
     if (!m_model->valid())
         return;
 
-    // m_gview->scale(factor, factor);
     m_scale_factor = factor;
     zoomHelper();
 }
@@ -787,7 +785,6 @@ DocumentView::FitHeight() noexcept
     m_scale_factor *= scale;
     zoomHelper();
     setFitMode(FitMode::Height);
-    // m_actionFitHeight->setChecked(true); TODO:
 }
 
 void
@@ -803,7 +800,6 @@ DocumentView::FitWidth() noexcept
     m_scale_factor *= scale;
     zoomHelper();
     setFitMode(FitMode::Width);
-    // m_actionFitWidth->setChecked(true); // TODO:
 }
 
 void
@@ -824,14 +820,12 @@ DocumentView::FitWindow() noexcept
     m_scale_factor *= scale;
     zoomHelper();
     setFitMode(FitMode::Window);
-    // m_actionFitWindow->setChecked(true); // TODO:
 }
 
 void
 DocumentView::FitNone() noexcept
 {
     setFitMode(FitMode::None);
-    // m_actionFitNone->setChecked(true); // TODO:
 }
 
 void
@@ -1111,7 +1105,6 @@ DocumentView::TableOfContents() noexcept
     if (!m_model->valid())
         return;
 
-TODO:
     if (!m_owidget)
     {
         m_owidget = new OutlineWidget(m_model->clonedContext(), this);
