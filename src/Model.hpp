@@ -14,7 +14,7 @@
 #include <QtConcurrent/QtConcurrent>
 #include <mupdf/fitz.h>
 #include <mupdf/pdf.h>
-#include <mutex>
+// #include <mutex>
 
 #define CSTR(x) x.toStdString().c_str()
 
@@ -23,10 +23,10 @@ class QGraphicsScene;
 
 QString
 generateHint(int index) noexcept;
-void
-lock_mutex(void *user, int lock);
-void
-unlock_mutex(void *user, int lock);
+// void
+// lock_mutex(void *user, int lock);
+// void
+// unlock_mutex(void *user, int lock);
 fz_quad
 union_quad(const fz_quad &a, const fz_quad &b);
 
@@ -200,7 +200,7 @@ private:
     QString m_filename;
     int m_match_count{0};
 
-    std::mutex m_locks[FZ_LOCK_MAX];
+    // std::mutex m_locks[FZ_LOCK_MAX];
     float m_dpi;
     bool m_link_boundary, m_invert_color_mode{false};
     QGraphicsScene *m_scene{nullptr};

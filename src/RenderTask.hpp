@@ -1,8 +1,8 @@
 #pragma once
 
 #include <QImage>
-#include <QMutex>
-#include <QMutexLocker>
+// #include <QMutex>
+// #include <QMutexLocker>
 #include <QRunnable>
 #include <mupdf/fitz.h>
 
