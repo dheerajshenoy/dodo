@@ -1598,7 +1598,8 @@ DocumentView::populateContextMenu(QMenu *menu) noexcept
     switch (m_gview->mode())
     {
         case GraphicsView::Mode::TextSelection:
-            addAction("Copy Text", &DocumentView::YankSelection);
+            if (m_selection_present)
+                addAction("Copy Text", &DocumentView::YankSelection);
             break;
 
         case GraphicsView::Mode::AnnotSelect:
