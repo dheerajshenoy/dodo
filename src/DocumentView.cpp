@@ -91,7 +91,7 @@ DocumentView::setDPR(qreal DPR) noexcept
     m_dpr     = DPR;
     m_inv_dpr = 1 / DPR;
     if (m_pageno != -1)
-        renderPage(m_pageno);
+        renderPage(m_pageno, true);
 }
 
 void
@@ -121,7 +121,7 @@ DocumentView::initConnections() noexcept
     {
         m_model->addRectAnnotation(rect);
         setDirty(true);
-        renderPage(m_pageno);
+        renderPage(m_pageno, true);
     });
 
     connect(m_model, &Model::horizontalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location)
@@ -133,20 +133,20 @@ DocumentView::initConnections() noexcept
 
     connect(m_model, &Model::verticalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location)
     {
-        gotoPage(pageno);
+        gotoPage(pageno, false);
         FitHeight();
         scrollToNormalizedTop(location.y);
     });
 
     connect(m_model, &Model::jumpToPageRequested, this, [&](int pageno)
     {
-        gotoPage(pageno);
+        gotoPage(pageno, false);
         TopOfThePage();
     });
 
     connect(m_model, &Model::jumpToLocationRequested, this, [&](int pageno, const BrowseLinkItem::Location &loc)
     {
-        gotoPage(pageno);
+        gotoPage(pageno, false);
         scrollToXY(loc.x, loc.y);
     });
 
@@ -163,7 +163,6 @@ DocumentView::initConnections() noexcept
             }
             else
             {
-                qDebug() << "No matching source found!";
                 QMessageBox::warning(this, "SyncTeX Error", "No matching source found!");
             }
         }
@@ -183,7 +182,7 @@ DocumentView::initConnections() noexcept
     {
         m_model->annotHighlightSelection(start, end);
         setDirty(true);
-        renderPage(m_pageno);
+        renderPage(m_pageno, true);
     });
 
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, &DocumentView::ClearTextSelection);
@@ -495,7 +494,7 @@ DocumentView::RotateAntiClock() noexcept
 }
 
 bool
-DocumentView::gotoPage(int pageno) noexcept
+DocumentView::gotoPage(int pageno, bool refresh) noexcept
 {
     if (!m_model->valid())
     {
@@ -534,14 +533,14 @@ DocumentView::gotoPage(int pageno) noexcept
     if (m_selection_present)
         ClearTextSelection();
 
-    return gotoPageInternal(pageno);
+    return gotoPageInternal(pageno, refresh);
 }
 
 bool
-DocumentView::gotoPageInternal(int pageno) noexcept
+DocumentView::gotoPageInternal(int pageno, bool refresh) noexcept
 {
     m_pageno = pageno;
-    return renderPage(pageno);
+    return renderPage(pageno, refresh);
 }
 
 void
@@ -566,7 +565,7 @@ DocumentView::renderAnnotations(const QList<HighlightItem *> &annots) noexcept
         {
             m_model->annotDeleteRequested(index);
             setDirty(true);
-            renderPage(m_pageno);
+            renderPage(m_pageno, true);
         });
 
         connect(annot, &HighlightItem::annotColorChangeRequested, m_model, [&](int index)
@@ -577,7 +576,7 @@ DocumentView::renderAnnotations(const QList<HighlightItem *> &annots) noexcept
             {
                 m_model->annotChangeColorForIndex(index, color);
                 setDirty(true);
-                renderPage(m_pageno);
+                renderPage(m_pageno, true);
             }
         });
 
@@ -618,7 +617,7 @@ DocumentView::renderLinks(const QList<BrowseLinkItem *> &links) noexcept
 }
 
 bool
-DocumentView::renderPage(int pageno) noexcept
+DocumentView::renderPage(int pageno, bool refresh) noexcept
 {
     if (!m_model->valid())
         return false;
@@ -626,12 +625,19 @@ DocumentView::renderPage(int pageno) noexcept
     CacheKey key{pageno, m_rotation, m_scale_factor};
     emit pageNumberChanged(pageno + 1);
 
-    if (auto cached = m_cache.object(key))
+    if (!refresh)
     {
-        qDebug() << "Using cached pixmap";
-        renderPixmap(cached->pixmap);
-        renderLinks(cached->links);
-        return true;
+        if (auto cached = m_cache.object(key))
+        {
+#ifdef NDEBUG
+#else
+            qDebug() << "Using cached pixmap";
+#endif
+            renderPixmap(cached->pixmap);
+            renderLinks(cached->links);
+            renderAnnotations(cached->annot_highlights);
+            return true;
+        }
     }
 
     auto pix              = m_model->renderPage(pageno, m_scale_factor, m_rotation);
@@ -644,8 +650,6 @@ DocumentView::renderPage(int pageno) noexcept
     renderAnnotations(annot_highlights);
 
     return true;
-    // if (m_prefetch_enabled)
-    //     prefetchAround(m_pageno);
 }
 
 void
@@ -657,7 +661,7 @@ DocumentView::renderPixmap(const QPixmap &pix) noexcept
 bool
 DocumentView::FirstPage() noexcept
 {
-    auto dd = gotoPage(0);
+    auto dd = gotoPage(0, false);
     if (dd)
         TopOfThePage();
     else
@@ -668,19 +672,19 @@ DocumentView::FirstPage() noexcept
 bool
 DocumentView::LastPage() noexcept
 {
-    return gotoPage(m_total_pages - 1);
+    return gotoPage(m_total_pages - 1, false);
 }
 
 bool
 DocumentView::NextPage() noexcept
 {
-    return gotoPage(m_pageno + 1);
+    return gotoPage(m_pageno + 1, false);
 }
 
 bool
 DocumentView::PrevPage() noexcept
 {
-    return gotoPage(m_pageno - 1);
+    return gotoPage(m_pageno - 1, false);
 }
 
 void
@@ -872,7 +876,7 @@ DocumentView::jumpToHit(int page, int index)
     m_search_index    = index;
     m_search_hit_page = page;
 
-    gotoPage(page); // Render page
+    gotoPage(page, false); // Render page
     emit searchIndexChanged(m_searchRectMap[page][index].index + 1);
 
     highlightSingleHit();
@@ -1037,7 +1041,7 @@ DocumentView::GoBackHistory() noexcept
     {
         HistoryLocation loc = m_page_history_list.takeLast(); // Pop last page
         m_suppressHistory   = true;
-        gotoPage(loc.pageno);
+        gotoPage(loc.pageno, false);
         scrollToXY(loc.x, loc.y);
         m_suppressHistory = false;
     }
@@ -1117,7 +1121,7 @@ TODO:
     if (!m_owidget)
     {
         m_owidget = new OutlineWidget(m_model->clonedContext(), this);
-        connect(m_owidget, &OutlineWidget::jumpToPageRequested, this, &DocumentView::gotoPage);
+        connect(m_owidget, &OutlineWidget::jumpToPageRequested, this, [&](int pageno) { gotoPage(pageno); });
     }
 
     if (!m_owidget->hasOutline())
@@ -1278,7 +1282,7 @@ DocumentView::GotoPage(int pageno) noexcept
         pageno = QInputDialog::getInt(this, "Goto Page", QString("Enter page number ({} to {})").arg(0, m_total_pages),
                                       0, 1, m_total_pages);
     }
-    gotoPage(pageno - 1);
+    gotoPage(pageno - 1, false);
 }
 
 bool
@@ -1373,7 +1377,10 @@ DocumentView::initSynctex() noexcept
     m_synctex_scanner = synctex_scanner_new_with_output_file(CSTR(m_filename), nullptr, 1);
     if (!m_synctex_scanner)
     {
+#ifdef NDEBUG
+#else
         qDebug() << "Unable to open SyncTeX scanner";
+#endif
         return;
     }
 }
@@ -1411,7 +1418,7 @@ DocumentView::synctexLocateInPdf(const QString &texFile, int line, int column) n
             x    = synctex_node_visible_h(node);
             y    = synctex_node_visible_v(node);
         }
-        gotoPage(page - 1);
+        gotoPage(page - 1, false);
         scrollToXY(x, y);
     }
 }
@@ -1514,7 +1521,7 @@ DocumentView::deleteKeyAction() noexcept
     {
         m_model->deleteAnnots(m_selected_annots);
         setDirty(true);
-        renderPage(m_pageno);
+        renderPage(m_pageno, true);
     }
     m_annot_selection_present = false;
 }
@@ -1622,7 +1629,7 @@ DocumentView::annotChangeColor() noexcept
     if (color.isValid())
     {
         m_model->annotChangeColorForIndexes(m_selected_annots, color);
-        renderPage(m_pageno);
+        renderPage(m_pageno, true);
     }
 }
 
@@ -1710,7 +1717,7 @@ DocumentView::TextHighlightCurrentSelection() noexcept
         return;
 
     m_model->annotHighlightSelection(m_gview->selectionStart(), m_gview->selectionEnd());
-    renderPage(m_pageno);
+    renderPage(m_pageno, true);
 }
 
 // Convenience function for setting the fit mode from outside this class

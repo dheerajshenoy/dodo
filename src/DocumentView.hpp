@@ -191,11 +191,11 @@ private:
     void synctexLocateInPdf(const QString &texFile, int line, int column) noexcept;
     void initConnections() noexcept;
     void openFile(const QString &fileName) noexcept;
-    bool gotoPage(int pageno) noexcept;
-    bool gotoPageInternal(int pageno) noexcept;
+    bool gotoPage(int pageno, bool refresh = true) noexcept;
+    bool gotoPageInternal(int pageno, bool refresh = true) noexcept;
     void search(const QString &term) noexcept;
     void setFitMode(const FitMode &mode) noexcept;
-    bool renderPage(int pageno) noexcept;
+    bool renderPage(int pageno, bool refresh = true) noexcept;
     void renderLinks(const QList<BrowseLinkItem *> &links) noexcept;
     void renderPixmap(const QPixmap &pix) noexcept;
     void renderAnnotations(const QList<HighlightItem *> &annots) noexcept;
