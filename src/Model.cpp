@@ -90,8 +90,6 @@ Model::Model(QGraphicsScene *scene) : m_scene(scene)
 Model::~Model()
 {
     fz_drop_stext_page(m_ctx, m_text_page);
-    pdf_drop_page(m_ctx, m_pdfpage);
-    pdf_drop_document(m_ctx, m_pdfdoc);
     fz_drop_page(m_ctx, m_page);
     fz_drop_document(m_ctx, m_doc);
     fz_drop_context(m_ctx);
