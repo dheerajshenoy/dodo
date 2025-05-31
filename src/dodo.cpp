@@ -821,10 +821,7 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 
     this->construct();
     if (argparser.is_used("--page"))
-    {
         m_config.startpage_override = argparser.get<int>("--page");
-        qDebug() << "Page number overriden with" << m_config.startpage_override;
-    }
 
     if (argparser.is_used("--synctex-forward"))
     {
