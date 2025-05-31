@@ -1052,14 +1052,28 @@ void
 dodo::VisitLinkKB() noexcept
 {
     if (m_doc)
-        m_doc->VisitLinkKB();
+    {
+        m_link_hint_map = m_doc->LinkKB();
+        if (!m_link_hint_map.isEmpty())
+        {
+            m_link_hint_current_mode = LinkHintMode::Visit;
+            m_link_hint_mode = true;
+        }
+    }
 }
 
 void
 dodo::CopyLinkKB() noexcept
 {
     if (m_doc)
-        m_doc->CopyLinkKB();
+    {
+        m_link_hint_map = m_doc->LinkKB();
+        if (!m_link_hint_map.isEmpty())
+        {
+            m_link_hint_current_mode = LinkHintMode::Visit;
+            m_link_hint_mode = true;
+        }
+    }
 }
 
 void
