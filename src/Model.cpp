@@ -355,9 +355,6 @@ Model::renderPage(int pageno, float zoom, float rotation, bool renderonly) noexc
                 return qpix;
         }
 
-        for (int y = 0; y < m_height; ++y)
-            memcpy(image.scanLine(y), samples + y * stride, m_width * n);
-
         image.setDotsPerMeterX(static_cast<int>((m_dpi * 1000) / 25.4));
         image.setDotsPerMeterY(static_cast<int>((m_dpi * 1000) / 25.4));
         image.setDevicePixelRatio(m_dpr);
