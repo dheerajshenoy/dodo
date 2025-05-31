@@ -208,6 +208,7 @@ private:
     pdf_document *m_pdfdoc{nullptr};
     pdf_write_options m_write_opts;
     fz_matrix m_transform;
+    int m_pageno{-1};
 
     float m_height, m_width;
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
