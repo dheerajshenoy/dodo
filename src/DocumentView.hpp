@@ -195,7 +195,7 @@ private:
     bool gotoPageInternal(int pageno) noexcept;
     void search(const QString &term) noexcept;
     void setFitMode(const FitMode &mode) noexcept;
-    bool renderPage(int pageno, bool renderonly = false) noexcept;
+    bool renderPage(int pageno) noexcept;
     void renderLinks(const QList<BrowseLinkItem *> &links) noexcept;
     void renderPixmap(const QPixmap &pix) noexcept;
     void renderAnnotations(const QList<HighlightItem *> &annots) noexcept;

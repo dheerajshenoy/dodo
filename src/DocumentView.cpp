@@ -79,7 +79,7 @@ DocumentView::setDPR(qreal DPR) noexcept
     m_dpr     = DPR;
     m_inv_dpr = 1 / DPR;
     if (m_pageno != -1)
-        renderPage(m_pageno, true);
+        renderPage(m_pageno);
 }
 
 void
@@ -464,7 +464,7 @@ DocumentView::RotateClock() noexcept
 
     m_rotation = (m_rotation + 90) % 360;
     m_cache.clear();
-    renderPage(m_pageno, true);
+    renderPage(m_pageno);
     // m_gview->setSceneRect(m_pix_item->boundingRect());
     m_gview->centerOn(m_pix_item); // center view
 }
@@ -477,7 +477,7 @@ DocumentView::RotateAntiClock() noexcept
 
     m_rotation = (m_rotation + 270) % 360;
     m_cache.clear();
-    renderPage(m_pageno, true);
+    renderPage(m_pageno);
     // m_gview->setSceneRect(m_pix_item->boundingRect());
     m_gview->centerOn(m_pix_item); // center view
 }
@@ -555,7 +555,7 @@ DocumentView::renderAnnotations(const QList<HighlightItem *> &annots) noexcept
         {
             m_model->annotDeleteRequested(index);
             setDirty(true);
-            renderPage(m_pageno, false);
+            renderPage(m_pageno);
         });
 
         connect(annot, &HighlightItem::annotColorChangeRequested, m_model, [&](int index)
@@ -607,7 +607,7 @@ DocumentView::renderLinks(const QList<BrowseLinkItem *> &links) noexcept
 }
 
 bool
-DocumentView::renderPage(int pageno, bool renderonly) noexcept
+DocumentView::renderPage(int pageno) noexcept
 {
     if (!m_model->valid())
         return false;
@@ -615,18 +615,15 @@ DocumentView::renderPage(int pageno, bool renderonly) noexcept
     CacheKey key{pageno, m_rotation, m_scale_factor};
     emit pageNumberChanged(pageno + 1);
 
-    if (renderonly)
+    if (auto cached = m_cache.object(key))
     {
-        if (auto cached = m_cache.object(key))
-        {
-            qDebug() << "Using cached pixmap";
-            renderPixmap(cached->pixmap);
-            renderLinks(cached->links);
-            return true;
-        }
+        qDebug() << "Using cached pixmap";
+        renderPixmap(cached->pixmap);
+        renderLinks(cached->links);
+        return true;
     }
 
-    auto pix              = m_model->renderPage(pageno, m_scale_factor, m_rotation, renderonly);
+    auto pix              = m_model->renderPage(pageno, m_scale_factor, m_rotation);
     auto links            = m_model->getLinks();
     auto annot_highlights = m_model->getAnnotations();
 
