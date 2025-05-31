@@ -7,7 +7,8 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsScene>
 #include <QImage>
-extern "C" {
+extern "C"
+{
 #include <mupdf/fitz.h>
 #include <mupdf/fitz/context.h>
 #include <mupdf/fitz/document.h>
@@ -22,8 +23,8 @@ extern "C" {
 #include <mupdf/pdf/xref.h>
 #include <synctex/synctex_parser.h>
 }
-#include <qgraphicsitem.h>
 #include <QStringDecoder>
+#include <qgraphicsitem.h>
 
 fz_quad
 union_quad(const fz_quad &a, const fz_quad &b)
