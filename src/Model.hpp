@@ -127,6 +127,7 @@ public:
         int index;
     };
 
+    inline QList<LinkHint*> linkHints() noexcept { return m_link_hints; }
     QString selectAllText(const QPointF &start, const QPointF &end) noexcept;
     void initSaveOptions() noexcept;
     fz_outline *getOutline() noexcept;
