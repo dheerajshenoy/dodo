@@ -1344,30 +1344,36 @@ dodo::closeEvent(QCloseEvent *e)
     for (int i = 0; i < m_tab_widget->count(); i++)
     {
         DocumentView *doc = qobject_cast<DocumentView *>(m_tab_widget->widget(i));
-        if (doc && doc->model()->hasUnsavedChanges())
+        if (doc)
         {
-            int ret = QMessageBox::warning(
-                this, "Unsaved Changes",
-                QString("File %1 has unsaved changes. Do you want to save them?").arg(m_tab_widget->tabText(i)),
-                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
 
-            if (ret == QMessageBox::Cancel)
+            // Unsaved Changes
+            if (doc->model()->hasUnsavedChanges())
             {
-                e->ignore();
-                return;
-            }
-            else if (ret == QMessageBox::Save)
-            {
-                if (!doc->model()->save())
+                int ret = QMessageBox::warning(
+                    this, "Unsaved Changes",
+                    QString("File %1 has unsaved changes. Do you want to save them?").arg(m_tab_widget->tabText(i)),
+                    QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+
+                if (ret == QMessageBox::Cancel)
                 {
-                    QMessageBox::critical(this, "Save Failed", "Could not save the file.");
                     e->ignore();
                     return;
                 }
+                else if (ret == QMessageBox::Save)
+                {
+                    if (!doc->model()->save())
+                    {
+                        QMessageBox::critical(this, "Save Failed", "Could not save the file.");
+                        e->ignore();
+                        return;
+                    }
+                }
             }
+
+            doc->close();
         }
     }
-
     e->accept();
 }
 
