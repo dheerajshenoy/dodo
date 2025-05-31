@@ -135,12 +135,7 @@ public:
     {
         return m_transform;
     }
-    void visitLinkKB(int pageno, float zoom) noexcept;
-    QMap<QString, LinkInfo> hintToLinkMap()
-    {
-        return m_hint_to_link_map;
-    };
-    void clearKBHintsOverlay() noexcept;
+    QMap<int, LinkInfo> LinkKB(int pageno, float zoom, const QRectF &viewport) noexcept;
     void followLink(const LinkInfo &info) noexcept;
     void loadColorProfile(const QString &profileName) noexcept;
     inline bool invertColor() noexcept
@@ -220,6 +215,6 @@ private:
     float m_highlight_color[4], m_annot_rect_color[4];
     QRgb m_selection_color;
     float m_page_height{0.0f};
+    QList<LinkHint*> m_link_hints{};
 
-    QMap<QString, LinkInfo> m_hint_to_link_map;
 };
