@@ -798,11 +798,9 @@ Model::LinkKB(int pageno, float zoom, const QRectF &viewport) noexcept
         fz_link *link = head;
 
         if (!link)
-        {
-            return;
-        }
+            return map;
 
-        int i = -1;
+        int i = 9;
         while (link)
         {
             if (link->uri)
