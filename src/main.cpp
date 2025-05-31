@@ -25,7 +25,7 @@ main(int argc, char *argv[])
     {
         program.parse_args(argc, argv);
     }
-    catch (std::exception &e)
+    catch (const std::exception &e)
     {
         qDebug() << e.what();
     }
