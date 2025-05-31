@@ -159,6 +159,17 @@ private:
     DodoConfig m_config;
     float m_dpr;
 
+    enum class LinkHintMode
+    {
+        None = 0,
+        Visit,
+        Copy
+    };
+
+    QString m_currentHintInput;
+    bool m_link_hint_mode{false};
+    LinkHintMode m_link_hint_current_mode{LinkHintMode::None};
+    QMap<int, Model::LinkInfo> m_link_hint_map;
     DocumentView *m_doc{nullptr};
     TabWidget *m_tab_widget = new TabWidget();
     QVBoxLayout *m_layout    = new QVBoxLayout();
