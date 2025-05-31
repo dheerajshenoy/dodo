@@ -272,7 +272,7 @@ Model::setLinkBoundary(bool state)
 }
 
 QPixmap
-Model::renderPage(int pageno, float zoom, float rotation, bool renderonly) noexcept
+Model::renderPage(int pageno, float zoom, float rotation) noexcept
 {
     QPixmap qpix;
 
@@ -283,14 +283,12 @@ Model::renderPage(int pageno, float zoom, float rotation, bool renderonly) noexc
     fz_device *dev{nullptr};
     fz_pixmap *pix{nullptr};
 
+    fz_drop_stext_page(m_ctx, m_text_page);
+    fz_drop_page(m_ctx, m_page);
+
     fz_try(m_ctx)
     {
-        if (!m_page || !renderonly)
-        {
-            fz_drop_page(m_ctx, m_page);
-            m_page = fz_load_page(m_ctx, m_doc, pageno);
-            fz_drop_stext_page(m_ctx, m_text_page);
-        }
+        m_page = fz_load_page(m_ctx, m_doc, pageno);
 
         if (!m_page)
             return qpix;
@@ -311,7 +309,7 @@ Model::renderPage(int pageno, float zoom, float rotation, bool renderonly) noexc
             return qpix;
         }
 
-        fz_clear_pixmap_with_value(m_ctx, pix, 0xFFFFFF); // 255 = white
+        fz_clear_pixmap_with_value(m_ctx, pix, 255); // 255 = white
 
         dev = fz_new_draw_device(m_ctx, fz_identity, pix);
 
@@ -371,7 +369,6 @@ Model::renderPage(int pageno, float zoom, float rotation, bool renderonly) noexc
     fz_catch(m_ctx)
     {
         qWarning() << "Render failed for page" << pageno;
-        return qpix;
     }
 
     return qpix;
@@ -388,6 +385,7 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
     fz_try(m_ctx)
     {
         fz_stext_page *text_page = fz_new_stext_page_from_page_number(m_ctx, m_doc, pageno, nullptr);
+
         for (fz_stext_block *block = text_page->first_block; block; block = block->next)
         {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
