@@ -219,6 +219,7 @@ Model::reloadDocument() noexcept
             qWarning("Unable to open document");
             return;
         }
+
         m_pdfdoc    = pdf_specifics(m_ctx, m_doc);
         m_pdfpage   = pdf_page_from_fz_page(m_ctx, m_page);
         m_text_page = fz_new_stext_page_from_page(m_ctx, m_page, nullptr);
@@ -500,7 +501,6 @@ Model::getAnnotations() noexcept
 
     fz_try(m_ctx)
     {
-        pdf_drop_page(m_ctx, m_pdfpage);
         m_pdfpage = pdf_page_from_fz_page(m_ctx, m_page);
 
         if (!m_pdfpage)
@@ -523,7 +523,10 @@ Model::getAnnotations() noexcept
     }
     fz_catch(m_ctx)
     {
+#ifdef NDEBUG
+#else
         qDebug() << "Unable to get annotations";
+#endif
     }
 
     return annots;
@@ -913,7 +916,9 @@ Model::extractPDFProperties() noexcept
                 {
                     QStringDecoder decoder(QStringDecoder::Utf16BE);
                     val = decoder(QByteArray(s + 2, slen - 2));
-                } else {
+                }
+                else
+                {
                     val = QString::fromUtf8(s, slen);
                 }
             }
@@ -1063,8 +1068,6 @@ Model::highlightTextSelection(const QPointF &selectionStart, const QPointF &sele
         item->setFlag(QGraphicsItem::ItemIsSelectable, false);
         item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
     }
-
-    fz_free(m_ctx, hits);
 }
 
 QString
