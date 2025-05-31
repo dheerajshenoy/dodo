@@ -9,6 +9,7 @@
 #include "Model.hpp"
 #include "OutlineWidget.hpp"
 #include "PropertiesWidget.hpp"
+#include "LinkHint.hpp"
 
 #include <QFileDialog>
 #include <QInputDialog>
@@ -104,8 +105,7 @@ public:
     void ToggleAnnotSelect() noexcept;
     void SaveFile() noexcept;
     void SaveAsFile() noexcept;
-    void VisitLinkKB() noexcept;
-    void CopyLinkKB() noexcept;
+    QMap<int, Model::LinkInfo> LinkKB() noexcept;
     void GotoPage(int pageno) noexcept;
     void TopOfThePage() noexcept;
     void InvertColor() noexcept;
@@ -157,6 +157,8 @@ public:
         return m_rotation;
     }
 
+    void clearKBHintsOverlay() noexcept;
+
 signals:
     void pageNumberChanged(int pageno);
     void searchCountChanged(int count);
@@ -171,10 +173,10 @@ signals:
     void panelNameChanged(const QString &name);
     void invertColorActionUpdate(bool state);
     void autoResizeActionUpdate(bool state);
+    void insertToDBRequested(const QString &filepath, int pageno);
 
 protected:
     void closeEvent(QCloseEvent *e) override;
-    bool eventFilter(QObject *obj, QEvent *event) override;
     void resizeEvent(QResizeEvent *e) override;
 
 private:
@@ -241,16 +243,14 @@ private:
         m_auto_resize{false};
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
     QString m_last_search_term;
-    QMap<QString, Model::LinkInfo> m_link_hint_map;
     QSet<int> m_selected_annots;
-    LinkHintMode m_link_hint_mode{LinkHintMode::None};
     QList<HistoryLocation> m_page_history_list;
     JumpMarker *m_jump_marker{nullptr};
     FitMode m_fit_mode, m_initial_fit{FitMode::None};
     QScrollBar *m_vscrollbar{nullptr};
-    QString m_currentHintInput, m_synctex_editor_command;
+    QString m_synctex_editor_command;
+    bool m_link_hints_present{false};
 
-    // Add this to your class header:
     int m_scroll_accumulator = 0;
     QElapsedTimer m_scroll_cooldown;
     const int kScrollCooldownMs = 300; // Prevent rapid-fire page turns
