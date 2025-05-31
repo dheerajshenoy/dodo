@@ -810,14 +810,18 @@ Model::LinkKB(int pageno, float zoom, const QRectF &viewport) noexcept
                 float h   = (r.y1 - r.y0) * m_inv_dpr;
                 float y   = (r.y1 - h) * m_inv_dpr;
 
-                QString hint             = QString::number(i++);
                 auto dest                = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
-                m_hint_to_link_map[hint] = {.uri = QString::fromUtf8(link->uri), .dest = dest};
+                map[i] = {.uri = QString::fromUtf8(link->uri), .dest = dest};
 
                 float w = 0.25 * zoom;
                 QRect rect(x, y, w, w);
-                LinkHint *linkHint = new LinkHint(rect, m_link_hint_bg, m_link_hint_fg, hint, w * 0.5);
-                m_scene->addItem(linkHint);
+
+                if (rect.intersects(viewport.toRect()))
+                {
+                    LinkHint *linkHint = new LinkHint(rect, m_link_hint_bg, m_link_hint_fg, i, w * 0.5);
+                    m_link_hints.append(linkHint);
+                    m_scene->addItem(linkHint);
+                }
             }
             link = link->next;
             i++;
