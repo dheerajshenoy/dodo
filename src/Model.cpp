@@ -462,6 +462,7 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
                 }
             }
         }
+        fz_drop_stext_page(m_ctx, text_page);
     }
     fz_catch(m_ctx)
     {
@@ -498,6 +499,7 @@ Model::getAnnotations() noexcept
 
     fz_try(m_ctx)
     {
+        pdf_drop_page(m_ctx, m_pdfpage);
         m_pdfpage = pdf_page_from_fz_page(m_ctx, m_page);
 
         if (!m_pdfpage)
@@ -1060,6 +1062,8 @@ Model::highlightTextSelection(const QPointF &selectionStart, const QPointF &sele
         item->setFlag(QGraphicsItem::ItemIsSelectable, false);
         item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
     }
+
+    fz_free(m_ctx, hits);
 }
 
 QString
