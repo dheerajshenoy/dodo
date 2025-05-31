@@ -626,7 +626,7 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
 
     if (!refresh)
     {
-        if (auto cached = m_cache.object(key))
+        if (auto *cached = m_cache.object(key))
         {
 #ifdef NDEBUG
 #else
@@ -1034,7 +1034,7 @@ DocumentView::GoBackHistory() noexcept
     {
         HistoryLocation loc = m_page_history_list.takeLast(); // Pop last page
         m_suppressHistory   = true;
-        gotoPage(loc.pageno, false);
+        gotoPage(loc.pageno);
         scrollToXY(loc.x, loc.y);
         m_suppressHistory = false;
     }
@@ -1575,7 +1575,7 @@ DocumentView::mouseWheelScrollRequested(int delta) noexcept
 
     m_scroll_accumulator += delta;
 
-    bool atTop = m_vscrollbar->value() == m_vscrollbar->minimum();
+    bool atTop    = m_vscrollbar->value() == m_vscrollbar->minimum();
     bool atBottom = m_vscrollbar->value() == m_vscrollbar->maximum();
 
     // Only accumulate if we're at the page edge
@@ -1590,9 +1590,7 @@ DocumentView::mouseWheelScrollRequested(int delta) noexcept
                 m_scroll_cooldown.restart();
                 m_scroll_accumulator = 0;
 
-                QTimer::singleShot(0, this, [this]() {
-                        m_vscrollbar->setValue(m_vscrollbar->maximum());
-                        });
+                QTimer::singleShot(0, this, [this]() { m_vscrollbar->setValue(m_vscrollbar->maximum()); });
             }
         }
         else if (m_scroll_accumulator <= -kPageThreshold && atBottom)
@@ -1602,9 +1600,7 @@ DocumentView::mouseWheelScrollRequested(int delta) noexcept
                 m_scroll_cooldown.restart();
                 m_scroll_accumulator = 0;
 
-                QTimer::singleShot(0, this, [this]() {
-                        m_vscrollbar->setValue(m_vscrollbar->minimum());
-                        });
+                QTimer::singleShot(0, this, [this]() { m_vscrollbar->setValue(m_vscrollbar->minimum()); });
             }
         }
     }

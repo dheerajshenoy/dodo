@@ -39,7 +39,7 @@ public:
 
 signals:
     void annotDeleteRequested(int index);
-    void annotColorChangeRequested(int index); // TODO: Handle this
+    void annotColorChangeRequested(int index);
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *e) override
