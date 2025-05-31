@@ -1644,3 +1644,10 @@ DocumentView::Fit(DocumentView::FitMode mode) noexcept
             break;
     }
 }
+
+void DocumentView::clearKBHintsOverlay() noexcept
+{
+    for (auto &link : m_model->linkHints())
+        m_gscene->removeItem(link);
+    m_link_hints_present = false;
+}
