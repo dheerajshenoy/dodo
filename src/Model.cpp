@@ -788,10 +788,11 @@ Model::convertToMuPdfRect(const QRectF &qtRect) noexcept
     return fz_make_rect(p0.x, p0.y, p1.x, p1.y);
 }
 
-void
-Model::visitLinkKB(int pageno, float zoom) noexcept
+QMap <int, Model::LinkInfo>
+Model::LinkKB(int pageno, float zoom, const QRectF &viewport) noexcept
 {
-    m_hint_to_link_map.clear();
+    QMap<int, Model::LinkInfo> map;
+    m_link_hints.clear();
     fz_try(m_ctx)
     {
         // fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
@@ -833,16 +834,9 @@ Model::visitLinkKB(int pageno, float zoom) noexcept
     {
         qWarning() << "MuPDF error in renderlink: " << fz_caught_message(m_ctx);
     }
-}
 
-void
-Model::clearKBHintsOverlay() noexcept
-{
-    for (auto &link : m_scene->items())
-    {
-        if (link->data(0).toString() == "kb_link_overlay")
-            m_scene->removeItem(link);
-    }
+    qDebug() << map[10].uri;
+    return map;
 }
 
 void
