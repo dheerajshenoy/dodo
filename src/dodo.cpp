@@ -1391,24 +1391,91 @@ dodo::ToggleTabBar() noexcept
 bool
 dodo::eventFilter(QObject *object, QEvent *event)
 {
-    if (object == m_tab_widget->tabBar() && event->type() == QEvent::ContextMenu)
+    if (m_link_hint_mode)
     {
-        QContextMenuEvent *contextEvent = static_cast<QContextMenuEvent *>(event);
-        int index                       = m_tab_widget->tabBar()->tabAt(contextEvent->pos());
-
-        if (index != -1)
+        if (event->type() == QEvent::KeyPress)
         {
-            QMenu menu;
-            menu.addAction("Open Location", this, [this, index]() { openInExplorerForIndex(index); });
-            menu.addAction("File Properties", this, [this, index]() { filePropertiesForIndex(index); });
-            menu.addAction("Close Tab", this, [this, index]() { m_tab_widget->tabCloseRequested(index); });
+            QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+            if (keyEvent->key() == Qt::Key_Escape)
+            {
+                m_currentHintInput.clear();
+                m_doc->clearKBHintsOverlay();
+                m_link_hint_map.clear();
+                m_link_hint_mode = false;
+                // this->removeEventFilter(this);
+                return true;
+            }
+            else if (keyEvent->key() == Qt::Key_Backspace)
+            {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+                m_currentHintInput.removeLast();
+#else
+                if (!m_currentHintInput.isEmpty())
+                    m_currentHintInput.chop(1); // Removes the last character
+#endif
+                return true;
+            }
 
-            menu.exec(contextEvent->globalPos());
+            m_currentHintInput += keyEvent->text();
+            int num = m_currentHintInput.toInt();
+            if (m_link_hint_map.contains(num))
+            {
+                Model::LinkInfo info = m_link_hint_map[num];
+
+                switch (m_link_hint_current_mode)
+                {
+                    case LinkHintMode::None:
+                        break;
+
+                    case LinkHintMode::Visit:
+                        m_doc->model()->followLink(info);
+                        break;
+
+                    case LinkHintMode::Copy:
+                        m_clipboard->setText(info.uri);
+                        break;
+                }
+
+                m_currentHintInput.clear();
+                m_link_hint_map.clear();
+                m_doc->clearKBHintsOverlay();
+                m_link_hint_mode = false;
+                return true;
+            }
+            keyEvent->accept();
+            return true;
         }
-        return true;
+
+        if (event->type() == QEvent::ShortcutOverride)
+        {
+            event->accept();
+            // QShortcutEvent *stEvent = static_cast<QShortcutEvent *>(event);
+            // stEvent->accept();
+            return true;
+        }
+    } else {
+
+        if (object == m_tab_widget->tabBar() && event->type() == QEvent::ContextMenu)
+        {
+            QContextMenuEvent *contextEvent = static_cast<QContextMenuEvent *>(event);
+            int index                       = m_tab_widget->tabBar()->tabAt(contextEvent->pos());
+
+            if (index != -1)
+            {
+                QMenu menu;
+                menu.addAction("Open Location", this, [this, index]() { openInExplorerForIndex(index); });
+                menu.addAction("File Properties", this, [this, index]() { filePropertiesForIndex(index); });
+                menu.addAction("Close Tab", this, [this, index]() { m_tab_widget->tabCloseRequested(index); });
+
+                menu.exec(contextEvent->globalPos());
+            }
+            return true;
+        }
     }
 
-    return QMainWindow::eventFilter(object, event);
+    // Let other events pass through
+    return QObject::eventFilter(object, event);
+
 }
 
 void
