@@ -1295,11 +1295,14 @@ dodo::initConnections() noexcept
         QWidget *widget   = m_tab_widget->widget(index);
         DocumentView *doc = qobject_cast<DocumentView *>(widget);
 
+        doc->close();
+
         if (doc)
             doc->CloseFile();
 
         if (widget)
             widget->deleteLater();
+
         m_tab_widget->removeTab(index);
     });
 
