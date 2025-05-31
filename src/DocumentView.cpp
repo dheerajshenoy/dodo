@@ -521,9 +521,10 @@ DocumentView::gotoPage(int pageno, bool refresh) noexcept
     {
         clearHighlights();
         clearIndexHighlights();
-        // highlightHitsInPage();
-        // highlightSingleHit();
     }
+
+    if (m_link_hints_present)
+        clearKBHintsOverlay();
 
     if (m_annot_selection_present)
         clearAnnotSelection();
