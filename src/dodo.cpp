@@ -1310,6 +1310,7 @@ dodo::handleCurrentTabChanged(int index) noexcept
         m_panel->hidePageInfo(true);
         updateMenuActions();
         updateUiEnabledState();
+        updatePanel();
         return;
     }
 
