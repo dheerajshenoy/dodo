@@ -736,7 +736,8 @@ dodo::initGui() noexcept
     m_layout->addWidget(m_panel);
     this->setCentralWidget(widget);
 
-    m_tab_widget->tabBar()->installEventFilter(this);
+    // m_tab_widget->tabBar()->installEventFilter(this);
+    this->installEventFilter(this);
 
     m_menuBar = this->menuBar(); // initialize here so that the config visibility works
 }
