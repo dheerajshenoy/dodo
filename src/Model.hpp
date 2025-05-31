@@ -52,7 +52,7 @@ public:
         m_dpi = dpi;
     }
     int numPages();
-    QPixmap renderPage(int pageno, float zoom, float rotation, bool renderonly = false) noexcept;
+    QPixmap renderPage(int pageno, float zoom, float rotation) noexcept;
     QList<BrowseLinkItem *> getLinks() noexcept;
     pdf_annot *get_annot_by_index(int index) noexcept;
     QList<pdf_annot *> get_annots_by_indexes(const QSet<int> &index) noexcept;
