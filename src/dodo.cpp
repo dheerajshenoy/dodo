@@ -889,7 +889,7 @@ dodo::populateRecentFiles() noexcept
                 continue;
             int page = query.value(1).toInt();
             // QDateTime accessed = query.value(2).toDateTime();
-            QAction *fileAction = new QAction(path);
+            QAction *fileAction = new QAction(path, m_recentFilesMenu);
             connect(fileAction, &QAction::triggered, this, [&, path, page]()
             {
                 OpenFile(path);
