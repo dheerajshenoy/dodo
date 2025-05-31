@@ -127,7 +127,6 @@ public:
         int index;
     };
 
-    inline QList<LinkHint*> linkHints() noexcept { return m_link_hints; }
     QString selectAllText(const QPointF &start, const QPointF &end) noexcept;
     void initSaveOptions() noexcept;
     fz_outline *getOutline() noexcept;
@@ -135,7 +134,6 @@ public:
     {
         return m_transform;
     }
-    QMap<int, LinkInfo> LinkKB(int pageno, float zoom, const QRectF &viewport) noexcept;
     void followLink(const LinkInfo &info) noexcept;
     void loadColorProfile(const QString &profileName) noexcept;
     inline bool invertColor() noexcept
@@ -151,14 +149,7 @@ public:
     {
         return m_height;
     }
-    inline void setLinkHintForeground(int fg) noexcept
-    {
-        m_link_hint_fg = QColor::fromRgba(fg);
-    }
-    inline void setLinkHintBackground(int bg) noexcept
-    {
-        m_link_hint_bg = QColor::fromRgba(bg);
-    }
+    inline fz_link_dest resolveLink(const char* URI) noexcept { return fz_resolve_link_dest(m_ctx, m_doc, URI); }
 
     void selectWord(const QPointF &loc) noexcept;
     void selectLine(const QPointF &loc) noexcept;
@@ -212,10 +203,8 @@ private:
 
     float m_height, m_width;
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
-    QColor m_link_hint_fg{QColor::fromRgba(0x000000)}, m_link_hint_bg{QColor::fromRgba(0xFFFF00)};
     float m_highlight_color[4], m_annot_rect_color[4];
     QRgb m_selection_color;
     float m_page_height{0.0f};
-    QList<LinkHint*> m_link_hints{};
 
 };

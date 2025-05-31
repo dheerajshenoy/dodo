@@ -31,7 +31,8 @@ public:
         External
     };
 
-    BrowseLinkItem(const QRectF &rect, const QString &link, LinkType type, bool boundary = false, QGraphicsItem *parent = nullptr)
+    BrowseLinkItem(const QRectF &rect, const QString &link, LinkType type, bool boundary = false,
+                   QGraphicsItem *parent = nullptr)
         : QGraphicsRectItem(rect, parent), _link(link), _type(type)
     {
         if (!boundary)
@@ -61,6 +62,13 @@ public:
     {
         return _loc;
     }
+
+    inline void setURI(char *uri) noexcept
+    {
+        _uri = uri;
+    }
+
+    inline const char* URI() noexcept { return _uri; }
 
 signals:
     void jumpToPageRequested(int pageno);
@@ -132,4 +140,5 @@ private:
     int _pageno{-1};
     QString _link;
     LinkType _type;
+    char *_uri{nullptr};
 };

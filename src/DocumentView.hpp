@@ -27,6 +27,8 @@ extern "C"
 #include <synctex/synctex_version.h>
 }
 
+
+
 class DocumentView : public QWidget
 {
     Q_OBJECT
@@ -124,6 +126,15 @@ public:
         return m_model;
     }
 
+    inline void setLinkHintForeground(int fg) noexcept
+    {
+        m_link_hint_fg = QColor::fromRgba(fg);
+    }
+    inline void setLinkHintBackground(int bg) noexcept
+    {
+        m_link_hint_bg = QColor::fromRgba(bg);
+    }
+
     // inline QString windowTitle() noexcept { return m_config.window_title_format; }
 
     inline QString fileName() noexcept
@@ -191,6 +202,7 @@ private:
     void search(const QString &term) noexcept;
     void setFitMode(const FitMode &mode) noexcept;
     bool renderPage(int pageno, bool refresh = true) noexcept;
+    void renderLinkHints() noexcept;
     void renderLinks(const QList<BrowseLinkItem *> &links) noexcept;
     void renderPixmap(const QPixmap &pix) noexcept;
     void renderAnnotations(const QList<HighlightItem *> &annots) noexcept;
@@ -250,6 +262,9 @@ private:
     QScrollBar *m_vscrollbar{nullptr};
     QString m_synctex_editor_command;
     bool m_link_hints_present{false};
+    QColor m_link_hint_fg{QColor::fromRgba(0x000000)}, m_link_hint_bg{QColor::fromRgba(0xFFFF00)};
+    QList<LinkHint*> m_link_hints{};
+    QList<BrowseLinkItem*> m_link_items{};
 
     int m_scroll_accumulator = 0;
     QElapsedTimer m_scroll_cooldown;

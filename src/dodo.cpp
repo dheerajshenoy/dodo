@@ -6,6 +6,7 @@
 #include "toml.hpp"
 
 #include <QJsonArray>
+#include <QStyleHints>
 #include <qdesktopservices.h>
 #include <qnamespace.h>
 
@@ -1751,3 +1752,5 @@ dodo::SaveAsSession(const QString &sessionPath) noexcept
         QMessageBox::critical(this, "Save As Session", "Failed to save session.");
     }
 }
+
+

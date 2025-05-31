@@ -1,6 +1,7 @@
 
 #include "argparse.hpp"
 #include "dodo.hpp"
+#include <sys/resource.h>
 
 void
 init_args(argparse::ArgumentParser &program)

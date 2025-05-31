@@ -36,8 +36,8 @@ DocumentView::DocumentView(const QString &fileName, const DodoConfig &config, QW
     m_model->setAnnotRectColor(m_config.colors["annot_rect"]);
     m_model->setSelectionColor(m_config.colors["selection"]);
     m_model->setHighlightColor(m_config.colors["highlight"]);
-    m_model->setLinkHintBackground(m_config.colors["link_hint_bg"]);
-    m_model->setLinkHintForeground(m_config.colors["link_hint_fg"]);
+    setLinkHintBackground(m_config.colors["link_hint_bg"]);
+    setLinkHintForeground(m_config.colors["link_hint_fg"]);
     m_model->setAntialiasingBits(m_config.antialiasing_bits);
     m_model->toggleInvertColor();
     m_cache.setMaxCost(m_config.cache_pages);
@@ -633,22 +633,28 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
             qDebug() << "Using cached pixmap";
 #endif
             renderPixmap(cached->pixmap);
-            renderLinks(cached->links);
+            m_link_items = cached->links;
+            renderLinks(m_link_items);
             renderAnnotations(cached->annot_highlights);
             return true;
         }
     }
 
     auto pix              = m_model->renderPage(pageno, m_scale_factor, m_rotation);
-    auto links            = m_model->getLinks();
+    m_link_items          = m_model->getLinks();
     auto annot_highlights = m_model->getAnnotations();
 
-    m_cache.insert(key, new CacheValue(pix, links, annot_highlights));
+    m_cache.insert(key, new CacheValue(pix, m_link_items, annot_highlights));
     renderPixmap(pix);
-    renderLinks(links);
+    renderLinks(m_link_items);
     renderAnnotations(annot_highlights);
 
     return true;
+}
+
+void
+DocumentView::renderLinkHints() noexcept
+{
 }
 
 void
@@ -1171,11 +1177,34 @@ DocumentView::SaveAsFile() noexcept
 QMap<int, Model::LinkInfo>
 DocumentView::LinkKB() noexcept
 {
-    qDebug() << m_pageno;
-    auto maps = m_model->LinkKB(m_pageno, m_scale_factor, m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect());
-    if (!maps.isEmpty())
-        m_link_hints_present = true;
-    return maps;
+    int i = 10;
+    QRectF viewport = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
+    QMap<int, Model::LinkInfo> map;
+
+    m_link_hints.clear();
+    if (m_link_items.isEmpty())
+        return {};
+
+    for (const auto &link : m_link_items)
+    {
+        auto dest = m_model->resolveLink(link->URI());
+        map[i]    = (Model::LinkInfo){.uri = QString(link->URI()), .dest = dest};
+
+        float w = 0.25 * m_scale_factor;
+        auto link_rect = link->rect();
+        QRect rect(link_rect.x(), link_rect.y(), w, w);
+
+        if (rect.intersects(viewport.toRect()))
+        {
+            LinkHint *linkHint = new LinkHint(rect, m_link_hint_bg, m_link_hint_fg, i, w * 0.5);
+            m_link_hints.append(linkHint);
+            m_gscene->addItem(linkHint);
+        }
+        i++;
+    }
+    m_link_hints_present = true;
+
+    return map;
 }
 
 void
@@ -1641,9 +1670,12 @@ DocumentView::Fit(DocumentView::FitMode mode) noexcept
     }
 }
 
-void DocumentView::clearKBHintsOverlay() noexcept
+void
+DocumentView::clearKBHintsOverlay() noexcept
 {
-    for (auto &link : m_model->linkHints())
+    for (auto &link : m_link_hints)
         m_gscene->removeItem(link);
     m_link_hints_present = false;
 }
+
+

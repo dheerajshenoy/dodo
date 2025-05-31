@@ -38,6 +38,7 @@ public:
     void readArgsParser(argparse::ArgumentParser &argparser) noexcept;
     void construct() noexcept;
 
+
 protected:
     void resizeEvent(QResizeEvent *e) override;
     void closeEvent(QCloseEvent *e) override;
