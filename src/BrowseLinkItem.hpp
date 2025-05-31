@@ -31,8 +31,8 @@ public:
         External
     };
 
-    BrowseLinkItem(const QRectF &rect, const QString &link, LinkType type, bool boundary = false)
-        : QGraphicsRectItem(rect), _link(link), _type(type)
+    BrowseLinkItem(const QRectF &rect, const QString &link, LinkType type, bool boundary = false, QGraphicsItem *parent = nullptr)
+        : QGraphicsRectItem(rect, parent), _link(link), _type(type)
     {
         if (!boundary)
             setPen(Qt::NoPen);
