@@ -21,7 +21,7 @@ DocumentView::DocumentView(const QString &fileName, const DodoConfig &config, QW
     m_page_history_list.reserve(m_page_history_limit);
     m_gview->setPageNavWithMouse(m_page_nav_with_mouse);
     m_pix_item->setScale(m_scale_factor);
-    m_model      = new Model(m_gscene);
+    m_model      = new Model(m_gscene, this);
     m_vscrollbar = m_gview->verticalScrollBar();
     m_gscene->addItem(m_pix_item);
     m_gview->setPixmapItem(m_pix_item);
@@ -190,7 +190,7 @@ DocumentView::initConnections() noexcept
     connect(m_gview, &GraphicsView::annotSelectRequested, m_model, [&](const QRectF &area)
     {
         m_selected_annots = m_model->getAnnotationsInArea(area);
-        // TODO: Show number of annots selected ?
+        // FIXME: Show number of annots selected ?
         selectAnnots();
     });
 
@@ -305,27 +305,25 @@ DocumentView::CloseFile() noexcept
     m_filename.clear();
     emit fileNameChanged(QString());
 
-    // TODO:
-    // if (m_owidget)
-    // {
-    //     m_owidget->close();
-    //     m_owidget->deleteLater();
-    //     m_owidget = nullptr;
-    // }
-    //
-    // if (m_propsWidget)
-    // {
-    //     m_propsWidget->close();
-    //     m_propsWidget->deleteLater();
-    //     m_propsWidget = nullptr;
-    // }
+    if (m_owidget)
+    {
+        m_owidget->close();
+        m_owidget->deleteLater();
+        m_owidget = nullptr;
+    }
+
+    if (m_propsWidget)
+    {
+        m_propsWidget->close();
+        m_propsWidget->deleteLater();
+        m_propsWidget = nullptr;
+    }
 
     if (!m_pix_item->pixmap().isNull())
         m_pix_item->setPixmap(QPixmap());
     m_gview->setSceneRect(m_pix_item->boundingRect());
     m_model->closeFile();
     m_gview->setEnabled(false);
-    // updateUiEnabledState(); TODO:
 }
 
 void
