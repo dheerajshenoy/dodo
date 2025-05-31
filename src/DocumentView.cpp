@@ -1168,97 +1168,14 @@ DocumentView::SaveAsFile() noexcept
     }
 }
 
-void
-DocumentView::VisitLinkKB() noexcept
+QMap<int, Model::LinkInfo>
+DocumentView::LinkKB() noexcept
 {
-    if (!m_model->valid())
-        return;
-
-    this->installEventFilter(this);
-    m_model->visitLinkKB(m_pageno, m_scale_factor);
-    m_link_hint_mode = LinkHintMode::Visit;
-    m_link_hint_map  = m_model->hintToLinkMap();
-}
-
-void
-DocumentView::CopyLinkKB() noexcept
-{
-    if (!m_model->valid())
-        return;
-
-    this->installEventFilter(this);
-    m_model->visitLinkKB(m_pageno, m_scale_factor);
-    m_link_hint_mode = LinkHintMode::Copy;
-    m_link_hint_map  = m_model->hintToLinkMap();
-}
-
-bool
-DocumentView::eventFilter(QObject *obj, QEvent *event)
-{
-    if (m_link_hint_map.isEmpty())
-    {
-        m_currentHintInput.clear();
-        qWarning() << "No links found to show hints";
-        return true;
-    }
-    if (event->type() == QEvent::KeyPress)
-    {
-        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-        if (keyEvent->key() == Qt::Key_Escape)
-        {
-            m_currentHintInput.clear();
-            m_model->clearKBHintsOverlay();
-            this->removeEventFilter(this);
-            return true;
-        }
-        else if (keyEvent->key() == Qt::Key_Backspace)
-        {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-            m_currentHintInput.removeLast();
-#else
-            if (!m_currentHintInput.isEmpty())
-                m_currentHintInput.chop(1); // Removes the last character
-#endif
-            return true;
-        }
-
-        m_currentHintInput += keyEvent->text();
-        if (m_link_hint_map.contains(m_currentHintInput))
-        {
-            Model::LinkInfo info = m_link_hint_map[m_currentHintInput];
-
-            switch (m_link_hint_mode)
-            {
-                case LinkHintMode::None:
-                    break;
-                case LinkHintMode::Visit:
-                    m_model->followLink(info);
-                    break;
-
-                case LinkHintMode::Copy:
-                    emit clipboardContentChanged(info.uri);
-                    break;
-            }
-
-            m_currentHintInput.clear();
-            m_link_hint_map.clear();
-            m_model->clearKBHintsOverlay();
-            this->removeEventFilter(this);
-            return true;
-        }
-        keyEvent->accept();
-        return true;
-    }
-
-    if (event->type() == QEvent::ShortcutOverride)
-    {
-        QShortcutEvent *stEvent = static_cast<QShortcutEvent *>(event);
-        stEvent->accept();
-        return true;
-    }
-
-    // Let other events pass through
-    return QObject::eventFilter(obj, event);
+    qDebug() << m_pageno;
+    auto maps = m_model->LinkKB(m_pageno, m_scale_factor, m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect());
+    if (!maps.isEmpty())
+        m_link_hints_present = true;
+    return maps;
 }
 
 void
