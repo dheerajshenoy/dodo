@@ -279,6 +279,7 @@ Model::renderPage(int pageno, float zoom, float rotation) noexcept
     if (!m_ctx)
         return qpix;
 
+    m_pageno = pageno;
     float scale = zoom * m_dpr;
     fz_device *dev{nullptr};
     fz_pixmap *pix{nullptr};
@@ -291,7 +292,10 @@ Model::renderPage(int pageno, float zoom, float rotation) noexcept
         m_page = fz_load_page(m_ctx, m_doc, pageno);
 
         if (!m_page)
+        {
+            qDebug() << "Cannot load page";
             return qpix;
+        }
 
         fz_rect bounds;
         bounds        = fz_bound_page(m_ctx, m_page);
@@ -306,6 +310,7 @@ Model::renderPage(int pageno, float zoom, float rotation) noexcept
         pix = fz_new_pixmap_with_bbox(m_ctx, m_colorspace, bbox, nullptr, 1);
         if (!pix)
         {
+            qDebug() << "Cannot create pixmap";
             return qpix;
         }
 
@@ -315,7 +320,7 @@ Model::renderPage(int pageno, float zoom, float rotation) noexcept
 
         if (!dev)
         {
-            fz_drop_pixmap(m_ctx, pix);
+            qDebug() << "Cannot create device";
             return qpix;
         }
 
@@ -349,11 +354,10 @@ Model::renderPage(int pageno, float zoom, float rotation) noexcept
                 break;
             default:
                 qWarning() << "Unsupported pixmap component count:" << n;
-                fz_drop_pixmap(m_ctx, pix);
-                fz_drop_page(m_ctx, m_page);
                 return qpix;
         }
 
+        image = image.copy();
         image.setDotsPerMeterX(static_cast<int>((m_dpi * 1000) / 25.4));
         image.setDotsPerMeterY(static_cast<int>((m_dpi * 1000) / 25.4));
         image.setDevicePixelRatio(m_dpr);
@@ -368,7 +372,7 @@ Model::renderPage(int pageno, float zoom, float rotation) noexcept
     }
     fz_catch(m_ctx)
     {
-        qWarning() << "Render failed for page" << pageno;
+        qWarning() << "Render failed: " << fz_caught_message(m_ctx);
     }
 
     return qpix;

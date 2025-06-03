@@ -340,11 +340,9 @@ DocumentView::clearPixmapItems() noexcept
 
 /* Function for opening the file using the model.
    For internal usage only */
-
 void
 DocumentView::openFile(const QString &fileName) noexcept
 {
-
     if (m_model->valid())
         CloseFile();
 
@@ -372,7 +370,6 @@ DocumentView::openFile(const QString &fileName) noexcept
     m_pageno      = -1;
     m_total_pages = m_model->numPages();
     emit totalPageCountChanged(m_total_pages);
-
     emit searchModeChanged(false);
 
     m_basename = QFileInfo(m_filename).fileName();
@@ -655,6 +652,7 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
 void
 DocumentView::renderLinkHints() noexcept
 {
+
 }
 
 void

@@ -13,6 +13,7 @@
 dodo::dodo() noexcept
 {
     setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
+    QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 }
 
 dodo::~dodo() noexcept
@@ -181,9 +182,6 @@ dodo::initMenubar() noexcept
 void
 dodo::initDB() noexcept
 {
-    if (!m_config.remember_last_visited)
-        return;
-
     m_last_pages_db = QSqlDatabase::addDatabase("QSQLITE");
     m_last_pages_db.setDatabaseName(m_config_dir.filePath("last_pages.db"));
     m_last_pages_db.open();
@@ -1278,14 +1276,16 @@ void
 dodo::initConnections() noexcept
 {
     connect(m_tab_widget, &QTabWidget::currentChanged, this, &dodo::handleCurrentTabChanged);
+    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Unset);
+    m_dpr = m_tab_widget->window()->devicePixelRatioF();
+    qDebug() << m_dpr;
 
     auto win = window()->windowHandle();
     if (win)
     {
         connect(win, &QWindow::screenChanged, this, [&](QScreen *)
         {
-            m_dpr = static_cast<QPaintDevice *>(this)->devicePixelRatioF();
-
+            m_dpr = this->devicePixelRatioF();
             if (m_doc)
                 m_doc->setDPR(m_dpr);
         });

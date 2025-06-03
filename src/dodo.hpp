@@ -160,7 +160,7 @@ private:
     QAction *m_actionAnnotEdit{nullptr};
 
     DodoConfig m_config;
-    float m_dpr;
+    float m_dpr{1.0f};
 
     enum class LinkHintMode
     {
