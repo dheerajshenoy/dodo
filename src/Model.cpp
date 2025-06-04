@@ -141,6 +141,8 @@ Model::clonedContext() noexcept
 {
     if (m_ctx)
         return fz_clone_context(m_ctx);
+
+    return nullptr;
 }
 
 void
