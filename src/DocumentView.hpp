@@ -64,8 +64,7 @@ public:
 
         CacheValue(const QPixmap &pix, const QList<BrowseLinkItem *> &lnks, QList<HighlightItem *> annoth)
             : pixmap(pix), links(lnks), annot_highlights(annoth)
-        {
-        }
+        {}
     };
 
     struct HistoryLocation
@@ -78,7 +77,7 @@ public:
     {
         return m_auto_resize;
     }
-    // void OpenFile(const QString &filePath) noexcept;
+
     void setDPR(qreal DPR) noexcept;
     void CloseFile() noexcept;
     void FileProperties() noexcept;
@@ -130,6 +129,7 @@ public:
     {
         m_link_hint_fg = QColor::fromRgba(fg);
     }
+
     inline void setLinkHintBackground(int bg) noexcept
     {
         m_link_hint_bg = QColor::fromRgba(bg);

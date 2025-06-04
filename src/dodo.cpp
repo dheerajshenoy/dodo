@@ -1098,13 +1098,11 @@ dodo::SelectAll() noexcept
 
 void
 dodo::FitNone() noexcept
-{
-}
+{}
 
 void
 dodo::TextSelectionMode() noexcept
-{
-}
+{}
 
 void
 dodo::OpenFiles(const std::vector<std::string> &files) noexcept
@@ -1752,5 +1750,3 @@ dodo::SaveAsSession(const QString &sessionPath) noexcept
         QMessageBox::critical(this, "Save As Session", "Failed to save session.");
     }
 }
-
-
