@@ -1295,8 +1295,6 @@ dodo::initConnections() noexcept
         QWidget *widget   = m_tab_widget->widget(index);
         DocumentView *doc = qobject_cast<DocumentView *>(widget);
 
-        doc->close();
-
         if (doc)
             doc->CloseFile();
 
@@ -1346,7 +1344,6 @@ dodo::closeEvent(QCloseEvent *e)
         DocumentView *doc = qobject_cast<DocumentView *>(m_tab_widget->widget(i));
         if (doc)
         {
-
             // Unsaved Changes
             if (doc->model()->hasUnsavedChanges())
             {
@@ -1371,7 +1368,6 @@ dodo::closeEvent(QCloseEvent *e)
                 }
             }
 
-            doc->close();
         }
     }
     e->accept();

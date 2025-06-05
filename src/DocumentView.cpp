@@ -1054,8 +1054,8 @@ DocumentView::closeEvent(QCloseEvent *e)
     if (m_model->hasUnsavedChanges())
     {
         auto reply = QMessageBox::question(
-            this, "Unsaved Changes", "There are unsaved changes in this document. Do you want to quit ?",
-            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+                this, "Unsaved Changes", "There are unsaved changes in this document. Do you want to quit ?",
+                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
 
         switch (reply)
         {
