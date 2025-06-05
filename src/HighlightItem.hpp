@@ -39,7 +39,7 @@ public:
 
 signals:
     void annotDeleteRequested(int index);
-    void annotColorChangeRequested(int index);
+    void annotColorChangeRequested(int index, const QColor &color);
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *e) override
@@ -69,7 +69,8 @@ protected:
 
         connect(deleteAction, &QAction::triggered, this, [this]() { emit annotDeleteRequested(m_index); });
 
-        connect(changeColorAction, &QAction::triggered, this, [this]() { emit annotColorChangeRequested(m_index); });
+        connect(changeColorAction, &QAction::triggered, this,
+                [this]() { emit annotColorChangeRequested(m_index, this->brush().color()); });
 
         menu.addAction(deleteAction);
         menu.addAction(changeColorAction);
