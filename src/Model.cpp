@@ -535,6 +535,8 @@ Model::getAnnotations() noexcept
             return annots;
 
         pdf_annot *annot = pdf_first_annot(m_ctx, m_pdfpage);
+        int n;
+        float color[3];
         while (annot)
         {
             fz_rect bbox = pdf_bound_annot(m_ctx, annot);
@@ -542,6 +544,49 @@ Model::getAnnotations() noexcept
             QRectF qrect(bbox.x0 * m_inv_dpr, bbox.y0 * m_inv_dpr, (bbox.x1 - bbox.x0) * m_inv_dpr,
                          (bbox.y1 - bbox.y0) * m_inv_dpr);
             HighlightItem *annot_item = new HighlightItem(qrect, index);
+
+            switch (pdf_annot_type(m_ctx, annot))
+            {
+                case PDF_ANNOT_TEXT:
+                case PDF_ANNOT_LINK:
+                case PDF_ANNOT_FREE_TEXT:
+                case PDF_ANNOT_LINE:
+                case PDF_ANNOT_SQUARE:
+                    pdf_annot_interior_color(m_ctx, annot, &n, color);
+                    break;
+
+                case PDF_ANNOT_CIRCLE:
+                case PDF_ANNOT_POLYGON:
+                case PDF_ANNOT_POLY_LINE:
+                case PDF_ANNOT_HIGHLIGHT:
+                    pdf_annot_color(m_ctx, annot, &n, color);
+                    break;
+
+                case PDF_ANNOT_UNDERLINE:
+                case PDF_ANNOT_SQUIGGLY:
+                case PDF_ANNOT_STRIKE_OUT:
+                case PDF_ANNOT_REDACT:
+                case PDF_ANNOT_STAMP:
+                case PDF_ANNOT_CARET:
+                case PDF_ANNOT_INK:
+                case PDF_ANNOT_POPUP:
+                case PDF_ANNOT_FILE_ATTACHMENT:
+                case PDF_ANNOT_SOUND:
+                case PDF_ANNOT_MOVIE:
+                case PDF_ANNOT_RICH_MEDIA:
+                case PDF_ANNOT_WIDGET:
+                case PDF_ANNOT_SCREEN:
+                case PDF_ANNOT_PRINTER_MARK:
+                case PDF_ANNOT_TRAP_NET:
+                case PDF_ANNOT_WATERMARK:
+                case PDF_ANNOT_3D:
+                case PDF_ANNOT_PROJECTION:
+                case PDF_ANNOT_UNKNOWN:
+                    break;
+            }
+
+            auto alpha = pdf_annot_opacity(m_ctx, annot);
+            annot_item->setBrush(QColor::fromRgbF(color[0], color[1], color[2], alpha));
             annot_item->setData(0, "annot");
             annot_item->setData(1, index);
             annots.push_back(annot_item);
