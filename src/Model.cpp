@@ -234,7 +234,7 @@ Model::reloadDocument() noexcept
         if (!m_doc)
             return;
 
-        m_page = fz_load_page(m_ctx, m_doc, m_pageno);
+        m_page      = fz_load_page(m_ctx, m_doc, m_pageno);
         m_pdfdoc    = pdf_specifics(m_ctx, m_doc);
         m_pdfpage   = pdf_page_from_fz_page(m_ctx, m_page);
         m_text_page = fz_new_stext_page_from_page(m_ctx, m_page, nullptr);
@@ -242,8 +242,8 @@ Model::reloadDocument() noexcept
     fz_catch(m_ctx)
     {
         qWarning() << "Exception when opening the document";
-        m_doc = nullptr;
-        m_page = nullptr;
+        m_doc       = nullptr;
+        m_page      = nullptr;
         m_text_page = nullptr;
         return;
     }
