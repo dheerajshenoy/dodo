@@ -7,6 +7,7 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsScene>
 #include <QImage>
+#include <qnamespace.h>
 extern "C"
 {
 #include <mupdf/fitz.h>
@@ -25,6 +26,20 @@ extern "C"
 }
 #include <QStringDecoder>
 #include <qgraphicsitem.h>
+
+/**
+ * @brief Clean up image data when the last copy of the QImage is destoryed.
+ */
+static inline void
+imageCleanupHandler(void *data)
+{
+    unsigned char *samples = static_cast<unsigned char *>(data);
+
+    if (samples)
+    {
+        delete[] samples;
+    }
+}
 
 fz_quad
 union_quad(const fz_quad &a, const fz_quad &b)
@@ -281,16 +296,15 @@ Model::renderPage(int pageno, float zoom, float rotation) noexcept
     if (!m_ctx)
         return qpix;
 
-    m_pageno = pageno;
     float scale = zoom * m_dpr;
     fz_device *dev{nullptr};
     fz_pixmap *pix{nullptr};
 
-    fz_drop_stext_page(m_ctx, m_text_page);
-    fz_drop_page(m_ctx, m_page);
-
     fz_try(m_ctx)
     {
+        fz_drop_stext_page(m_ctx, m_text_page);
+        fz_drop_page(m_ctx, m_page);
+
         m_page = fz_load_page(m_ctx, m_doc, pageno);
 
         if (!m_page)
@@ -336,34 +350,40 @@ Model::renderPage(int pageno, float zoom, float rotation) noexcept
 
         // fz_gamma_pixmap(m_ctx, pix, 1.0f);
         // Convert fz_pixmap to QImage
-        m_width                = fz_pixmap_width(m_ctx, pix);
-        m_height               = fz_pixmap_height(m_ctx, pix);
-        unsigned char *samples = fz_pixmap_samples(m_ctx, pix);
-        int stride             = fz_pixmap_stride(m_ctx, pix);
-        int n                  = fz_pixmap_components(m_ctx, pix);
-        QImage image;
+        m_width                       = fz_pixmap_width(m_ctx, pix);
+        m_height                      = fz_pixmap_height(m_ctx, pix);
+        int stride                    = fz_pixmap_stride(m_ctx, pix);
+        int n                         = fz_pixmap_components(m_ctx, pix);
+        int size                      = m_width * m_height * n;
+        unsigned char *samples        = fz_pixmap_samples(m_ctx, pix);
+        unsigned char *copyed_samples = new unsigned char[size];
+        memcpy(copyed_samples, samples, size);
+        QImage::Format fmt;
 
         switch (n)
         {
             case 1:
-                image = QImage(samples, m_width, m_height, stride, QImage::Format_Grayscale8);
+                fmt = QImage::Format_Grayscale8;
                 break;
             case 3:
-                image = QImage(samples, m_width, m_height, stride, QImage::Format_RGB888);
+                fmt = QImage::Format_RGB888;
                 break;
             case 4:
-                image = QImage(samples, m_width, m_height, stride, QImage::Format_RGBA8888);
+                fmt = QImage::Format_RGBA8888;
                 break;
             default:
                 qWarning() << "Unsupported pixmap component count:" << n;
                 return qpix;
         }
 
-        image = image.copy();
+        // No .copy() — let QImage own the buffer to avoid copying
+        QImage image(copyed_samples, m_width, m_height, stride, fmt, imageCleanupHandler, copyed_samples);
+
         image.setDotsPerMeterX(static_cast<int>((m_dpi * 1000) / 25.4));
         image.setDotsPerMeterY(static_cast<int>((m_dpi * 1000) / 25.4));
         image.setDevicePixelRatio(m_dpr);
-        qpix = QPixmap::fromImage(image);
+
+        qpix = QPixmap::fromImage(image, Qt::NoFormatConversion);
         qpix.setDevicePixelRatio(m_dpr);
     }
     fz_always(m_ctx)
@@ -813,7 +833,7 @@ Model::followLink(const LinkInfo &info) noexcept
         {
             fz_link_dest dest = fz_resolve_link_dest(m_ctx, m_doc, link_uri);
             int pageno        = dest.loc.page;
-            auto loc          = (BrowseLinkItem::Location){.x = dest.x, .y = (m_page_height - dest.y), .zoom = dest.zoom};
+            auto loc = (BrowseLinkItem::Location){.x = dest.x, .y = (m_page_height - dest.y), .zoom = dest.zoom};
             switch (dest.type)
             {
 
@@ -853,142 +873,193 @@ Model::followLink(const LinkInfo &info) noexcept
     }
 }
 
-    bool Model::hasUnsavedChanges() noexcept
-    {
-        if (m_pdfdoc && pdf_has_unsaved_changes(m_ctx, m_pdfdoc))
-            return true;
-        return false;
-    }
+bool
+Model::hasUnsavedChanges() noexcept
+{
+    if (m_pdfdoc && pdf_has_unsaved_changes(m_ctx, m_pdfdoc))
+        return true;
+    return false;
+}
 
-    QList<QPair<QString, QString>> Model::extractPDFProperties() noexcept
-    {
-        QList<QPair<QString, QString>> props;
+QList<QPair<QString, QString>>
+Model::extractPDFProperties() noexcept
+{
+    QList<QPair<QString, QString>> props;
 
-        if (!m_ctx || !m_doc)
-            return props;
-
-        pdf_document *pdfdoc = pdf_specifics(m_ctx, m_doc);
-
-        if (!pdfdoc)
-            return props;
-
-        // ========== Info Dictionary ==========
-        pdf_obj *info = pdf_dict_get(m_ctx, pdf_trailer(m_ctx, pdfdoc), PDF_NAME(Info));
-        if (info && pdf_is_dict(m_ctx, info))
-        {
-            int len = pdf_dict_len(m_ctx, info);
-            for (int i = 0; i < len; ++i)
-            {
-                pdf_obj *keyObj = pdf_dict_get_key(m_ctx, info, i);
-                pdf_obj *valObj = pdf_dict_get_val(m_ctx, info, i);
-
-                if (!pdf_is_name(m_ctx, keyObj))
-                    continue;
-
-                QString key = QString::fromLatin1(pdf_to_name(m_ctx, keyObj));
-                QString val;
-
-                if (pdf_is_string(m_ctx, valObj))
-                {
-                    const char *s = pdf_to_str_buf(m_ctx, valObj);
-                    int slen      = pdf_to_str_len(m_ctx, valObj);
-
-                    if (slen >= 2 && (quint8)s[0] == 0xFE && (quint8)s[1] == 0xFF)
-                    {
-                        QStringDecoder decoder(QStringDecoder::Utf16BE);
-                        val = decoder(QByteArray(s + 2, slen - 2));
-                    }
-                    else
-                    {
-                        val = QString::fromUtf8(s, slen);
-                    }
-                }
-                else if (pdf_is_int(m_ctx, valObj))
-                    val = QString::number(pdf_to_int(m_ctx, valObj));
-                else if (pdf_is_bool(m_ctx, valObj))
-                    val = pdf_to_bool(m_ctx, valObj) ? "true" : "false";
-                else if (pdf_is_name(m_ctx, valObj))
-                    val = QString::fromLatin1(pdf_to_name(m_ctx, valObj));
-                else
-                    val = QStringLiteral("[Non-string value]");
-
-                props.append({key, val});
-            }
-        }
-
-        // ========== Add Derived Properties ==========
-        props.append(qMakePair("Page Count", QString::number(pdf_count_pages(m_ctx, pdfdoc))));
-        props.append(qMakePair("Encrypted", pdf_needs_password(m_ctx, pdfdoc) ? "Yes" : "No"));
-        props.append(qMakePair("PDF Version", QString("%1.%2").arg(pdfdoc->version / 10).arg(pdfdoc->version % 10)));
-        props.append(qMakePair("File Path", m_filename));
-
+    if (!m_ctx || !m_doc)
         return props;
-    }
 
-    void Model::toggleInvertColor() noexcept
+    pdf_document *pdfdoc = pdf_specifics(m_ctx, m_doc);
+
+    if (!pdfdoc)
+        return props;
+
+    // ========== Info Dictionary ==========
+    pdf_obj *info = pdf_dict_get(m_ctx, pdf_trailer(m_ctx, pdfdoc), PDF_NAME(Info));
+    if (info && pdf_is_dict(m_ctx, info))
     {
-        m_invert_color_mode = !m_invert_color_mode;
-    }
-
-    void Model::apply_night_mode(fz_pixmap * pixmap) noexcept
-    {
-        unsigned char *samples = fz_pixmap_samples(m_ctx, pixmap);
-        int n                  = fz_pixmap_components(m_ctx, pixmap); // usually 4 for RGBA
-        int w                  = fz_pixmap_width(m_ctx, pixmap);
-        int h                  = fz_pixmap_height(m_ctx, pixmap);
-        int stride             = fz_pixmap_stride(m_ctx, pixmap);
-
-        for (int y = 0; y < h; ++y)
+        int len = pdf_dict_len(m_ctx, info);
+        for (int i = 0; i < len; ++i)
         {
-            unsigned char *row = samples + y * stride;
+            pdf_obj *keyObj = pdf_dict_get_key(m_ctx, info, i);
+            pdf_obj *valObj = pdf_dict_get_val(m_ctx, info, i);
 
-            for (int x = 0; x < w; ++x)
+            if (!pdf_is_name(m_ctx, keyObj))
+                continue;
+
+            QString key = QString::fromLatin1(pdf_to_name(m_ctx, keyObj));
+            QString val;
+
+            if (pdf_is_string(m_ctx, valObj))
             {
-                unsigned char *px = row + x * n;
+                const char *s = pdf_to_str_buf(m_ctx, valObj);
+                int slen      = pdf_to_str_len(m_ctx, valObj);
 
-                // Skip alpha channel
-                for (int c = 0; c < n - 1; ++c)
+                if (slen >= 2 && (quint8)s[0] == 0xFE && (quint8)s[1] == 0xFF)
                 {
-                    // Soft inversion: shift colors toward darker tones
-                    // Pure white (255) becomes 0 (black)
-                    // Pure black (0) becomes 255 (white)
-                    // Midtones become dimmed
-                    if (fz_pixmap_colorspace(m_ctx, pixmap) != nullptr && c < n - 1)
-                        px[c] = 255 - px[c];
+                    QStringDecoder decoder(QStringDecoder::Utf16BE);
+                    val = decoder(QByteArray(s + 2, slen - 2));
+                }
+                else
+                {
+                    val = QString::fromUtf8(s, slen);
                 }
             }
+            else if (pdf_is_int(m_ctx, valObj))
+                val = QString::number(pdf_to_int(m_ctx, valObj));
+            else if (pdf_is_bool(m_ctx, valObj))
+                val = pdf_to_bool(m_ctx, valObj) ? "true" : "false";
+            else if (pdf_is_name(m_ctx, valObj))
+                val = QString::fromLatin1(pdf_to_name(m_ctx, valObj));
+            else
+                val = QStringLiteral("[Non-string value]");
+
+            props.append({key, val});
         }
     }
 
-    void Model::highlightHelper(const QPointF &selectionStart, const QPointF &selectionEnd, fz_point &a,
-                                fz_point &b) noexcept
+    // ========== Add Derived Properties ==========
+    props.append(qMakePair("Page Count", QString::number(pdf_count_pages(m_ctx, pdfdoc))));
+    props.append(qMakePair("Encrypted", pdf_needs_password(m_ctx, pdfdoc) ? "Yes" : "No"));
+    props.append(qMakePair("PDF Version", QString("%1.%2").arg(pdfdoc->version / 10).arg(pdfdoc->version % 10)));
+    props.append(qMakePair("File Path", m_filename));
+
+    return props;
+}
+
+void
+Model::toggleInvertColor() noexcept
+{
+    m_invert_color_mode = !m_invert_color_mode;
+}
+
+void
+Model::apply_night_mode(fz_pixmap *pixmap) noexcept
+{
+    unsigned char *samples = fz_pixmap_samples(m_ctx, pixmap);
+    int n                  = fz_pixmap_components(m_ctx, pixmap); // usually 4 for RGBA
+    int w                  = fz_pixmap_width(m_ctx, pixmap);
+    int h                  = fz_pixmap_height(m_ctx, pixmap);
+    int stride             = fz_pixmap_stride(m_ctx, pixmap);
+
+    for (int y = 0; y < h; ++y)
     {
-        a = {static_cast<float>(selectionStart.x()), static_cast<float>(selectionStart.y())};
-        b = {static_cast<float>(selectionEnd.x()), static_cast<float>(selectionEnd.y())};
+        unsigned char *row = samples + y * stride;
 
-        fz_matrix inv_transform = fz_invert_matrix(m_transform);
-        a                       = fz_transform_point(a, inv_transform);
-        b                       = fz_transform_point(b, inv_transform);
-
-        fz_matrix dpr_mat = fz_scale(m_dpr, m_dpr);
-
-        a = fz_transform_point(a, dpr_mat);
-        b = fz_transform_point(b, dpr_mat);
-    }
-
-    void Model::highlightQuad(fz_quad quad) noexcept
-    {
-        for (auto *object : m_scene->items())
+        for (int x = 0; x < w; ++x)
         {
-            if (object->data(0).toString() == "selection")
+            unsigned char *px = row + x * n;
+
+            // Skip alpha channel
+            for (int c = 0; c < n - 1; ++c)
             {
-                m_scene->removeItem(object);
+                // Soft inversion: shift colors toward darker tones
+                // Pure white (255) becomes 0 (black)
+                // Pure black (0) becomes 255 (white)
+                // Midtones become dimmed
+                if (fz_pixmap_colorspace(m_ctx, pixmap) != nullptr && c < n - 1)
+                    px[c] = 255 - px[c];
             }
         }
+    }
+}
 
-        QBrush brush(QColor::fromRgba(m_selection_color));
+void
+Model::highlightHelper(const QPointF &selectionStart, const QPointF &selectionEnd, fz_point &a, fz_point &b) noexcept
+{
+    a = {static_cast<float>(selectionStart.x()), static_cast<float>(selectionStart.y())};
+    b = {static_cast<float>(selectionEnd.x()), static_cast<float>(selectionEnd.y())};
 
-        fz_quad q = fz_transform_quad(quad, m_transform);
+    fz_matrix inv_transform = fz_invert_matrix(m_transform);
+    a                       = fz_transform_point(a, inv_transform);
+    b                       = fz_transform_point(b, inv_transform);
+
+    fz_matrix dpr_mat = fz_scale(m_dpr, m_dpr);
+
+    a = fz_transform_point(a, dpr_mat);
+    b = fz_transform_point(b, dpr_mat);
+}
+
+void
+Model::highlightQuad(fz_quad quad) noexcept
+{
+    for (auto *object : m_scene->items())
+    {
+        if (object->data(0).toString() == "selection")
+        {
+            m_scene->removeItem(object);
+        }
+    }
+
+    QBrush brush(QColor::fromRgba(m_selection_color));
+
+    fz_quad q = fz_transform_quad(quad, m_transform);
+
+    QPolygonF poly;
+    poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr) << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
+         << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr) << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
+
+    QGraphicsPolygonItem *item = m_scene->addPolygon(poly, Qt::NoPen, brush);
+    item->setData(0, "selection");
+    // item->setZValue(10); // Ensure it draws over the page
+    item->setFlag(QGraphicsItem::ItemIsSelectable, false);
+    item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
+}
+
+void
+Model::highlightTextSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
+{
+    for (auto *object : m_scene->items())
+    {
+        if (object->data(0).toString() == "selection")
+        {
+            m_scene->removeItem(object);
+        }
+    }
+
+    fz_point a, b;
+
+    highlightHelper(selectionStart, selectionEnd, a, b);
+
+    static fz_quad hits[1000];
+    int count = 0;
+
+    fz_try(m_ctx)
+    {
+        fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_CHARS);
+        count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, 1000);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Selection failed";
+        return;
+    }
+
+    QBrush brush(QColor::fromRgba(m_selection_color));
+
+    for (int i = 0; i < count; ++i)
+    {
+        fz_quad q = fz_transform_quad(hits[i], m_transform);
 
         QPolygonF poly;
         poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr) << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
@@ -1000,259 +1071,165 @@ Model::followLink(const LinkInfo &info) noexcept
         item->setFlag(QGraphicsItem::ItemIsSelectable, false);
         item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
     }
+}
 
-    void Model::highlightTextSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
+QString
+Model::getSelectionText(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
+{
+    QString text;
+    fz_point a, b;
+    highlightHelper(selectionStart, selectionEnd, a, b);
+    char *selected{nullptr};
+
+    fz_try(m_ctx)
     {
-        for (auto *object : m_scene->items())
-        {
-            if (object->data(0).toString() == "selection")
-            {
-                m_scene->removeItem(object);
-            }
-        }
+        // fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
+        selected = fz_copy_selection(m_ctx, m_text_page, a, b, 0);
+        text     = QString::fromUtf8(selected);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Selection failed";
+    }
 
-        fz_point a, b;
+    if (selected)
+        delete[] selected;
+    return text;
+}
 
-        highlightHelper(selectionStart, selectionEnd, a, b);
+void
+Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
+{
+    fz_point a, b;
+    highlightHelper(selectionStart, selectionEnd, a, b);
 
-        static fz_quad hits[1000];
-        int count = 0;
+    static fz_quad hits[1000];
+    int count = 0;
 
-        fz_try(m_ctx)
-        {
-            fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_CHARS);
-            count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, 1000);
-        }
-        fz_catch(m_ctx)
-        {
-            qWarning() << "Selection failed";
-            return;
-        }
+    fz_try(m_ctx)
+    {
+        // fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
+        count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, 1000);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Selection failed";
+        return;
+    }
 
-        QBrush brush(QColor::fromRgba(m_selection_color));
-
+    fz_try(m_ctx)
+    {
         for (int i = 0; i < count; ++i)
         {
-            fz_quad q = fz_transform_quad(hits[i], m_transform);
+            pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
 
-            QPolygonF poly;
-            poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr) << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
-                 << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr) << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
-
-            QGraphicsPolygonItem *item = m_scene->addPolygon(poly, Qt::NoPen, brush);
-            item->setData(0, "selection");
-            // item->setZValue(10); // Ensure it draws over the page
-            item->setFlag(QGraphicsItem::ItemIsSelectable, false);
-            item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
-        }
-    }
-
-    QString Model::getSelectionText(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
-    {
-        QString text;
-        fz_point a, b;
-        highlightHelper(selectionStart, selectionEnd, a, b);
-        char *selected{nullptr};
-
-        fz_try(m_ctx)
-        {
-            // fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
-            selected = fz_copy_selection(m_ctx, m_text_page, a, b, 0);
-            text     = QString::fromUtf8(selected);
-        }
-        fz_catch(m_ctx)
-        {
-            qWarning() << "Selection failed";
-        }
-
-        if (selected)
-            delete[] selected;
-        return text;
-    }
-
-    void Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
-    {
-        fz_point a, b;
-        highlightHelper(selectionStart, selectionEnd, a, b);
-
-        static fz_quad hits[1000];
-        int count = 0;
-
-        fz_try(m_ctx)
-        {
-            // fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
-            count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, 1000);
-        }
-        fz_catch(m_ctx)
-        {
-            qWarning() << "Selection failed";
-            return;
-        }
-
-        fz_try(m_ctx)
-        {
-            for (int i = 0; i < count; ++i)
+            if (!annot)
             {
-                pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
-
-                if (!annot)
-                {
-                    return;
-                }
-
-                fz_quad q = hits[i];
-                pdf_set_annot_quad_points(m_ctx, annot, 1, &q);
-                pdf_set_annot_color(m_ctx, annot, 3, m_highlight_color);
-                pdf_set_annot_opacity(m_ctx, annot, m_highlight_color[3]);
-                pdf_update_annot(m_ctx, annot);
-                pdf_drop_annot(m_ctx, annot);
+                return;
             }
-        }
-        fz_catch(m_ctx)
-        {
-            qWarning() << "Cannot add highlight annotation!: " << fz_caught_message(m_ctx);
+
+            fz_quad q = hits[i];
+            pdf_set_annot_quad_points(m_ctx, annot, 1, &q);
+            pdf_set_annot_color(m_ctx, annot, 3, m_highlight_color);
+            pdf_set_annot_opacity(m_ctx, annot, m_highlight_color[3]);
+            pdf_update_annot(m_ctx, annot);
+            pdf_drop_annot(m_ctx, annot);
         }
     }
-
-    void Model::annotDeleteRequested(int index) noexcept
+    fz_catch(m_ctx)
     {
-        pdf_annot *annot = get_annot_by_index(index);
+        qWarning() << "Cannot add highlight annotation!: " << fz_caught_message(m_ctx);
+    }
+}
+
+void
+Model::annotDeleteRequested(int index) noexcept
+{
+    pdf_annot *annot = get_annot_by_index(index);
+    if (annot)
+        pdf_delete_annot(m_ctx, m_pdfpage, annot);
+}
+
+QSet<int>
+Model::getAnnotationsInArea(const QRectF &area) noexcept
+{
+    QSet<int> results;
+
+    if (!m_ctx || !m_pdfpage)
+        return results;
+
+    pdf_annot *annot = pdf_first_annot(m_ctx, m_pdfpage);
+
+    if (!annot)
+        return results;
+
+    int index = 0;
+
+    fz_matrix inv_mat = fz_scale(m_inv_dpr, m_inv_dpr);
+    fz_matrix mat     = fz_concat(inv_mat, m_transform);
+
+    while (annot)
+    {
+        fz_rect bbox = pdf_bound_annot(m_ctx, annot);
+        // bbox = fz_transform_rect(bbox, m_transform);
+        // bbox = fz_transform_rect(bbox, inv_mat);
+        bbox = fz_transform_rect(bbox, mat);
+        QRectF annotRect(bbox.x0, bbox.y0, (bbox.x1 - bbox.x0), (bbox.y1 - bbox.y0));
+
+        if (area.intersects(annotRect))
+            results.insert(index);
+        annot = pdf_next_annot(m_ctx, annot);
+        index++;
+    }
+
+    return results;
+}
+
+// Select all text from a page
+
+QString
+Model::selectAllText(const QPointF &start, const QPointF &end) noexcept
+{
+    QString text;
+    fz_point a, b;
+    highlightHelper(start, end, a, b);
+    char *selected{nullptr};
+    fz_rect area = fz_make_rect(a.x, a.y, b.x, b.y);
+
+    fz_try(m_ctx)
+    {
+        selected = fz_copy_rectangle(m_ctx, m_text_page, area, 0);
+        text     = QString::fromUtf8(selected);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Selection failed";
+    }
+
+    if (selected)
+        delete[] selected;
+    return text;
+}
+
+void
+Model::deleteAnnots(const QSet<int> &indexes) noexcept
+{
+    QList<pdf_annot *> annots = get_annots_by_indexes(indexes);
+    for (const auto &annot : annots)
+    {
         if (annot)
             pdf_delete_annot(m_ctx, m_pdfpage, annot);
     }
+}
 
-    QSet<int> Model::getAnnotationsInArea(const QRectF &area) noexcept
+void
+Model::annotChangeColorForIndexes(const QSet<int> &indexes, const QColor &color) noexcept
+{
+    float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
+    float alpha        = color.alphaF();
+
+    for (const auto &index : indexes)
     {
-        QSet<int> results;
-
-        if (!m_ctx || !m_pdfpage)
-            return results;
-
-        pdf_annot *annot = pdf_first_annot(m_ctx, m_pdfpage);
-
-        if (!annot)
-            return results;
-
-        int index = 0;
-
-        fz_matrix inv_mat = fz_scale(m_inv_dpr, m_inv_dpr);
-        fz_matrix mat     = fz_concat(inv_mat, m_transform);
-
-        while (annot)
-        {
-            fz_rect bbox = pdf_bound_annot(m_ctx, annot);
-            // bbox = fz_transform_rect(bbox, m_transform);
-            // bbox = fz_transform_rect(bbox, inv_mat);
-            bbox = fz_transform_rect(bbox, mat);
-            QRectF annotRect(bbox.x0, bbox.y0, (bbox.x1 - bbox.x0), (bbox.y1 - bbox.y0));
-
-            if (area.intersects(annotRect))
-                results.insert(index);
-            annot = pdf_next_annot(m_ctx, annot);
-            index++;
-        }
-
-        return results;
-    }
-
-    // Select all text from a page
-
-    QString Model::selectAllText(const QPointF &start, const QPointF &end) noexcept
-    {
-        QString text;
-        fz_point a, b;
-        highlightHelper(start, end, a, b);
-        char *selected{nullptr};
-        fz_rect area = fz_make_rect(a.x, a.y, b.x, b.y);
-
-        fz_try(m_ctx)
-        {
-            selected = fz_copy_rectangle(m_ctx, m_text_page, area, 0);
-            text     = QString::fromUtf8(selected);
-        }
-        fz_catch(m_ctx)
-        {
-            qWarning() << "Selection failed";
-        }
-
-        if (selected)
-            delete[] selected;
-        return text;
-    }
-
-    void Model::deleteAnnots(const QSet<int> &indexes) noexcept
-    {
-        QList<pdf_annot *> annots = get_annots_by_indexes(indexes);
-        for (const auto &annot : annots)
-        {
-            if (annot)
-                pdf_delete_annot(m_ctx, m_pdfpage, annot);
-        }
-    }
-
-    void Model::annotChangeColorForIndexes(const QSet<int> &indexes, const QColor &color) noexcept
-    {
-        float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
-        float alpha        = color.alphaF();
-
-        for (const auto &index : indexes)
-        {
-            pdf_annot *annot = get_annot_by_index(index);
-            if (annot)
-            {
-                enum pdf_annot_type type = pdf_annot_type(m_ctx, annot);
-
-                switch (type)
-                {
-
-                    case PDF_ANNOT_TEXT:
-                    case PDF_ANNOT_LINK:
-                    case PDF_ANNOT_FREE_TEXT:
-                    case PDF_ANNOT_LINE:
-                    case PDF_ANNOT_SQUARE:
-                        pdf_set_annot_interior_color(m_ctx, annot, 3, pdf_color);
-                        break;
-
-                    case PDF_ANNOT_CIRCLE:
-                    case PDF_ANNOT_POLYGON:
-                    case PDF_ANNOT_POLY_LINE:
-                    case PDF_ANNOT_HIGHLIGHT:
-                        pdf_set_annot_color(m_ctx, annot, 3, pdf_color);
-                        break;
-
-                    case PDF_ANNOT_UNDERLINE:
-                    case PDF_ANNOT_SQUIGGLY:
-                    case PDF_ANNOT_STRIKE_OUT:
-                    case PDF_ANNOT_REDACT:
-                    case PDF_ANNOT_STAMP:
-                    case PDF_ANNOT_CARET:
-                    case PDF_ANNOT_INK:
-                    case PDF_ANNOT_POPUP:
-                    case PDF_ANNOT_FILE_ATTACHMENT:
-                    case PDF_ANNOT_SOUND:
-                    case PDF_ANNOT_MOVIE:
-                    case PDF_ANNOT_RICH_MEDIA:
-                    case PDF_ANNOT_WIDGET:
-                    case PDF_ANNOT_SCREEN:
-                    case PDF_ANNOT_PRINTER_MARK:
-                    case PDF_ANNOT_TRAP_NET:
-                    case PDF_ANNOT_WATERMARK:
-                    case PDF_ANNOT_3D:
-                    case PDF_ANNOT_PROJECTION:
-                    case PDF_ANNOT_UNKNOWN:
-                        break;
-                }
-                pdf_set_annot_opacity(m_ctx, annot, alpha);
-                pdf_update_annot(m_ctx, annot);
-            }
-        }
-    }
-
-    void Model::annotChangeColorForIndex(const int index, const QColor &color) noexcept
-    {
-        float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
-        float alpha        = color.alphaF();
-
         pdf_annot *annot = get_annot_by_index(index);
         if (annot)
         {
@@ -1302,20 +1279,79 @@ Model::followLink(const LinkInfo &info) noexcept
             pdf_update_annot(m_ctx, annot);
         }
     }
+}
 
-    bool Model::isBreak(int c) noexcept
+void
+Model::annotChangeColorForIndex(const int index, const QColor &color) noexcept
+{
+    float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
+    float alpha        = color.alphaF();
+
+    pdf_annot *annot = get_annot_by_index(index);
+    if (annot)
     {
-        return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == 0 || c == 0x200B; // include zero-width space
+        enum pdf_annot_type type = pdf_annot_type(m_ctx, annot);
+
+        switch (type)
+        {
+
+            case PDF_ANNOT_TEXT:
+            case PDF_ANNOT_LINK:
+            case PDF_ANNOT_FREE_TEXT:
+            case PDF_ANNOT_LINE:
+            case PDF_ANNOT_SQUARE:
+                pdf_set_annot_interior_color(m_ctx, annot, 3, pdf_color);
+                break;
+
+            case PDF_ANNOT_CIRCLE:
+            case PDF_ANNOT_POLYGON:
+            case PDF_ANNOT_POLY_LINE:
+            case PDF_ANNOT_HIGHLIGHT:
+                pdf_set_annot_color(m_ctx, annot, 3, pdf_color);
+                break;
+
+            case PDF_ANNOT_UNDERLINE:
+            case PDF_ANNOT_SQUIGGLY:
+            case PDF_ANNOT_STRIKE_OUT:
+            case PDF_ANNOT_REDACT:
+            case PDF_ANNOT_STAMP:
+            case PDF_ANNOT_CARET:
+            case PDF_ANNOT_INK:
+            case PDF_ANNOT_POPUP:
+            case PDF_ANNOT_FILE_ATTACHMENT:
+            case PDF_ANNOT_SOUND:
+            case PDF_ANNOT_MOVIE:
+            case PDF_ANNOT_RICH_MEDIA:
+            case PDF_ANNOT_WIDGET:
+            case PDF_ANNOT_SCREEN:
+            case PDF_ANNOT_PRINTER_MARK:
+            case PDF_ANNOT_TRAP_NET:
+            case PDF_ANNOT_WATERMARK:
+            case PDF_ANNOT_3D:
+            case PDF_ANNOT_PROJECTION:
+            case PDF_ANNOT_UNKNOWN:
+                break;
+        }
+        pdf_set_annot_opacity(m_ctx, annot, alpha);
+        pdf_update_annot(m_ctx, annot);
     }
+}
 
-    fz_point Model::mapToPdf(QPointF loc) noexcept
-    {
-        double x = loc.x() * m_dpr;
-        double y = loc.y() * m_dpr;
+bool
+Model::isBreak(int c) noexcept
+{
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == 0 || c == 0x200B; // include zero-width space
+}
 
-        fz_matrix invTransform = fz_invert_matrix(m_transform);
+fz_point
+Model::mapToPdf(QPointF loc) noexcept
+{
+    double x = loc.x() * m_dpr;
+    double y = loc.y() * m_dpr;
 
-        fz_point pt = {static_cast<float>(x), static_cast<float>(y)};
-        pt          = fz_transform_point(pt, invTransform);
-        return pt;
-    }
+    fz_matrix invTransform = fz_invert_matrix(m_transform);
+
+    fz_point pt = {static_cast<float>(x), static_cast<float>(y)};
+    pt          = fz_transform_point(pt, invTransform);
+    return pt;
+}
