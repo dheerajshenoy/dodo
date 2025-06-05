@@ -27,8 +27,6 @@ extern "C"
 #include <synctex/synctex_version.h>
 }
 
-
-
 class DocumentView : public QWidget
 {
     Q_OBJECT
@@ -64,7 +62,8 @@ public:
 
         CacheValue(const QPixmap &pix, const QList<BrowseLinkItem *> &lnks, QList<HighlightItem *> annoth)
             : pixmap(pix), links(lnks), annot_highlights(annoth)
-        {}
+        {
+        }
     };
 
     struct HistoryLocation
@@ -125,14 +124,14 @@ public:
         return m_model;
     }
 
-    inline void setLinkHintForeground(int fg) noexcept
+    inline void setLinkHintForeground(const QColor &fg) noexcept
     {
-        m_link_hint_fg = QColor::fromRgba(fg);
+        m_link_hint_fg = fg;
     }
 
-    inline void setLinkHintBackground(int bg) noexcept
+    inline void setLinkHintBackground(const QColor &bg) noexcept
     {
-        m_link_hint_bg = QColor::fromRgba(bg);
+        m_link_hint_bg = bg;
     }
 
     // inline QString windowTitle() noexcept { return m_config.window_title_format; }

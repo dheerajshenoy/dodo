@@ -202,16 +202,16 @@ dodo::initDefaults() noexcept
     m_config.zoom                   = 1.0f;
     m_config.window_title_format    = "%1 - dodo";
 
-    m_config.colors["search_index"] = QColor::fromString("#3daee944").rgba();
-    m_config.colors["search_match"] = QColor::fromString("#55FF8844").rgba();
-    m_config.colors["accent"]       = QColor::fromString("#FF500044").rgba();
-    m_config.colors["background"]   = Qt::transparent;
-    m_config.colors["link_hint_fg"] = QColor::fromString("#000000").rgba();
-    m_config.colors["link_hint_bg"] = QColor::fromString("#FFFF00").rgba();
-    m_config.colors["highlight"]    = QColor::fromString("#55FFFF00").rgba();
-    m_config.colors["selection"]    = QColor::fromString("#550000FF").rgba();
-    m_config.colors["jump_marker"]  = QColor::fromString("#FFFF0000").rgba();
-    m_config.colors["annot_rect"]   = QColor::fromString("#55FF0000").rgba();
+    m_config.colors["search_index"] = "#3daee944";
+    m_config.colors["search_match"] = "#55FF8844";
+    m_config.colors["accent"]       = "#FF500044";
+    m_config.colors["background"]   = "#00000000";
+    m_config.colors["link_hint_fg"] = "#000000";
+    m_config.colors["link_hint_bg"] = "#FFFF00";
+    m_config.colors["highlight"]    = "#55FFFF00";
+    m_config.colors["selection"]    = "#550000FF";
+    m_config.colors["jump_marker"]  = "#FFFF0000";
+    m_config.colors["annot_rect"]   = "#55FF0000";
 
     m_config.dpi         = 300.0f;
     m_config.cache_pages = 10;
@@ -280,15 +280,16 @@ dodo::initConfig() noexcept
 
     auto colors = toml["colors"];
 
-    m_config.colors["search_index"] = QColor::fromString(colors["search_index"].value_or("#3daee944")).rgba();
-    m_config.colors["search_match"] = QColor::fromString(colors["search_match"].value_or("#FFFF8844")).rgba();
-    m_config.colors["accent"]       = QColor::fromString(colors["accent"].value_or("#FF500044")).rgba();
-    m_config.colors["background"]   = QColor::fromString(colors["background"].value_or("#FFFFFF")).rgba();
-    m_config.colors["link_hint_fg"] = QColor::fromString(colors["link_hint_fg"].value_or("#000000")).rgba();
-    m_config.colors["link_hint_bg"] = QColor::fromString(colors["link_hint_bg"].value_or("#FFFF00")).rgba();
-    m_config.colors["highlight"]    = QColor::fromString(colors["highlight"].value_or("#55FFFF00")).rgba();
-    m_config.colors["selection"]    = QColor::fromString(colors["selection"].value_or("#550000FF")).rgba();
-    m_config.colors["jump_marker"]  = QColor::fromString(colors["jump_marker"].value_or("#FFFF0000")).rgba();
+    m_config.colors["search_index"] = colors["search_index"].value_or("#3daee944");
+    m_config.colors["search_match"] = colors["search_match"].value_or("#FFFF8844");
+    m_config.colors["accent"]       = colors["accent"].value_or("#FF500044");
+    m_config.colors["background"]   = colors["background"].value_or("#FFFFFF");
+    m_config.colors["link_hint_fg"] = colors["link_hint_fg"].value_or("#000000");
+    m_config.colors["link_hint_bg"] = colors["link_hint_bg"].value_or("#FFFF00");
+    m_config.colors["highlight"]    = colors["highlight"].value_or("#55FFFF00");
+    m_config.colors["selection"]    = colors["selection"].value_or("#550000FF");
+    m_config.colors["jump_marker"]  = colors["jump_marker"].value_or("#FFFF0000");
+    m_config.colors["annot_rect"]   = colors["annot_rect"].value_or("#55FF0000");
 
     auto rendering       = toml["rendering"];
     m_config.dpi         = rendering["dpi"].value_or(300.0);
@@ -909,7 +910,7 @@ dodo::populateRecentFiles() noexcept
 void
 dodo::editLastPages() noexcept
 {
-    if (!m_config.remember_last_visited || !m_last_pages_db.isOpen() && !m_last_pages_db.isValid())
+    if (!m_config.remember_last_visited || (!m_last_pages_db.isOpen() && !m_last_pages_db.isValid()))
     {
         QMessageBox::information(this, "Edit Last Pages",
                                  "Couldn't find the database of last pages. Maybe "
@@ -1055,7 +1056,7 @@ dodo::VisitLinkKB() noexcept
         if (!m_link_hint_map.isEmpty())
         {
             m_link_hint_current_mode = LinkHintMode::Visit;
-            m_link_hint_mode = true;
+            m_link_hint_mode         = true;
         }
     }
 }
@@ -1069,7 +1070,7 @@ dodo::CopyLinkKB() noexcept
         if (!m_link_hint_map.isEmpty())
         {
             m_link_hint_current_mode = LinkHintMode::Visit;
-            m_link_hint_mode = true;
+            m_link_hint_mode         = true;
         }
     }
 }
@@ -1097,11 +1098,13 @@ dodo::SelectAll() noexcept
 
 void
 dodo::FitNone() noexcept
-{}
+{
+}
 
 void
 dodo::TextSelectionMode() noexcept
-{}
+{
+}
 
 void
 dodo::OpenFiles(const std::vector<std::string> &files) noexcept
@@ -1275,7 +1278,6 @@ dodo::initConnections() noexcept
     connect(m_tab_widget, &QTabWidget::currentChanged, this, &dodo::handleCurrentTabChanged);
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Unset);
     m_dpr = m_tab_widget->window()->devicePixelRatioF();
-    qDebug() << m_dpr;
 
     auto win = window()->windowHandle();
     if (win)
@@ -1451,7 +1453,9 @@ dodo::eventFilter(QObject *object, QEvent *event)
             // stEvent->accept();
             return true;
         }
-    } else {
+    }
+    else
+    {
 
         if (object == m_tab_widget->tabBar() && event->type() == QEvent::ContextMenu)
         {
@@ -1473,7 +1477,6 @@ dodo::eventFilter(QObject *object, QEvent *event)
 
     // Let other events pass through
     return QObject::eventFilter(object, event);
-
 }
 
 void
@@ -1748,4 +1751,32 @@ dodo::SaveAsSession(const QString &sessionPath) noexcept
     {
         QMessageBox::critical(this, "Save As Session", "Failed to save session.");
     }
+}
+
+QColor
+dodo::strToColor(const QString &color_str) noexcept
+{
+    QColor color;
+
+    if (color_str.startsWith("#"))
+    {
+        QString hex = color_str.mid(1);
+
+        if (hex.length() == 6)
+        {
+            color.setRed(hex.mid(0, 2).toInt(nullptr, 16));
+            color.setGreen(hex.mid(2, 2).toInt(nullptr, 16));
+            color.setBlue(hex.mid(4, 2).toInt(nullptr, 16));
+            color.setAlpha(255); // Default alpha
+        }
+        else if (hex.length() == 8)
+        {
+            color.setRed(hex.mid(0, 2).toInt(nullptr, 16));
+            color.setGreen(hex.mid(2, 2).toInt(nullptr, 16));
+            color.setBlue(hex.mid(4, 2).toInt(nullptr, 16));
+            color.setAlpha(hex.mid(6, 2).toInt(nullptr, 16));
+        }
+    }
+
+    return color;
 }

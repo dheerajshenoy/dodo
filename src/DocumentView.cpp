@@ -16,7 +16,7 @@ struct rusage usage;
 #endif
 
 DocumentView::DocumentView(const QString &fileName, const DodoConfig &config, QWidget *parent)
-    : m_config(config), QWidget(parent)
+    : QWidget(parent), m_config(config)
 {
     m_page_history_list.reserve(m_page_history_limit);
     m_gview->setPageNavWithMouse(m_page_nav_with_mouse);
@@ -31,9 +31,9 @@ DocumentView::DocumentView(const QString &fileName, const DodoConfig &config, QW
 
     m_jump_marker = new JumpMarker(m_config.colors["jump_marker"]);
     m_gscene->addItem(m_jump_marker);
-    m_gview->setBackgroundBrush(QColor::fromRgba(m_config.colors["background"]));
+    m_gview->setBackgroundBrush(QColor(m_config.colors["background"]));
     m_model->setDPI(m_config.dpi);
-    m_model->setAnnotRectColor(m_config.colors["annot_rect"]);
+    m_model->setAnnotRectColor(QColor(m_config.colors["annot_rect"]).toRgb());
     m_model->setSelectionColor(m_config.colors["selection"]);
     m_model->setHighlightColor(m_config.colors["highlight"]);
     setLinkHintBackground(m_config.colors["link_hint_bg"]);
@@ -562,9 +562,9 @@ DocumentView::renderAnnotations(const QList<HighlightItem *> &annots) noexcept
             renderPage(m_pageno, true);
         });
 
-        connect(annot, &HighlightItem::annotColorChangeRequested, m_model, [this](int index, const QColor &oldcolor)
+        connect(annot, &HighlightItem::annotColorChangeRequested, m_model, [this, annot](int index)
         {
-            auto color = QColorDialog::getColor(oldcolor, this, "Highlight Color",
+            auto color = QColorDialog::getColor(annot->data(3).value<QColor>(), this, "Highlight Color",
                                                 QColorDialog::ColorDialogOption::ShowAlphaChannel);
             if (color.isValid())
             {
@@ -649,7 +649,6 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
 void
 DocumentView::renderLinkHints() noexcept
 {
-
 }
 
 void
@@ -890,7 +889,7 @@ DocumentView::highlightHitsInPage()
         QRectF scaledRect = fzQuadToQRect(quad);
         auto *highlight   = new QGraphicsRectItem(scaledRect);
 
-        highlight->setBrush(QColor::fromRgba(m_config.colors["search_match"]));
+        highlight->setBrush(QColor(m_config.colors["search_match"]));
         highlight->setPen(Qt::NoPen);
         highlight->setData(0, "searchHighlight");
         m_gscene->addItem(highlight);
@@ -909,7 +908,7 @@ DocumentView::highlightSingleHit() noexcept
 
     QRectF scaledRect = fzQuadToQRect(quad);
     auto *highlight   = new QGraphicsRectItem(scaledRect);
-    highlight->setBrush(QColor::fromRgba(m_config.colors["search_index"]));
+    highlight->setBrush(QColor(m_config.colors["search_index"]));
     highlight->setPen(Qt::NoPen);
     highlight->setData(0, "searchIndexHighlight");
 
@@ -1569,7 +1568,7 @@ DocumentView::changeHighlighterColor() noexcept
                                         QColorDialog::ColorDialogOption::ShowAlphaChannel);
     if (color.isValid())
     {
-        m_config.colors["highlight"] = color.rgba();
+        m_config.colors["highlight"] = color.name().toStdString().c_str();
         m_model->setHighlightColor(color);
         emit highlightColorChanged(color);
     }
@@ -1582,9 +1581,9 @@ DocumentView::changeAnnotRectColor() noexcept
                                         QColorDialog::ColorDialogOption::ShowAlphaChannel);
     if (color.isValid())
     {
-        m_config.colors["annot_rect"] = color.rgba();
-        m_model->setAnnotRectColor(color.rgba());
-        emit highlightColorChanged(color.rgba());
+        m_config.colors["annot_rect"] = color.name().toStdString().c_str();
+        m_model->setAnnotRectColor(color);
+        emit highlightColorChanged(color);
     }
 }
 
@@ -1672,5 +1671,3 @@ DocumentView::clearKBHintsOverlay() noexcept
         m_gscene->removeItem(link);
     m_link_hints_present = false;
 }
-
-

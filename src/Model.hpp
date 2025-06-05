@@ -79,7 +79,7 @@ public:
     {
         return m_ctx;
     }
-    inline void setSelectionColor(const QRgb &color) noexcept
+    inline void setSelectionColor(const QColor &color) noexcept
     {
         m_selection_color = color;
     }
@@ -211,6 +211,6 @@ private:
     float m_height, m_width;
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
     float m_highlight_color[4], m_annot_rect_color[4];
-    QRgb m_selection_color;
+    QColor m_selection_color;
     float m_page_height{0.0f};
 };

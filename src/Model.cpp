@@ -78,7 +78,7 @@ union_quad(const fz_quad &a, const fz_quad &b)
 //     // Do nothing – std::lock_guard handles unlocking
 // }
 
-Model::Model(QGraphicsScene *scene, QObject *parent) : m_scene(scene), QObject(parent)
+Model::Model(QGraphicsScene *scene, QObject *parent) : QObject(parent), m_scene(scene)
 {
     // fz_locks_context lock_context;
     // lock_context.user   = m_locks;
@@ -97,7 +97,12 @@ Model::Model(QGraphicsScene *scene, QObject *parent) : m_scene(scene), QObject(p
     m_highlight_color[0] = 1.0f; // Red
     m_highlight_color[1] = 1.0f; // Green
     m_highlight_color[2] = 0.0f; // Blue
-    m_highlight_color[3] = 0.0f; // Alpha (translucent yellow)
+    m_highlight_color[3] = 0.5f; // Alpha (translucent yellow)
+
+    m_annot_rect_color[0] = 1.0f;
+    m_annot_rect_color[1] = 0.0f;
+    m_annot_rect_color[2] = 0.0f;
+    m_annot_rect_color[3] = 0.5f;
 
     m_colorspace = fz_device_rgb(m_ctx);
     fz_register_document_handlers(m_ctx);
@@ -314,10 +319,7 @@ Model::renderPage(int pageno, float zoom, float rotation, bool cache) noexcept
         m_page = fz_load_page(m_ctx, m_doc, pageno);
 
         if (!m_page)
-        {
-            qDebug() << "Cannot load page";
             return qpix;
-        }
 
         fz_rect bounds;
         bounds        = fz_bound_page(m_ctx, m_page);
@@ -586,9 +588,9 @@ Model::getAnnotations() noexcept
             }
 
             auto alpha = pdf_annot_opacity(m_ctx, annot);
-            annot_item->setBrush(QColor::fromRgbF(color[0], color[1], color[2], alpha));
             annot_item->setData(0, "annot");
             annot_item->setData(1, index);
+            annot_item->setData(2, QColor::fromRgbF(color[0], color[1], color[2], alpha));
             annots.push_back(annot_item);
             annot = pdf_next_annot(m_ctx, annot);
             ++index;
@@ -752,8 +754,6 @@ Model::addRectAnnotation(const QRectF &pdfRect) noexcept
     auto bbox = convertToMuPdfRect(pdfRect);
     fz_try(m_ctx)
     {
-        if (!m_pdfpage)
-            qDebug() << "OOPS";
         pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_SQUARE);
 
         if (!annot)
@@ -761,7 +761,7 @@ Model::addRectAnnotation(const QRectF &pdfRect) noexcept
 
         pdf_set_annot_rect(m_ctx, annot, bbox);
         pdf_set_annot_interior_color(m_ctx, annot, 3, m_annot_rect_color);
-        pdf_set_annot_opacity(m_ctx, annot, 0.2);
+        pdf_set_annot_opacity(m_ctx, annot, m_annot_rect_color[3]);
         pdf_update_annot(m_ctx, annot);
         pdf_drop_annot(m_ctx, annot);
     }
@@ -842,7 +842,6 @@ Model::followLink(const LinkInfo &info) noexcept
     QString link_str         = info.uri;
     std::string link_std_str = link_str.toStdString();
     const char *link_uri     = link_std_str.c_str();
-    auto link_dest           = info.dest;
 
     if (info.uri.startsWith("#"))
     {
@@ -1031,7 +1030,7 @@ Model::highlightQuad(fz_quad quad) noexcept
         }
     }
 
-    QBrush brush(QColor::fromRgba(m_selection_color));
+    QBrush brush(m_selection_color);
 
     fz_quad q = fz_transform_quad(quad, m_transform);
 
@@ -1075,7 +1074,7 @@ Model::highlightTextSelection(const QPointF &selectionStart, const QPointF &sele
         return;
     }
 
-    QBrush brush(QColor::fromRgba(m_selection_color));
+    QBrush brush(m_selection_color);
 
     for (int i = 0; i < count; ++i)
     {

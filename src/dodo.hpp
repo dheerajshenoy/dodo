@@ -122,6 +122,7 @@ private:
     QStringList getSessionFiles() noexcept;
     void insertFileToDB(const QString &fname, int pageno) noexcept;
     void clearKBHintsOverlay() noexcept;
+    QColor strToColor(const QString &color_str) noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};

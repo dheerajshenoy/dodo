@@ -5,7 +5,7 @@
 
 struct DodoConfig
 {
-    QMap<QString, QRgb> colors{};
+    QMap<QString, QColor> colors{};
     QMap<QString, QString> shortcuts_map{};
 
     float dpi{300};
