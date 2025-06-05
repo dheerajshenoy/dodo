@@ -86,7 +86,12 @@ public:
 
     inline QColor highlightColor() noexcept
     {
-        return QColor(m_highlight_color[0], m_highlight_color[1], m_highlight_color[2], m_highlight_color[3]);
+        return QColor(
+                static_cast<int>(m_highlight_color[0] * 255),
+                static_cast<int>(m_highlight_color[1] * 255),
+                static_cast<int>(m_highlight_color[2] * 255),
+                static_cast<int>(m_highlight_color[3] * 255)
+                );
     }
 
     inline void setHighlightColor(const QColor &color) noexcept
