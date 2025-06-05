@@ -13,7 +13,6 @@
 dodo::dodo() noexcept
 {
     setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
-    QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 }
 
 dodo::~dodo() noexcept
