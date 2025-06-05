@@ -554,6 +554,7 @@ DocumentView::renderAnnotations(const QList<HighlightItem *> &annots) noexcept
     clearAnnots();
     for (auto *annot : annots)
     {
+        m_gscene->addItem(annot);
         connect(annot, &HighlightItem::annotDeleteRequested, m_model, [&](int index)
         {
             m_model->annotDeleteRequested(index);
@@ -561,9 +562,9 @@ DocumentView::renderAnnotations(const QList<HighlightItem *> &annots) noexcept
             renderPage(m_pageno, true);
         });
 
-        connect(annot, &HighlightItem::annotColorChangeRequested, m_model, [&](int index)
+        connect(annot, &HighlightItem::annotColorChangeRequested, m_model, [this](int index, const QColor &oldcolor)
         {
-            auto color = QColorDialog::getColor(Qt::white, this, "Highlight Color",
+            auto color = QColorDialog::getColor(oldcolor, this, "Highlight Color",
                                                 QColorDialog::ColorDialogOption::ShowAlphaChannel);
             if (color.isValid())
             {
@@ -573,7 +574,6 @@ DocumentView::renderAnnotations(const QList<HighlightItem *> &annots) noexcept
             }
         });
 
-        m_gscene->addItem(annot);
     }
 }
 
@@ -1172,7 +1172,7 @@ DocumentView::SaveAsFile() noexcept
 QMap<int, Model::LinkInfo>
 DocumentView::LinkKB() noexcept
 {
-    int i = 10;
+    int i           = 10;
     QRectF viewport = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
     QMap<int, Model::LinkInfo> map;
 
@@ -1185,7 +1185,7 @@ DocumentView::LinkKB() noexcept
         auto dest = m_model->resolveLink(link->URI());
         map[i]    = (Model::LinkInfo){.uri = QString(link->URI()), .dest = dest};
 
-        float w = 0.25 * m_scale_factor;
+        float w        = 0.25 * m_scale_factor;
         auto link_rect = link->rect();
         QRect rect(link_rect.x(), link_rect.y(), w, w);
 
@@ -1553,8 +1553,8 @@ DocumentView::populateContextMenu(QMenu *menu) noexcept
 void
 DocumentView::annotChangeColor() noexcept
 {
-    auto color =
-        QColorDialog::getColor(Qt::red, this, "Highlight Color", QColorDialog::ColorDialogOption::ShowAlphaChannel);
+    auto color = QColorDialog::getColor(m_model->highlightColor(), this, "Highlight Color",
+                                        QColorDialog::ColorDialogOption::ShowAlphaChannel);
     if (color.isValid())
     {
         m_model->annotChangeColorForIndexes(m_selected_annots, color);
@@ -1578,13 +1578,13 @@ DocumentView::changeHighlighterColor() noexcept
 void
 DocumentView::changeAnnotRectColor() noexcept
 {
-    auto color = QColorDialog::getColor(m_config.colors["annot_rect"], this, "Annot Rect Color",
+    auto color = QColorDialog::getColor(m_model->highlightColor(), this, "Annot Rect Color",
                                         QColorDialog::ColorDialogOption::ShowAlphaChannel);
     if (color.isValid())
     {
         m_config.colors["annot_rect"] = color.rgba();
-        m_model->setHighlightColor(color);
-        emit highlightColorChanged(color);
+        m_model->setAnnotRectColor(color.rgba());
+        emit highlightColorChanged(color.rgba());
     }
 }
 
