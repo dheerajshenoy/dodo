@@ -7,6 +7,7 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsScene>
 #include <QImage>
+#include <qbytearrayview.h>
 #include <qnamespace.h>
 extern "C"
 {
@@ -612,103 +613,76 @@ Model::getLinks() noexcept
             {
                 fz_rect r = fz_transform_rect(link->rect, m_transform);
 
-                float x = r.x0 * m_inv_dpr;
-                float y = r.y0 * m_inv_dpr;
-                float w = (r.x1 - r.x0) * m_inv_dpr;
-                float h = (r.y1 - r.y0) * m_inv_dpr;
+                const float x = r.x0 * m_inv_dpr;
+                const float y = r.y0 * m_inv_dpr;
+                const float w = (r.x1 - r.x0) * m_inv_dpr;
+                const float h = (r.y1 - r.y0) * m_inv_dpr;
 
                 QRectF qtRect(x, y, w, h);
                 BrowseLinkItem *item{nullptr};
-                QString link_str(link->uri);
-                bool external = fz_is_external_link(m_ctx, link->uri);
+                const QLatin1StringView uri = QLatin1StringView(link->uri);
+                const bool isExternal       = fz_is_external_link(m_ctx, link->uri);
 
-                if (!external)
+                if (isExternal)
                 {
-                    if (link_str.startsWith("#page"))
-                    {
-                        float xp, yp;
-                        fz_location loc = fz_resolve_link(m_ctx, m_doc, link->uri, &xp, &yp);
-                        item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::Page, m_link_boundary);
-                        item->setGotoPageNo(loc.page);
-                        connect(item, &BrowseLinkItem::jumpToPageRequested, this, &Model::jumpToPageRequested);
-                    }
-                    else
-                    {
-                        fz_link_dest dest = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
-                        int pageno        = dest.loc.page;
-                        switch (dest.type)
-                        {
-
-                            case FZ_LINK_DEST_FIT:
-                            {
-                            }
-                            break;
-
-                            case FZ_LINK_DEST_FIT_B:
-                                break;
-                            case FZ_LINK_DEST_FIT_H:
-                            {
-                                item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::FitH,
-                                                          m_link_boundary);
-                                item->setGotoPageNo(pageno);
-                                item->setXYZ({.x = 0, .y = (m_page_height - dest.y), .zoom = 0});
-                                connect(item, &BrowseLinkItem::horizontalFitRequested, this,
-                                        &Model::horizontalFitRequested);
-                            }
-                            break;
-
-                            case FZ_LINK_DEST_FIT_BH:
-                                break;
-                            case FZ_LINK_DEST_FIT_V:
-                            {
-                                item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::FitV,
-                                                          m_link_boundary);
-                                item->setGotoPageNo(pageno);
-                                connect(item, &BrowseLinkItem::verticalFitRequested, this,
-                                        &Model::verticalFitRequested);
-                            }
-                            break;
-
-                            case FZ_LINK_DEST_FIT_BV:
-                                break;
-
-                            case FZ_LINK_DEST_FIT_R:
-                            {
-                                item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::Section,
-                                                          m_link_boundary);
-                                item->setGotoPageNo(pageno);
-                                item->setXYZ({.x = dest.x, .y = (m_page_height - dest.y), .zoom = dest.zoom});
-                                connect(item, &BrowseLinkItem::jumpToLocationRequested, this,
-                                        &Model::jumpToLocationRequested);
-                            }
-                            break;
-
-                            case FZ_LINK_DEST_XYZ:
-                            {
-                                item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::Section,
-                                                          m_link_boundary);
-                                item->setGotoPageNo(pageno);
-                                item->setXYZ({.x = dest.x, .y = (m_page_height - dest.y), .zoom = dest.zoom});
-                                connect(item, &BrowseLinkItem::jumpToLocationRequested, this,
-                                        &Model::jumpToLocationRequested);
-                            }
-                            break;
-
-                            default:
-                                qWarning() << "Unknown goto destination type";
-                                break;
-                        }
-                    }
+                    item = new BrowseLinkItem(qtRect, uri, BrowseLinkItem::LinkType::External, m_link_boundary);
+                }
+                else if (uri.startsWith(QLatin1String("#page")))
+                {
+                    float xp, yp;
+                    fz_location loc = fz_resolve_link(m_ctx, m_doc, link->uri, &xp, &yp);
+                    item            = new BrowseLinkItem(qtRect, uri, BrowseLinkItem::LinkType::Page, m_link_boundary);
+                    item->setGotoPageNo(loc.page);
+                    connect(item, &BrowseLinkItem::jumpToPageRequested, this, &Model::jumpToPageRequested);
                 }
                 else
                 {
-                    item = new BrowseLinkItem(qtRect, link_str, BrowseLinkItem::LinkType::External, m_link_boundary);
+                    const fz_link_dest dest = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
+                    const int pageno        = dest.loc.page;
+                    const float ty          = (m_page_height - dest.y);
+
+                    switch (dest.type)
+                    {
+
+                        case FZ_LINK_DEST_FIT_H:
+                        {
+                            item = new BrowseLinkItem(qtRect, uri, BrowseLinkItem::LinkType::FitH, m_link_boundary);
+                            item->setGotoPageNo(pageno);
+                            item->setXYZ({.x = 0, .y = ty, .zoom = 0});
+                            connect(item, &BrowseLinkItem::horizontalFitRequested, this,
+                                    &Model::horizontalFitRequested);
+                        }
+                        break;
+
+                        case FZ_LINK_DEST_FIT_V:
+                        {
+                            item = new BrowseLinkItem(qtRect, uri, BrowseLinkItem::LinkType::FitV, m_link_boundary);
+                            item->setGotoPageNo(pageno);
+                            connect(item, &BrowseLinkItem::verticalFitRequested, this, &Model::verticalFitRequested);
+                        }
+                        break;
+
+                        case FZ_LINK_DEST_FIT_R:
+                        case FZ_LINK_DEST_XYZ:
+                        {
+                            item = new BrowseLinkItem(qtRect, uri, BrowseLinkItem::LinkType::Section, m_link_boundary);
+                            item->setGotoPageNo(pageno);
+                            item->setXYZ({.x = dest.x, .y = ty, .zoom = dest.zoom});
+                            connect(item, &BrowseLinkItem::jumpToLocationRequested, this,
+                                    &Model::jumpToLocationRequested);
+                        }
+                        break;
+
+                        default:
+                            qWarning() << "Unknown goto destination type";
+                            break;
+                    }
                 }
+
                 if (item)
                 {
                     item->setData(0, "link");
                     item->setURI(link->uri);
-                    // m_scene->addItem(item);
                     items.append(item);
                 }
             }
@@ -716,7 +690,6 @@ Model::getLinks() noexcept
         }
         fz_drop_link(m_ctx, head);
     }
-
     fz_catch(m_ctx)
     {
         qWarning() << "MuPDF error in renderlink: " << fz_caught_message(m_ctx);
@@ -858,9 +831,6 @@ Model::followLink(const LinkInfo &info) noexcept
                     break;
 
                 case FZ_LINK_DEST_FIT_R:
-                    emit jumpToLocationRequested(pageno, loc);
-                    break;
-
                 case FZ_LINK_DEST_XYZ:
                     emit jumpToLocationRequested(pageno, loc);
                     break;

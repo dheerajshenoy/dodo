@@ -9,6 +9,7 @@
 #include <QMenu>
 #include <QPen>
 #include <QUrl>
+#include <qbytearrayview.h>
 #include <qevent.h>
 #include <qgraphicsitem.h>
 #include <qnamespace.h>
@@ -31,7 +32,7 @@ public:
         External
     };
 
-    BrowseLinkItem(const QRectF &rect, const QString &link, LinkType type, bool boundary = false,
+    BrowseLinkItem(const QRectF &rect, const QLatin1StringView &link, LinkType type, bool boundary = false,
                    QGraphicsItem *parent = nullptr)
         : QGraphicsRectItem(rect, parent), _link(link), _type(type)
     {

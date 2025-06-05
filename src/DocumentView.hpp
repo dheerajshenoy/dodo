@@ -6,10 +6,10 @@
 #include "GraphicsView.hpp"
 #include "HighlightItem.hpp"
 #include "JumpMarker.hpp"
+#include "LinkHint.hpp"
 #include "Model.hpp"
 #include "OutlineWidget.hpp"
 #include "PropertiesWidget.hpp"
-#include "LinkHint.hpp"
 
 #include <QFileDialog>
 #include <QInputDialog>
@@ -263,8 +263,8 @@ private:
     QString m_synctex_editor_command;
     bool m_link_hints_present{false};
     QColor m_link_hint_fg{QColor::fromRgba(0x000000)}, m_link_hint_bg{QColor::fromRgba(0xFFFF00)};
-    QList<LinkHint*> m_link_hints{};
-    QList<BrowseLinkItem*> m_link_items{};
+    QList<LinkHint *> m_link_hints{};
+    QList<BrowseLinkItem *> m_link_items{};
 
     int m_scroll_accumulator = 0;
     QElapsedTimer m_scroll_cooldown;
