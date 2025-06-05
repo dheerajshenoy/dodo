@@ -51,7 +51,7 @@ public:
         m_dpi = dpi;
     }
     int numPages();
-    QPixmap renderPage(int pageno, float zoom, float rotation) noexcept;
+    QPixmap renderPage(int pageno, float zoom, float rotation, bool cache = false) noexcept;
     QList<BrowseLinkItem *> getLinks() noexcept;
     pdf_annot *get_annot_by_index(int index) noexcept;
     QList<pdf_annot *> get_annots_by_indexes(const QSet<int> &index) noexcept;
@@ -84,11 +84,9 @@ public:
         m_selection_color = color;
     }
 
-    inline QColor highlightColor() noexcept {
-        return QColor(m_highlight_color[0],
-                m_highlight_color[1],
-                m_highlight_color[2],
-                m_highlight_color[3]);
+    inline QColor highlightColor() noexcept
+    {
+        return QColor(m_highlight_color[0], m_highlight_color[1], m_highlight_color[2], m_highlight_color[3]);
     }
 
     inline void setHighlightColor(const QColor &color) noexcept
@@ -149,7 +147,10 @@ public:
     {
         return m_height;
     }
-    inline fz_link_dest resolveLink(const char* URI) noexcept { return fz_resolve_link_dest(m_ctx, m_doc, URI); }
+    inline fz_link_dest resolveLink(const char *URI) noexcept
+    {
+        return fz_resolve_link_dest(m_ctx, m_doc, URI);
+    }
 
     void selectWord(const QPointF &loc) noexcept;
     void selectLine(const QPointF &loc) noexcept;
@@ -178,6 +179,7 @@ signals:
 private:
     void apply_night_mode(fz_pixmap *pixmap) noexcept;
     void reloadDocument() noexcept;
+    QImage recolorImage(const QImage &src, QColor fgColor, QColor bgColor) noexcept;
 
     QList<SearchResult> searchHelper(int pageno, const QString &term, bool caseSensitive);
 
@@ -190,6 +192,7 @@ private:
     float m_dpi;
     bool m_link_boundary, m_invert_color_mode{false};
     QGraphicsScene *m_scene{nullptr};
+    int m_pageno{-1};
 
     fz_context *m_ctx{nullptr};
     fz_document *m_doc{nullptr};
@@ -205,5 +208,4 @@ private:
     float m_highlight_color[4], m_annot_rect_color[4];
     QRgb m_selection_color;
     float m_page_height{0.0f};
-
 };

@@ -224,6 +224,7 @@ Model::reloadDocument() noexcept
         return;
 
     fz_drop_stext_page(m_ctx, m_text_page);
+    fz_drop_page(m_ctx, m_page);
     fz_drop_document(m_ctx, m_doc);
 
     // load accelerator
@@ -231,11 +232,9 @@ Model::reloadDocument() noexcept
     {
         m_doc = fz_open_document(m_ctx, CSTR(m_filename));
         if (!m_doc)
-        {
-            qWarning("Unable to open document");
             return;
-        }
 
+        m_page = fz_load_page(m_ctx, m_doc, m_pageno);
         m_pdfdoc    = pdf_specifics(m_ctx, m_doc);
         m_pdfpage   = pdf_page_from_fz_page(m_ctx, m_page);
         m_text_page = fz_new_stext_page_from_page(m_ctx, m_page, nullptr);
@@ -243,6 +242,9 @@ Model::reloadDocument() noexcept
     fz_catch(m_ctx)
     {
         qWarning() << "Exception when opening the document";
+        m_doc = nullptr;
+        m_page = nullptr;
+        m_text_page = nullptr;
         return;
     }
 }
@@ -290,7 +292,7 @@ Model::setLinkBoundary(bool state)
 }
 
 QPixmap
-Model::renderPage(int pageno, float zoom, float rotation) noexcept
+Model::renderPage(int pageno, float zoom, float rotation, bool cache) noexcept
 {
     QPixmap qpix;
 
@@ -305,6 +307,9 @@ Model::renderPage(int pageno, float zoom, float rotation) noexcept
     {
         fz_drop_stext_page(m_ctx, m_text_page);
         fz_drop_page(m_ctx, m_page);
+
+        if (!cache)
+            m_pageno = pageno;
 
         m_page = fz_load_page(m_ctx, m_doc, pageno);
 
@@ -327,7 +332,6 @@ Model::renderPage(int pageno, float zoom, float rotation) noexcept
         pix = fz_new_pixmap_with_bbox(m_ctx, m_colorspace, bbox, nullptr, 1);
         if (!pix)
         {
-            qDebug() << "Cannot create pixmap";
             return qpix;
         }
 
@@ -337,7 +341,6 @@ Model::renderPage(int pageno, float zoom, float rotation) noexcept
 
         if (!dev)
         {
-            qDebug() << "Cannot create device";
             return qpix;
         }
 
@@ -704,6 +707,8 @@ Model::addRectAnnotation(const QRectF &pdfRect) noexcept
     auto bbox = convertToMuPdfRect(pdfRect);
     fz_try(m_ctx)
     {
+        if (!m_pdfpage)
+            qDebug() << "OOPS";
         pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_SQUARE);
 
         if (!annot)
@@ -927,10 +932,10 @@ void
 Model::apply_night_mode(fz_pixmap *pixmap) noexcept
 {
     unsigned char *samples = fz_pixmap_samples(m_ctx, pixmap);
-    int n                  = fz_pixmap_components(m_ctx, pixmap); // usually 4 for RGBA
-    int w                  = fz_pixmap_width(m_ctx, pixmap);
-    int h                  = fz_pixmap_height(m_ctx, pixmap);
-    int stride             = fz_pixmap_stride(m_ctx, pixmap);
+    const int n            = fz_pixmap_components(m_ctx, pixmap); // usually 4 for RGBA
+    const int w            = fz_pixmap_width(m_ctx, pixmap);
+    const int h            = fz_pixmap_height(m_ctx, pixmap);
+    const int stride       = fz_pixmap_stride(m_ctx, pixmap);
 
     for (int y = 0; y < h; ++y)
     {
@@ -1324,4 +1329,31 @@ Model::mapToPdf(QPointF loc) noexcept
     fz_point pt = {static_cast<float>(x), static_cast<float>(y)};
     pt          = fz_transform_point(pt, invTransform);
     return pt;
+}
+
+QImage
+Model::recolorImage(const QImage &src, QColor fgColor, QColor bgColor) noexcept
+{
+    QImage result = src.convertToFormat(QImage::Format_RGBA8888);
+
+    for (int y = 0; y < result.height(); ++y)
+    {
+        QRgb *row = reinterpret_cast<QRgb *>(result.scanLine(y));
+
+        for (int x = 0; x < result.width(); ++x)
+        {
+            QColor original = QColor::fromRgba(row[x]);
+            int gray        = qGray(original.rgb()); // use luminance for mapping
+
+            float t = gray / 255.0f; // interpolation factor
+
+            int r = bgColor.red() * (1 - t) + fgColor.red() * t;
+            int g = bgColor.green() * (1 - t) + fgColor.green() * t;
+            int b = bgColor.blue() * (1 - t) + fgColor.blue() * t;
+
+            row[x] = qRgba(r, g, b, qAlpha(row[x]));
+        }
+    }
+
+    return result;
 }
