@@ -498,10 +498,7 @@ DocumentView::gotoPage(int pageno, bool refresh) noexcept
     }
 
     if (pageno < 0 || pageno >= m_total_pages)
-    {
-        qWarning("Page number %d out of range", pageno);
         return false;
-    }
 
     // boundary condition
     if (!m_suppressHistory)
