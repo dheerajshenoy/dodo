@@ -34,7 +34,8 @@ build_mupdf () {
         tar -xf "mupdf-${MUPDF_VERSION}-source.tar.gz"
         mv "mupdf-${MUPDF_VERSION}-source" mupdf
     else
-        echo "Mupdf already extracted"
+        tar -xf "mupdf-${MUPDF_VERSION}-source.tar.gz"
+        mv "mupdf-${MUPDF_VERSION}-source" mupdf
     fi
 
     cd mupdf
