@@ -150,27 +150,7 @@ DocumentView::initConnections() noexcept
         scrollToXY(loc.x, loc.y);
     });
 
-    connect(m_gview, &GraphicsView::synctexJumpRequested, this, [&](QPointF loc)
-    {
-        if (m_synctex_scanner)
-        {
-            fz_point pt = mapToPdf(loc);
-            if (synctex_edit_query(m_synctex_scanner, m_pageno + 1, pt.x, pt.y) > 0)
-            {
-                synctex_node_p node;
-                while ((node = synctex_scanner_next_result(m_synctex_scanner)))
-                    synctexLocateInFile(synctex_node_get_name(node), synctex_node_line(node));
-            }
-            else
-            {
-                QMessageBox::warning(this, "SyncTeX Error", "No matching source found!");
-            }
-        }
-        else
-        {
-            QMessageBox::warning(this, "SyncTex", "Not a valid synctex document");
-        }
-    });
+    connect(m_gview, &GraphicsView::synctexJumpRequested, this, &DocumentView::synctexJumpRequested);
 
     connect(m_gview, &GraphicsView::textSelectionRequested, m_model, [&](const QPointF &start, const QPointF &end)
     {
@@ -249,11 +229,7 @@ DocumentView::scrollToXY(float x, float y) noexcept
     point          = fz_transform_point(point, m_model->transform());
 
     if (m_jump_marker_shown)
-    {
-        m_jump_marker->setRect(QRectF(point.x, point.y, 10, 10));
-        m_jump_marker->show();
-        QTimer::singleShot(1000, [this]() { fadeJumpMarker(m_jump_marker); });
-    }
+        showJumpMarker(point);
 
     m_gview->centerOn(QPointF(point.x, point.y));
     ClearTextSelection();
@@ -573,7 +549,6 @@ DocumentView::renderAnnotations(const QList<HighlightItem *> &annots) noexcept
                 renderPage(m_pageno, true);
             }
         });
-
     }
 }
 
@@ -1054,8 +1029,8 @@ DocumentView::closeEvent(QCloseEvent *e)
     if (m_model->hasUnsavedChanges())
     {
         auto reply = QMessageBox::question(
-                this, "Unsaved Changes", "There are unsaved changes in this document. Do you want to quit ?",
-                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+            this, "Unsaved Changes", "There are unsaved changes in this document. Do you want to quit ?",
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
 
         switch (reply)
         {
@@ -1315,18 +1290,20 @@ DocumentView::initSynctex() noexcept
 void
 DocumentView::synctexLocateInFile(const char *texFile, int line) noexcept
 {
-    auto tmp = m_synctex_editor_command;
-    if (!tmp.contains("{file}") || !tmp.contains("{line}"))
+    QString tmp = m_config.synctex_editor_command;
+    if (!tmp.contains("%f") || !tmp.contains("%l"))
     {
         QMessageBox::critical(this, "SyncTeX error",
-                              "Invalid SyncTeX editor command: missing placeholders ({line} and/or {file}).");
+                              "Invalid SyncTeX editor command: missing placeholders (%l and/or %f).");
         return;
     }
 
     auto args   = QProcess::splitCommand(tmp);
     auto editor = args.takeFirst();
-    args.replaceInStrings("{line}", QString::number(line));
-    args.replaceInStrings("{file}", texFile);
+    args.replaceInStrings("%l", QString::number(line));
+    args.replaceInStrings("%f", texFile);
+
+    qDebug() << args;
 
     QProcess::startDetached(editor, args);
 }
@@ -1347,6 +1324,7 @@ DocumentView::synctexLocateInPdf(const QString &texFile, int line, int column) n
         }
         gotoPage(page - 1, false);
         scrollToXY(x, y);
+        showJumpMarker(QPointF(x, y));
     }
 }
 
@@ -1670,4 +1648,41 @@ DocumentView::clearKBHintsOverlay() noexcept
     for (auto &link : m_link_hints)
         m_gscene->removeItem(link);
     m_link_hints_present = false;
+}
+
+void
+DocumentView::synctexJumpRequested(const QPointF &loc) noexcept
+{
+    if (m_synctex_scanner)
+    {
+        fz_point pt = mapToPdf(loc);
+        if (synctex_edit_query(m_synctex_scanner, m_pageno + 1, pt.x, pt.y) > 0)
+        {
+            synctex_node_p node;
+            while ((node = synctex_scanner_next_result(m_synctex_scanner)))
+                synctexLocateInFile(synctex_node_get_name(node), synctex_node_line(node));
+        }
+        else
+        {
+            QMessageBox::warning(this, "SyncTeX Error", "No matching source found!");
+        }
+    }
+    else
+    {
+        QMessageBox::warning(this, "SyncTex", "Not a valid synctex document");
+    }
+}
+
+void DocumentView::showJumpMarker(const QPointF &p) noexcept
+{
+    m_jump_marker->setRect(QRectF(p.x(), p.y(), 10, 10));
+    m_jump_marker->show();
+    QTimer::singleShot(1000, [this]() { fadeJumpMarker(m_jump_marker); });
+}
+
+void DocumentView::showJumpMarker(const fz_point &p) noexcept
+{
+    m_jump_marker->setRect(QRectF(p.x, p.y, 10, 10));
+    m_jump_marker->show();
+    QTimer::singleShot(1000, [this]() { fadeJumpMarker(m_jump_marker); });
 }

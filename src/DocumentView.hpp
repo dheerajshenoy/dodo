@@ -233,6 +233,9 @@ private:
     void changeHighlighterColor() noexcept;
     void changeAnnotRectColor() noexcept;
     void mouseWheelScrollRequested(int direction) noexcept;
+    void synctexJumpRequested(const QPointF &loc) noexcept;
+    void showJumpMarker(const QPointF &p) noexcept;
+    void showJumpMarker(const fz_point &p) noexcept;
 
     PropertiesWidget *m_propsWidget{nullptr};
     OutlineWidget *m_owidget{nullptr};
@@ -259,7 +262,6 @@ private:
     JumpMarker *m_jump_marker{nullptr};
     FitMode m_fit_mode, m_initial_fit{FitMode::None};
     QScrollBar *m_vscrollbar{nullptr};
-    QString m_synctex_editor_command;
     bool m_link_hints_present{false};
     QColor m_link_hint_fg{QColor::fromRgba(0x000000)}, m_link_hint_bg{QColor::fromRgba(0xFFFF00)};
     QList<LinkHint *> m_link_hints{};
