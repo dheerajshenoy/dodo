@@ -23,8 +23,6 @@ QTabWidget::pane {
 }
         )");
 
-
-
     }
 
 signals:

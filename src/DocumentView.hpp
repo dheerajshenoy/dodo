@@ -18,6 +18,8 @@
 #include <QWidget>
 #include <QWindow>
 #include <qboxlayout.h>
+#include <QFileSystemWatcher>
+#include <qfilesystemwatcher.h>
 
 extern "C"
 {

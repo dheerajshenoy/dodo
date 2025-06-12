@@ -7,7 +7,9 @@
 
 #include <QJsonArray>
 #include <QStyleHints>
+#include <immintrin.h>
 #include <qdesktopservices.h>
+#include <qfilesystemwatcher.h>
 #include <qnamespace.h>
 
 dodo::dodo() noexcept
@@ -307,6 +309,12 @@ dodo::initConfig() noexcept
     m_config.invert_mode            = behavior["invert_mode"].value_or(false);
     m_config.icc_color_profile      = behavior["icc_color_profile"].value_or(true);
     m_config.initial_fit            = behavior["initial_fit"].value_or("width");
+    m_config.auto_reload            = behavior["auto_reload"].value_or(true);
+
+    if (m_config.auto_reload)
+    {
+        m_fs_watcher = new QFileSystemWatcher(this);
+    }
 
     if (toml.contains("keybindings"))
     {
@@ -1130,11 +1138,31 @@ dodo::OpenFile(QString filePath) noexcept
         if (filePath.isEmpty())
             return;
     }
+
+    // Switch to already opened filepath, if it's open.
+    if (m_path_tab_map.contains(filePath))
+    {
+        int existingIndex = m_tab_widget->indexOf(m_path_tab_map[filePath]);
+        if (existingIndex != -1)
+        {
+            m_tab_widget->setCurrentIndex(existingIndex);
+            return;
+        }
+    }
+
     DocumentView *docwidget = new DocumentView(filePath, m_config, m_tab_widget);
     docwidget->setDPR(m_dpr);
     initTabConnections(docwidget);
     int index = m_tab_widget->addTab(docwidget, QFileInfo(filePath).fileName());
     m_tab_widget->setCurrentIndex(index);
+
+    m_path_tab_map[filePath] = docwidget;
+
+    // Auto file reload
+    if (m_config.auto_reload)
+    {
+        m_fs_watcher->addPath(filePath);
+    }
 }
 
 void
@@ -1304,8 +1332,7 @@ dodo::initConnections() noexcept
         m_tab_widget->removeTab(index);
     });
 
-    void invertColorActionUpdate(bool state);
-    void autoResizeActionUpdate(bool state);
+    connect(m_fs_watcher, &QFileSystemWatcher::fileChanged, this, &dodo::handleFSFileChanged);
 }
 
 void
@@ -1367,7 +1394,6 @@ dodo::closeEvent(QCloseEvent *e)
                     }
                 }
             }
-
         }
     }
     e->accept();
@@ -1775,4 +1801,14 @@ dodo::strToColor(const QString &color_str) noexcept
     }
 
     return color;
+}
+
+void
+dodo::handleFSFileChanged(const QString &filePath) noexcept
+{
+
+    if (!m_path_tab_map.contains(filePath))
+        return;
+
+    DocumentView *doc = m_path_tab_map[filePath];
 }

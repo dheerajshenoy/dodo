@@ -167,6 +167,7 @@ public:
     void annotChangeColorForIndex(const int index, const QColor &color) noexcept;
     fz_point mapToPdf(QPointF loc) noexcept;
     bool isBreak(int c) noexcept;
+    void reloadDocument() noexcept;
 
 signals:
     void jumpToPageRequested(int pageno);
@@ -182,7 +183,6 @@ signals:
 
 private:
     void apply_night_mode(fz_pixmap *pixmap) noexcept;
-    void reloadDocument() noexcept;
     QImage recolorImage(const QImage &src, QColor fgColor, QColor bgColor) noexcept;
 
     QList<SearchResult> searchHelper(int pageno, const QString &term, bool caseSensitive);

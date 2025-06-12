@@ -20,6 +20,7 @@ struct DodoConfig
     int cache_pages{10};
     int antialiasing_bits{8};
 
+    bool auto_reload{true};
     bool icc_color_profile{true};
     bool invert_mode{false};
     bool page_nav_with_mouse{false};

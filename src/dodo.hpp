@@ -123,6 +123,7 @@ private:
     void insertFileToDB(const QString &fname, int pageno) noexcept;
     void clearKBHintsOverlay() noexcept;
     QColor strToColor(const QString &color_str) noexcept;
+    void handleFSFileChanged(const QString &filePath) noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};
@@ -184,4 +185,7 @@ private:
     QClipboard *m_clipboard = QGuiApplication::clipboard();
     QSqlDatabase m_last_pages_db;
     QString m_session_name;
+    QFileSystemWatcher *m_fs_watcher{nullptr};
+    QTimer m_debounceTimer;
+    QMap <QString, DocumentView*> m_path_tab_map;
 };

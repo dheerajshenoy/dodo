@@ -248,7 +248,6 @@ Model::reloadDocument() noexcept
         m_doc       = nullptr;
         m_page      = nullptr;
         m_text_page = nullptr;
-        return;
     }
 }
 
