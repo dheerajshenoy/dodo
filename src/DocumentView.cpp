@@ -1303,8 +1303,6 @@ DocumentView::synctexLocateInFile(const char *texFile, int line) noexcept
     args.replaceInStrings("%l", QString::number(line));
     args.replaceInStrings("%f", texFile);
 
-    qDebug() << args;
-
     QProcess::startDetached(editor, args);
 }
 
