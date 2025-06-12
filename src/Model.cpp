@@ -146,7 +146,8 @@ Model::passwordRequired() noexcept
 bool
 Model::authenticate(const QString &pwd) noexcept
 {
-    return fz_authenticate_password(m_ctx, m_doc, pwd.toStdString().c_str());
+    m_password = pwd.toStdString();
+    return fz_authenticate_password(m_ctx, m_doc, m_password.c_str());
 }
 
 fz_outline *
@@ -236,6 +237,9 @@ Model::reloadDocument() noexcept
         m_doc = fz_open_document(m_ctx, CSTR(m_filename));
         if (!m_doc)
             return;
+
+        if (passwordRequired())
+            fz_authenticate_password(m_ctx, m_doc, m_password.c_str());
 
         m_page      = fz_load_page(m_ctx, m_doc, m_pageno);
         m_pdfdoc    = pdf_specifics(m_ctx, m_doc);
