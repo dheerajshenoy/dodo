@@ -8,3 +8,4 @@
 - [ ] Synctex highlight line
 - [ ] Command bar
 - [ ] Search highlights
+- [ ] Hot reload config
