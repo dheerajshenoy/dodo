@@ -72,13 +72,16 @@ public:
         m_dpr     = dpr;
         m_inv_dpr = 1 / dpr;
     }
+
     fz_context *clonedContext() noexcept;
     void annotHighlightSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
     QSet<int> getAnnotationsInArea(const QRectF &area) noexcept;
+
     inline fz_context *context() noexcept
     {
         return m_ctx;
     }
+
     inline void setSelectionColor(const QColor &color) noexcept
     {
         m_selection_color = color;
@@ -86,12 +89,8 @@ public:
 
     inline QColor highlightColor() noexcept
     {
-        return QColor(
-                static_cast<int>(m_highlight_color[0] * 255),
-                static_cast<int>(m_highlight_color[1] * 255),
-                static_cast<int>(m_highlight_color[2] * 255),
-                static_cast<int>(m_highlight_color[3] * 255)
-                );
+        return QColor(static_cast<int>(m_highlight_color[0] * 255), static_cast<int>(m_highlight_color[1] * 255),
+                      static_cast<int>(m_highlight_color[2] * 255), static_cast<int>(m_highlight_color[3] * 255));
     }
 
     inline void setHighlightColor(const QColor &color) noexcept

@@ -209,7 +209,7 @@ dodo::initDefaults() noexcept
     m_config.colors["link_hint_fg"] = "#000000";
     m_config.colors["link_hint_bg"] = "#FFFF00";
     m_config.colors["highlight"]    = "#55FFFF00";
-    m_config.colors["selection"]    = "#550000FF";
+    m_config.colors["selection"]    = "#55000055";
     m_config.colors["jump_marker"]  = "#FFFF0000";
     m_config.colors["annot_rect"]   = "#55FF0000";
 

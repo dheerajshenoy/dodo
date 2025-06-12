@@ -15,7 +15,7 @@ streamlined interface and robust functionality with minimal resource usage.
 > Dodo is currently in alpha and may experience crashes or instability.
 
 > [!NOTE]
-> dodo version is v0.2.2-alpha
+> dodo version is v0.2.3-alpha
 
 ## Table of Contents
 
@@ -139,13 +139,8 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ## FAQ
 
-#### Does Dodo support tabs?
-Not yet. Tabs support is planned.
-
 #### Can I use Dodo on Wayland?
 Yes, Dodo supports Wayland natively.
 
 #### How do I report bugs?
 Open issues on the GitHub repository here.
-
-

@@ -92,8 +92,6 @@ Model::Model(QGraphicsScene *scene, QObject *parent) : QObject(parent), m_scene(
         exit(-1);
     }
 
-    m_selection_color = 0x330000FF;
-
     m_highlight_color[0] = 1.0f; // Red
     m_highlight_color[1] = 1.0f; // Green
     m_highlight_color[2] = 0.0f; // Blue
