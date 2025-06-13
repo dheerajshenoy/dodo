@@ -1226,6 +1226,8 @@ DocumentView::InvertColor() noexcept
 {
     if (!m_model->valid())
         return;
+
+    m_cache.clear();
     m_model->toggleInvertColor();
     renderPage(m_pageno);
 
