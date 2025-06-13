@@ -332,31 +332,29 @@ Model::renderPage(int pageno, float zoom, float rotation, bool cache) noexcept
 
         m_text_page = fz_new_stext_page_from_page(m_ctx, m_page, nullptr);
 
-        pix = fz_new_pixmap_with_bbox(m_ctx, m_colorspace, bbox, nullptr, 1);
-        if (!pix)
-        {
+        if (cache)
             return qpix;
-        }
+
+        pix = fz_new_pixmap_with_bbox(m_ctx, m_colorspace, bbox, nullptr, 1);
+
+        if (!pix)
+            return qpix;
 
         fz_clear_pixmap_with_value(m_ctx, pix, 255); // 255 = white
 
         dev = fz_new_draw_device(m_ctx, fz_identity, pix);
 
         if (!dev)
-        {
             return qpix;
-        }
 
         fz_run_page(m_ctx, m_page, dev, m_transform, nullptr);
 
         if (m_invert_color_mode)
-        {
             fz_invert_pixmap_luminance(m_ctx, pix);
             // apply_night_mode(pix);
-        }
 
-        // fz_gamma_pixmap(m_ctx, pix, 1.0f);
-        // Convert fz_pixmap to QImage
+        fz_gamma_pixmap(m_ctx, pix, 1.0f);
+
         m_width                       = fz_pixmap_width(m_ctx, pix);
         m_height                      = fz_pixmap_height(m_ctx, pix);
         int stride                    = fz_pixmap_stride(m_ctx, pix);

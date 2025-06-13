@@ -601,6 +601,7 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
 #else
             qDebug() << "Using cached pixmap";
 #endif
+            m_model->renderPage(pageno, m_scale_factor, m_rotation, true);
             renderPixmap(cached->pixmap);
             m_link_items = cached->links;
             renderLinks(m_link_items);
