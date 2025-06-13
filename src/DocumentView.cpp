@@ -1686,8 +1686,3 @@ void DocumentView::showJumpMarker(const fz_point &p) noexcept
     m_jump_marker->show();
     QTimer::singleShot(1000, [this]() { fadeJumpMarker(m_jump_marker); });
 }
-
-QDateTime DocumentView::lastModified() noexcept
-{
-    return m_last_modified_time;
-}

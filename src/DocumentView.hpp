@@ -12,13 +12,13 @@
 #include "PropertiesWidget.hpp"
 
 #include <QFileDialog>
+#include <QFileSystemWatcher>
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QScrollBar>
 #include <QWidget>
 #include <QWindow>
 #include <qboxlayout.h>
-#include <QFileSystemWatcher>
 #include <qfilesystemwatcher.h>
 
 extern "C"
