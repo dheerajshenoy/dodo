@@ -24,11 +24,14 @@ public:
         m_view->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
         m_view->setSelectionMode(QAbstractItemView::SingleSelection);
 
+        m_view->verticalHeader()->setVisible(false);
+
         connect(m_view, &QTableView::doubleClicked, this, [&](const QModelIndex &index)
         {
             int pageno = index.siblingAtColumn(1).data().toInt() - 1;
             emit jumpToPageRequested(pageno);
         });
+
         layout->addWidget(m_view);
 
         auto *proxy = new QSortFilterProxyModel(this);
