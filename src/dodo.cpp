@@ -313,7 +313,7 @@ dodo::initConfig() noexcept
 
     if (m_config.auto_reload)
     {
-        m_fs_watcher = new QFileSystemWatcher(this);
+        // TODO:
     }
 
     if (toml.contains("keybindings"))
@@ -1126,7 +1126,21 @@ dodo::OpenFile(DocumentView *view) noexcept
 {
     initTabConnections(view);
     view->setDPR(m_dpr);
-    m_tab_widget->addTab(view, QFileInfo(view->fileName()).fileName());
+    QString fileName = view->fileName();
+    QString path = QFileInfo(fileName).fileName();
+    m_tab_widget->addTab(view, path);
+
+    // Switch to already opened filepath, if it's open.
+    if (m_path_tab_map.contains(fileName))
+    {
+        int existingIndex = m_tab_widget->indexOf(m_path_tab_map[fileName]);
+        if (existingIndex != -1)
+        {
+            m_tab_widget->setCurrentIndex(existingIndex);
+            return;
+        }
+    }
+
 }
 
 void
@@ -1153,16 +1167,16 @@ dodo::OpenFile(QString filePath) noexcept
     DocumentView *docwidget = new DocumentView(filePath, m_config, m_tab_widget);
     docwidget->setDPR(m_dpr);
     initTabConnections(docwidget);
-    int index = m_tab_widget->addTab(docwidget, QFileInfo(filePath).fileName());
+    int index = m_tab_widget->addTab(docwidget, filePath);
     m_tab_widget->setCurrentIndex(index);
 
     m_path_tab_map[filePath] = docwidget;
 
     // Auto file reload
-    if (m_config.auto_reload)
-    {
-        m_fs_watcher->addPath(filePath);
-    }
+    // if (m_config.auto_reload)
+    // {
+    //     m_fs_watcher->addPath(filePath);
+    // }
 }
 
 void
@@ -1323,8 +1337,12 @@ dodo::initConnections() noexcept
         QWidget *widget   = m_tab_widget->widget(index);
         DocumentView *doc = qobject_cast<DocumentView *>(widget);
 
+
         if (doc)
-            doc->CloseFile();
+        {
+        m_path_tab_map.remove(doc->fileName());
+        doc->CloseFile();
+        }
 
         if (widget)
             widget->deleteLater();
@@ -1332,7 +1350,6 @@ dodo::initConnections() noexcept
         m_tab_widget->removeTab(index);
     });
 
-    connect(m_fs_watcher, &QFileSystemWatcher::fileChanged, this, &dodo::handleFSFileChanged);
 }
 
 void
@@ -1670,10 +1687,8 @@ dodo::getSessionFiles() noexcept
     }
 
     for (const QString &file : m_session_dir.entryList(QStringList() << "*.dodo", QDir::Files | QDir::NoSymLinks))
-    {
         sessions << QFileInfo(file).completeBaseName();
-    }
-    {};
+
     return sessions;
 }
 
@@ -1801,14 +1816,4 @@ dodo::strToColor(const QString &color_str) noexcept
     }
 
     return color;
-}
-
-void
-dodo::handleFSFileChanged(const QString &filePath) noexcept
-{
-
-    if (!m_path_tab_map.contains(filePath))
-        return;
-
-    DocumentView *doc = m_path_tab_map[filePath];
 }

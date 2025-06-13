@@ -121,6 +121,11 @@ public:
     void NextHit();
     void ClearTextSelection() noexcept;
 
+    inline QDateTime lastModified() noexcept
+    {
+        return m_last_modified_time;
+    }
+
     inline Model *model() noexcept
     {
         return m_model;
@@ -271,6 +276,7 @@ private:
 
     int m_scroll_accumulator = 0;
     QElapsedTimer m_scroll_cooldown;
+    QDateTime m_last_modified_time;
     const int kScrollCooldownMs = 300; // Prevent rapid-fire page turns
     const int kPageThreshold    = 300;
 };

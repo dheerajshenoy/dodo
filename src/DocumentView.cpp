@@ -416,6 +416,7 @@ DocumentView::openFile(const QString &fileName) noexcept
     initSynctex();
 
     setWindowTitle(m_basename);
+    m_last_modified_time = QFileInfo(m_filename).lastModified();
     emit fileNameChanged(m_basename);
 }
 
@@ -1684,4 +1685,9 @@ void DocumentView::showJumpMarker(const fz_point &p) noexcept
     m_jump_marker->setRect(QRectF(p.x, p.y, 10, 10));
     m_jump_marker->show();
     QTimer::singleShot(1000, [this]() { fadeJumpMarker(m_jump_marker); });
+}
+
+QDateTime DocumentView::lastModified() noexcept
+{
+    return m_last_modified_time;
 }
