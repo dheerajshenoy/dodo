@@ -8,6 +8,7 @@
 #include "ShortcutsWidget.hpp"
 #include "argparse.hpp"
 #include "TabWidget.hpp"
+#include "CommandBar.hpp"
 
 #include <QClipboard>
 #include <QActionGroup>
@@ -128,6 +129,7 @@ private:
     void onFileReloadTimer() noexcept;
     void showStartupWidget() noexcept;
     void updateActionsAndStuffForSystemTabs() noexcept;
+    void processCommand(const QString &cmd) noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};
@@ -194,4 +196,5 @@ private:
     QFileSystemWatcher *m_fs_watcher{nullptr};
     QTimer m_debounceTimer;
     QMap <QString, DocumentView*> m_path_tab_map;
+    CommandBar *m_commandbar;
 };

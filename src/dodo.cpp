@@ -753,8 +753,11 @@ dodo::initGui() noexcept
     m_panel->hidePageInfo(true);
     m_panel->setMode(GraphicsView::Mode::TextSelection);
 
+    m_commandbar = new CommandBar(this);
+
     widget->setLayout(m_layout);
     m_layout->addWidget(m_tab_widget);
+    m_layout->addWidget(m_commandbar);
     m_layout->addWidget(m_panel);
     this->setCentralWidget(widget);
 
@@ -1387,6 +1390,8 @@ dodo::initConnections() noexcept
 
         m_tab_widget->removeTab(index);
     });
+
+    connect(m_commandbar, &CommandBar::processCommand, this, &dodo::processCommand);
 }
 
 void
@@ -1458,7 +1463,6 @@ dodo::closeEvent(QCloseEvent *e)
                     }
                 }
             }
-
         }
     }
     e->accept();
@@ -1717,6 +1721,8 @@ dodo::LoadSession(QString sessionName) noexcept
             view->GotoPage(page);
             view->Zoom(zoom);
             view->Fit(static_cast<DocumentView::FitMode>(fitMode));
+            if (invert)
+                view->InvertColor();
             OpenFile(view);
         }
     }
@@ -1887,4 +1893,15 @@ dodo::updateActionsAndStuffForSystemTabs() noexcept
     m_panel->hidePageInfo(true);
     updateUiEnabledState();
     m_panel->setFileName("Startup");
+}
+
+void
+dodo::processCommand(const QString &cmd) noexcept
+{
+    if (m_actionMap.contains(cmd))
+    {
+        m_actionMap[cmd]();
+    } else {
+        QMessageBox::information(this, "Command", QString("%1 command doesn't exist").arg(cmd));
+    }
 }
