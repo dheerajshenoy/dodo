@@ -2,6 +2,7 @@
 
 ## 0.2.3
 
+- Fix goto page
 - Fix link clicking mouse release event
 - Fix recent files addition
 - Fix panel and other actions updating on tab switching
