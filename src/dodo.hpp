@@ -108,7 +108,8 @@ private:
     void NextHit() noexcept;
     void PrevHit() noexcept;
     void ZoomReset() noexcept;
-    void GotoPage(int pageno = -1) noexcept;
+    void GotoPage() noexcept;
+    void gotoPage(int pageno) noexcept;
     void LoadSession(QString name = QString()) noexcept;
     void SaveSession(QString name = QString()) noexcept;
     void SaveAsSession(const QString &name = QString()) noexcept;
@@ -154,6 +155,7 @@ private:
     QAction *m_actionToggleMenubar{nullptr};
     QAction *m_actionTogglePanel{nullptr};
     QAction *m_actionToggleOutline{nullptr};
+    QAction *m_actionGotoPage{nullptr};
     QAction *m_actionFirstPage{nullptr};
     QAction *m_actionPrevPage{nullptr};
     QAction *m_actionNextPage{nullptr};

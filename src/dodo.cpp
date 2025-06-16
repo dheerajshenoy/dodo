@@ -160,6 +160,10 @@ dodo::initMenubar() noexcept
 
     // --- Navigation Menu ---
     QMenu *navMenu = m_menuBar->addMenu("&Navigation");
+
+    m_actionGotoPage =
+        navMenu->addAction(QString("Goto Page\t%1").arg(m_config.shortcuts_map["goto_page"]), this, &dodo::GotoPage);
+
     m_actionFirstPage =
         navMenu->addAction(QString("First Page\t%1").arg(m_config.shortcuts_map["first_page"]), this, &dodo::FirstPage);
 
@@ -450,6 +454,11 @@ dodo::initConfig() noexcept
                            [this]()
                       {
             PrevPage();
+        }},
+            {"goto_page",
+                           [this]()
+                      {
+            GotoPage();
         }},
             {"first_page",
                            [this]()
@@ -762,6 +771,7 @@ dodo::updateUiEnabledState() noexcept
 
     m_actionZoomIn->setEnabled(hasOpenedFile);
     m_actionZoomOut->setEnabled(hasOpenedFile);
+    m_actionGotoPage->setEnabled(hasOpenedFile);
     m_actionFirstPage->setEnabled(hasOpenedFile);
     m_actionPrevPage->setEnabled(hasOpenedFile);
     m_actionNextPage->setEnabled(hasOpenedFile);
@@ -904,7 +914,7 @@ dodo::populateRecentFiles() noexcept
             connect(fileAction, &QAction::triggered, this, [&, path, page]()
             {
                 OpenFile(path);
-                GotoPage(page);
+                gotoPage(page);
             });
 
             m_recentFilesMenu->addAction(fileAction);
@@ -967,7 +977,7 @@ dodo::openLastVisitedFile() noexcept
         if (QFile::exists(last_visited_file))
         {
             OpenFile(last_visited_file);
-            GotoPage(pageno);
+            gotoPage(pageno);
         }
     }
 }
@@ -1001,7 +1011,31 @@ dodo::ZoomReset() noexcept
 }
 
 void
-dodo::GotoPage(int pageno) noexcept
+dodo::GotoPage() noexcept
+{
+    if (!m_doc || !m_doc->model())
+        return;
+
+    int total  = m_doc->model()->numPages();
+    if (total == 0)
+    {
+        QMessageBox::information(this, "Goto Page", "This document has no pages");
+        return;
+    }
+
+    int pageno = QInputDialog::getInt(this, "Goto Page", QString("Enter page number (1 to %1)").arg(total), 1);
+
+    if (pageno <= 0 || pageno > total)
+    {
+        QMessageBox::critical(this, "Goto Page", QString("Page %1 is out of range").arg(pageno));
+        return;
+    }
+
+    gotoPage(pageno);
+}
+
+void
+dodo::gotoPage(int pageno) noexcept
 {
     if (m_doc)
         m_doc->GotoPage(pageno);
@@ -1841,7 +1875,7 @@ dodo::showStartupWidget() noexcept
     connect(widget, &StartupWidget::openFileRequested, this, [&](const QString &filepath, int pageno)
     {
         OpenFile(filepath);
-        GotoPage(pageno);
+        gotoPage(pageno);
     });
     m_tab_widget->addTab(widget, "Startup");
     m_panel->setFileName("Startup");
