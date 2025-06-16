@@ -260,6 +260,10 @@ DocumentView::CloseFile() noexcept
         }
     }
 
+
+    if (m_config.remember_last_visited && !m_filename.isEmpty() && m_pageno >= 0)
+        emit insertToDBRequested(m_filename, m_pageno);
+
     m_cache.clear();
 
     clearLinks();
@@ -1022,9 +1026,6 @@ DocumentView::closeEvent(QCloseEvent *e)
 {
     if (!m_model)
         e->accept();
-
-    if (m_config.remember_last_visited && !m_filename.isEmpty() && m_pageno >= 0)
-        emit insertToDBRequested(m_filename, m_pageno);
 
     if (m_model->hasUnsavedChanges())
     {

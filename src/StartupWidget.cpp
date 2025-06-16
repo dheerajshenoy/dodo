@@ -29,6 +29,7 @@ StartupWidget::StartupWidget(const QSqlDatabase &db, QWidget *parent) : QWidget(
 
     m_table_view->setModel(m_model);
     m_table_view->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_table_view->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     m_table_view->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
 
     m_table_view->setColumnHidden(1, true);
