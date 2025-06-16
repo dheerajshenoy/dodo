@@ -143,4 +143,5 @@ void Panel::hidePageInfo(bool state) noexcept
     m_pageno_label->setVisible(!state);
     m_pageno_separator->setVisible(!state);
     m_totalpage_label->setVisible(!state);
+    m_mode_label->setVisible(!state);
 }

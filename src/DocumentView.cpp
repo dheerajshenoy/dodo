@@ -15,7 +15,7 @@
 struct rusage usage;
 #endif
 
-DocumentView::DocumentView(const QString &fileName, const DodoConfig &config, QWidget *parent)
+DocumentView::DocumentView(const QString &fileName, const Config &config, QWidget *parent)
     : QWidget(parent), m_config(config)
 {
     m_page_history_list.reserve(m_page_history_limit);
@@ -1024,9 +1024,7 @@ DocumentView::closeEvent(QCloseEvent *e)
         e->accept();
 
     if (m_config.remember_last_visited && !m_filename.isEmpty() && m_pageno >= 0)
-    {
         emit insertToDBRequested(m_filename, m_pageno);
-    }
 
     if (m_model->hasUnsavedChanges())
     {

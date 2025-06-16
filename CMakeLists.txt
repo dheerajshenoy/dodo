@@ -31,6 +31,7 @@ add_executable(${PROJECT_NAME}
     src/GraphicsView.cpp
     src/GraphicsScene.cpp
     src/DocumentView.cpp
+    src/StartupWidget.cpp
 
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp

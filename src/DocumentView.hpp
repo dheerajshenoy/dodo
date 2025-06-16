@@ -1,7 +1,7 @@
 #pragma once
 
 #include "BrowseLinkItem.hpp"
-#include "DodoConfig.hpp"
+#include "Config.hpp"
 #include "GraphicsScene.hpp"
 #include "GraphicsView.hpp"
 #include "HighlightItem.hpp"
@@ -33,7 +33,7 @@ class DocumentView : public QWidget
 {
     Q_OBJECT
 public:
-    DocumentView(const QString &fileName, const DodoConfig &config, QWidget *parent = nullptr);
+    DocumentView(const QString &fileName, const Config &config, QWidget *parent = nullptr);
     ~DocumentView();
 
     enum class FitMode
@@ -250,7 +250,7 @@ private:
     QMap<int, QList<Model::SearchResult>> m_searchRectMap;
     QString m_filename, m_basename;
     Model *m_model{nullptr};
-    DodoConfig m_config;
+    Config m_config;
     QVBoxLayout *m_layout           = new QVBoxLayout();
     GraphicsView *m_gview           = new GraphicsView();
     GraphicsScene *m_gscene         = new GraphicsScene();

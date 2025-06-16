@@ -3,6 +3,7 @@
 #include "AboutDialog.hpp"
 #include "DocumentView.hpp"
 #include "EditLastPagesWidget.hpp"
+#include "StartupWidget.hpp"
 #include "toml.hpp"
 
 #include <QJsonArray>
@@ -32,15 +33,17 @@ dodo::construct() noexcept
     initMenubar();
     initDB();
     populateRecentFiles();
-    initConnections();
     setMinimumSize(600, 400);
+    if (m_tab_widget->count() == 0)
+        showStartupWidget();
+
+    initConnections();
     this->show();
 }
 
 void
 dodo::initMenubar() noexcept
 {
-
     // --- File Menu ---
     QMenu *fileMenu = m_menuBar->addMenu("&File");
     fileMenu->addAction(QString("Open File\t%1").arg(m_config.shortcuts_map["open_file"]), this, [&]() { OpenFile(); });
@@ -260,6 +263,8 @@ dodo::initConfig() noexcept
 
     auto ui = toml["ui"];
 
+    m_config.startup_tab = ui["startup_tab"].value_or(true);
+
     m_tab_widget->tabBar()->setVisible(ui["tabs"].value_or(true));
     m_tab_widget->setTabBarAutoHide(ui["auto_hide_tabs"].value_or(false));
     m_panel->setVisible(ui["panel"].value_or(true));
@@ -276,7 +281,7 @@ dodo::initConfig() noexcept
     m_config.zoom                     = ui["zoom_level"].value_or(1.0);
     m_config.compact                  = ui["compact"].value_or(false);
     m_config.link_boundary            = ui["link_boundary"].value_or(false);
-    auto window_title                 = QString::fromStdString(ui["window_title"].value_or("{} - dodo"));
+    QString window_title              = QString::fromStdString(ui["window_title"].value_or("{} - dodo"));
     window_title.replace("{}", "%1");
     m_config.window_title_format = window_title;
 
@@ -736,6 +741,7 @@ dodo::initGui() noexcept
     QWidget *widget = new QWidget();
     // Panel
     m_panel = new Panel(this);
+    m_panel->hidePageInfo(true);
     m_panel->setMode(GraphicsView::Mode::TextSelection);
 
     widget->setLayout(m_layout);
@@ -786,7 +792,7 @@ dodo::setupKeybinding(const QString &action, const QString &key) noexcept
 void
 dodo::ToggleFullscreen() noexcept
 {
-    auto isFullscreen = this->isFullScreen();
+    bool isFullscreen = this->isFullScreen();
     if (isFullscreen)
         this->showNormal();
     else
@@ -1127,7 +1133,7 @@ dodo::OpenFile(DocumentView *view) noexcept
     initTabConnections(view);
     view->setDPR(m_dpr);
     QString fileName = view->fileName();
-    QString path = QFileInfo(fileName).fileName();
+    QString path     = QFileInfo(fileName).fileName();
     m_tab_widget->addTab(view, path);
 
     // Switch to already opened filepath, if it's open.
@@ -1140,7 +1146,6 @@ dodo::OpenFile(DocumentView *view) noexcept
             return;
         }
     }
-
 }
 
 void
@@ -1321,7 +1326,7 @@ dodo::initConnections() noexcept
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Unset);
     m_dpr = m_tab_widget->window()->devicePixelRatioF();
 
-    auto win = window()->windowHandle();
+    QWindow *win = window()->windowHandle();
     if (win)
     {
         connect(win, &QWindow::screenChanged, this, [&](QScreen *)
@@ -1337,11 +1342,10 @@ dodo::initConnections() noexcept
         QWidget *widget   = m_tab_widget->widget(index);
         DocumentView *doc = qobject_cast<DocumentView *>(widget);
 
-
         if (doc)
         {
-        m_path_tab_map.remove(doc->fileName());
-        doc->CloseFile();
+            m_path_tab_map.remove(doc->fileName());
+            doc->CloseFile();
         }
 
         if (widget)
@@ -1349,7 +1353,6 @@ dodo::initConnections() noexcept
 
         m_tab_widget->removeTab(index);
     });
-
 }
 
 void
@@ -1371,7 +1374,17 @@ dodo::handleCurrentTabChanged(int index) noexcept
         return;
     }
 
-    m_doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
+    QWidget *widget = m_tab_widget->widget(index);
+
+    if (widget->property("tabRole") == "startup")
+    {
+        m_doc = nullptr;
+        updateActionsAndStuffForSystemTabs();
+        this->setWindowTitle("Startup");
+        return;
+    }
+
+    m_doc = qobject_cast<DocumentView *>(widget);
 
     updateMenuActions();
     updateUiEnabledState();
@@ -1419,7 +1432,7 @@ dodo::closeEvent(QCloseEvent *e)
 void
 dodo::ToggleTabBar() noexcept
 {
-    auto bar = m_tab_widget->tabBar();
+    QTabBar *bar = m_tab_widget->tabBar();
 
     if (bar->isVisible())
         bar->hide();
@@ -1521,7 +1534,7 @@ dodo::eventFilter(QObject *object, QEvent *event)
 void
 dodo::openInExplorerForIndex(int index) noexcept
 {
-    auto doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
+    DocumentView *doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
     if (doc)
     {
         QString filepath = doc->fileName();
@@ -1532,7 +1545,7 @@ dodo::openInExplorerForIndex(int index) noexcept
 void
 dodo::filePropertiesForIndex(int index) noexcept
 {
-    auto doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
+    DocumentView *doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
     if (doc)
         doc->FileProperties();
 }
@@ -1592,7 +1605,7 @@ dodo::insertFileToDB(const QString &fname, int pageno) noexcept
 void
 dodo::updateMenuActions() noexcept
 {
-    auto valid = m_doc->model()->valid();
+    bool valid = m_doc->model()->valid();
     m_panel->hidePageInfo(!valid);
     m_actionCloseFile->setEnabled(valid);
     m_actionInvertColor->setEnabled(m_doc->model()->invertColor());
@@ -1621,7 +1634,7 @@ dodo::updateMenuActions() noexcept
 void
 dodo::updatePanel() noexcept
 {
-    auto model = m_doc->model();
+    Model *model = m_doc->model();
     m_panel->setFileName(m_doc->windowTitle());
     m_panel->setHighlightColor(model->highlightColor());
     m_panel->setMode(m_doc->selectionMode());
@@ -1816,4 +1829,24 @@ dodo::strToColor(const QString &color_str) noexcept
     }
 
     return color;
+}
+
+void
+dodo::showStartupWidget() noexcept
+{
+    StartupWidget *widget = new StartupWidget(m_last_pages_db, m_tab_widget);
+    connect(widget, &StartupWidget::openFileRequested, this, [&](const QString &filepath, int pageno) {
+            OpenFile(filepath);
+            GotoPage(pageno);
+            });
+    m_tab_widget->addTab(widget, "Startup");
+    m_panel->setFileName("Startup");
+}
+
+void
+dodo::updateActionsAndStuffForSystemTabs() noexcept
+{
+    m_panel->hidePageInfo(true);
+    updateUiEnabledState();
+    m_panel->setFileName("Startup");
 }

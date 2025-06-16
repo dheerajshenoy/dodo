@@ -3,7 +3,7 @@
 #include <QColor>
 #include <QMap>
 
-struct DodoConfig
+struct Config
 {
     QMap<QString, QColor> colors{};
     QMap<QString, QString> shortcuts_map{};
@@ -33,6 +33,7 @@ struct DodoConfig
     bool remember_last_visited{true};
     bool vscrollbar_shown{true};
     bool hscrollbar_shown{true};
+    bool startup_tab{true};
 
     QString initial_fit{"none"};
     QString window_title_format{"{} - dodo"};

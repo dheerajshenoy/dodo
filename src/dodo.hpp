@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DocumentView.hpp"
-#include "DodoConfig.hpp"
+#include "Config.hpp"
 #include "OutlineWidget.hpp"
 #include "Panel.hpp"
 #include "PropertiesWidget.hpp"
@@ -124,6 +124,9 @@ private:
     void clearKBHintsOverlay() noexcept;
     QColor strToColor(const QString &color_str) noexcept;
     void handleFSFileChanged(const QString &filePath) noexcept;
+    void onFileReloadTimer() noexcept;
+    void showStartupWidget() noexcept;
+    void updateActionsAndStuffForSystemTabs() noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};
@@ -132,6 +135,7 @@ private:
     QMenuBar *m_menuBar{nullptr};
     QMenu *m_fitMenu{nullptr};
     QMenu *m_recentFilesMenu{nullptr};
+    QMenu *m_editMenu{nullptr};
 
     QAction *m_actionToggleTabBar{nullptr};
     QAction *m_actionFullscreen{nullptr};
@@ -161,7 +165,7 @@ private:
     QAction *m_actionTextSelect{nullptr};
     QAction *m_actionAnnotEdit{nullptr};
 
-    DodoConfig m_config;
+    Config m_config;
     float m_dpr{1.0f};
 
     enum class LinkHintMode
