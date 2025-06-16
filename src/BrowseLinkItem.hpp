@@ -110,7 +110,11 @@ protected:
             }
             setBrush(Qt::transparent);
         }
-        QGraphicsRectItem::mousePressEvent(e);
+    }
+
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent *e) override
+    {
+        return;
     }
 
     void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override
