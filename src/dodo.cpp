@@ -330,6 +330,11 @@ dodo::initConfig() noexcept
         m_load_default_keybinding = false;
         auto keys                 = toml["keybindings"];
         m_actionMap               = {
+            {"command",
+                           [this]()
+                      {
+            focusCommandBar();
+        }},
             {"text_highlight_current_selection",
                            [this]()
                       {
@@ -600,6 +605,11 @@ dodo::initKeybinds() noexcept
     m_config.shortcuts_map["last_page"]       = "Shift+g";
 
     std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
+        {":",
+         [this]()
+    {
+        focusCommandBar();
+    }},
         {"Ctrl+Shift+m",
          [this]()
     {
@@ -755,13 +765,14 @@ dodo::initGui() noexcept
 
     m_commandbar = new CommandBar(this);
 
+    m_commandbar->setVisible(false);
+
     widget->setLayout(m_layout);
     m_layout->addWidget(m_tab_widget);
     m_layout->addWidget(m_commandbar);
     m_layout->addWidget(m_panel);
     this->setCentralWidget(widget);
 
-    // m_tab_widget->tabBar()->installEventFilter(this);
     this->installEventFilter(this);
 
     m_menuBar = this->menuBar(); // initialize here so that the config visibility works
@@ -1019,7 +1030,7 @@ dodo::GotoPage() noexcept
     if (!m_doc || !m_doc->model())
         return;
 
-    int total  = m_doc->model()->numPages();
+    int total = m_doc->model()->numPages();
     if (total == 0)
     {
         QMessageBox::information(this, "Goto Page", "This document has no pages");
@@ -1896,12 +1907,32 @@ dodo::updateActionsAndStuffForSystemTabs() noexcept
 }
 
 void
+dodo::focusCommandBar() noexcept
+{
+    m_commandbar->setVisible(true);
+    m_commandbar->selectAll();
+    m_commandbar->setFocus();
+}
+
+void
 dodo::processCommand(const QString &cmd) noexcept
 {
+    // If number, goto page
+    bool ok;
+    int pageno = cmd.toInt(&ok);
+
+    if (ok)
+    {
+        gotoPage(pageno);
+        return;
+    }
+
     if (m_actionMap.contains(cmd))
     {
         m_actionMap[cmd]();
-    } else {
+    }
+    else
+    {
         QMessageBox::information(this, "Command", QString("%1 command doesn't exist").arg(cmd));
     }
 }

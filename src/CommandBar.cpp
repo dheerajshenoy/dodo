@@ -1,15 +1,26 @@
 #include "CommandBar.hpp"
 
-CommandBar::CommandBar(QWidget *parent) : QLineEdit(parent) {}
+#include <qnamespace.h>
+
+CommandBar::CommandBar(QWidget *parent) : QLineEdit(parent)
+{
+    setPlaceholderText("Enter a valid command");
+    this->installEventFilter(this);
+}
 
 void
-CommandBar::keyPressEvent(QKeyEvent *e)
+CommandBar::keyReleaseEvent(QKeyEvent *e)
 {
-    Q_UNUSED(e);
-    if (e->key() == Qt::Key_Return)
+    switch (e->key())
     {
-        hide();
-        emit processCommand(this->text());
+        case Qt::Key_Escape:
+            hide();
+            break;
+
+        case Qt::Key_Return:
+        case Qt::Key_Enter:
+            hide();
+            emit processCommand(this->text());
+            break;
     }
-    QLineEdit::keyPressEvent(e);
 }

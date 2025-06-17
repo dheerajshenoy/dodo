@@ -130,6 +130,7 @@ private:
     void showStartupWidget() noexcept;
     void updateActionsAndStuffForSystemTabs() noexcept;
     void processCommand(const QString &cmd) noexcept;
+    void focusCommandBar() noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};

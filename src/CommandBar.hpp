@@ -13,6 +13,6 @@ signals:
     void processCommand(const QString &cmd);
 
 protected:
-    void keyPressEvent(QKeyEvent *e) override;
+    void keyReleaseEvent(QKeyEvent *e) override;
 
 };
