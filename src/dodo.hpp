@@ -1,15 +1,5 @@
 #pragma once
 
-#include "DocumentView.hpp"
-#include "Config.hpp"
-#include "OutlineWidget.hpp"
-#include "Panel.hpp"
-#include "PropertiesWidget.hpp"
-#include "ShortcutsWidget.hpp"
-#include "argparse.hpp"
-#include "TabWidget.hpp"
-#include "CommandBar.hpp"
-
 #include <QClipboard>
 #include <QActionGroup>
 #include <QApplication>
@@ -23,6 +13,17 @@
 #include <QSqlQuery>
 #include <QStandardPaths>
 #include <QTabWidget>
+
+#include "DocumentView.hpp"
+#include "Config.hpp"
+#include "OutlineWidget.hpp"
+#include "Panel.hpp"
+#include "PropertiesWidget.hpp"
+#include "ShortcutsWidget.hpp"
+#include "argparse.hpp"
+#include "TabWidget.hpp"
+#include "CommandBar.hpp"
+#include "MessageBar.hpp"
 
 #define __DODO_VERSION "v0.2.3-alpha"
 
@@ -198,5 +199,6 @@ private:
     QFileSystemWatcher *m_fs_watcher{nullptr};
     QTimer m_debounceTimer;
     QMap <QString, DocumentView*> m_path_tab_map;
-    CommandBar *m_commandbar;
+    CommandBar *m_command_bar;
+    MessageBar *m_message_bar;
 };

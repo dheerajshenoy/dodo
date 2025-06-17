@@ -33,6 +33,7 @@ add_executable(${PROJECT_NAME}
     src/DocumentView.cpp
     src/StartupWidget.cpp
     src/CommandBar.cpp
+    src/MessageBar.cpp
 
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp

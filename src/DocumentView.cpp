@@ -18,6 +18,9 @@ struct rusage usage;
 DocumentView::DocumentView(const QString &fileName, const Config &config, QWidget *parent)
     : QWidget(parent), m_config(config)
 {
+    // important for tab differentiating doc and dodo internal tabs like startup and other tabs
+    setProperty("tabRole", "doc");
+
     m_page_history_list.reserve(m_page_history_limit);
     m_gview->setPageNavWithMouse(m_page_nav_with_mouse);
     m_pix_item->setScale(m_scale_factor);
@@ -259,7 +262,6 @@ DocumentView::CloseFile() noexcept
                 return;
         }
     }
-
 
     if (m_config.remember_last_visited && !m_filename.isEmpty() && m_pageno >= 0)
         emit insertToDBRequested(m_filename, m_pageno);
@@ -1673,14 +1675,16 @@ DocumentView::synctexJumpRequested(const QPointF &loc) noexcept
     }
 }
 
-void DocumentView::showJumpMarker(const QPointF &p) noexcept
+void
+DocumentView::showJumpMarker(const QPointF &p) noexcept
 {
     m_jump_marker->setRect(QRectF(p.x(), p.y(), 10, 10));
     m_jump_marker->show();
     QTimer::singleShot(1000, [this]() { fadeJumpMarker(m_jump_marker); });
 }
 
-void DocumentView::showJumpMarker(const fz_point &p) noexcept
+void
+DocumentView::showJumpMarker(const fz_point &p) noexcept
 {
     m_jump_marker->setRect(QRectF(p.x, p.y, 10, 10));
     m_jump_marker->show();

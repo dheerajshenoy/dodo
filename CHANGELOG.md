@@ -2,6 +2,7 @@
 
 ## 0.2.3
 
+- Vim-like search in commandbar
 - Goto page from commandbar
 - Fix goto page
 - Fix link clicking mouse release event

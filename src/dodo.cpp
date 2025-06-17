@@ -763,13 +763,16 @@ dodo::initGui() noexcept
     m_panel->hidePageInfo(true);
     m_panel->setMode(GraphicsView::Mode::TextSelection);
 
-    m_commandbar = new CommandBar(this);
+    m_command_bar = new CommandBar(this);
+    m_command_bar->setVisible(false);
 
-    m_commandbar->setVisible(false);
+    m_message_bar = new MessageBar(this);
+    m_message_bar->setVisible(false);
 
     widget->setLayout(m_layout);
     m_layout->addWidget(m_tab_widget);
-    m_layout->addWidget(m_commandbar);
+    m_layout->addWidget(m_command_bar);
+    m_layout->addWidget(m_message_bar);
     m_layout->addWidget(m_panel);
     this->setCentralWidget(widget);
 
@@ -1387,13 +1390,16 @@ dodo::initConnections() noexcept
 
     connect(m_tab_widget, &QTabWidget::tabCloseRequested, this, [this](int index)
     {
-        QWidget *widget   = m_tab_widget->widget(index);
-        DocumentView *doc = qobject_cast<DocumentView *>(widget);
-
-        if (doc)
+        QWidget *widget = m_tab_widget->widget(index);
+        if (widget->property("tabRole") != "doc")
         {
-            m_path_tab_map.remove(doc->fileName());
-            doc->CloseFile();
+            DocumentView *doc = qobject_cast<DocumentView *>(widget);
+
+            if (doc)
+            {
+                m_path_tab_map.remove(doc->fileName());
+                doc->CloseFile();
+            }
         }
 
         if (widget)
@@ -1402,7 +1408,7 @@ dodo::initConnections() noexcept
         m_tab_widget->removeTab(index);
     });
 
-    connect(m_commandbar, &CommandBar::processCommand, this, &dodo::processCommand);
+    connect(m_command_bar, &CommandBar::processCommand, this, &dodo::processCommand);
 }
 
 void
@@ -1909,18 +1915,19 @@ dodo::updateActionsAndStuffForSystemTabs() noexcept
 void
 dodo::invokeCommand() noexcept
 {
-    m_commandbar->setVisible(true);
-    m_commandbar->clear();
-    m_commandbar->insert(":");
-    m_commandbar->setFocus();
+    m_command_bar->setVisible(true);
+    m_command_bar->clear();
+    m_command_bar->insert(":");
+    m_command_bar->setFocus();
 }
 
-void dodo::invokeSearch() noexcept
+void
+dodo::invokeSearch() noexcept
 {
-    m_commandbar->setVisible(true);
-    m_commandbar->clear();
-    m_commandbar->insert("/");
-    m_commandbar->setFocus();
+    m_command_bar->setVisible(true);
+    m_command_bar->clear();
+    m_command_bar->insert("/");
+    m_command_bar->setFocus();
 }
 
 void
@@ -1945,7 +1952,7 @@ dodo::processCommand(const QString &cmd) noexcept
         }
         else
         {
-            QMessageBox::information(this, "Command", QString("%1 command doesn't exist").arg(trimmed));
+            m_message_bar->showMessage(QString("%1 command doesn't exist").arg(trimmed));
         }
     }
 
