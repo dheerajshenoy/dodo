@@ -7,6 +7,7 @@
 #include <qcolordialog.h>
 #include <qcontainerinfo.h>
 #include <qgraphicsitem.h>
+#include <qnamespace.h>
 #include <qthread.h>
 
 #ifdef NDEBUG
@@ -26,6 +27,7 @@ DocumentView::DocumentView(const QString &fileName, const Config &config, QWidge
     m_pix_item->setScale(m_scale_factor);
     m_model      = new Model(m_gscene, this);
     m_vscrollbar = m_gview->verticalScrollBar();
+    m_hscrollbar = m_gview->horizontalScrollBar();
     m_gscene->addItem(m_pix_item);
     m_gview->setPixmapItem(m_pix_item);
     m_gview->setEnabled(false);
@@ -70,6 +72,12 @@ DocumentView::DocumentView(const QString &fileName, const Config &config, QWidge
     this->setLayout(m_layout);
 
     m_model->setLinkBoundary(m_config.link_boundary);
+
+    if (!m_config.vscrollbar_shown)
+        m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
+
+    if (!m_config.hscrollbar_shown)
+        m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
     initConnections();
     openFile(fileName);

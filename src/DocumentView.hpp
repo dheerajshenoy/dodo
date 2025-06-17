@@ -269,6 +269,7 @@ private:
     JumpMarker *m_jump_marker{nullptr};
     FitMode m_fit_mode, m_initial_fit{FitMode::None};
     QScrollBar *m_vscrollbar{nullptr};
+    QScrollBar *m_hscrollbar{nullptr};
     bool m_link_hints_present{false};
     QColor m_link_hint_fg{QColor::fromRgba(0x000000)}, m_link_hint_bg{QColor::fromRgba(0xFFFF00)};
     QList<LinkHint *> m_link_hints{};
