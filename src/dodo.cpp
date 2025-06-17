@@ -1481,6 +1481,8 @@ dodo::closeEvent(QCloseEvent *e)
                     }
                 }
             }
+
+            doc->CloseFile();
         }
     }
     e->accept();
@@ -1656,8 +1658,6 @@ dodo::insertFileToDB(const QString &fname, int pageno) noexcept
             q.bindValue(2, QDateTime::currentDateTime());
             q.exec();
         }
-
-        qDebug() << "DD";
     }
 }
 
@@ -1896,10 +1896,17 @@ void
 dodo::showStartupWidget() noexcept
 {
     StartupWidget *widget = new StartupWidget(m_last_pages_db, m_tab_widget);
-    connect(widget, &StartupWidget::openFileRequested, this, [&](const QString &filepath, int pageno)
+    connect(widget, &StartupWidget::openFileRequested, this, [this, widget](const QString &filepath, int pageno)
     {
         OpenFile(filepath);
         gotoPage(pageno);
+        int index = m_tab_widget->indexOf(widget);
+        if (index != -1)
+        {
+            QWidget *w = m_tab_widget->widget(index);
+            m_tab_widget->removeTab(index);
+            w->deleteLater(); // Safe deletion
+        }
     });
     m_tab_widget->addTab(widget, "Startup");
     m_panel->setFileName("Startup");
