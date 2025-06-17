@@ -264,7 +264,7 @@ DocumentView::CloseFile() noexcept
     }
 
     if (m_config.remember_last_visited && !m_filename.isEmpty() && m_pageno >= 0)
-        emit insertToDBRequested(m_filename, m_pageno);
+        emit insertToDBRequested(m_filename, m_pageno + 1);
 
     m_cache.clear();
 
