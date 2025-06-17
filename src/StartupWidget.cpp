@@ -34,7 +34,7 @@ StartupWidget::StartupWidget(const QSqlDatabase &db, QWidget *parent) : QWidget(
 
     m_table_view->setColumnHidden(1, true);
 
-    connect(m_table_view, &QTableView::clicked, this, [this](const QModelIndex &index)
+    connect(m_table_view, &QTableView::doubleClicked, this, [this](const QModelIndex &index)
     {
         if (!index.isValid())
             return;
