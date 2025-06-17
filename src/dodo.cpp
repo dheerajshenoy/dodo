@@ -34,8 +34,6 @@ dodo::construct() noexcept
     initDB();
     populateRecentFiles();
     setMinimumSize(600, 400);
-    if (m_tab_widget->count() == 0)
-        showStartupWidget();
 
     initConnections();
     this->show();
@@ -908,6 +906,9 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
     catch (...)
     {
     }
+
+    if (m_tab_widget->count() == 0)
+        showStartupWidget();
     m_config.startpage_override = -1;
 }
 
