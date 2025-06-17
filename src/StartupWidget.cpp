@@ -31,7 +31,7 @@ StartupWidget::StartupWidget(const QSqlDatabase &db, QWidget *parent) : QWidget(
         return;
     }
 
-    m_model = new QSqlTableModel(this, db);
+    m_model = new HomePathModel(this, db);
     m_model->setTable("last_visited");
     m_model->setEditStrategy(QSqlTableModel::OnManualSubmit);
     m_model->select();

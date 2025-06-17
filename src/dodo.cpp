@@ -1175,8 +1175,9 @@ dodo::TextSelectionMode() noexcept
 void
 dodo::OpenFiles(const std::vector<std::string> &files) noexcept
 {
+    QString working_dir = QDir::currentPath();
     for (const auto &s : files)
-        OpenFile(QString::fromStdString(s));
+        OpenFile(working_dir + QDir::separator() + QString::fromStdString(s));
 }
 
 void
