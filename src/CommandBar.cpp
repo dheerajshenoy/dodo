@@ -4,7 +4,7 @@
 
 CommandBar::CommandBar(QWidget *parent) : QLineEdit(parent)
 {
-    setPlaceholderText("Enter a valid command");
+    setPlaceholderText("Enter a valid command or page number");
     this->installEventFilter(this);
 }
 

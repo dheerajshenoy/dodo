@@ -333,7 +333,7 @@ dodo::initConfig() noexcept
             {"command",
                            [this]()
                       {
-            focusCommandBar();
+            invokeCommand();
         }},
             {"text_highlight_current_selection",
                            [this]()
@@ -438,7 +438,7 @@ dodo::initConfig() noexcept
             {"search",
                            [this]()
                       {
-            Search();
+            invokeSearch();
         }},
             {"search_next",
                            [this]()
@@ -608,7 +608,7 @@ dodo::initKeybinds() noexcept
         {":",
          [this]()
     {
-        focusCommandBar();
+        invokeCommand();
     }},
         {"Ctrl+Shift+m",
          [this]()
@@ -658,7 +658,7 @@ dodo::initKeybinds() noexcept
         {"/",
          [this]()
     {
-        Search();
+        invokeSearch();
     }},
         {"n",
          [this]()
@@ -997,10 +997,10 @@ dodo::openLastVisitedFile() noexcept
 }
 
 void
-dodo::Search() noexcept
+dodo::Search(const QString &term) noexcept
 {
     if (m_doc)
-        m_doc->Search();
+        m_doc->Search(term);
 }
 
 void
@@ -1907,32 +1907,50 @@ dodo::updateActionsAndStuffForSystemTabs() noexcept
 }
 
 void
-dodo::focusCommandBar() noexcept
+dodo::invokeCommand() noexcept
 {
     m_commandbar->setVisible(true);
-    m_commandbar->selectAll();
+    m_commandbar->clear();
+    m_commandbar->insert(":");
+    m_commandbar->setFocus();
+}
+
+void dodo::invokeSearch() noexcept
+{
+    m_commandbar->setVisible(true);
+    m_commandbar->clear();
+    m_commandbar->insert("/");
     m_commandbar->setFocus();
 }
 
 void
 dodo::processCommand(const QString &cmd) noexcept
 {
-    // If number, goto page
-    bool ok;
-    int pageno = cmd.toInt(&ok);
-
-    if (ok)
+    QString trimmed = cmd.mid(1);
+    if (cmd.startsWith(":"))
     {
-        gotoPage(pageno);
-        return;
+        // If number, goto page
+        bool ok;
+        int pageno = trimmed.toInt(&ok);
+
+        if (ok)
+        {
+            gotoPage(pageno);
+            return;
+        }
+
+        if (m_actionMap.contains(trimmed))
+        {
+            m_actionMap[trimmed]();
+        }
+        else
+        {
+            QMessageBox::information(this, "Command", QString("%1 command doesn't exist").arg(trimmed));
+        }
     }
 
-    if (m_actionMap.contains(cmd))
+    else if (cmd.startsWith("/"))
     {
-        m_actionMap[cmd]();
-    }
-    else
-    {
-        QMessageBox::information(this, "Command", QString("%1 command doesn't exist").arg(cmd));
+        Search(trimmed);
     }
 }

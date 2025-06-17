@@ -105,7 +105,7 @@ private:
     void ScrollUp() noexcept;
     void ScrollLeft() noexcept;
     void ScrollRight() noexcept;
-    void Search() noexcept;
+    void Search(const QString &term) noexcept;
     void NextHit() noexcept;
     void PrevHit() noexcept;
     void ZoomReset() noexcept;
@@ -130,7 +130,8 @@ private:
     void showStartupWidget() noexcept;
     void updateActionsAndStuffForSystemTabs() noexcept;
     void processCommand(const QString &cmd) noexcept;
-    void focusCommandBar() noexcept;
+    void invokeCommand() noexcept;
+    void invokeSearch() noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};

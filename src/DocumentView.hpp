@@ -100,7 +100,7 @@ public:
     void FitWindow() noexcept;
     void RotateClock() noexcept;
     void RotateAntiClock() noexcept;
-    void Search() noexcept;
+    void Search(const QString &term) noexcept;
     void GoBackHistory() noexcept;
     void TableOfContents() noexcept;
     void ToggleRectAnnotation() noexcept;

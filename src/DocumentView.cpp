@@ -933,12 +933,11 @@ DocumentView::clearHighlights()
 }
 
 void
-DocumentView::Search() noexcept
+DocumentView::Search(const QString &term) noexcept
 {
     if (!m_model->valid())
         return;
 
-    auto term = QInputDialog::getText(this, "Search", "Search for");
     m_searchRectMap.clear();
     m_search_index = -1;
     if (term.isEmpty() || term.isNull())
