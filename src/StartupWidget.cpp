@@ -10,6 +10,7 @@ StartupWidget::StartupWidget(const QSqlDatabase &db, QWidget *parent) : QWidget(
     QLabel *recent_label = new QLabel("Recent Files");
     QLineEdit *line_edit = new QLineEdit(this);
     line_edit->setPlaceholderText("Search for file");
+    m_table_view = new QTableView(this);
 
     QFont font = recent_label->font();
 
@@ -20,6 +21,7 @@ StartupWidget::StartupWidget(const QSqlDatabase &db, QWidget *parent) : QWidget(
     layout->addWidget(recent_label);
     layout->addWidget(line_edit);
     layout->addWidget(m_table_view);
+    layout->addStretch(1);
 
     setProperty("tabRole", "startup");
 
@@ -33,15 +35,14 @@ StartupWidget::StartupWidget(const QSqlDatabase &db, QWidget *parent) : QWidget(
 
     m_model = new HomePathModel(this, db);
     m_model->setTable("last_visited");
-    m_model->setEditStrategy(QSqlTableModel::OnManualSubmit);
     m_model->select();
     m_table_view->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     m_model->setHeaderData(m_model->fieldIndex("file_path"), Qt::Horizontal, "File");
     // m_model->setHeaderData(m_model->fieldIndex("last_accessed"), Qt::Horizontal, tr("Last Visited"));
 
-    // Optional: sort by last_accessed DESC
     m_model->setSort(m_model->fieldIndex("last_accessed"), Qt::DescendingOrder);
+    m_model->select();
 
     QSortFilterProxyModel *proxy = new QSortFilterProxyModel(this);
     proxy->setSourceModel(m_model);
@@ -52,10 +53,9 @@ StartupWidget::StartupWidget(const QSqlDatabase &db, QWidget *parent) : QWidget(
 
     connect(line_edit, &QLineEdit::textChanged, this, [proxy](const QString &text)
     {
-    proxy->setFilterRegularExpression(
-            text.isEmpty() ? QRegularExpression(".*", QRegularExpression::CaseInsensitiveOption)
-            : QRegularExpression(text, QRegularExpression::CaseInsensitiveOption)
-            );
+        proxy->setFilterRegularExpression(text.isEmpty()
+                                              ? QRegularExpression(".*", QRegularExpression::CaseInsensitiveOption)
+                                              : QRegularExpression(text, QRegularExpression::CaseInsensitiveOption));
     });
 
     m_table_view->setModel(proxy);

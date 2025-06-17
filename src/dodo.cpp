@@ -907,7 +907,7 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
     {
     }
 
-    if (m_tab_widget->count() == 0)
+    if (m_config.startup_tab && m_tab_widget->count() == 0)
         showStartupWidget();
     m_config.startpage_override = -1;
 }

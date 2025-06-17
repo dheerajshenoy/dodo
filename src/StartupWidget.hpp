@@ -47,7 +47,7 @@ signals:
     void openFileRequested(const QString &filename, int pageno);
 
 private:
-    QTableView *m_table_view{new QTableView()};
+    QTableView *m_table_view{nullptr};
     QSqlDatabase m_db;
     HomePathModel *m_model{nullptr};
 };
