@@ -2,6 +2,7 @@
 
 ## 0.2.3
 
+- Fix startup tab on launch with files
 - Vim-like search in commandbar
 - Goto page from commandbar
 - Fix goto page

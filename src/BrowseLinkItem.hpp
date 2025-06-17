@@ -79,7 +79,7 @@ signals:
     void linkCopyRequested(const QString &link);
 
 protected:
-    void mousePressEvent(QGraphicsSceneMouseEvent *e) override
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent *e) override
     {
         if (e->button() == Qt::LeftButton)
         {
@@ -110,11 +110,6 @@ protected:
             }
             setBrush(Qt::transparent);
         }
-    }
-
-    void mouseReleaseEvent(QGraphicsSceneMouseEvent *e) override
-    {
-        return;
     }
 
     void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override
