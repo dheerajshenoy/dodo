@@ -32,6 +32,7 @@ FILES=(
     "share/icons/hicolor/32x32/apps/dodo.png"   # Example icon path
     "share/icons/hicolor/48x48/apps/dodo.png"   # Example icon path
     "share/icons/hicolor/64x64/apps/dodo.png"   # Example icon path
+    "share/icons/hicolor/128x128/apps/dodo.png"   # Example icon path
     "share/icons/hicolor/256x256/apps/dodo.png" # Add other icon sizes as needed
     "share/icons/hicolor/512x512/apps/dodo.png" # Add other icon sizes as needed
 )
