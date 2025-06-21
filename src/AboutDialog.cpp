@@ -1,73 +1,62 @@
 #include "AboutDialog.hpp"
 
+#include <QPainter>
+#include <QTextEdit>
 #include <qfont.h>
 #include <qnamespace.h>
-#include <QTextEdit>
 
 AboutDialog::AboutDialog(QWidget *parent)
     : QDialog(parent), bannerLabel(new QLabel), infoLabel(new QLabel), closeButton(new QPushButton("Close"))
 {
-
-    int fontid = QFontDatabase::addApplicationFont(":/resources/fonts/comfortaa.ttf");
     setWindowTitle("About");
     setModal(true);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint & ~Qt::WindowMaximizeButtonHint);
 
-    resize(600, 300);
+    setFixedSize(400, 300);
 
-    QFont bannerFont;
-    bannerFont.setFamily(QFontDatabase::applicationFontFamilies(fontid).at(0));
-    bannerFont.setBold(true);
-    bannerFont.setHintingPreference(QFont::HintingPreference::PreferFullHinting);
-    bannerFont.setPixelSize(40);
-    bannerLabel->setFont(bannerFont);
+    QPixmap bannerPix(":/resources/hicolor/512x512/apps/dodo.png");
+    bannerPix = bannerPix.scaled(100, 100, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+    bannerLabel->setPixmap(bannerPix);
 
-    QPalette bannerPalette = bannerLabel->palette();
-    bannerPalette.setColor(QPalette::WindowText, QColor::fromString("#000000"));
-    bannerPalette.setBrush(QPalette::ColorRole::Window, QBrush("#f7a5b9"));
-    bannerLabel->setAutoFillBackground(true);
-    bannerLabel->setPalette(bannerPalette);
-
-    bannerLabel->setText(" dodo");
-    bannerLabel->setAlignment(Qt::AlignLeft);
+    bannerLabel->setAlignment(Qt::AlignCenter);
     infoLabel->setWordWrap(true);
 
-    auto *bannerLayout = new QVBoxLayout();
-    bannerLayout->setContentsMargins(0, 0, 0, 0);
-    bannerLayout->addWidget(bannerLabel);
-
-    auto *otherLayout = new QVBoxLayout();
+    QHBoxLayout *otherLayout = new QHBoxLayout();
+    otherLayout->addWidget(bannerLabel);
     otherLayout->addWidget(infoLabel);
 
-    QTextEdit *licenseTextEdit = new QTextEdit(this);
+    QTextEdit *licenseTextEdit = new QTextEdit();
     licenseTextEdit->setReadOnly(true);
-    otherLayout->addWidget(licenseTextEdit);
 
-    QFile file(":/LICENSE");  // Or use an absolute/relative path
+    QFile file(":/LICENSE"); // Or use an absolute/relative path
 
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
         QTextStream in(&file);
         QString text = in.readAll();
         licenseTextEdit->setPlainText(text);
         file.close();
-    } else {
+    }
+    else
+    {
         licenseTextEdit->setPlainText("Could not load license text.");
     }
 
-    otherLayout->addWidget(closeButton, 0, Qt::AlignCenter);
     otherLayout->setContentsMargins(10, 10, 10, 10);
 
-    auto *layout = new QVBoxLayout(this);
-    layout->addLayout(bannerLayout);
+    auto *layout = new QVBoxLayout();
     layout->addLayout(otherLayout);
+    layout->addWidget(licenseTextEdit);
+    layout->addWidget(closeButton, 0, Qt::AlignCenter);
     layout->setContentsMargins(0, 0, 0, 0);
 
+    setLayout(layout);
     connect(closeButton, &QPushButton::clicked, this, &QDialog::accept);
 }
 
 void
 AboutDialog::setAppInfo(const QString &version, const QString &description) noexcept
 {
-    auto link = "<a href='https://github.com/dheerajshenoy/dodo'>https://github.com/dheerajshenoy/dodo</a>";
+    auto link = "<a href='https://github.com/dheerajshenoy/dodo'>github</a>";
     infoLabel->setText(QString("%1<br>Version: %2<br>Project homepage: %3").arg(description, version, link));
 }

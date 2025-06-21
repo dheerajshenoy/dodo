@@ -1,12 +1,12 @@
 #pragma once
 
 #include <QDialog>
+#include <QFile>
 #include <QFontDatabase>
 #include <QLabel>
 #include <QPixmap>
 #include <QPushButton>
 #include <QVBoxLayout>
-#include <QFile>
 
 class AboutDialog : public QDialog
 {

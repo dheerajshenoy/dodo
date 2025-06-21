@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>resources/dodo2.svg</file>
+        <file>resources/hicolor/512x512/apps/dodo.png</file>
         <file>resources/fonts/comfortaa.ttf</file>
         <file>LICENSE</file>
     </qresource>

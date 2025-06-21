@@ -19,7 +19,7 @@ set(CMAKE_CXX_FLAGS_DEBUG " -fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra")
 # Set flags for Release build
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Core Sql)
+find_package(Qt6 COMPONENTS Gui Widgets Core Sql Svg REQUIRED)
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
