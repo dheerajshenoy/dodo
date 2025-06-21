@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="./resources/dodo-rounded.png" height="200px" width="200px"/><br><br>
+    <img src="./resources/dodo2.svg" height="200px" width="200px"/><br><br>
 <b><i>A fast and unintrusive PDF reader.</i></b>
 </p>
 
