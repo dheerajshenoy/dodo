@@ -6,8 +6,23 @@ set -e
 
 printf "Starting uninstallation...\n"
 
-read -p "Enter the install prefix used during the install (default: /usr/): " PREFIX
-PREFIX=${PREFIX:-/usr/}
+read -p "Enter the install prefix used during the install (default: /usr): " PREFIX
+PREFIX=${PREFIX:-/usr}
+
+read -p "Are you sure you want to uninstall 'dodo' and all of it's assciated files ? [y/N]" confirm
+confirm="${confirm:-n}"
+confirm="${confirm,,}"
+
+if [[ "$confirm" == "n" ]]; then
+    echo "Cancelling uninstall"
+    exit 0
+fi
+
+if ! command -v iv > /dev/null; then
+    echo "dodo is not installed, exiting uninstallation"
+    exit 0
+fi
+
 
 # List of installed files relative to prefix - customize these
 FILES=(
