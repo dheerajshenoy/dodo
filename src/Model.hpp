@@ -14,19 +14,17 @@
 #include <QtConcurrent/QtConcurrent>
 #include <mupdf/fitz.h>
 #include <mupdf/pdf.h>
-// #include <mutex>
+#include <mutex>
 
 #define CSTR(x) x.toStdString().c_str()
 
 class QImage;
 class QGraphicsScene;
 
+static std::array<std::mutex, FZ_LOCK_MAX> mutexes;
+
 QString
 generateHint(int index) noexcept;
-// void
-// lock_mutex(void *user, int lock);
-// void
-// unlock_mutex(void *user, int lock);
 fz_quad
 union_quad(const fz_quad &a, const fz_quad &b);
 
@@ -74,6 +72,7 @@ public:
     }
 
     fz_context *clonedContext() noexcept;
+    inline fz_document *document() noexcept { return m_doc; }
     void annotHighlightSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
     QSet<int> getAnnotationsInArea(const QRectF &area) noexcept;
 
@@ -192,7 +191,6 @@ private:
     QString m_filename;
     int m_match_count{0};
 
-    // std::mutex m_locks[FZ_LOCK_MAX];
     float m_dpi;
     bool m_link_boundary, m_invert_color_mode{false};
     QGraphicsScene *m_scene{nullptr};

@@ -64,28 +64,30 @@ union_quad(const fz_quad &a, const fz_quad &b)
     return result;
 }
 
-// void
-// lock_mutex(void *user, int lock)
-// {
-//     auto mutex = static_cast<std::mutex *>(user);
-//     std::lock_guard<std::mutex> guard(mutex[lock]);
-// }
-//
-// void
-// unlock_mutex(void *user, int lock)
-// {
-//     auto mutex = static_cast<std::mutex *>(user);
-//     // Do nothing – std::lock_guard handles unlocking
-// }
+void
+lock_mutex(void *user, int lock)
+{
+    auto *mutexex = static_cast<std::array<std::mutex, FZ_LOCK_MAX>*>(user);
+    mutexes.at(lock).lock();
+}
+
+void
+unlock_mutex(void *user, int lock)
+{
+    auto *mutexex = static_cast<std::array<std::mutex, FZ_LOCK_MAX>*>(user);
+    mutexes.at(lock).unlock();
+}
 
 Model::Model(QGraphicsScene *scene, QObject *parent) : QObject(parent), m_scene(scene)
 {
-    // fz_locks_context lock_context;
-    // lock_context.user   = m_locks;
-    // lock_context.lock   = lock_mutex;
-    // lock_context.unlock = unlock_mutex;
+    static std::array<std::mutex, FZ_LOCK_MAX> *mutexes = new std::array<std::mutex, FZ_LOCK_MAX>;
 
-    m_ctx = fz_new_context(nullptr, nullptr, FZ_STORE_UNLIMITED);
+    fz_locks_context lock_context;
+    lock_context.user   = mutexes;
+    lock_context.lock   = lock_mutex;
+    lock_context.unlock = unlock_mutex;
+
+    m_ctx = fz_new_context(nullptr, &lock_context, FZ_STORE_UNLIMITED);
     if (!m_ctx)
     {
         qWarning("Unable to create mupdf context");
@@ -1125,12 +1127,6 @@ Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF &sel
     fz_point a, b;
     highlightHelper(selectionStart, selectionEnd, a, b);
 
-#ifdef __MINGW32__
-    fz_copy_selection(m_ctx, m_text_page, a, b, true);
-#else
-    fz_copy_selection(m_ctx, m_text_page, a, b, false);
-#endif
-
     static fz_quad hits[1000];
     int count = 0;
 
@@ -1408,3 +1404,4 @@ Model::recolorImage(const QImage &src, QColor fgColor, QColor bgColor) noexcept
 
     return result;
 }
+

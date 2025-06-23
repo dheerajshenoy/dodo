@@ -133,6 +133,7 @@ private:
     void processCommand(const QString &cmd) noexcept;
     void invokeCommand() noexcept;
     void invokeSearch() noexcept;
+    void listTextHighlights() noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};

@@ -333,245 +333,250 @@ dodo::initConfig() noexcept
                       {
             invokeCommand();
         }},
+            {"highlights",
+             [this]()
+        {
+            listTextHighlights();
+        }},
             {"text_highlight_current_selection",
-                           [this]()
-                      {
+             [this]()
+        {
             TextHighlightCurrentSelection();
         }},
             {"toggle_tabs",
-                           [this]()
-                      {
+             [this]()
+        {
             ToggleTabBar();
         }},
             {"keybindings",
-                           [this]()
-                      {
+             [this]()
+        {
             ShowKeybindings();
         }},
             {"select_all",
-                           [this]()
-                      {
+             [this]()
+        {
             SelectAll();
         }},
             {"save",
-                           [this]()
-                      {
+             [this]()
+        {
             SaveFile();
         }},
             {"save_as",
-                           [this]()
-                      {
+             [this]()
+        {
             SaveAsFile();
         }},
             {"yank",
-                           [this]()
-                      {
+             [this]()
+        {
             YankSelection();
         }},
             {"cancel_selection",
-                           [this]()
-                      {
+             [this]()
+        {
             ClearTextSelection();
         }},
             {"about",
-                           [this]()
-                      {
+             [this]()
+        {
             ShowAbout();
         }},
             {"link_hint_visit",
-                           [this]()
-                      {
+             [this]()
+        {
             VisitLinkKB();
         }},
             {"link_hint_copy",
-                           [this]()
-                      {
+             [this]()
+        {
             CopyLinkKB();
         }},
             {"outline",
-                           [this]()
-                      {
+             [this]()
+        {
             TableOfContents();
         }},
             {"rotate_clock",
-                           [this]()
-                      {
+             [this]()
+        {
             RotateClock();
         }},
             {"rotate_anticlock",
-                           [this]()
-                      {
+             [this]()
+        {
             RotateAnticlock();
         }},
             {"prev_location",
-                           [this]()
-                      {
+             [this]()
+        {
             GoBackHistory();
         }},
             {"scroll_down",
-                           [this]()
-                      {
+             [this]()
+        {
             ScrollDown();
         }},
             {"scroll_up",
-                           [this]()
-                      {
+             [this]()
+        {
             ScrollUp();
         }},
             {"scroll_left",
-                           [this]()
-                      {
+             [this]()
+        {
             ScrollLeft();
         }},
             {"scroll_right",
-                           [this]()
-                      {
+             [this]()
+        {
             ScrollRight();
         }},
             {"invert_color",
-                           [this]()
-                      {
+             [this]()
+        {
             InvertColor();
         }},
             {"search",
-                           [this]()
-                      {
+             [this]()
+        {
             invokeSearch();
         }},
             {"search_next",
-                           [this]()
-                      {
+             [this]()
+        {
             NextHit();
         }},
             {"search_prev",
-                           [this]()
-                      {
+             [this]()
+        {
             PrevHit();
         }},
             {"next_page",
-                           [this]()
-                      {
+             [this]()
+        {
             NextPage();
         }},
             {"prev_page",
-                           [this]()
-                      {
+             [this]()
+        {
             PrevPage();
         }},
             {"goto_page",
-                           [this]()
-                      {
+             [this]()
+        {
             GotoPage();
         }},
             {"first_page",
-                           [this]()
-                      {
+             [this]()
+        {
             FirstPage();
         }},
             {"last_page",
-                           [this]()
-                      {
+             [this]()
+        {
             LastPage();
         }},
             {"zoom_in",
-                           [this]()
-                      {
+             [this]()
+        {
             ZoomIn();
         }},
             {"zoom_out",
-                           [this]()
-                      {
+             [this]()
+        {
             ZoomOut();
         }},
             {"zoom_reset",
-                           [this]()
-                      {
+             [this]()
+        {
             ZoomReset();
         }},
             {"annot_edit",
-                           [this]()
-                      {
+             [this]()
+        {
             ToggleAnnotSelect();
         }},
             {"text_highlight",
-                           [this]()
-                      {
+             [this]()
+        {
             ToggleTextHighlight();
         }},
             {"annot_rect",
-                           [this]()
-                      {
+             [this]()
+        {
             ToggleRectAnnotation();
         }},
             {"fullscreen",
-                           [this]()
-                      {
+             [this]()
+        {
             ToggleFullscreen();
         }},
             {"file_properties",
-                           [this]()
-                      {
+             [this]()
+        {
             FileProperties();
         }},
             {"open_file",
-                           [this]()
-                      {
+             [this]()
+        {
             OpenFile();
         }},
             {"close_file",
-                           [this]()
-                      {
+             [this]()
+        {
             CloseFile();
         }},
             {"fit_width",
-                           [this]()
-                      {
+             [this]()
+        {
             FitWidth();
         }},
             {"fit_height",
-                           [this]()
-                      {
+             [this]()
+        {
             FitHeight();
         }},
             {"fit_window",
-                           [this]()
-                      {
+             [this]()
+        {
             FitWindow();
         }},
             {"auto_resize",
-                           [this]()
-                      {
+             [this]()
+        {
             ToggleAutoResize();
         }},
             {"toggle_menubar",
-                           [this]()
-                      {
+             [this]()
+        {
             ToggleMenubar();
         }},
             {"toggle_panel",
-                           [this]()
-                      {
+             [this]()
+        {
             TogglePanel();
         }},
 
         };
 
-        for (auto &[action, value] : *keys.as_table())
-        {
-            if (value.is_value())
-                setupKeybinding(QString::fromStdString(std::string(action.str())),
-                                QString::fromStdString(value.value_or<std::string>("")));
-        }
-    }
-
-    if (m_config.compact)
+    for (auto &[action, value] : *keys.as_table())
     {
-        m_layout->setContentsMargins(0, 0, 0, 0);
-        m_panel->layout()->setContentsMargins(5, 1, 5, 1);
-        m_panel->setContentsMargins(0, 0, 0, 0);
-        m_tab_widget->setContentsMargins(0, 0, 0, 0);
-        this->setContentsMargins(0, 0, 0, 0);
+        if (value.is_value())
+            setupKeybinding(QString::fromStdString(std::string(action.str())),
+                            QString::fromStdString(value.value_or<std::string>("")));
     }
+}
+
+if (m_config.compact)
+{
+    m_layout->setContentsMargins(0, 0, 0, 0);
+    m_panel->layout()->setContentsMargins(5, 1, 5, 1);
+    m_panel->setContentsMargins(0, 0, 0, 0);
+    m_tab_widget->setContentsMargins(0, 0, 0, 0);
+    this->setContentsMargins(0, 0, 0, 0);
+}
 }
 
 void
@@ -1982,4 +1987,10 @@ dodo::processCommand(const QString &cmd) noexcept
     {
         Search(trimmed);
     }
+}
+
+void
+dodo::listTextHighlights() noexcept
+{
+    m_doc->listTextHighlights();
 }

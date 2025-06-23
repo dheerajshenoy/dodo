@@ -44,6 +44,14 @@ public:
         Window,
     };
 
+    // For use with text annotations click
+    struct TextHighlight
+    {
+        QString content;
+        int pageno;
+        // BrowseLinkItem::Location location; // TODO:
+    };
+
     struct CacheKey
     {
         int page;
@@ -175,6 +183,7 @@ public:
     }
 
     void clearKBHintsOverlay() noexcept;
+    void listTextHighlights() noexcept;
 
 signals:
     void pageNumberChanged(int pageno);
@@ -244,6 +253,7 @@ private:
     void showJumpMarker(const QPointF &p) noexcept;
     void showJumpMarker(const fz_point &p) noexcept;
     void loadHighlightTexts() noexcept;
+    QList<DocumentView::TextHighlight> extractHighlightTexts(fz_context *ctx, fz_document *doc) noexcept;
 
     PropertiesWidget *m_propsWidget{nullptr};
     OutlineWidget *m_owidget{nullptr};
@@ -281,5 +291,5 @@ private:
     QDateTime m_last_modified_time;
     const int kScrollCooldownMs{300}; // Prevent rapid-fire page turns
     const int kPageThreshold{300};
-    QStringList m_highlight_text_list{}; // Holds the text of all highlight annotations
+    QList<TextHighlight> m_highlight_text_list{}; // Holds the text of all highlight annotations
 };
