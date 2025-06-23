@@ -351,7 +351,7 @@ Model::renderPage(int pageno, float zoom, float rotation, bool cache) noexcept
 
         if (m_invert_color_mode)
             fz_invert_pixmap_luminance(m_ctx, pix);
-            // apply_night_mode(pix);
+        // apply_night_mode(pix);
 
         fz_gamma_pixmap(m_ctx, pix, 1.0f);
 
@@ -1115,11 +1115,21 @@ Model::getSelectionText(const QPointF &selectionStart, const QPointF &selectionE
     return text;
 }
 
+/*
+Adds highlight annotation for the selection region specified with
+`selectionStart` and `selectionEnd` position.
+*/
 void
 Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
 {
     fz_point a, b;
     highlightHelper(selectionStart, selectionEnd, a, b);
+
+#ifdef __MINGW32__
+    fz_copy_selection(m_ctx, m_text_page, a, b, true);
+#else
+    fz_copy_selection(m_ctx, m_text_page, a, b, false);
+#endif
 
     static fz_quad hits[1000];
     int count = 0;
@@ -1142,9 +1152,7 @@ Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF &sel
             pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
 
             if (!annot)
-            {
                 return;
-            }
 
             fz_quad q = hits[i];
             pdf_set_annot_quad_points(m_ctx, annot, 1, &q);

@@ -859,6 +859,13 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
     }
 
     this->construct();
+
+    if (argparser.is_used("--session"))
+    {
+        QString sessionName = QString::fromStdString(argparser.get<std::string>("--session"));
+        LoadSession(sessionName);
+    }
+
     if (argparser.is_used("--page"))
         m_config.startpage_override = argparser.get<int>("--page");
 
@@ -1720,6 +1727,8 @@ dodo::LoadSession(QString sessionName) noexcept
                                             0, true, &ok);
     }
 
+    sessionName = sessionName + ".dodo";
+
     QFile file(m_session_dir.filePath(sessionName));
     if (file.open(QIODevice::ReadOnly))
     {
@@ -1743,6 +1752,11 @@ dodo::LoadSession(QString sessionName) noexcept
                 view->InvertColor();
             OpenFile(view);
         }
+    }
+    else
+    {
+        qDebug() << "Could not open session file!";
+        QMessageBox::critical(this, "Open Session", "Could not open session: " + sessionName);
     }
 }
 

@@ -1,20 +1,26 @@
 
 #include "argparse.hpp"
 #include "dodo.hpp"
+
 #include <sys/resource.h>
 
 void
 init_args(argparse::ArgumentParser &program)
 {
-    program.add_argument("-v", "--version").help("Show version number").flag();
+    program.add_argument("-p", "--page")
+        .help("Page number to go to")
+        .scan<'i', int>()
+        .default_value(-1)
+        .metavar("PAGE_NUMBER");
 
-    program.add_argument("-p", "--page").help("Page number to go to").scan<'i', int>().default_value(-1);
+    program.add_argument("-s", "--session").help("Load a session").nargs(1).metavar("SESSION_NAME");
 
     program.add_argument("--synctex-forward")
         .help("Format: --synctex-forward={pdf-file-path}#{src-file-path}:{line}:{column}")
-        .default_value(std::string{});
+        .default_value(std::string{})
+        .metavar("SYNCTEX_FORMAT");
 
-    program.add_argument("files").remaining();
+    program.add_argument("files").remaining().metavar("FILE_PATH(s)");
 }
 
 int
