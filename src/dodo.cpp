@@ -1376,7 +1376,6 @@ void
 dodo::initConnections() noexcept
 {
     connect(m_tab_widget, &QTabWidget::currentChanged, this, &dodo::handleCurrentTabChanged);
-    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Unset);
     m_dpr = m_tab_widget->window()->devicePixelRatioF();
 
     QWindow *win = window()->windowHandle();

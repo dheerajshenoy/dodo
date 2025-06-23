@@ -337,7 +337,9 @@ DocumentView::openFile(const QString &fileName) noexcept
         CloseFile();
 
     m_filename = fileName;
-    m_filename.replace("~", QString::fromStdString(getenv("HOME")));
+
+    if (m_filename.contains("~"))
+        m_filename.replace(0, 1, getenv("HOME"));
 
     clearPixmapItems();
 
