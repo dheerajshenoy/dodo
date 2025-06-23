@@ -82,6 +82,8 @@ DocumentView::DocumentView(const QString &fileName, const Config &config, QWidge
     initConnections();
     openFile(fileName);
 
+    loadHighlightTexts();
+
 #ifdef NDEBUG
 #else
     getrusage(RUSAGE_SELF, &usage);
@@ -1699,4 +1701,13 @@ DocumentView::showJumpMarker(const fz_point &p) noexcept
     m_jump_marker->setRect(QRectF(p.x, p.y, 10, 10));
     m_jump_marker->show();
     QTimer::singleShot(1000, [this]() { fadeJumpMarker(m_jump_marker); });
+}
+
+/*
+    Loads all the highlight annotation texts present in the document
+*/
+void
+DocumentView::loadHighlightTexts() noexcept
+{
+    // TODO:
 }

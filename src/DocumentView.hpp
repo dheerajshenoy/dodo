@@ -243,18 +243,19 @@ private:
     void synctexJumpRequested(const QPointF &loc) noexcept;
     void showJumpMarker(const QPointF &p) noexcept;
     void showJumpMarker(const fz_point &p) noexcept;
+    void loadHighlightTexts() noexcept;
 
     PropertiesWidget *m_propsWidget{nullptr};
     OutlineWidget *m_owidget{nullptr};
     QCache<CacheKey, CacheValue> m_cache;
-    QMap<int, QList<Model::SearchResult>> m_searchRectMap;
+    QMap<int, QList<Model::SearchResult>> m_searchRectMap{};
     QString m_filename, m_basename;
     Model *m_model{nullptr};
     Config m_config;
-    QVBoxLayout *m_layout           = new QVBoxLayout();
-    GraphicsView *m_gview           = new GraphicsView();
-    GraphicsScene *m_gscene         = new GraphicsScene();
-    QGraphicsPixmapItem *m_pix_item = new QGraphicsPixmapItem();
+    QVBoxLayout *m_layout{new QVBoxLayout};
+    GraphicsView *m_gview{new GraphicsView};
+    GraphicsScene *m_gscene{new GraphicsScene};
+    QGraphicsPixmapItem *m_pix_item{new QGraphicsPixmapItem};
     synctex_scanner_p m_synctex_scanner{nullptr};
     int m_pageno{-1}, m_start_page_override{-1}, m_rotation{0}, m_search_index{-1}, m_total_pages{0},
         m_search_hit_page{-1}, m_page_history_limit{5};
@@ -275,9 +276,10 @@ private:
     QList<LinkHint *> m_link_hints{};
     QList<BrowseLinkItem *> m_link_items{};
 
-    int m_scroll_accumulator = 0;
+    int m_scroll_accumulator{0};
     QElapsedTimer m_scroll_cooldown;
     QDateTime m_last_modified_time;
-    const int kScrollCooldownMs = 300; // Prevent rapid-fire page turns
-    const int kPageThreshold    = 300;
+    const int kScrollCooldownMs{300}; // Prevent rapid-fire page turns
+    const int kPageThreshold{300};
+    QStringList m_highlight_text_list{}; // Holds the text of all highlight annotations
 };
