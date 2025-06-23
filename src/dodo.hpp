@@ -1,8 +1,19 @@
 #pragma once
 
-#include <QClipboard>
+#include "CommandBar.hpp"
+#include "Config.hpp"
+#include "DocumentView.hpp"
+#include "MessageBar.hpp"
+#include "OutlineWidget.hpp"
+#include "Panel.hpp"
+#include "PropertiesWidget.hpp"
+#include "ShortcutsWidget.hpp"
+#include "TabWidget.hpp"
+#include "argparse.hpp"
+
 #include <QActionGroup>
 #include <QApplication>
+#include <QClipboard>
 #include <QDir>
 #include <QKeySequence>
 #include <QMainWindow>
@@ -13,17 +24,6 @@
 #include <QSqlQuery>
 #include <QStandardPaths>
 #include <QTabWidget>
-
-#include "DocumentView.hpp"
-#include "Config.hpp"
-#include "OutlineWidget.hpp"
-#include "Panel.hpp"
-#include "PropertiesWidget.hpp"
-#include "ShortcutsWidget.hpp"
-#include "argparse.hpp"
-#include "TabWidget.hpp"
-#include "CommandBar.hpp"
-#include "MessageBar.hpp"
 
 #define __DODO_VERSION "v0.2.3-alpha"
 
@@ -39,7 +39,6 @@ public:
     }
     void readArgsParser(argparse::ArgumentParser &argparser) noexcept;
     void construct() noexcept;
-
 
 protected:
     void resizeEvent(QResizeEvent *e) override;
@@ -115,6 +114,7 @@ private:
     void LoadSession(QString name = QString()) noexcept;
     void SaveSession(QString name = QString()) noexcept;
     void SaveAsSession(const QString &name = QString()) noexcept;
+    void ListTextHighlights() noexcept;
 
     void handleFileNameChanged(const QString &name) noexcept;
     void handleCurrentTabChanged(int index) noexcept;
@@ -133,7 +133,6 @@ private:
     void processCommand(const QString &cmd) noexcept;
     void invokeCommand() noexcept;
     void invokeSearch() noexcept;
-    void listTextHighlights() noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};
@@ -189,7 +188,7 @@ private:
     QMap<int, Model::LinkInfo> m_link_hint_map;
     DocumentView *m_doc{nullptr};
     TabWidget *m_tab_widget = new TabWidget();
-    QVBoxLayout *m_layout    = new QVBoxLayout();
+    QVBoxLayout *m_layout   = new QVBoxLayout();
     OutlineWidget *m_owidget{nullptr};
     PropertiesWidget *m_propsWidget{nullptr};
     QMap<QString, std::function<void()>> m_actionMap;
@@ -199,7 +198,7 @@ private:
     QString m_session_name;
     QFileSystemWatcher *m_fs_watcher{nullptr};
     QTimer m_debounceTimer;
-    QMap <QString, DocumentView*> m_path_tab_map;
+    QMap<QString, DocumentView *> m_path_tab_map;
     CommandBar *m_command_bar;
     MessageBar *m_message_bar;
 };
