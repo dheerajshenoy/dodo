@@ -7,6 +7,8 @@
 #include <QPixmap>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QTabWidget>
+#include <QtSvgWidgets/QSvgWidget>
 
 class AboutDialog : public QDialog
 {
@@ -17,7 +19,11 @@ public:
     void setAppInfo(const QString &version, const QString &description) noexcept;
 
 private:
-    QLabel *bannerLabel;
+    QWidget* softwaresUsedSection() noexcept;
+    QWidget* authorsSection() noexcept;
+
+    QSvgWidget *icon;
     QLabel *infoLabel;
     QPushButton *closeButton;
+    QTabWidget *m_tabWidget;
 };

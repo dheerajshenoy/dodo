@@ -19,7 +19,7 @@ set(CMAKE_CXX_FLAGS_DEBUG " -fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra")
 # Set flags for Release build
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-find_package(Qt6 COMPONENTS Gui Widgets Core Sql Svg REQUIRED)
+find_package(Qt6 COMPONENTS Gui Widgets Core Sql Svg SvgWidgets REQUIRED)
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
@@ -56,6 +56,7 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Widgets
     Qt6::Core
     Qt6::Sql
+    Qt6::SvgWidgets
     ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
     ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
     ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-threads.a
