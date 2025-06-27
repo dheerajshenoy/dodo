@@ -114,7 +114,6 @@ private:
     void LoadSession(QString name = QString()) noexcept;
     void SaveSession(QString name = QString()) noexcept;
     void SaveAsSession(const QString &name = QString()) noexcept;
-    void ListTextHighlights() noexcept;
 
     void handleFileNameChanged(const QString &name) noexcept;
     void handleCurrentTabChanged(int index) noexcept;

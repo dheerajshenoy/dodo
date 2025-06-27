@@ -131,9 +131,6 @@ dodo::initMenubar() noexcept
     m_actionInvertColor->setCheckable(true);
     m_actionInvertColor->setChecked(m_config.invert_mode);
 
-    viewMenu->addAction(QString("List Highlights\t%1").arg(m_config.shortcuts_map["list_text_highlights"]), this,
-                        &dodo::ListTextHighlights);
-
     QMenu *toolsMenu = m_menuBar->addMenu("Tools");
 
     QActionGroup *selectionActionGroup = new QActionGroup(this);
@@ -335,11 +332,6 @@ dodo::initConfig() noexcept
                            [this]()
                       {
             invokeCommand();
-        }},
-            {"list_text_highlights",
-                           [this]()
-                      {
-            ListTextHighlights();
         }},
             {"text_highlight_current_selection",
                            [this]()
@@ -1190,9 +1182,9 @@ dodo::TextSelectionMode() noexcept
 void
 dodo::OpenFiles(const std::vector<std::string> &files) noexcept
 {
-    QString working_dir = QDir::currentPath();
+    // QString working_dir = QDir::currentPath();
     for (const auto &s : files)
-        OpenFile(working_dir + QDir::separator() + QString::fromStdString(s));
+        OpenFile(QString::fromStdString(s));
 }
 
 void
@@ -1989,16 +1981,5 @@ dodo::processCommand(const QString &cmd) noexcept
     else if (cmd.startsWith("/"))
     {
         Search(trimmed);
-    }
-}
-
-void
-dodo::ListTextHighlights() noexcept
-{
-    if (m_doc)
-        m_doc->listTextHighlights();
-    else
-    {
-        QMessageBox::critical(this, "List Text Highlights", "No file opened");
     }
 }

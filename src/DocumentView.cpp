@@ -90,7 +90,6 @@ DocumentView::DocumentView(const QString &fileName, const Config &config, QWidge
     qDebug() << "Mem (MB): " << usage.ru_maxrss / 1024;
 #endif
 
-    loadHighlightTexts();
 }
 
 DocumentView::~DocumentView()
@@ -1703,105 +1702,4 @@ DocumentView::showJumpMarker(const fz_point &p) noexcept
     m_jump_marker->setRect(QRectF(p.x, p.y, 10, 10));
     m_jump_marker->show();
     QTimer::singleShot(1000, [this]() { fadeJumpMarker(m_jump_marker); });
-}
-
-/*
-    Loads all the highlight annotation texts present in the document
-*/
-void
-DocumentView::loadHighlightTexts() noexcept
-{
-    QFuture<QList<DocumentView::TextHighlight>> future = QtConcurrent::run([this]()
-    {
-        fz_context *ctx = m_model->clonedContext();
-        return extractHighlightTexts(ctx, m_model->document());
-    });
-
-    auto *watcher = new QFutureWatcher<QList<DocumentView::TextHighlight>>(this);
-
-    connect(watcher, &QFutureWatcher<QStringList>::finished, this, [this, watcher]()
-    {
-        m_highlight_text_list = watcher->result();
-        watcher->deleteLater();
-    });
-
-    watcher->setFuture(future);
-}
-
-QList<DocumentView::TextHighlight>
-DocumentView::extractHighlightTexts(fz_context *ctx, fz_document *doc) noexcept
-{
-    QList<TextHighlight> highlights;
-
-    if (!ctx || !doc)
-        return highlights;
-
-    pdf_document *pdf_doc = pdf_document_from_fz_document(ctx, doc);
-    const int page_count  = pdf_count_pages(ctx, pdf_doc);
-
-    fz_stext_options opts;
-
-    for (int i = 0; i < page_count; ++i)
-    {
-        fz_try(ctx)
-        {
-            fz_page *page            = fz_load_page(ctx, doc, i);
-            fz_stext_page *text_page = fz_new_stext_page_from_page(ctx, page, &opts);
-            pdf_page *pdfpage        = pdf_load_page(ctx, pdf_doc, i); // Needed for annotation access
-
-            for (pdf_annot *annot = pdf_first_annot(ctx, pdfpage); annot; annot = pdf_next_annot(ctx, annot))
-            {
-                if (pdf_annot_type(ctx, annot) != PDF_ANNOT_HIGHLIGHT)
-                    continue;
-
-                const int quad_count = pdf_annot_quad_point_count(ctx, annot);
-
-                for (int q = 0; q < quad_count; ++q)
-                {
-                    const fz_quad quad = pdf_annot_quad_point(ctx, annot, q);
-
-                    // Convert quad to selection points
-                    const fz_point a = quad.ul;
-                    const fz_point b = quad.lr;
-
-#ifdef __MINGW32__
-                    char *text = fz_copy_selection(ctx, text_page, a, b, true);
-#else
-                    char *text = fz_copy_selection(ctx, text_page, a, b, false);
-#endif
-
-                    if (text && text[0])
-                    {
-                        highlights.append({.content = QString::fromUtf8(text), .pageno = i});
-                        fz_free(ctx, text);
-                    }
-                }
-            }
-
-            pdf_drop_page(ctx, pdfpage);
-            fz_drop_stext_page(ctx, text_page);
-            fz_drop_page(ctx, page);
-        }
-        fz_catch(ctx)
-        {
-            qWarning() << "Failed to extract highlights on page" << i;
-            continue;
-        }
-    }
-
-    return highlights;
-}
-
-void
-DocumentView::listTextHighlights() noexcept
-{
-    if (m_highlight_text_list.isEmpty())
-    {
-        QMessageBox::information(this, "Text Highlights", "No text highlights found");
-        return;
-    }
-
-    HighlightsDialog *dialog = new HighlightsDialog(m_highlight_text_list, this);
-    connect(dialog, &HighlightsDialog::highlightActivated, this, [&](int pageno) { gotoPage(pageno); });
-    dialog->exec();
 }

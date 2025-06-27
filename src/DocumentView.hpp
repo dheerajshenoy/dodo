@@ -183,7 +183,6 @@ public:
     }
 
     void clearKBHintsOverlay() noexcept;
-    void listTextHighlights() noexcept;
 
 signals:
     void pageNumberChanged(int pageno);
@@ -252,8 +251,6 @@ private:
     void synctexJumpRequested(const QPointF &loc) noexcept;
     void showJumpMarker(const QPointF &p) noexcept;
     void showJumpMarker(const fz_point &p) noexcept;
-    void loadHighlightTexts() noexcept;
-    QList<DocumentView::TextHighlight> extractHighlightTexts(fz_context *ctx, fz_document *doc) noexcept;
 
     PropertiesWidget *m_propsWidget{nullptr};
     OutlineWidget *m_owidget{nullptr};
