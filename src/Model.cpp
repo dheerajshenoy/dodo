@@ -1405,3 +1405,8 @@ Model::recolorImage(const QImage &src, QColor fgColor, QColor bgColor) noexcept
     return result;
 }
 
+QString Model::getMimeData(const QString &filepath) noexcept
+{
+    QMimeDatabase db;
+    return db.mimeTypeForFile(filepath).name();
+}

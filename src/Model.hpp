@@ -15,6 +15,8 @@
 #include <mupdf/fitz.h>
 #include <mupdf/pdf.h>
 #include <mutex>
+#include <QMimeDatabase>
+#include <QMimeData>
 
 #define CSTR(x) x.toStdString().c_str()
 
@@ -39,6 +41,7 @@ public:
         return m_doc != nullptr;
     }
 
+    QString getMimeData(const QString &filepath) noexcept;
     bool authenticate(const QString &pwd) noexcept;
     bool passwordRequired() noexcept;
     bool openFile(const QString &fileName);
