@@ -434,7 +434,9 @@ DocumentView::openFile(const QString &fileName) noexcept
 
     initSynctex();
 
-    setWindowTitle(m_basename);
+    QString title = m_config.window_title_format;
+    title = title.replace("%1", m_basename);
+    setWindowTitle(title);
     m_last_modified_time = QFileInfo(m_filename).lastModified();
     emit fileNameChanged(m_basename);
 }
