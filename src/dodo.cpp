@@ -1399,7 +1399,7 @@ dodo::initConnections() noexcept
     connect(m_tab_widget, &QTabWidget::tabCloseRequested, this, [this](int index)
     {
         QWidget *widget = m_tab_widget->widget(index);
-        if (widget->property("tabRole") != "doc")
+        if (widget->property("tabRole") == "doc")
         {
             DocumentView *doc = qobject_cast<DocumentView *>(widget);
 
@@ -1435,6 +1435,7 @@ dodo::handleCurrentTabChanged(int index) noexcept
         updateMenuActions();
         updateUiEnabledState();
         updatePanel();
+        this->setWindowTitle("");
         return;
     }
 
@@ -1671,42 +1672,74 @@ dodo::insertFileToDB(const QString &fname, int pageno) noexcept
 void
 dodo::updateMenuActions() noexcept
 {
-    bool valid = m_doc->model()->valid();
+    const bool valid = m_doc != nullptr;
+
     m_panel->hidePageInfo(!valid);
     m_actionCloseFile->setEnabled(valid);
-    m_actionInvertColor->setEnabled(m_doc->model()->invertColor());
-    m_actionAutoresize->setCheckable(m_doc->autoResize());
 
-    switch (m_doc->selectionMode())
+    if (valid)
     {
-        case GraphicsView::Mode::TextSelection:
-            m_actionTextSelect->setChecked(true);
-            break;
+        if (auto model = m_doc->model())
+            m_actionInvertColor->setEnabled(model->invertColor());
+        else
+            m_actionInvertColor->setEnabled(false);
 
-        case GraphicsView::Mode::TextHighlight:
-            m_actionTextHighlight->setChecked(true);
-            break;
+        m_actionAutoresize->setCheckable(true);
+        m_actionAutoresize->setChecked(m_doc->autoResize());
 
-        case GraphicsView::Mode::AnnotSelect:
-            m_actionAnnotEdit->setChecked(true);
-            break;
+        m_actionTextSelect->setChecked(false);
+        m_actionTextHighlight->setChecked(false);
+        m_actionAnnotEdit->setChecked(false);
+        m_actionAnnotRect->setChecked(false);
 
-        case GraphicsView::Mode::AnnotRect:
-            m_actionAnnotRect->setChecked(true);
-            break;
+        switch (m_doc->selectionMode())
+        {
+            case GraphicsView::Mode::TextSelection:
+                m_actionTextSelect->setChecked(true);
+                break;
+            case GraphicsView::Mode::TextHighlight:
+                m_actionTextHighlight->setChecked(true);
+                break;
+            case GraphicsView::Mode::AnnotSelect:
+                m_actionAnnotEdit->setChecked(true);
+                break;
+            case GraphicsView::Mode::AnnotRect:
+                m_actionAnnotRect->setChecked(true);
+                break;
+        }
+    }
+    else
+    {
+        m_actionInvertColor->setEnabled(false);
+        m_actionAutoresize->setCheckable(false);
+
+        m_actionTextSelect->setChecked(false);
+        m_actionTextHighlight->setChecked(false);
+        m_actionAnnotEdit->setChecked(false);
+        m_actionAnnotRect->setChecked(false);
     }
 }
 
 void
 dodo::updatePanel() noexcept
 {
-    Model *model = m_doc->model();
-    m_panel->setFileName(m_doc->windowTitle());
-    m_panel->setHighlightColor(model->highlightColor());
-    m_panel->setMode(m_doc->selectionMode());
-    m_panel->setTotalPageCount(model->numPages());
-    m_panel->setPageNo(m_doc->pageNo());
-    m_panel->setFitMode(m_doc->fitMode());
+    if (m_doc)
+    {
+        Model *model = m_doc->model();
+        m_panel->setFileName(m_doc->windowTitle());
+        m_panel->setHighlightColor(model->highlightColor());
+        m_panel->setMode(m_doc->selectionMode());
+        m_panel->setTotalPageCount(model->numPages());
+        m_panel->setPageNo(m_doc->pageNo());
+        m_panel->setFitMode(m_doc->fitMode());
+    } else {
+        m_panel->hidePageInfo(true);
+        m_panel->setFileName("");
+        m_panel->setHighlightColor("");
+        // m_panel->setMode();
+        // m_panel->setFitMode(m_doc->fitMode());
+    }
+
 }
 
 void
