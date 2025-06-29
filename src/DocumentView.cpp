@@ -21,9 +21,9 @@ struct rusage usage;
 DocumentView::DocumentView(const QString &fileName, const Config &config, QWidget *parent)
     : QWidget(parent), m_config(config)
 {
+    setAcceptDrops(false);
     // important for tab differentiating doc and dodo internal tabs like startup and other tabs
     setProperty("tabRole", "doc");
-
     m_page_history_list.reserve(m_page_history_limit);
     m_gview->setPageNavWithMouse(m_page_nav_with_mouse);
     m_model = new Model(m_gscene, this);

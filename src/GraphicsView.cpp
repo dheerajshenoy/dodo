@@ -10,6 +10,7 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
     setMouseTracking(true);
     setResizeAnchor(AnchorViewCenter);
     setTransformationAnchor(AnchorUnderMouse);
+    setAcceptDrops(false);
 }
 
 void

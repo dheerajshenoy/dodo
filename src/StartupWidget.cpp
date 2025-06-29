@@ -2,10 +2,12 @@
 
 #include <QLabel>
 #include <QLineEdit>
+#include <QMimeData>
 #include <QSortFilterProxyModel>
 
 StartupWidget::StartupWidget(const QSqlDatabase &db, QWidget *parent) : QWidget(parent), m_db(db)
 {
+    setAcceptDrops(false);
     QVBoxLayout *layout  = new QVBoxLayout(this);
     QLabel *recent_label = new QLabel("Recent Files");
     QLineEdit *line_edit = new QLineEdit(this);

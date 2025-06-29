@@ -16,6 +16,8 @@
 dodo::dodo() noexcept
 {
     setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
+    setAcceptDrops(true);
+    installEventFilter(this);
 }
 
 dodo::~dodo() noexcept
@@ -774,8 +776,6 @@ dodo::initGui() noexcept
     m_layout->addWidget(m_panel);
     this->setCentralWidget(widget);
 
-    this->installEventFilter(this);
-
     m_menuBar = this->menuBar(); // initialize here so that the config visibility works
 }
 
@@ -1183,8 +1183,15 @@ void
 dodo::OpenFiles(const std::vector<std::string> &files) noexcept
 {
     // QString working_dir = QDir::currentPath();
-    for (const auto &s : files)
+    for (const std::string &s : files)
         OpenFile(QString::fromStdString(s));
+}
+
+void
+dodo::OpenFiles(const QStringList &files) noexcept
+{
+    for (const QString &file : files)
+        OpenFile(file);
 }
 
 void
@@ -1510,9 +1517,10 @@ dodo::ToggleTabBar() noexcept
 bool
 dodo::eventFilter(QObject *object, QEvent *event)
 {
+    QEvent::Type type = event->type();
     if (m_link_hint_mode)
     {
-        if (event->type() == QEvent::KeyPress)
+        if (type == QEvent::KeyPress)
         {
             QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
             if (keyEvent->key() == Qt::Key_Escape)
@@ -1565,18 +1573,16 @@ dodo::eventFilter(QObject *object, QEvent *event)
             return true;
         }
 
-        if (event->type() == QEvent::ShortcutOverride)
+        if (type == QEvent::ShortcutOverride)
         {
             event->accept();
-            // QShortcutEvent *stEvent = static_cast<QShortcutEvent *>(event);
-            // stEvent->accept();
             return true;
         }
     }
     else
     {
 
-        if (object == m_tab_widget->tabBar() && event->type() == QEvent::ContextMenu)
+        if (object == m_tab_widget->tabBar() && type == QEvent::ContextMenu)
         {
             QContextMenuEvent *contextEvent = static_cast<QContextMenuEvent *>(event);
             int index                       = m_tab_widget->tabBar()->tabAt(contextEvent->pos());
@@ -1592,6 +1598,29 @@ dodo::eventFilter(QObject *object, QEvent *event)
             }
             return true;
         }
+    }
+
+    if (event->type() == QEvent::Drop)
+    {
+        QDropEvent *e          = static_cast<QDropEvent *>(event);
+        const QList<QUrl> urls = e->mimeData()->urls();
+
+        for (const QUrl &url : urls)
+        {
+            if (url.isLocalFile())
+            {
+                QString filepath = url.toLocalFile();
+                OpenFile(filepath);
+            }
+        }
+        return true;
+    }
+    else if (event->type() == QEvent::DragEnter)
+    {
+        QDragEnterEvent *e = static_cast<QDragEnterEvent *>(event);
+        if (e->mimeData()->hasUrls())
+            e->acceptProposedAction();
+        return true;
     }
 
     // Let other events pass through
@@ -1679,8 +1708,14 @@ dodo::updateMenuActions() noexcept
 
     if (valid)
     {
-        if (auto model = m_doc->model())
+        Model *model = m_doc->model();
+        if (model)
+        {
             m_actionInvertColor->setEnabled(model->invertColor());
+            QUndoStack *undoStack = model->undoStack();
+            m_actionUndo->setEnabled(undoStack->canUndo());
+            m_actionRedo->setEnabled(undoStack->canRedo());
+        }
         else
             m_actionInvertColor->setEnabled(false);
 

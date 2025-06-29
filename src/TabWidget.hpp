@@ -15,19 +15,16 @@ public:
         setDocumentMode(true);
         setMovable(true);
         setTabsClosable(true);
-
+        setAcceptDrops(false);
         setStyleSheet(R"(
 QTabWidget::pane {
     border: 0;
     margin: 0;
 }
         )");
-
     }
 
 signals:
     void openInExplorerRequested(int index);
     void filePropertiesRequested(int index);
-
-protected:
 };
