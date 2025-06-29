@@ -64,30 +64,11 @@ union_quad(const fz_quad &a, const fz_quad &b)
     return result;
 }
 
-void
-lock_mutex(void *user, int lock)
-{
-    auto *mutexex = static_cast<std::array<std::mutex, FZ_LOCK_MAX>*>(user);
-    mutexes.at(lock).lock();
-}
-
-void
-unlock_mutex(void *user, int lock)
-{
-    auto *mutexex = static_cast<std::array<std::mutex, FZ_LOCK_MAX>*>(user);
-    mutexes.at(lock).unlock();
-}
-
 Model::Model(QGraphicsScene *scene, QObject *parent) : QObject(parent), m_scene(scene)
 {
-    static std::array<std::mutex, FZ_LOCK_MAX> *mutexes = new std::array<std::mutex, FZ_LOCK_MAX>;
+    m_undoStack = new QUndoStack(this);
 
-    fz_locks_context lock_context;
-    lock_context.user   = mutexes;
-    lock_context.lock   = lock_mutex;
-    lock_context.unlock = unlock_mutex;
-
-    m_ctx = fz_new_context(nullptr, &lock_context, FZ_STORE_UNLIMITED);
+    m_ctx = fz_new_context(nullptr, nullptr, FZ_STORE_UNLIMITED);
     if (!m_ctx)
     {
         qWarning("Unable to create mupdf context");
@@ -1405,7 +1386,8 @@ Model::recolorImage(const QImage &src, QColor fgColor, QColor bgColor) noexcept
     return result;
 }
 
-QString Model::getMimeData(const QString &filepath) noexcept
+QString
+Model::getMimeData(const QString &filepath) noexcept
 {
     QMimeDatabase db;
     return db.mimeTypeForFile(filepath).name();

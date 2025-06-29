@@ -1,5 +1,9 @@
 # dodo
 
+## 0.2.4
+
+- Fix drag and drop not opening files
+
 ## 0.2.3
 
 - Fix startup tab on launch with files
