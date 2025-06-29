@@ -89,7 +89,7 @@ Panel::setSearchMode(bool state) noexcept
 void
 Panel::setFitMode(DocumentView::FitMode mode) noexcept
 {
-    switch(mode)
+    switch (mode)
     {
         case DocumentView::FitMode::None:
             m_fitmode_label->clear();
@@ -137,8 +137,8 @@ Panel::setHighlightColor(const QColor &color) noexcept
     m_mode_color_label->setColor(color);
 }
 
-
-void Panel::hidePageInfo(bool state) noexcept
+void
+Panel::hidePageInfo(bool state) noexcept
 {
     m_pageno_label->setVisible(!state);
     m_pageno_separator->setVisible(!state);
