@@ -300,14 +300,14 @@ Model::setLinkBoundary(bool state)
 }
 
 QPixmap
-Model::renderPage(int pageno, float zoom, float rotation, bool cache) noexcept
+Model::renderPage(int pageno, bool cache) noexcept
 {
     QPixmap qpix;
 
     if (!m_ctx)
         return qpix;
 
-    float scale = zoom * m_dpr;
+    float scale = m_scale_factor * m_dpr;
     fz_device *dev{nullptr};
     fz_pixmap *pix{nullptr};
 
@@ -328,7 +328,7 @@ Model::renderPage(int pageno, float zoom, float rotation, bool cache) noexcept
         bounds        = fz_bound_page(m_ctx, m_page);
         m_page_height = bounds.y1 - bounds.y0;
 
-        m_transform         = fz_transform_page(bounds, scale, rotation);
+        m_transform         = fz_transform_page(bounds, scale, m_rotation);
         fz_rect transformed = fz_transform_rect(bounds, m_transform);
         fz_irect bbox       = fz_round_rect(transformed);
 

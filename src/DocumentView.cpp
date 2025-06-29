@@ -26,8 +26,8 @@ DocumentView::DocumentView(const QString &fileName, const Config &config, QWidge
 
     m_page_history_list.reserve(m_page_history_limit);
     m_gview->setPageNavWithMouse(m_page_nav_with_mouse);
-    m_pix_item->setScale(m_scale_factor);
-    m_model      = new Model(m_gscene, this);
+    m_model = new Model(m_gscene, this);
+    m_pix_item->setScale(m_model->zoom());
     m_vscrollbar = m_gview->verticalScrollBar();
     m_hscrollbar = m_gview->horizontalScrollBar();
     m_gscene->addItem(m_pix_item);
@@ -89,7 +89,6 @@ DocumentView::DocumentView(const QString &fileName, const Config &config, QWidge
     getrusage(RUSAGE_SELF, &usage);
     qDebug() << "Mem (MB): " << usage.ru_maxrss / 1024;
 #endif
-
 }
 
 DocumentView::~DocumentView()
@@ -163,6 +162,8 @@ DocumentView::initConnections() noexcept
         gotoPage(pageno, false);
         scrollToXY(loc.x, loc.y);
     });
+
+    connect(m_model, &Model::pageRenderRequested, this, &DocumentView::renderPage);
 
     connect(m_gview, &GraphicsView::synctexJumpRequested, this, &DocumentView::synctexJumpRequested);
 
@@ -435,7 +436,7 @@ DocumentView::openFile(const QString &fileName) noexcept
     initSynctex();
 
     QString title = m_config.window_title_format;
-    title = title.replace("%1", m_basename);
+    title         = title.replace("%1", m_basename);
     setWindowTitle(title);
     m_last_modified_time = QFileInfo(m_filename).lastModified();
     emit fileNameChanged(m_basename);
@@ -612,7 +613,7 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
     if (!m_model->valid())
         return false;
 
-    CacheKey key{pageno, m_rotation, m_scale_factor};
+    CacheKey key{pageno, m_rotation, m_model->zoom()};
     emit pageNumberChanged(pageno + 1);
 
     if (!refresh)
@@ -623,7 +624,7 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
 #else
             qDebug() << "Using cached pixmap";
 #endif
-            m_model->renderPage(pageno, m_scale_factor, m_rotation, true);
+            m_model->renderPage(pageno, true);
             renderPixmap(cached->pixmap);
             m_link_items = cached->links;
             renderLinks(m_link_items);
@@ -632,7 +633,7 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
         }
     }
 
-    auto pix              = m_model->renderPage(pageno, m_scale_factor, m_rotation);
+    auto pix              = m_model->renderPage(pageno);
     m_link_items          = m_model->getLinks();
     auto annot_highlights = m_model->getAnnotations();
 
@@ -689,7 +690,7 @@ DocumentView::ZoomIn() noexcept
 {
     if (!m_model->valid())
         return;
-    m_scale_factor *= m_zoom_by;
+    m_model->setZoom(m_model->zoom() * m_zoom_by);
     zoomHelper();
 }
 
@@ -699,7 +700,7 @@ DocumentView::ZoomReset() noexcept
     if (!m_model->valid())
         return;
 
-    m_scale_factor = m_default_zoom;
+    m_model->setZoom(m_default_zoom);
     zoomHelper();
 }
 
@@ -709,11 +710,11 @@ DocumentView::ZoomOut() noexcept
     if (!m_model->valid())
         return;
 
-    if (m_scale_factor * 1 / m_zoom_by != 0)
+    float zoom = m_model->zoom();
+
+    if (zoom * 1 / m_zoom_by != 0)
     {
-        // m_gview->scale(0.9, 0.9);
-        m_scale_factor *= 1 / m_zoom_by;
-        // m_gview->scale(1.1, 1.1);
+        m_model->setZoom(zoom * 1 / m_zoom_by);
         zoomHelper();
     }
 }
@@ -724,7 +725,7 @@ DocumentView::Zoom(float factor) noexcept
     if (!m_model->valid())
         return;
 
-    m_scale_factor = factor;
+    m_model->setZoom(factor);
     zoomHelper();
 }
 
@@ -780,7 +781,7 @@ DocumentView::FitHeight() noexcept
     int viewHeight   = m_gview->viewport()->height() * m_dpr;
 
     qreal scale = static_cast<qreal>(viewHeight) / pixmapHeight;
-    m_scale_factor *= scale;
+    m_model->setZoom(m_model->zoom() * scale);
     zoomHelper();
     setFitMode(FitMode::Height);
 }
@@ -795,7 +796,7 @@ DocumentView::FitWidth() noexcept
     int viewWidth   = m_gview->viewport()->width() * m_dpr;
 
     qreal scale = static_cast<qreal>(viewWidth) / pixmapWidth;
-    m_scale_factor *= scale;
+    m_model->setZoom(m_model->zoom() * scale);
     zoomHelper();
     setFitMode(FitMode::Width);
 }
@@ -814,8 +815,7 @@ DocumentView::FitWindow() noexcept
 
     // Use the smaller scale to ensure the entire image fits in the window
     const qreal scale = std::min(scaleX, scaleY);
-
-    m_scale_factor *= scale;
+    m_model->setZoom(m_model->zoom() * scale);
     zoomHelper();
     setFitMode(FitMode::Window);
 }
@@ -1139,7 +1139,7 @@ DocumentView::SaveFile() noexcept
         return;
 
     m_model->save();
-    auto pix = m_model->renderPage(m_pageno, m_scale_factor, m_rotation);
+    auto pix = m_model->renderPage(m_pageno);
     renderPixmap(pix);
 }
 
@@ -1176,7 +1176,7 @@ DocumentView::LinkKB() noexcept
         auto dest = m_model->resolveLink(link->URI());
         map[i]    = (Model::LinkInfo){.uri = QString(link->URI()), .dest = dest};
 
-        float w        = 0.25 * m_scale_factor;
+        float w        = 0.25 * m_model->zoom();
         auto link_rect = link->rect();
         QRect rect(link_rect.x(), link_rect.y(), w, w);
 

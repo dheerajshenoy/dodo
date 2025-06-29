@@ -174,7 +174,7 @@ public:
     }
     inline float zoom() noexcept
     {
-        return m_scale_factor;
+        return m_model->zoom();
     }
     void Fit(DocumentView::FitMode mode) noexcept;
     inline float rotation() noexcept
@@ -266,7 +266,7 @@ private:
     synctex_scanner_p m_synctex_scanner{nullptr};
     int m_pageno{-1}, m_start_page_override{-1}, m_rotation{0}, m_search_index{-1}, m_total_pages{0},
         m_search_hit_page{-1}, m_page_history_limit{5};
-    float m_scale_factor{1.0f}, m_default_zoom{0.0}, m_zoom_by{1.25};
+    float m_default_zoom{0.0}, m_zoom_by{1.25};
     bool m_suppressHistory{false}, m_highlights_present{false}, m_selection_present{false},
         m_annot_selection_present{false}, m_dirty{false}, m_page_nav_with_mouse{true}, m_jump_marker_shown{true},
         m_auto_resize{false};

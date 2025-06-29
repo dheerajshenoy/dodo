@@ -52,7 +52,7 @@ public:
         m_dpi = dpi;
     }
     int numPages();
-    QPixmap renderPage(int pageno, float zoom, float rotation, bool cache = false) noexcept;
+    QPixmap renderPage(int pageno, bool cache = false) noexcept;
     QList<BrowseLinkItem *> getLinks() noexcept;
     pdf_annot *get_annot_by_index(int index) noexcept;
     QList<pdf_annot *> get_annots_by_indexes(const QSet<int> &index) noexcept;
@@ -75,9 +75,38 @@ public:
     }
 
     fz_context *clonedContext() noexcept;
-    inline fz_document *document() noexcept { return m_doc; }
+    inline fz_document *document() noexcept
+    {
+        return m_doc;
+    }
+    inline pdf_document *pdfDocument() noexcept
+    {
+        return m_pdfdoc;
+    }
+    inline pdf_page *pdfPage() noexcept
+    {
+        return m_pdfpage;
+    }
+
     void annotHighlightSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
     QSet<int> getAnnotationsInArea(const QRectF &area) noexcept;
+    inline QUndoStack *undoStack() noexcept
+    {
+        return m_undoStack;
+    }
+
+    inline float zoom() noexcept
+    {
+        return m_scale_factor;
+    }
+    inline void setZoom(float zoom) noexcept
+    {
+        m_scale_factor = zoom;
+    }
+    inline float rotation() noexcept
+    {
+        return m_rotation;
+    }
 
     inline fz_context *context() noexcept
     {
@@ -172,9 +201,9 @@ public:
     void reloadDocument() noexcept;
 
 signals:
+    void pageRenderRequested(int pageno, bool cache);
     void jumpToPageRequested(int pageno);
     void jumpToLocationRequested(int pageno, const BrowseLinkItem::Location &loc);
-    void imageRenderRequested(int pageno, QImage img);
     void searchResultsReady(const QMap<int, QList<SearchResult>> &results, int matchCount);
     void horizontalFitRequested(int pageno, const BrowseLinkItem::Location &location);
     void verticalFitRequested(int pageno, const BrowseLinkItem::Location &location);
