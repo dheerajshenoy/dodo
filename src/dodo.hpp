@@ -25,7 +25,7 @@
 #include <QStandardPaths>
 #include <QTabWidget>
 
-#define __DODO_VERSION "v0.2.3-alpha"
+#define __DODO_VERSION "v0.2.4-alpha"
 
 class dodo : public QMainWindow
 {
@@ -33,10 +33,6 @@ public:
     dodo() noexcept;
     ~dodo() noexcept;
 
-    inline QWindow *windowHandle() noexcept
-    {
-        return this->windowHandle();
-    }
     void readArgsParser(argparse::ArgumentParser &argparser) noexcept;
     void construct() noexcept;
 
@@ -61,6 +57,8 @@ private:
     void initTabConnections(DocumentView *) noexcept;
 
     // Interactive functions
+    void Undo() noexcept;
+    void Redo() noexcept;
     void ShowAbout() noexcept;
     void TextHighlightCurrentSelection() noexcept;
     void ShowKeybindings() noexcept;
@@ -86,7 +84,7 @@ private:
     void LastPage() noexcept;
     void NextPage() noexcept;
     void OpenFiles(const std::vector<std::string> &files) noexcept;
-    // void OpenFiles(const QList<QString> &files) noexcept;
+    void OpenFiles(const QList<QString> &files) noexcept;
     void OpenFile(QString filename = QString()) noexcept;
     void OpenFile(DocumentView *view) noexcept;
     void PrevPage() noexcept;
@@ -142,6 +140,8 @@ private:
     QMenu *m_recentFilesMenu{nullptr};
     QMenu *m_editMenu{nullptr};
 
+    QAction *m_actionUndo{nullptr};
+    QAction *m_actionRedo{nullptr};
     QAction *m_actionToggleTabBar{nullptr};
     QAction *m_actionFullscreen{nullptr};
     QAction *m_actionZoomIn{nullptr};

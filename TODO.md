@@ -6,7 +6,7 @@
 - [X] Command bar
 - [X] Search highlights
 - [ ] Undo/Redo operations
-- [ ] Custom bg and fg colors
+- [X] Custom bg and fg colors
 - [ ] Synctex highlight line
 - [ ] Hot reload config
 - [ ] Telescope like search with preview

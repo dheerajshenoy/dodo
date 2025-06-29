@@ -8,22 +8,20 @@
 
 #include <QFuture>
 #include <QImage>
+#include <QMimeData>
+#include <QMimeDatabase>
 #include <QObject>
 #include <QString>
 #include <QThreadPool>
+#include <QUndoStack>
 #include <QtConcurrent/QtConcurrent>
 #include <mupdf/fitz.h>
 #include <mupdf/pdf.h>
-#include <mutex>
-#include <QMimeDatabase>
-#include <QMimeData>
 
 #define CSTR(x) x.toStdString().c_str()
 
 class QImage;
 class QGraphicsScene;
-
-static std::array<std::mutex, FZ_LOCK_MAX> mutexes;
 
 QString
 generateHint(int index) noexcept;
@@ -238,9 +236,9 @@ private:
     fz_matrix m_transform;
     std::string m_password; // Used when reloading document
 
-    float m_height, m_width;
-    float m_dpr{1.0f}, m_inv_dpr{1.0f};
-    float m_highlight_color[4], m_annot_rect_color[4];
+    float m_height, m_width, m_rotation{0.0f}, m_scale_factor{1.0f}, m_dpr{1.0f}, m_inv_dpr{1.0f}, m_highlight_color[4],
+        m_annot_rect_color[4];
     QColor m_selection_color;
     float m_page_height{0.0f};
+    QUndoStack *m_undoStack;
 };

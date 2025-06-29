@@ -36,7 +36,6 @@ dodo::construct() noexcept
     initDB();
     populateRecentFiles();
     setMinimumSize(600, 400);
-
     initConnections();
     this->show();
 }
@@ -70,6 +69,8 @@ dodo::initMenubar() noexcept
     fileMenu->addAction("Quit", this, &QMainWindow::close);
 
     QMenu *editMenu = m_menuBar->addMenu("&Edit");
+    m_actionUndo    = editMenu->addAction(QString("Undo\t%1").arg(m_config.shortcuts_map["undo"]), this, &dodo::Undo);
+    m_actionRedo    = editMenu->addAction(QString("Redo\t%1").arg(m_config.shortcuts_map["redo"]), this, &dodo::Redo);
     editMenu->addAction(QString("Last Pages\t%1").arg(m_config.shortcuts_map["edit_last_pages"]), this,
                         &dodo::editLastPages);
 
@@ -335,6 +336,16 @@ dodo::initConfig() noexcept
                       {
             invokeCommand();
         }},
+            {"undo",
+                           [this]()
+                      {
+            Undo();
+        }},
+            {"redo",
+                           [this]()
+                      {
+            Redo();
+        }},
             {"text_highlight_current_selection",
                            [this]()
                       {
@@ -579,6 +590,8 @@ dodo::initConfig() noexcept
 void
 dodo::initKeybinds() noexcept
 {
+    m_config.shortcuts_map["undo"]            = "u";
+    m_config.shortcuts_map["redo"]            = "Ctrl+r";
     m_config.shortcuts_map["toggle_menubar"]  = "Ctrl+Shift+m";
     m_config.shortcuts_map["invert_color"]    = "b";
     m_config.shortcuts_map["link_hint_visit"] = "f";
@@ -799,6 +812,8 @@ dodo::updateUiEnabledState() noexcept
     m_actionSaveFile->setEnabled(hasOpenedFile);
     m_actionSaveAsFile->setEnabled(hasOpenedFile);
     m_actionPrevLocation->setEnabled(hasOpenedFile);
+    m_actionUndo->setEnabled(hasOpenedFile);
+    m_actionRedo->setEnabled(hasOpenedFile);
 }
 
 void
@@ -1653,7 +1668,6 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
             [this](const QString &name) { m_panel->setFileName(name); });
 
     connect(docwidget, &DocumentView::fileNameChanged, this, &dodo::handleFileNameChanged);
-
     connect(docwidget, &DocumentView::pageNumberChanged, m_panel, &Panel::setPageNo);
     connect(docwidget, &DocumentView::searchCountChanged, m_panel, &Panel::setSearchCount);
     connect(docwidget, &DocumentView::searchModeChanged, m_panel, &Panel::setSearchMode);
@@ -1752,6 +1766,8 @@ dodo::updateMenuActions() noexcept
         m_actionTextHighlight->setChecked(false);
         m_actionAnnotEdit->setChecked(false);
         m_actionAnnotRect->setChecked(false);
+        m_actionUndo->setEnabled(false);
+        m_actionRedo->setEnabled(false);
     }
 }
 
@@ -1767,14 +1783,15 @@ dodo::updatePanel() noexcept
         m_panel->setTotalPageCount(model->numPages());
         m_panel->setPageNo(m_doc->pageNo());
         m_panel->setFitMode(m_doc->fitMode());
-    } else {
+    }
+    else
+    {
         m_panel->hidePageInfo(true);
         m_panel->setFileName("");
         m_panel->setHighlightColor("");
         // m_panel->setMode();
         // m_panel->setFitMode(m_doc->fitMode());
     }
-
 }
 
 void
@@ -2050,4 +2067,24 @@ dodo::processCommand(const QString &cmd) noexcept
     {
         Search(trimmed);
     }
+}
+
+void
+dodo::Undo() noexcept
+{
+    if (m_doc && m_doc->model())
+    {
+        if (m_doc->model()->undoStack()->canUndo())
+        {
+            m_doc->model()->undoStack()->undo();
+            // TODO: Fix this function!!
+        }
+    }
+}
+
+void
+dodo::Redo() noexcept
+{
+    if (m_doc && m_doc->model())
+        m_doc->model()->undoStack()->redo();
 }

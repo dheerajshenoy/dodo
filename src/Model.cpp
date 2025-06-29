@@ -25,6 +25,8 @@ extern "C"
 #include <mupdf/pdf/xref.h>
 #include <synctex/synctex_parser.h>
 }
+#include "commands/RectAnnotationCommand.hpp"
+
 #include <QStringDecoder>
 #include <qgraphicsitem.h>
 
@@ -733,24 +735,26 @@ Model::getLinks() noexcept
 void
 Model::addRectAnnotation(const QRectF &pdfRect) noexcept
 {
-    auto bbox = convertToMuPdfRect(pdfRect);
-    fz_try(m_ctx)
-    {
-        pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_SQUARE);
-
-        if (!annot)
-            return;
-
-        pdf_set_annot_rect(m_ctx, annot, bbox);
-        pdf_set_annot_interior_color(m_ctx, annot, 3, m_annot_rect_color);
-        pdf_set_annot_opacity(m_ctx, annot, m_annot_rect_color[3]);
-        pdf_update_annot(m_ctx, annot);
-        pdf_drop_annot(m_ctx, annot);
-    }
-    fz_catch(m_ctx)
-    {
-        qWarning() << "Cannot add highlight annotation!: " << fz_caught_message(m_ctx);
-    }
+    auto bbox                  = convertToMuPdfRect(pdfRect);
+    RectAnnotationCommand *cmd = new RectAnnotationCommand(this, m_pageno, bbox, m_annot_rect_color);
+    m_undoStack->push(cmd);
+    // fz_try(m_ctx)
+    // {
+    //     pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_SQUARE);
+    //
+    //     if (!annot)
+    //         return;
+    //
+    //     pdf_set_annot_rect(m_ctx, annot, bbox);
+    //     pdf_set_annot_interior_color(m_ctx, annot, 3, m_annot_rect_color);
+    //     pdf_set_annot_opacity(m_ctx, annot, m_annot_rect_color[3]);
+    //     pdf_update_annot(m_ctx, annot);
+    //     pdf_drop_annot(m_ctx, annot);
+    // }
+    // fz_catch(m_ctx)
+    // {
+    //     qWarning() << "Cannot add highlight annotation!: " << fz_caught_message(m_ctx);
+    // }
 }
 
 bool
