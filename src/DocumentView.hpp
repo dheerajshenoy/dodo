@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Annotation.hpp"
 #include "BrowseLinkItem.hpp"
 #include "Config.hpp"
 #include "GraphicsScene.hpp"
@@ -68,9 +69,9 @@ public:
     {
         QPixmap pixmap;
         QList<BrowseLinkItem *> links;
-        QList<HighlightItem *> annot_highlights;
+        QList<Annotation *> annot_highlights;
 
-        CacheValue(const QPixmap &pix, const QList<BrowseLinkItem *> &lnks, QList<HighlightItem *> annoth)
+        CacheValue(const QPixmap &pix, const QList<BrowseLinkItem *> &lnks, QList<Annotation *> annoth)
             : pixmap(pix), links(lnks), annot_highlights(annoth)
         {
         }
@@ -219,7 +220,7 @@ private:
     void renderLinkHints() noexcept;
     void renderLinks(const QList<BrowseLinkItem *> &links) noexcept;
     void renderPixmap(const QPixmap &pix) noexcept;
-    void renderAnnotations(const QList<HighlightItem *> &annots) noexcept;
+    void renderAnnotations(const QList<Annotation *> &annots) noexcept;
 
     void scrollToXY(float x, float y) noexcept;
     void scrollToNormalizedTop(double top) noexcept;

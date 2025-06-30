@@ -210,7 +210,7 @@ DocumentView::selectAnnots() noexcept
     {
         if (item->data(0).toString() == "annot" && m_selected_annots.contains(item->data(1).toInt()))
         {
-            HighlightItem *gitem = dynamic_cast<HighlightItem *>(item);
+            Annotation *gitem = dynamic_cast<Annotation *>(item);
             if (!gitem)
                 continue;
 
@@ -548,20 +548,20 @@ DocumentView::clearLinks() noexcept
 }
 
 void
-DocumentView::renderAnnotations(const QList<HighlightItem *> &annots) noexcept
+DocumentView::renderAnnotations(const QList<Annotation *> &annots) noexcept
 {
     clearAnnots();
-    for (auto *annot : annots)
+    for (Annotation *annot : annots)
     {
         m_gscene->addItem(annot);
-        connect(annot, &HighlightItem::annotDeleteRequested, m_model, [&](int index)
+        connect(annot, &Annotation::annotDeleteRequested, m_model, [&](int index)
         {
             m_model->annotDeleteRequested(index);
             setDirty(true);
             renderPage(m_pageno, true);
         });
 
-        connect(annot, &HighlightItem::annotColorChangeRequested, m_model, [this, annot](int index)
+        connect(annot, &Annotation::annotColorChangeRequested, m_model, [this, annot](int index)
         {
             auto color = QColorDialog::getColor(annot->data(3).value<QColor>(), this, "Highlight Color",
                                                 QColorDialog::ColorDialogOption::ShowAlphaChannel);
@@ -1399,7 +1399,7 @@ DocumentView::clearAnnotSelection() noexcept
         if (!m_selected_annots.contains(item->data(1).toInt()))
             continue;
 
-        HighlightItem *gitem = dynamic_cast<HighlightItem *>(item);
+        Annotation *gitem = dynamic_cast<Annotation *>(item);
 
         if (!gitem)
             continue;

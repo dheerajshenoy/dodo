@@ -1,50 +1,41 @@
 #pragma once
 
+#include "Annotation.hpp"
+
 #include <QBrush>
+#include <QGraphicsItem>
 #include <QGraphicsRectItem>
 #include <QGraphicsSceneContextMenuEvent>
 #include <QGuiApplication>
 #include <QMenu>
 #include <QObject>
+#include <QPainter>
 #include <QPen>
-#include <qgraphicsitem.h>
-#include <qnamespace.h>
 
-class HighlightItem : public QObject, public QGraphicsRectItem
+class HighlightItem : public Annotation
 {
     Q_OBJECT
 public:
     HighlightItem(const QRectF &rect, int index, QGraphicsItem *parent = nullptr)
-        : QGraphicsRectItem(rect, parent), m_index(index)
+        : Annotation(index, parent), m_rect(rect)
     {
-        setPen(Qt::NoPen);
-        setBrush(Qt::transparent);
-        setAcceptHoverEvents(true);
     }
-
-    void select(const QColor &color) noexcept
-    {
-        m_originalBrush = brush();
-        m_originalPen   = pen();
-
-        // setBrush(color);
-        setPen(QPen(color, 1, Qt::PenStyle::SolidLine));
-    }
-
-    void restoreBrushPen() noexcept
-    {
-        setBrush(m_originalBrush);
-        setPen(m_originalPen);
-    }
-
-signals:
-    void annotDeleteRequested(int index);
-    void annotColorChangeRequested(int index);
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *e) override
     {
-        QGraphicsRectItem::mousePressEvent(e);
+        if (e->button() == Qt::LeftButton)
+        {
+            setSelected(true);
+            setFocus();
+
+            QGraphicsItem::mousePressEvent(e);
+        }
+    }
+
+    QRectF boundingRect() const override
+    {
+        return m_rect;
     }
 
     // void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override {
@@ -68,9 +59,7 @@ protected:
         QAction *changeColorAction = new QAction("Change Color");
 
         connect(deleteAction, &QAction::triggered, this, [this]() { emit annotDeleteRequested(m_index); });
-
-        connect(changeColorAction, &QAction::triggered, this,
-                [this]() { emit annotColorChangeRequested(m_index); });
+        connect(changeColorAction, &QAction::triggered, this, [this]() { emit annotColorChangeRequested(m_index); });
 
         menu.addAction(deleteAction);
         menu.addAction(changeColorAction);
@@ -78,8 +67,16 @@ protected:
         e->accept();
     }
 
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override
+    {
+        Q_UNUSED(option);
+        Q_UNUSED(widget);
+
+        painter->setBrush(m_brush);
+        painter->setPen(m_pen);
+        painter->drawRect(m_rect);
+    }
+
 private:
-    int m_index{-1};
-    QBrush m_originalBrush;
-    QPen m_originalPen;
+    QRectF m_rect;
 };

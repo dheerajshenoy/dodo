@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Annotation.hpp"
 #include "BrowseLinkItem.hpp"
 #include "HighlightItem.hpp"
 #include "LinkHint.hpp"
@@ -55,7 +56,7 @@ public:
     pdf_annot *get_annot_by_index(int index) noexcept;
     QList<pdf_annot *> get_annots_by_indexes(const QSet<int> &index) noexcept;
     void annotDeleteRequested(int index) noexcept;
-    QList<HighlightItem *> getAnnotations() noexcept;
+    QList<Annotation *> getAnnotations() noexcept;
     void setLinkBoundary(bool state);
     void searchAll(const QString &term, bool caseSensitive);
     void addRectAnnotation(const QRectF &rect) noexcept;

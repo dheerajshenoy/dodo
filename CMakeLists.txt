@@ -35,6 +35,7 @@ add_executable(${PROJECT_NAME}
     src/CommandBar.cpp
     src/MessageBar.cpp
     src/HighlightsDialog.cpp
+    src/Annotation.cpp
 
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp
@@ -46,7 +47,8 @@ add_executable(${PROJECT_NAME}
     src/JumpMarker.hpp
     src/CircleLabel.hpp
     src/TabWidget.hpp
-    src/commands/RectAnnotationCommand.hpp)
+    src/commands/RectAnnotationCommand.hpp
+    src/PopupAnnotation.hpp)
 
 qt_add_resources(RESOURCES resources.qrc)
 

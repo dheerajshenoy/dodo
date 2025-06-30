@@ -2,6 +2,7 @@
 
 #include "BrowseLinkItem.hpp"
 #include "HighlightItem.hpp"
+#include "PopupAnnotation.hpp"
 
 #include <QDebug>
 #include <QGraphicsRectItem>
@@ -507,10 +508,10 @@ Model::searchAll(const QString &term, bool caseSensitive)
     emit searchResultsReady(resultsMap, m_match_count);
 }
 
-QList<HighlightItem *>
+QList<Annotation *>
 Model::getAnnotations() noexcept
 {
-    QList<HighlightItem *> annots;
+    QList<Annotation *> annots;
     int index = 0;
 
     fz_try(m_ctx)
@@ -525,57 +526,53 @@ Model::getAnnotations() noexcept
         float color[3];
         while (annot)
         {
-            fz_rect bbox = pdf_bound_annot(m_ctx, annot);
-            bbox         = fz_transform_rect(bbox, m_transform);
+            Annotation *annot_item = nullptr;
+            fz_rect bbox           = pdf_bound_annot(m_ctx, annot);
+            bbox                   = fz_transform_rect(bbox, m_transform);
             QRectF qrect(bbox.x0 * m_inv_dpr, bbox.y0 * m_inv_dpr, (bbox.x1 - bbox.x0) * m_inv_dpr,
                          (bbox.y1 - bbox.y0) * m_inv_dpr);
-            HighlightItem *annot_item = new HighlightItem(qrect, index);
-
-            switch (pdf_annot_type(m_ctx, annot))
+            enum pdf_annot_type type = pdf_annot_type(m_ctx, annot);
+            switch (type)
             {
                 case PDF_ANNOT_TEXT:
-                case PDF_ANNOT_LINK:
-                case PDF_ANNOT_FREE_TEXT:
-                case PDF_ANNOT_LINE:
-                case PDF_ANNOT_SQUARE:
-                    pdf_annot_interior_color(m_ctx, annot, &n, color);
-                    break;
-
-                case PDF_ANNOT_CIRCLE:
-                case PDF_ANNOT_POLYGON:
-                case PDF_ANNOT_POLY_LINE:
-                case PDF_ANNOT_HIGHLIGHT:
+                {
                     pdf_annot_color(m_ctx, annot, &n, color);
+                    QString text = pdf_annot_contents(m_ctx, annot);
+                    PopupAnnotation *popup = new PopupAnnotation(qrect, text, index);
+                    float alpha = pdf_annot_opacity(m_ctx, annot);
+                    popup->setData(0, "annot");
+                    popup->setData(1, index);
+                    popup->setData(2, QColor::fromRgbF(color[0], color[1], color[2], alpha));
+                    annot_item = popup;
+                }
+                break;
+
+                case PDF_ANNOT_SQUARE:
+                {
+                    pdf_annot_interior_color(m_ctx, annot, &n, color);
+                    // TODO:
+                }
                     break;
 
-                case PDF_ANNOT_UNDERLINE:
-                case PDF_ANNOT_SQUIGGLY:
-                case PDF_ANNOT_STRIKE_OUT:
-                case PDF_ANNOT_REDACT:
-                case PDF_ANNOT_STAMP:
-                case PDF_ANNOT_CARET:
-                case PDF_ANNOT_INK:
-                case PDF_ANNOT_POPUP:
-                case PDF_ANNOT_FILE_ATTACHMENT:
-                case PDF_ANNOT_SOUND:
-                case PDF_ANNOT_MOVIE:
-                case PDF_ANNOT_RICH_MEDIA:
-                case PDF_ANNOT_WIDGET:
-                case PDF_ANNOT_SCREEN:
-                case PDF_ANNOT_PRINTER_MARK:
-                case PDF_ANNOT_TRAP_NET:
-                case PDF_ANNOT_WATERMARK:
-                case PDF_ANNOT_3D:
-                case PDF_ANNOT_PROJECTION:
-                case PDF_ANNOT_UNKNOWN:
+                case PDF_ANNOT_HIGHLIGHT:
+                {
+                    pdf_annot_color(m_ctx, annot, &n, color);
+
+                    HighlightItem *highlight = new HighlightItem(qrect, index);
+                    float alpha              = pdf_annot_opacity(m_ctx, annot);
+                    highlight->setData(0, "annot");
+                    highlight->setData(1, index);
+                    highlight->setData(2, QColor::fromRgbF(color[0], color[1], color[2], alpha));
+                    annot_item = highlight;
+                }
+                break;
+
+                default:
                     break;
             }
 
-            auto alpha = pdf_annot_opacity(m_ctx, annot);
-            annot_item->setData(0, "annot");
-            annot_item->setData(1, index);
-            annot_item->setData(2, QColor::fromRgbF(color[0], color[1], color[2], alpha));
-            annots.push_back(annot_item);
+            if (annot_item)
+                annots.push_back(annot_item);
             annot = pdf_next_annot(m_ctx, annot);
             ++index;
         }
@@ -735,7 +732,7 @@ Model::getLinks() noexcept
 void
 Model::addRectAnnotation(const QRectF &pdfRect) noexcept
 {
-    auto bbox                  = convertToMuPdfRect(pdfRect);
+    fz_rect bbox               = convertToMuPdfRect(pdfRect);
     RectAnnotationCommand *cmd = new RectAnnotationCommand(this, m_pageno, bbox, m_annot_rect_color);
     m_undoStack->push(cmd);
     // fz_try(m_ctx)
@@ -839,9 +836,9 @@ Model::followLink(const LinkInfo &info) noexcept
         }
         else
         {
-            fz_link_dest dest = fz_resolve_link_dest(m_ctx, m_doc, link_uri);
-            int pageno        = dest.loc.page;
-            auto loc = (BrowseLinkItem::Location){.x = dest.x, .y = (m_page_height - dest.y), .zoom = dest.zoom};
+            fz_link_dest dest            = fz_resolve_link_dest(m_ctx, m_doc, link_uri);
+            int pageno                   = dest.loc.page;
+            BrowseLinkItem::Location loc = {.x = dest.x, .y = (m_page_height - dest.y), .zoom = dest.zoom};
             switch (dest.type)
             {
 
@@ -1008,7 +1005,7 @@ Model::highlightHelper(const QPointF &selectionStart, const QPointF &selectionEn
 void
 Model::highlightQuad(fz_quad quad) noexcept
 {
-    for (auto *object : m_scene->items())
+    for (QGraphicsItem *object : m_scene->items())
     {
         if (object->data(0).toString() == "selection")
         {
@@ -1034,7 +1031,7 @@ Model::highlightQuad(fz_quad quad) noexcept
 void
 Model::highlightTextSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
 {
-    for (auto *object : m_scene->items())
+    for (QGraphicsItem *object : m_scene->items())
     {
         if (object->data(0).toString() == "selection")
         {
@@ -1222,7 +1219,7 @@ void
 Model::deleteAnnots(const QSet<int> &indexes) noexcept
 {
     QList<pdf_annot *> annots = get_annots_by_indexes(indexes);
-    for (const auto &annot : annots)
+    for (pdf_annot *annot : annots)
     {
         if (annot)
             pdf_delete_annot(m_ctx, m_pdfpage, annot);
@@ -1235,7 +1232,7 @@ Model::annotChangeColorForIndexes(const QSet<int> &indexes, const QColor &color)
     float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
     float alpha        = color.alphaF();
 
-    for (const auto &index : indexes)
+    for (int index : indexes)
     {
         pdf_annot *annot = get_annot_by_index(index);
         if (annot)
