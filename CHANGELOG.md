@@ -3,6 +3,7 @@
 ## 0.2.4
 
 - Fix drag and drop not opening files
+- Popup Annotation support
 
 ## 0.2.3
 

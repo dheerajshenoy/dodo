@@ -10,3 +10,4 @@
 - [ ] Synctex highlight line
 - [ ] Hot reload config
 - [ ] Telescope like search with preview
+- [ ] Popup Annotation edit support
