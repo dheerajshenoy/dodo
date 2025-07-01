@@ -76,7 +76,6 @@ public:
         }
         else
         {
-
             QPoint screenPos = event->screenPos();
             m_popupWidget->move(screenPos + QPoint(10, 10));
             m_popupWidget->show();

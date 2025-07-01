@@ -1,4 +1,5 @@
 #include "Annotation.hpp"
+
 #include <QPainter>
 
 Annotation::Annotation(int index, QGraphicsItem *parent) : QGraphicsItem(parent), m_index(index)

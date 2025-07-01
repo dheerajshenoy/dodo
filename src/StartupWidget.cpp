@@ -69,13 +69,13 @@ StartupWidget::StartupWidget(const QSqlDatabase &db, QWidget *parent) : QWidget(
     m_table_view->setColumnHidden(1, true);
     m_table_view->setColumnHidden(2, true);
 
-    connect(m_table_view, &QTableView::doubleClicked, this, [this](const QModelIndex &index)
+    connect(m_table_view, &QTableView::doubleClicked, this, [this, proxy](const QModelIndex &index)
     {
         if (!index.isValid())
             return;
 
-        QString file_path = m_model->data(m_model->index(index.row(), m_model->fieldIndex("file_path"))).toString();
-        int page_number   = m_model->data(m_model->index(index.row(), m_model->fieldIndex("page_number"))).toInt();
+        QString file_path = proxy->data(proxy->index(index.row(), m_model->fieldIndex("file_path"))).toString();
+        int page_number   = proxy->data(proxy->index(index.row(), m_model->fieldIndex("page_number"))).toInt();
         emit openFileRequested(file_path, page_number);
     });
 }
