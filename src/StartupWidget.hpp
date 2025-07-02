@@ -3,6 +3,7 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QHeaderView>
+#include <QMetaType>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -16,11 +17,13 @@ class HomePathModel : public QSqlTableModel
 public:
     using QSqlTableModel::QSqlTableModel; // inherit constructors
 
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override
+    QVariant data(const QModelIndex &index,
+                  int role = Qt::DisplayRole) const override
     {
         QVariant original = QSqlTableModel::data(index, role);
 
-        if (role == Qt::DisplayRole && original.type() == QVariant::String)
+        if (role == Qt::DisplayRole &&
+            original.typeId() == QMetaType::Type::QString)
         {
             QString str = original.toString();
             if (str.startsWith(homePath))
