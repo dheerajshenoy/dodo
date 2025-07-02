@@ -48,10 +48,14 @@ imageCleanupHandler(void *data)
 fz_quad
 union_quad(const fz_quad &a, const fz_quad &b)
 {
-    float min_x = std::min({a.ul.x, a.ur.x, a.ll.x, a.lr.x, b.ul.x, b.ur.x, b.ll.x, b.lr.x});
-    float min_y = std::min({a.ul.y, a.ur.y, a.ll.y, a.lr.y, b.ul.y, b.ur.y, b.ll.y, b.lr.y});
-    float max_x = std::max({a.ul.x, a.ur.x, a.ll.x, a.lr.x, b.ul.x, b.ur.x, b.ll.x, b.lr.x});
-    float max_y = std::max({a.ul.y, a.ur.y, a.ll.y, a.lr.y, b.ul.y, b.ur.y, b.ll.y, b.lr.y});
+    float min_x = std::min(
+        {a.ul.x, a.ur.x, a.ll.x, a.lr.x, b.ul.x, b.ur.x, b.ll.x, b.lr.x});
+    float min_y = std::min(
+        {a.ul.y, a.ur.y, a.ll.y, a.lr.y, b.ul.y, b.ur.y, b.ll.y, b.lr.y});
+    float max_x = std::max(
+        {a.ul.x, a.ur.x, a.ll.x, a.lr.x, b.ul.x, b.ur.x, b.ll.x, b.lr.x});
+    float max_y = std::max(
+        {a.ul.y, a.ur.y, a.ll.y, a.lr.y, b.ul.y, b.ur.y, b.ll.y, b.lr.y});
 
     fz_quad result;
 
@@ -67,7 +71,8 @@ union_quad(const fz_quad &a, const fz_quad &b)
     return result;
 }
 
-Model::Model(QGraphicsScene *scene, QObject *parent) : QObject(parent), m_scene(scene)
+Model::Model(QGraphicsScene *scene, QObject *parent)
+    : QObject(parent), m_scene(scene)
 {
     m_undoStack = new QUndoStack(this);
 
@@ -182,7 +187,8 @@ Model::openFile(const QString &fileName)
         // {
         //     fz_save_accelerator(m_ctx, m_doc, "/home/neo/accel");
         //     fz_drop_document(m_ctx, m_doc);
-        //     m_doc = fz_open_accelerated_document(m_ctx, CSTR(fileName), "/home/neo/accel");
+        //     m_doc = fz_open_accelerated_document(m_ctx, CSTR(fileName),
+        //     "/home/neo/accel");
         // }
 
         if (!m_doc)
@@ -249,7 +255,8 @@ Model::loadColorProfile(const QString &profileName) noexcept
     fz_try(m_ctx)
     {
         profile_data = fz_read_file(m_ctx, CSTR(profileName));
-        m_colorspace = fz_new_icc_colorspace(m_ctx, FZ_COLORSPACE_RGB, 0, nullptr, profile_data);
+        m_colorspace = fz_new_icc_colorspace(m_ctx, FZ_COLORSPACE_RGB, 0,
+                                             nullptr, profile_data);
     }
     fz_always(m_ctx)
     {
@@ -368,7 +375,8 @@ Model::renderPage(int pageno, bool cache) noexcept
         }
 
         // No .copy() — let QImage own the buffer to avoid copying
-        QImage image(copyed_samples, m_width, m_height, stride, fmt, imageCleanupHandler, copyed_samples);
+        QImage image(copyed_samples, m_width, m_height, stride, fmt,
+                     imageCleanupHandler, copyed_samples);
 
         image.setDotsPerMeterX(static_cast<int>((m_dpi * 1000) / 25.4));
         image.setDotsPerMeterY(static_cast<int>((m_dpi * 1000) / 25.4));
@@ -401,17 +409,20 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
 
     fz_try(m_ctx)
     {
-        fz_stext_page *text_page = fz_new_stext_page_from_page_number(m_ctx, m_doc, pageno, nullptr);
+        fz_stext_page *text_page
+            = fz_new_stext_page_from_page_number(m_ctx, m_doc, pageno, nullptr);
 
-        for (fz_stext_block *block = text_page->first_block; block; block = block->next)
+        for (fz_stext_block *block = text_page->first_block; block;
+             block                 = block->next)
         {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
                 continue;
 
-            for (fz_stext_line *line = block->u.t.first_line; line; line = line->next)
+            for (fz_stext_line *line = block->u.t.first_line; line;
+                 line                = line->next)
             {
                 QString currentWord;
-                fz_quad currentQuad = {{0}};
+                fz_quad currentQuad = {{}, {}, {}, {}};
 
                 for (fz_stext_char *ch = line->first_char; ch; ch = ch->next)
                 {
@@ -422,7 +433,9 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
 
                     if (term.length() == 1)
                     {
-                        if ((caseSensitive && qch == term[0]) || (!caseSensitive && qch.toLower() == term[0].toLower()))
+                        if ((caseSensitive && qch == term[0])
+                            || (!caseSensitive
+                                && qch.toLower() == term[0].toLower()))
                         {
                             results.append({pageno, ch->quad, m_match_count++});
                         }
@@ -433,12 +446,16 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
                     {
                         if (!currentWord.isEmpty())
                         {
-                            QString wordToCheck = caseSensitive ? currentWord : currentWord.toLower();
-                            QString termToCheck = caseSensitive ? term : term.toLower();
+                            QString wordToCheck = caseSensitive
+                                                      ? currentWord
+                                                      : currentWord.toLower();
+                            QString termToCheck
+                                = caseSensitive ? term : term.toLower();
 
                             if (wordToCheck == termToCheck)
                             {
-                                results.append({pageno, currentQuad, m_match_count++});
+                                results.append(
+                                    {pageno, currentQuad, m_match_count++});
                             }
                         }
 
@@ -458,12 +475,16 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
                             currentQuad = union_quad(currentQuad, ch->quad);
                         }
 
-                        QString wordToCheck = caseSensitive ? currentWord : currentWord.toLower();
-                        QString termToCheck = caseSensitive ? term : term.toLower();
+                        QString wordToCheck = caseSensitive
+                                                  ? currentWord
+                                                  : currentWord.toLower();
+                        QString termToCheck
+                            = caseSensitive ? term : term.toLower();
 
                         if (wordToCheck == termToCheck)
                         {
-                            results.append({pageno, currentQuad, m_match_count++});
+                            results.append(
+                                {pageno, currentQuad, m_match_count++});
                             currentWord.clear();
                             memset(&currentQuad, 0, sizeof(currentQuad));
                         }
@@ -472,7 +493,8 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
 
                 if (!currentWord.isEmpty())
                 {
-                    QString wordToCheck = caseSensitive ? currentWord : currentWord.toLower();
+                    QString wordToCheck
+                        = caseSensitive ? currentWord : currentWord.toLower();
                     QString termToCheck = caseSensitive ? term : term.toLower();
                     if (wordToCheck == termToCheck)
                         results.append({pageno, currentQuad, m_match_count++});
@@ -529,7 +551,8 @@ Model::getAnnotations() noexcept
             Annotation *annot_item = nullptr;
             fz_rect bbox           = pdf_bound_annot(m_ctx, annot);
             bbox                   = fz_transform_rect(bbox, m_transform);
-            QRectF qrect(bbox.x0 * m_inv_dpr, bbox.y0 * m_inv_dpr, (bbox.x1 - bbox.x0) * m_inv_dpr,
+            QRectF qrect(bbox.x0 * m_inv_dpr, bbox.y0 * m_inv_dpr,
+                         (bbox.x1 - bbox.x0) * m_inv_dpr,
                          (bbox.y1 - bbox.y0) * m_inv_dpr);
             enum pdf_annot_type type = pdf_annot_type(m_ctx, annot);
             switch (type)
@@ -538,11 +561,13 @@ Model::getAnnotations() noexcept
                 {
                     pdf_annot_color(m_ctx, annot, &n, color);
                     QString text = pdf_annot_contents(m_ctx, annot);
-                    PopupAnnotation *popup = new PopupAnnotation(qrect, text, index);
+                    PopupAnnotation *popup
+                        = new PopupAnnotation(qrect, text, index);
                     float alpha = pdf_annot_opacity(m_ctx, annot);
                     popup->setData(0, "annot");
                     popup->setData(1, index);
-                    popup->setData(2, QColor::fromRgbF(color[0], color[1], color[2], alpha));
+                    popup->setData(2, QColor::fromRgbF(color[0], color[1],
+                                                       color[2], alpha));
                     annot_item = popup;
                 }
                 break;
@@ -552,7 +577,7 @@ Model::getAnnotations() noexcept
                     pdf_annot_interior_color(m_ctx, annot, &n, color);
                     // TODO:
                 }
-                    break;
+                break;
 
                 case PDF_ANNOT_HIGHLIGHT:
                 {
@@ -562,7 +587,8 @@ Model::getAnnotations() noexcept
                     float alpha              = pdf_annot_opacity(m_ctx, annot);
                     highlight->setData(0, "annot");
                     highlight->setData(1, index);
-                    highlight->setData(2, QColor::fromRgbF(color[0], color[1], color[2], alpha));
+                    highlight->setData(2, QColor::fromRgbF(color[0], color[1],
+                                                           color[2], alpha));
                     annot_item = highlight;
                 }
                 break;
@@ -652,55 +678,72 @@ Model::getLinks() noexcept
                 QRectF qtRect(x, y, w, h);
                 BrowseLinkItem *item{nullptr};
                 const QLatin1StringView uri = QLatin1StringView(link->uri);
-                const bool isExternal       = fz_is_external_link(m_ctx, link->uri);
+                const bool isExternal = fz_is_external_link(m_ctx, link->uri);
 
                 if (isExternal)
                 {
-                    item = new BrowseLinkItem(qtRect, uri, BrowseLinkItem::LinkType::External, m_link_boundary);
+                    item = new BrowseLinkItem(
+                        qtRect, uri, BrowseLinkItem::LinkType::External,
+                        m_link_boundary);
                 }
                 else if (uri.startsWith(QLatin1String("#page")))
                 {
                     float xp, yp;
-                    fz_location loc = fz_resolve_link(m_ctx, m_doc, link->uri, &xp, &yp);
-                    item            = new BrowseLinkItem(qtRect, uri, BrowseLinkItem::LinkType::Page, m_link_boundary);
+                    fz_location loc
+                        = fz_resolve_link(m_ctx, m_doc, link->uri, &xp, &yp);
+                    item = new BrowseLinkItem(qtRect, uri,
+                                              BrowseLinkItem::LinkType::Page,
+                                              m_link_boundary);
                     item->setGotoPageNo(loc.page);
-                    connect(item, &BrowseLinkItem::jumpToPageRequested, this, &Model::jumpToPageRequested);
+                    connect(item, &BrowseLinkItem::jumpToPageRequested, this,
+                            &Model::jumpToPageRequested);
                 }
                 else
                 {
-                    const fz_link_dest dest = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
-                    const int pageno        = dest.loc.page;
-                    const float ty          = (m_page_height - dest.y);
+                    const fz_link_dest dest
+                        = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
+                    const int pageno = dest.loc.page;
+                    const float ty   = (m_page_height - dest.y);
 
                     switch (dest.type)
                     {
 
                         case FZ_LINK_DEST_FIT_H:
                         {
-                            item = new BrowseLinkItem(qtRect, uri, BrowseLinkItem::LinkType::FitH, m_link_boundary);
+                            item = new BrowseLinkItem(
+                                qtRect, uri, BrowseLinkItem::LinkType::FitH,
+                                m_link_boundary);
                             item->setGotoPageNo(pageno);
                             item->setXYZ({.x = 0, .y = ty, .zoom = 0});
-                            connect(item, &BrowseLinkItem::horizontalFitRequested, this,
-                                    &Model::horizontalFitRequested);
+                            connect(item,
+                                    &BrowseLinkItem::horizontalFitRequested,
+                                    this, &Model::horizontalFitRequested);
                         }
                         break;
 
                         case FZ_LINK_DEST_FIT_V:
                         {
-                            item = new BrowseLinkItem(qtRect, uri, BrowseLinkItem::LinkType::FitV, m_link_boundary);
+                            item = new BrowseLinkItem(
+                                qtRect, uri, BrowseLinkItem::LinkType::FitV,
+                                m_link_boundary);
                             item->setGotoPageNo(pageno);
-                            connect(item, &BrowseLinkItem::verticalFitRequested, this, &Model::verticalFitRequested);
+                            connect(item, &BrowseLinkItem::verticalFitRequested,
+                                    this, &Model::verticalFitRequested);
                         }
                         break;
 
                         case FZ_LINK_DEST_FIT_R:
                         case FZ_LINK_DEST_XYZ:
                         {
-                            item = new BrowseLinkItem(qtRect, uri, BrowseLinkItem::LinkType::Section, m_link_boundary);
+                            item = new BrowseLinkItem(
+                                qtRect, uri, BrowseLinkItem::LinkType::Section,
+                                m_link_boundary);
                             item->setGotoPageNo(pageno);
-                            item->setXYZ({.x = dest.x, .y = ty, .zoom = dest.zoom});
-                            connect(item, &BrowseLinkItem::jumpToLocationRequested, this,
-                                    &Model::jumpToLocationRequested);
+                            item->setXYZ(
+                                {.x = dest.x, .y = ty, .zoom = dest.zoom});
+                            connect(item,
+                                    &BrowseLinkItem::jumpToLocationRequested,
+                                    this, &Model::jumpToLocationRequested);
                         }
                         break;
 
@@ -732,12 +775,14 @@ Model::getLinks() noexcept
 void
 Model::addRectAnnotation(const QRectF &pdfRect) noexcept
 {
-    fz_rect bbox               = convertToMuPdfRect(pdfRect);
-    RectAnnotationCommand *cmd = new RectAnnotationCommand(this, m_pageno, bbox, m_annot_rect_color);
+    fz_rect bbox = convertToMuPdfRect(pdfRect);
+    RectAnnotationCommand *cmd
+        = new RectAnnotationCommand(this, m_pageno, bbox, m_annot_rect_color);
     m_undoStack->push(cmd);
     // fz_try(m_ctx)
     // {
-    //     pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_SQUARE);
+    //     pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage,
+    //     pdf_annot_type::PDF_ANNOT_SQUARE);
     //
     //     if (!annot)
     //         return;
@@ -750,7 +795,8 @@ Model::addRectAnnotation(const QRectF &pdfRect) noexcept
     // }
     // fz_catch(m_ctx)
     // {
-    //     qWarning() << "Cannot add highlight annotation!: " << fz_caught_message(m_ctx);
+    //     qWarning() << "Cannot add highlight annotation!: " <<
+    //     fz_caught_message(m_ctx);
     // }
 }
 
@@ -832,13 +878,16 @@ Model::followLink(const LinkInfo &info) noexcept
         {
             float xp, yp;
             fz_location loc = fz_resolve_link(m_ctx, m_doc, link_uri, &xp, &yp);
-            emit jumpToLocationRequested(loc.page, (BrowseLinkItem::Location){.x = xp, .y = yp, .zoom = 1});
+            emit jumpToLocationRequested(
+                loc.page,
+                (BrowseLinkItem::Location){.x = xp, .y = yp, .zoom = 1});
         }
         else
         {
-            fz_link_dest dest            = fz_resolve_link_dest(m_ctx, m_doc, link_uri);
-            int pageno                   = dest.loc.page;
-            BrowseLinkItem::Location loc = {.x = dest.x, .y = (m_page_height - dest.y), .zoom = dest.zoom};
+            fz_link_dest dest = fz_resolve_link_dest(m_ctx, m_doc, link_uri);
+            int pageno        = dest.loc.page;
+            BrowseLinkItem::Location loc = {
+                .x = dest.x, .y = (m_page_height - dest.y), .zoom = dest.zoom};
             switch (dest.type)
             {
 
@@ -897,7 +946,8 @@ Model::extractPDFProperties() noexcept
         return props;
 
     // ========== Info Dictionary ==========
-    pdf_obj *info = pdf_dict_get(m_ctx, pdf_trailer(m_ctx, pdfdoc), PDF_NAME(Info));
+    pdf_obj *info
+        = pdf_dict_get(m_ctx, pdf_trailer(m_ctx, pdfdoc), PDF_NAME(Info));
     if (info && pdf_is_dict(m_ctx, info))
     {
         int len = pdf_dict_len(m_ctx, info);
@@ -941,9 +991,13 @@ Model::extractPDFProperties() noexcept
     }
 
     // ========== Add Derived Properties ==========
-    props.append(qMakePair("Page Count", QString::number(pdf_count_pages(m_ctx, pdfdoc))));
-    props.append(qMakePair("Encrypted", pdf_needs_password(m_ctx, pdfdoc) ? "Yes" : "No"));
-    props.append(qMakePair("PDF Version", QString("%1.%2").arg(pdfdoc->version / 10).arg(pdfdoc->version % 10)));
+    props.append(qMakePair("Page Count",
+                           QString::number(pdf_count_pages(m_ctx, pdfdoc))));
+    props.append(qMakePair("Encrypted",
+                           pdf_needs_password(m_ctx, pdfdoc) ? "Yes" : "No"));
+    props.append(qMakePair(
+        "PDF Version",
+        QString("%1.%2").arg(pdfdoc->version / 10).arg(pdfdoc->version % 10)));
     props.append(qMakePair("File Path", m_filename));
 
     return props;
@@ -959,10 +1013,10 @@ void
 Model::apply_night_mode(fz_pixmap *pixmap) noexcept
 {
     unsigned char *samples = fz_pixmap_samples(m_ctx, pixmap);
-    const int n            = fz_pixmap_components(m_ctx, pixmap); // usually 4 for RGBA
-    const int w            = fz_pixmap_width(m_ctx, pixmap);
-    const int h            = fz_pixmap_height(m_ctx, pixmap);
-    const int stride       = fz_pixmap_stride(m_ctx, pixmap);
+    const int n = fz_pixmap_components(m_ctx, pixmap); // usually 4 for RGBA
+    const int w = fz_pixmap_width(m_ctx, pixmap);
+    const int h = fz_pixmap_height(m_ctx, pixmap);
+    const int stride = fz_pixmap_stride(m_ctx, pixmap);
 
     for (int y = 0; y < h; ++y)
     {
@@ -987,10 +1041,14 @@ Model::apply_night_mode(fz_pixmap *pixmap) noexcept
 }
 
 void
-Model::highlightHelper(const QPointF &selectionStart, const QPointF &selectionEnd, fz_point &a, fz_point &b) noexcept
+Model::highlightHelper(const QPointF &selectionStart,
+                       const QPointF &selectionEnd, fz_point &a,
+                       fz_point &b) noexcept
 {
-    a = {static_cast<float>(selectionStart.x()), static_cast<float>(selectionStart.y())};
-    b = {static_cast<float>(selectionEnd.x()), static_cast<float>(selectionEnd.y())};
+    a = {static_cast<float>(selectionStart.x()),
+         static_cast<float>(selectionStart.y())};
+    b = {static_cast<float>(selectionEnd.x()),
+         static_cast<float>(selectionEnd.y())};
 
     fz_matrix inv_transform = fz_invert_matrix(m_transform);
     a                       = fz_transform_point(a, inv_transform);
@@ -1018,8 +1076,10 @@ Model::highlightQuad(fz_quad quad) noexcept
     fz_quad q = fz_transform_quad(quad, m_transform);
 
     QPolygonF poly;
-    poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr) << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
-         << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr) << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
+    poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr)
+         << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
+         << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
+         << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
 
     QGraphicsPolygonItem *item = m_scene->addPolygon(poly, Qt::NoPen, brush);
     item->setData(0, "selection");
@@ -1029,7 +1089,8 @@ Model::highlightQuad(fz_quad quad) noexcept
 }
 
 void
-Model::highlightTextSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
+Model::highlightTextSelection(const QPointF &selectionStart,
+                              const QPointF &selectionEnd) noexcept
 {
     for (QGraphicsItem *object : m_scene->items())
     {
@@ -1064,10 +1125,13 @@ Model::highlightTextSelection(const QPointF &selectionStart, const QPointF &sele
         fz_quad q = fz_transform_quad(hits[i], m_transform);
 
         QPolygonF poly;
-        poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr) << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
-             << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr) << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
+        poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr)
+             << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
+             << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
+             << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
 
-        QGraphicsPolygonItem *item = m_scene->addPolygon(poly, Qt::NoPen, brush);
+        QGraphicsPolygonItem *item
+            = m_scene->addPolygon(poly, Qt::NoPen, brush);
         item->setData(0, "selection");
         // item->setZValue(10); // Ensure it draws over the page
         item->setFlag(QGraphicsItem::ItemIsSelectable, false);
@@ -1076,7 +1140,8 @@ Model::highlightTextSelection(const QPointF &selectionStart, const QPointF &sele
 }
 
 QString
-Model::getSelectionText(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
+Model::getSelectionText(const QPointF &selectionStart,
+                        const QPointF &selectionEnd) noexcept
 {
     QString text;
     fz_point a, b;
@@ -1104,7 +1169,8 @@ Adds highlight annotation for the selection region specified with
 `selectionStart` and `selectionEnd` position.
 */
 void
-Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept
+Model::annotHighlightSelection(const QPointF &selectionStart,
+                               const QPointF &selectionEnd) noexcept
 {
     fz_point a, b;
     highlightHelper(selectionStart, selectionEnd, a, b);
@@ -1127,7 +1193,8 @@ Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF &sel
     {
         for (int i = 0; i < count; ++i)
         {
-            pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
+            pdf_annot *annot = pdf_create_annot(
+                m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
 
             if (!annot)
                 return;
@@ -1142,7 +1209,8 @@ Model::annotHighlightSelection(const QPointF &selectionStart, const QPointF &sel
     }
     fz_catch(m_ctx)
     {
-        qWarning() << "Cannot add highlight annotation!: " << fz_caught_message(m_ctx);
+        qWarning() << "Cannot add highlight annotation!: "
+                   << fz_caught_message(m_ctx);
     }
 }
 
@@ -1178,7 +1246,8 @@ Model::getAnnotationsInArea(const QRectF &area) noexcept
         // bbox = fz_transform_rect(bbox, m_transform);
         // bbox = fz_transform_rect(bbox, inv_mat);
         bbox = fz_transform_rect(bbox, mat);
-        QRectF annotRect(bbox.x0, bbox.y0, (bbox.x1 - bbox.x0), (bbox.y1 - bbox.y0));
+        QRectF annotRect(bbox.x0, bbox.y0, (bbox.x1 - bbox.x0),
+                         (bbox.y1 - bbox.y0));
 
         if (area.intersects(annotRect))
             results.insert(index);
@@ -1227,7 +1296,8 @@ Model::deleteAnnots(const QSet<int> &indexes) noexcept
 }
 
 void
-Model::annotChangeColorForIndexes(const QSet<int> &indexes, const QColor &color) noexcept
+Model::annotChangeColorForIndexes(const QSet<int> &indexes,
+                                  const QColor &color) noexcept
 {
     float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
     float alpha        = color.alphaF();
@@ -1344,7 +1414,8 @@ Model::annotChangeColorForIndex(const int index, const QColor &color) noexcept
 bool
 Model::isBreak(int c) noexcept
 {
-    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == 0 || c == 0x200B; // include zero-width space
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == 0
+           || c == 0x200B; // include zero-width space
 }
 
 fz_point
@@ -1372,7 +1443,7 @@ Model::recolorImage(const QImage &src, QColor fgColor, QColor bgColor) noexcept
         for (int x = 0; x < result.width(); ++x)
         {
             QColor original = QColor::fromRgba(row[x]);
-            int gray        = qGray(original.rgb()); // use luminance for mapping
+            int gray = qGray(original.rgb()); // use luminance for mapping
 
             float t = gray / 255.0f; // interpolation factor
 
