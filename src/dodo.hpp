@@ -8,6 +8,7 @@
 #include "Panel.hpp"
 #include "PropertiesWidget.hpp"
 #include "ShortcutsWidget.hpp"
+#include "StartupWidget.hpp"
 #include "TabWidget.hpp"
 #include "argparse.hpp"
 
@@ -183,6 +184,7 @@ private:
 
     QString m_currentHintInput;
     bool m_link_hint_mode{false};
+    StartupWidget *m_startup_widget{nullptr};
     LinkHintMode m_link_hint_current_mode{LinkHintMode::None};
     QMap<int, Model::LinkInfo> m_link_hint_map;
     DocumentView *m_doc{nullptr};

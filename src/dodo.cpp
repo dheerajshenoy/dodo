@@ -9,12 +9,12 @@
 #include <QJsonArray>
 #include <QStyleHints>
 #include <immintrin.h>
-#include <qdesktopservices.h>
 #include <qfilesystemwatcher.h>
 #include <qnamespace.h>
 
 dodo::dodo() noexcept
 {
+
     setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
     setAcceptDrops(true);
     installEventFilter(this);
@@ -45,15 +45,21 @@ dodo::initMenubar() noexcept
 {
     // --- File Menu ---
     QMenu *fileMenu = m_menuBar->addMenu("&File");
-    fileMenu->addAction(QString("Open File\t%1").arg(m_config.shortcuts_map["open_file"]), this, [&]() { OpenFile(); });
+    fileMenu->addAction(
+        QString("Open File\t%1").arg(m_config.shortcuts_map["open_file"]), this,
+        [&]() { OpenFile(); });
     m_actionFileProperties = fileMenu->addAction(
-        QString("File Properties\t%1").arg(m_config.shortcuts_map["file_properties"]), this, &dodo::FileProperties);
+        QString("File Properties\t%1")
+            .arg(m_config.shortcuts_map["file_properties"]),
+        this, &dodo::FileProperties);
 
-    m_actionSaveFile =
-        fileMenu->addAction(QString("Save File\t%1").arg(m_config.shortcuts_map["save"]), this, &dodo::SaveFile);
+    m_actionSaveFile = fileMenu->addAction(
+        QString("Save File\t%1").arg(m_config.shortcuts_map["save"]), this,
+        &dodo::SaveFile);
 
-    m_actionSaveAsFile = fileMenu->addAction(QString("Save As File\t%1").arg(m_config.shortcuts_map["save_as"]), this,
-                                             &dodo::SaveAsFile);
+    m_actionSaveAsFile = fileMenu->addAction(
+        QString("Save As File\t%1").arg(m_config.shortcuts_map["save_as"]),
+        this, &dodo::SaveAsFile);
 
     QMenu *sessionMenu = fileMenu->addMenu("Session");
 
@@ -61,76 +67,95 @@ dodo::initMenubar() noexcept
     sessionMenu->addAction("Save As", this, [&]() { SaveAsSession(); });
     sessionMenu->addAction("Load", this, [&]() { LoadSession(); });
 
-    m_actionCloseFile = fileMenu->addAction(QString("Close File\t%1").arg(m_config.shortcuts_map["close_file"]), this,
-                                            &dodo::CloseFile);
+    m_actionCloseFile = fileMenu->addAction(
+        QString("Close File\t%1").arg(m_config.shortcuts_map["close_file"]),
+        this, &dodo::CloseFile);
 
     m_recentFilesMenu = fileMenu->addMenu("Recent Files");
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, &QMainWindow::close);
 
     QMenu *editMenu = m_menuBar->addMenu("&Edit");
-    m_actionUndo    = editMenu->addAction(QString("Undo\t%1").arg(m_config.shortcuts_map["undo"]), this, &dodo::Undo);
-    m_actionRedo    = editMenu->addAction(QString("Redo\t%1").arg(m_config.shortcuts_map["redo"]), this, &dodo::Redo);
-    editMenu->addAction(QString("Last Pages\t%1").arg(m_config.shortcuts_map["edit_last_pages"]), this,
-                        &dodo::editLastPages);
+    m_actionUndo    = editMenu->addAction(
+        QString("Undo\t%1").arg(m_config.shortcuts_map["undo"]), this,
+        &dodo::Undo);
+    m_actionRedo = editMenu->addAction(
+        QString("Redo\t%1").arg(m_config.shortcuts_map["redo"]), this,
+        &dodo::Redo);
+    editMenu->addAction(QString("Last Pages\t%1")
+                            .arg(m_config.shortcuts_map["edit_last_pages"]),
+                        this, &dodo::editLastPages);
 
     // --- View Menu ---
     QMenu *viewMenu    = m_menuBar->addMenu("&View");
-    m_actionFullscreen = viewMenu->addAction(QString("Fullscreen\t%1").arg(m_config.shortcuts_map["fullscreen"]), this,
-                                             &dodo::ToggleFullscreen);
+    m_actionFullscreen = viewMenu->addAction(
+        QString("Fullscreen\t%1").arg(m_config.shortcuts_map["fullscreen"]),
+        this, &dodo::ToggleFullscreen);
     m_actionFullscreen->setCheckable(true);
 
-    m_actionZoomIn =
-        viewMenu->addAction(QString("Zoom In\t%1").arg(m_config.shortcuts_map["zoom_in"]), this, &dodo::ZoomIn);
-    m_actionZoomOut =
-        viewMenu->addAction(QString("Zoom Out\t%1").arg(m_config.shortcuts_map["zoom_out"]), this, &dodo::ZoomOut);
+    m_actionZoomIn = viewMenu->addAction(
+        QString("Zoom In\t%1").arg(m_config.shortcuts_map["zoom_in"]), this,
+        &dodo::ZoomIn);
+    m_actionZoomOut = viewMenu->addAction(
+        QString("Zoom Out\t%1").arg(m_config.shortcuts_map["zoom_out"]), this,
+        &dodo::ZoomOut);
 
     viewMenu->addSeparator();
 
     m_fitMenu = viewMenu->addMenu("Fit");
 
-    m_actionFitNone =
-        m_fitMenu->addAction(QString("None\t%1").arg(m_config.shortcuts_map["fit_none"]), this, &dodo::FitNone);
+    m_actionFitNone = m_fitMenu->addAction(
+        QString("None\t%1").arg(m_config.shortcuts_map["fit_none"]), this,
+        &dodo::FitNone);
 
-    m_actionFitWidth =
-        m_fitMenu->addAction(QString("Width\t%1").arg(m_config.shortcuts_map["fit_width"]), this, &dodo::FitWidth);
+    m_actionFitWidth = m_fitMenu->addAction(
+        QString("Width\t%1").arg(m_config.shortcuts_map["fit_width"]), this,
+        &dodo::FitWidth);
 
-    m_actionFitHeight =
-        m_fitMenu->addAction(QString("Height\t%1").arg(m_config.shortcuts_map["fit_height"]), this, &dodo::FitHeight);
+    m_actionFitHeight = m_fitMenu->addAction(
+        QString("Height\t%1").arg(m_config.shortcuts_map["fit_height"]), this,
+        &dodo::FitHeight);
 
-    m_actionFitWindow =
-        m_fitMenu->addAction(QString("Window\t%1").arg(m_config.shortcuts_map["fit_window"]), this, &dodo::FitWindow);
+    m_actionFitWindow = m_fitMenu->addAction(
+        QString("Window\t%1").arg(m_config.shortcuts_map["fit_window"]), this,
+        &dodo::FitWindow);
 
     m_fitMenu->addSeparator();
 
     // Auto Resize toggle (independent)
-    m_actionAutoresize = m_fitMenu->addAction(QString("Auto Resize\t%1").arg(m_config.shortcuts_map["auto_resize"]),
-                                              this, &dodo::ToggleAutoResize);
+    m_actionAutoresize = m_fitMenu->addAction(
+        QString("Auto Resize\t%1").arg(m_config.shortcuts_map["auto_resize"]),
+        this, &dodo::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
     m_actionAutoresize->setChecked(m_config.auto_resize); // default on or off
 
     viewMenu->addSeparator();
 
-    m_actionToggleOutline = viewMenu->addAction(QString("Outline\t%1").arg(m_config.shortcuts_map["outline"]), this,
-                                                &dodo::TableOfContents);
+    m_actionToggleOutline = viewMenu->addAction(
+        QString("Outline\t%1").arg(m_config.shortcuts_map["outline"]), this,
+        &dodo::TableOfContents);
 
-    m_actionToggleMenubar = viewMenu->addAction(QString("Menubar\t%1").arg(m_config.shortcuts_map["toggle_menubar"]),
-                                                this, &dodo::ToggleMenubar);
+    m_actionToggleMenubar = viewMenu->addAction(
+        QString("Menubar\t%1").arg(m_config.shortcuts_map["toggle_menubar"]),
+        this, &dodo::ToggleMenubar);
     m_actionToggleMenubar->setCheckable(true);
     m_actionToggleMenubar->setChecked(!m_menuBar->isHidden());
 
-    m_actionToggleTabBar =
-        viewMenu->addAction(QString("Tabs\t%1").arg(m_config.shortcuts_map["toggle_tabs"]), this, &dodo::ToggleTabBar);
+    m_actionToggleTabBar = viewMenu->addAction(
+        QString("Tabs\t%1").arg(m_config.shortcuts_map["toggle_tabs"]), this,
+        &dodo::ToggleTabBar);
     m_actionToggleTabBar->setCheckable(true);
     m_actionToggleTabBar->setChecked(!m_tab_widget->tabBar()->isHidden());
 
-    m_actionTogglePanel =
-        viewMenu->addAction(QString("Panel\t%1").arg(m_config.shortcuts_map["toggle_panel"]), this, &dodo::TogglePanel);
+    m_actionTogglePanel = viewMenu->addAction(
+        QString("Panel\t%1").arg(m_config.shortcuts_map["toggle_panel"]), this,
+        &dodo::TogglePanel);
     m_actionTogglePanel->setCheckable(true);
     m_actionTogglePanel->setChecked(!m_panel->isHidden());
 
-    m_actionInvertColor = viewMenu->addAction(QString("Invert Color\t%1").arg(m_config.shortcuts_map["invert_color"]),
-                                              this, &dodo::InvertColor);
+    m_actionInvertColor = viewMenu->addAction(
+        QString("Invert Color\t%1").arg(m_config.shortcuts_map["invert_color"]),
+        this, &dodo::InvertColor);
     m_actionInvertColor->setCheckable(true);
     m_actionInvertColor->setChecked(m_config.invert_mode);
 
@@ -139,51 +164,71 @@ dodo::initMenubar() noexcept
     QActionGroup *selectionActionGroup = new QActionGroup(this);
     selectionActionGroup->setExclusive(true);
 
-    m_actionTextSelect = toolsMenu->addAction(QString("Text Selection"), this, &dodo::TextSelectionMode);
+    m_actionTextSelect = toolsMenu->addAction(QString("Text Selection"), this,
+                                              &dodo::TextSelectionMode);
     m_actionTextSelect->setCheckable(true);
     m_actionTextSelect->setChecked(true);
     selectionActionGroup->addAction(m_actionTextSelect);
 
     m_actionTextHighlight = toolsMenu->addAction(
-        QString("Text Highlight\t%1").arg(m_config.shortcuts_map["text_highlight"]), this, &dodo::ToggleTextHighlight);
+        QString("Text Highlight\t%1")
+            .arg(m_config.shortcuts_map["text_highlight"]),
+        this, &dodo::ToggleTextHighlight);
     m_actionTextHighlight->setCheckable(true);
     selectionActionGroup->addAction(m_actionTextHighlight);
 
-    m_actionAnnotRect = toolsMenu->addAction(
-        QString("Annotate Rectangle\t%1").arg(m_config.shortcuts_map["annot_rect"]), this, &dodo::ToggleRectAnnotation);
+    m_actionAnnotRect
+        = toolsMenu->addAction(QString("Annotate Rectangle\t%1")
+                                   .arg(m_config.shortcuts_map["annot_rect"]),
+                               this, &dodo::ToggleRectAnnotation);
     m_actionAnnotRect->setCheckable(true);
     selectionActionGroup->addAction(m_actionAnnotRect);
 
-    m_actionAnnotEdit = toolsMenu->addAction(QString("Edit Annotations\t%1").arg(m_config.shortcuts_map["annot_edit"]),
-                                             this, &dodo::ToggleAnnotSelect);
+    m_actionAnnotEdit
+        = toolsMenu->addAction(QString("Edit Annotations\t%1")
+                                   .arg(m_config.shortcuts_map["annot_edit"]),
+                               this, &dodo::ToggleAnnotSelect);
     m_actionAnnotEdit->setCheckable(true);
     selectionActionGroup->addAction(m_actionAnnotEdit);
 
     // --- Navigation Menu ---
     QMenu *navMenu = m_menuBar->addMenu("&Navigation");
 
-    m_actionGotoPage =
-        navMenu->addAction(QString("Goto Page\t%1").arg(m_config.shortcuts_map["goto_page"]), this, &dodo::GotoPage);
+    navMenu->addAction(
+        QString("StartPage").arg(m_config.shortcuts_map["startpage"]), this,
+        &dodo::showStartupWidget);
 
-    m_actionFirstPage =
-        navMenu->addAction(QString("First Page\t%1").arg(m_config.shortcuts_map["first_page"]), this, &dodo::FirstPage);
+    m_actionGotoPage = navMenu->addAction(
+        QString("Goto Page\t%1").arg(m_config.shortcuts_map["goto_page"]), this,
+        &dodo::GotoPage);
 
-    m_actionPrevPage = navMenu->addAction(QString("Previous Page\t%1").arg(m_config.shortcuts_map["prev_page"]), this,
-                                          &dodo::PrevPage);
+    m_actionFirstPage = navMenu->addAction(
+        QString("First Page\t%1").arg(m_config.shortcuts_map["first_page"]),
+        this, &dodo::FirstPage);
 
-    m_actionNextPage =
-        navMenu->addAction(QString("Next Page\t%1").arg(m_config.shortcuts_map["next_page"]), this, &dodo::NextPage);
-    m_actionLastPage =
-        navMenu->addAction(QString("Last Page\t%1").arg(m_config.shortcuts_map["last_page"]), this, &dodo::LastPage);
+    m_actionPrevPage = navMenu->addAction(
+        QString("Previous Page\t%1").arg(m_config.shortcuts_map["prev_page"]),
+        this, &dodo::PrevPage);
 
-    m_actionPrevLocation = navMenu->addAction(
-        QString("Previous Location\t%1").arg(m_config.shortcuts_map["prev_location"]), this, &dodo::GoBackHistory);
+    m_actionNextPage = navMenu->addAction(
+        QString("Next Page\t%1").arg(m_config.shortcuts_map["next_page"]), this,
+        &dodo::NextPage);
+    m_actionLastPage = navMenu->addAction(
+        QString("Last Page\t%1").arg(m_config.shortcuts_map["last_page"]), this,
+        &dodo::LastPage);
+
+    m_actionPrevLocation
+        = navMenu->addAction(QString("Previous Location\t%1")
+                                 .arg(m_config.shortcuts_map["prev_location"]),
+                             this, &dodo::GoBackHistory);
 
     QMenu *helpMenu = m_menuBar->addMenu("&Help");
-    m_actionAbout =
-        helpMenu->addAction(QString("About\t%1").arg(m_config.shortcuts_map["about"]), this, &dodo::ShowAbout);
-    helpMenu->addAction(QString("Keybindings\t%1").arg(m_config.shortcuts_map["keybindings"]), this,
-                        &dodo::ShowKeybindings);
+    m_actionAbout   = helpMenu->addAction(
+        QString("About\t%1").arg(m_config.shortcuts_map["about"]), this,
+        &dodo::ShowAbout);
+    helpMenu->addAction(
+        QString("Keybindings\t%1").arg(m_config.shortcuts_map["keybindings"]),
+        this, &dodo::ShowKeybindings);
 
     updateUiEnabledState();
 }
@@ -197,7 +242,8 @@ dodo::initDB() noexcept
 
     QSqlQuery query;
 
-    // FIXME: Maybe add some unique hashing so that this works even when you move a file
+    // FIXME: Maybe add some unique hashing so that this works even when you
+    // move a file
     query.exec("CREATE TABLE IF NOT EXISTS last_visited ("
                "file_path TEXT PRIMARY KEY, "
                "page_number INTEGER, "
@@ -241,7 +287,8 @@ dodo::initDefaults() noexcept
 void
 dodo::initConfig() noexcept
 {
-    m_config_dir          = QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
+    m_config_dir = QDir(
+        QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
     auto config_file_path = m_config_dir.filePath("config.toml");
     m_session_dir         = QDir(m_config_dir.filePath("sessions"));
 
@@ -259,10 +306,11 @@ dodo::initConfig() noexcept
     }
     catch (std::exception &e)
     {
-        QMessageBox::critical(this, "Error in configuration file",
-                              QString("There are one or more error(s) in your config "
-                                      "file:\n%1\n\nLoading default config.")
-                                  .arg(e.what()));
+        QMessageBox::critical(
+            this, "Error in configuration file",
+            QString("There are one or more error(s) in your config "
+                    "file:\n%1\n\nLoading default config.")
+                .arg(e.what()));
         return;
     }
 
@@ -278,48 +326,59 @@ dodo::initConfig() noexcept
     if (ui["fullscreen"].value_or(false))
         this->showFullScreen();
 
-    m_config.vscrollbar_shown         = ui["vscrollbar"].value_or(true);
-    m_config.hscrollbar_shown         = ui["hscrollbar"].value_or(true);
-    m_config.selection_drag_threshold = ui["selection_drag_threshold"].value_or(50);
-    m_config.jump_marker_shown        = ui["jump_marker"].value_or(true);
-    m_config.full_filepath_in_panel   = ui["full_file_path_in_panel"].value_or(false);
-    m_config.zoom                     = ui["zoom_level"].value_or(1.0);
-    m_config.compact                  = ui["compact"].value_or(false);
-    m_config.link_boundary            = ui["link_boundary"].value_or(false);
-    QString window_title              = QString::fromStdString(ui["window_title"].value_or("{} - dodo"));
+    m_config.vscrollbar_shown = ui["vscrollbar"].value_or(true);
+    m_config.hscrollbar_shown = ui["hscrollbar"].value_or(true);
+    m_config.selection_drag_threshold
+        = ui["selection_drag_threshold"].value_or(50);
+    m_config.jump_marker_shown = ui["jump_marker"].value_or(true);
+    m_config.full_filepath_in_panel
+        = ui["full_file_path_in_panel"].value_or(false);
+    m_config.zoom          = ui["zoom_level"].value_or(1.0);
+    m_config.compact       = ui["compact"].value_or(false);
+    m_config.link_boundary = ui["link_boundary"].value_or(false);
+    QString window_title
+        = QString::fromStdString(ui["window_title"].value_or("{} - dodo"));
     window_title.replace("{}", "%1");
     m_config.window_title_format = window_title;
 
     auto colors = toml["colors"];
 
-    m_config.colors["search_index"] = colors["search_index"].value_or("#3daee944");
-    m_config.colors["search_match"] = colors["search_match"].value_or("#FFFF8844");
-    m_config.colors["accent"]       = colors["accent"].value_or("#FF500044");
-    m_config.colors["background"]   = colors["background"].value_or("#FFFFFF");
-    m_config.colors["link_hint_fg"] = colors["link_hint_fg"].value_or("#000000");
-    m_config.colors["link_hint_bg"] = colors["link_hint_bg"].value_or("#FFFF00");
-    m_config.colors["highlight"]    = colors["highlight"].value_or("#55FFFF00");
-    m_config.colors["selection"]    = colors["selection"].value_or("#550000FF");
-    m_config.colors["jump_marker"]  = colors["jump_marker"].value_or("#FFFF0000");
-    m_config.colors["annot_rect"]   = colors["annot_rect"].value_or("#55FF0000");
+    m_config.colors["search_index"]
+        = colors["search_index"].value_or("#3daee944");
+    m_config.colors["search_match"]
+        = colors["search_match"].value_or("#FFFF8844");
+    m_config.colors["accent"]     = colors["accent"].value_or("#FF500044");
+    m_config.colors["background"] = colors["background"].value_or("#FFFFFF");
+    m_config.colors["link_hint_fg"]
+        = colors["link_hint_fg"].value_or("#000000");
+    m_config.colors["link_hint_bg"]
+        = colors["link_hint_bg"].value_or("#FFFF00");
+    m_config.colors["highlight"] = colors["highlight"].value_or("#55FFFF00");
+    m_config.colors["selection"] = colors["selection"].value_or("#550000FF");
+    m_config.colors["jump_marker"]
+        = colors["jump_marker"].value_or("#FFFF0000");
+    m_config.colors["annot_rect"] = colors["annot_rect"].value_or("#55FF0000");
 
     auto rendering       = toml["rendering"];
     m_config.dpi         = rendering["dpi"].value_or(300.0);
     m_config.cache_pages = rendering["cache_pages"].value_or(10);
 
-    auto behavior                   = toml["behavior"];
-    m_config.remember_last_visited  = behavior["remember_last_visited"].value_or(true);
-    m_config.open_last_visited      = behavior["open_last_visited"].value_or(false);
-    m_config.page_history_limit     = behavior["page_history"].value_or(100);
-    m_config.antialiasing_bits      = behavior["antialasing_bits"].value_or(8);
-    m_config.auto_resize            = behavior["auto_resize"].value_or(false);
-    m_config.zoom_by                = behavior["zoom_factor"].value_or(1.25);
-    m_config.page_nav_with_mouse    = behavior["page_nav_with_mouse"].value_or(false);
-    m_config.synctex_editor_command = QString::fromStdString(behavior["synctex_editor_command"].value_or(""));
-    m_config.invert_mode            = behavior["invert_mode"].value_or(false);
-    m_config.icc_color_profile      = behavior["icc_color_profile"].value_or(true);
-    m_config.initial_fit            = behavior["initial_fit"].value_or("width");
-    m_config.auto_reload            = behavior["auto_reload"].value_or(true);
+    auto behavior = toml["behavior"];
+    m_config.remember_last_visited
+        = behavior["remember_last_visited"].value_or(true);
+    m_config.open_last_visited  = behavior["open_last_visited"].value_or(false);
+    m_config.page_history_limit = behavior["page_history"].value_or(100);
+    m_config.antialiasing_bits  = behavior["antialasing_bits"].value_or(8);
+    m_config.auto_resize        = behavior["auto_resize"].value_or(false);
+    m_config.zoom_by            = behavior["zoom_factor"].value_or(1.25);
+    m_config.page_nav_with_mouse
+        = behavior["page_nav_with_mouse"].value_or(false);
+    m_config.synctex_editor_command = QString::fromStdString(
+        behavior["synctex_editor_command"].value_or(""));
+    m_config.invert_mode       = behavior["invert_mode"].value_or(false);
+    m_config.icc_color_profile = behavior["icc_color_profile"].value_or(true);
+    m_config.initial_fit       = behavior["initial_fit"].value_or("width");
+    m_config.auto_reload       = behavior["auto_reload"].value_or(true);
 
     if (m_config.auto_reload)
     {
@@ -572,8 +631,9 @@ dodo::initConfig() noexcept
         for (auto &[action, value] : *keys.as_table())
         {
             if (value.is_value())
-                setupKeybinding(QString::fromStdString(std::string(action.str())),
-                                QString::fromStdString(value.value_or<std::string>("")));
+                setupKeybinding(
+                    QString::fromStdString(std::string(action.str())),
+                    QString::fromStdString(value.value_or<std::string>("")));
         }
     }
 
@@ -789,7 +849,8 @@ dodo::initGui() noexcept
     m_layout->addWidget(m_panel);
     this->setCentralWidget(widget);
 
-    m_menuBar = this->menuBar(); // initialize here so that the config visibility works
+    m_menuBar = this->menuBar(); // initialize here so that the config
+                                 // visibility works
 }
 
 void
@@ -877,7 +938,8 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 
     if (argparser.is_used("--session"))
     {
-        QString sessionName = QString::fromStdString(argparser.get<std::string>("--session"));
+        QString sessionName
+            = QString::fromStdString(argparser.get<std::string>("--session"));
         LoadSession(sessionName);
     }
 
@@ -890,7 +952,8 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 
         // Format: --synctex-forward={pdf}#{src}:{line}:{column}
         // Example: --synctex-forward=test.pdf#main.tex:14
-        QString arg = QString::fromStdString(argparser.get<std::string>("--synctex-forward"));
+        QString arg = QString::fromStdString(
+            argparser.get<std::string>("--synctex-forward"));
 
         // Format: file.pdf#file.tex:line
         QRegularExpression re(R"(^(.*)#(.*):(\d+):(\d+)$)");
@@ -904,12 +967,15 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
             texPath.replace("~", getenv("HOME"));
             int line   = match.captured(3).toInt();
             int column = match.captured(4).toInt();
+            Q_UNUSED(line);
+            Q_UNUSED(column);
             OpenFile(pdfPath);
             // synctexLocateInPdf(texPath, line, column); TODO:
         }
         else
         {
-            qWarning() << "Invalid --synctex-forward format. Expected file.pdf#file.tex:line:column";
+            qWarning() << "Invalid --synctex-forward format. Expected "
+                          "file.pdf#file.tex:line:column";
         }
     }
 
@@ -962,7 +1028,8 @@ dodo::populateRecentFiles() noexcept
     }
     else
     {
-        qWarning() << "Failed to query recent files:" << query.lastError().text();
+        qWarning() << "Failed to query recent files:"
+                   << query.lastError().text();
     }
 
     if (m_recentFilesMenu->isEmpty())
@@ -974,17 +1041,20 @@ dodo::populateRecentFiles() noexcept
 void
 dodo::editLastPages() noexcept
 {
-    if (!m_config.remember_last_visited || (!m_last_pages_db.isOpen() && !m_last_pages_db.isValid()))
+    if (!m_config.remember_last_visited
+        || (!m_last_pages_db.isOpen() && !m_last_pages_db.isValid()))
     {
-        QMessageBox::information(this, "Edit Last Pages",
-                                 "Couldn't find the database of last pages. Maybe "
-                                 "`remember_last_visited` option is turned off in the config file");
+        QMessageBox::information(
+            this, "Edit Last Pages",
+            "Couldn't find the database of last pages. Maybe "
+            "`remember_last_visited` option is turned off in the config file");
         return;
     }
 
     EditLastPagesWidget *elpw = new EditLastPagesWidget(m_last_pages_db, this);
     elpw->show();
-    connect(elpw, &EditLastPagesWidget::finished, this, &dodo::populateRecentFiles);
+    connect(elpw, &EditLastPagesWidget::finished, this,
+            &dodo::populateRecentFiles);
 }
 
 void
@@ -1001,7 +1071,8 @@ dodo::openLastVisitedFile() noexcept
         return;
 
     QSqlQuery q;
-    q.prepare("SELECT file_path, page_number FROM last_visited ORDER BY last_accessed DESC");
+    q.prepare("SELECT file_path, page_number FROM last_visited ORDER BY "
+              "last_accessed DESC");
 
     if (!q.exec())
     {
@@ -1059,15 +1130,19 @@ dodo::GotoPage() noexcept
     int total = m_doc->model()->numPages();
     if (total == 0)
     {
-        QMessageBox::information(this, "Goto Page", "This document has no pages");
+        QMessageBox::information(this, "Goto Page",
+                                 "This document has no pages");
         return;
     }
 
-    int pageno = QInputDialog::getInt(this, "Goto Page", QString("Enter page number (1 to %1)").arg(total), 1);
+    int pageno = QInputDialog::getInt(
+        this, "Goto Page", QString("Enter page number (1 to %1)").arg(total),
+        1);
 
     if (pageno <= 0 || pageno > total)
     {
-        QMessageBox::critical(this, "Goto Page", QString("Page %1 is out of range").arg(pageno));
+        QMessageBox::critical(this, "Goto Page",
+                              QString("Page %1 is out of range").arg(pageno));
         return;
     }
 
@@ -1235,7 +1310,8 @@ dodo::OpenFile(QString filePath) noexcept
 {
     if (filePath.isEmpty())
     {
-        filePath = QFileDialog::getOpenFileName(this, "Open File", "", "PDF Files (*.pdf);; All Files (*)");
+        filePath = QFileDialog::getOpenFileName(
+            this, "Open File", "", "PDF Files (*.pdf);; All Files (*)");
         if (filePath.isEmpty())
             return;
     }
@@ -1251,7 +1327,8 @@ dodo::OpenFile(QString filePath) noexcept
         }
     }
 
-    DocumentView *docwidget = new DocumentView(filePath, m_config, m_tab_widget);
+    DocumentView *docwidget
+        = new DocumentView(filePath, m_config, m_tab_widget);
     docwidget->setDPR(m_dpr);
     initTabConnections(docwidget);
     int index = m_tab_widget->addTab(docwidget, filePath);
@@ -1404,7 +1481,8 @@ dodo::resizeEvent(QResizeEvent *e)
 void
 dodo::initConnections() noexcept
 {
-    connect(m_tab_widget, &QTabWidget::currentChanged, this, &dodo::handleCurrentTabChanged);
+    connect(m_tab_widget, &QTabWidget::currentChanged, this,
+            &dodo::handleCurrentTabChanged);
     m_dpr = m_tab_widget->window()->devicePixelRatioF();
 
     QWindow *win = window()->windowHandle();
@@ -1418,10 +1496,12 @@ dodo::initConnections() noexcept
         });
     }
 
-    connect(m_tab_widget, &QTabWidget::tabCloseRequested, this, [this](int index)
+    connect(m_tab_widget, &QTabWidget::tabCloseRequested, this,
+            [this](const int index)
     {
-        QWidget *widget = m_tab_widget->widget(index);
-        if (widget->property("tabRole") == "doc")
+        QWidget *widget       = m_tab_widget->widget(index);
+        const QString tabRole = widget->property("tabRole").toString();
+        if (tabRole == "doc")
         {
             DocumentView *doc = qobject_cast<DocumentView *>(widget);
 
@@ -1431,14 +1511,20 @@ dodo::initConnections() noexcept
                 doc->CloseFile();
             }
         }
-
-        if (widget)
-            widget->deleteLater();
+        else if (tabRole == "startup")
+        {
+            if (m_startup_widget)
+            {
+                m_startup_widget->deleteLater();
+                m_startup_widget = nullptr;
+            }
+        }
 
         m_tab_widget->removeTab(index);
     });
 
-    connect(m_command_bar, &CommandBar::processCommand, this, &dodo::processCommand);
+    connect(m_command_bar, &CommandBar::processCommand, this,
+            &dodo::processCommand);
 }
 
 void
@@ -1485,7 +1571,8 @@ dodo::closeEvent(QCloseEvent *e)
 {
     for (int i = 0; i < m_tab_widget->count(); i++)
     {
-        DocumentView *doc = qobject_cast<DocumentView *>(m_tab_widget->widget(i));
+        DocumentView *doc
+            = qobject_cast<DocumentView *>(m_tab_widget->widget(i));
         if (doc)
         {
             // Unsaved Changes
@@ -1493,8 +1580,12 @@ dodo::closeEvent(QCloseEvent *e)
             {
                 int ret = QMessageBox::warning(
                     this, "Unsaved Changes",
-                    QString("File %1 has unsaved changes. Do you want to save them?").arg(m_tab_widget->tabText(i)),
-                    QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+                    QString("File %1 has unsaved changes. Do you want to save "
+                            "them?")
+                        .arg(m_tab_widget->tabText(i)),
+                    QMessageBox::Save | QMessageBox::Discard
+                        | QMessageBox::Cancel,
+                    QMessageBox::Save);
 
                 if (ret == QMessageBox::Cancel)
                 {
@@ -1505,7 +1596,8 @@ dodo::closeEvent(QCloseEvent *e)
                 {
                     if (!doc->model()->save())
                     {
-                        QMessageBox::critical(this, "Save Failed", "Could not save the file.");
+                        QMessageBox::critical(this, "Save Failed",
+                                              "Could not save the file.");
                         e->ignore();
                         return;
                     }
@@ -1599,15 +1691,19 @@ dodo::eventFilter(QObject *object, QEvent *event)
 
         if (object == m_tab_widget->tabBar() && type == QEvent::ContextMenu)
         {
-            QContextMenuEvent *contextEvent = static_cast<QContextMenuEvent *>(event);
-            int index                       = m_tab_widget->tabBar()->tabAt(contextEvent->pos());
+            QContextMenuEvent *contextEvent
+                = static_cast<QContextMenuEvent *>(event);
+            int index = m_tab_widget->tabBar()->tabAt(contextEvent->pos());
 
             if (index != -1)
             {
                 QMenu menu;
-                menu.addAction("Open Location", this, [this, index]() { openInExplorerForIndex(index); });
-                menu.addAction("File Properties", this, [this, index]() { filePropertiesForIndex(index); });
-                menu.addAction("Close Tab", this, [this, index]() { m_tab_widget->tabCloseRequested(index); });
+                menu.addAction("Open Location", this, [this, index]()
+                { openInExplorerForIndex(index); });
+                menu.addAction("File Properties", this, [this, index]()
+                { filePropertiesForIndex(index); });
+                menu.addAction("Close Tab", this, [this, index]()
+                { m_tab_widget->tabCloseRequested(index); });
 
                 menu.exec(contextEvent->globalPos());
             }
@@ -1645,7 +1741,8 @@ dodo::eventFilter(QObject *object, QEvent *event)
 void
 dodo::openInExplorerForIndex(int index) noexcept
 {
-    DocumentView *doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
+    DocumentView *doc
+        = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
     if (doc)
     {
         QString filepath = doc->fileName();
@@ -1656,7 +1753,8 @@ dodo::openInExplorerForIndex(int index) noexcept
 void
 dodo::filePropertiesForIndex(int index) noexcept
 {
-    DocumentView *doc = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
+    DocumentView *doc
+        = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
     if (doc)
         doc->FileProperties();
 }
@@ -1667,16 +1765,26 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::panelNameChanged, this,
             [this](const QString &name) { m_panel->setFileName(name); });
 
-    connect(docwidget, &DocumentView::fileNameChanged, this, &dodo::handleFileNameChanged);
-    connect(docwidget, &DocumentView::pageNumberChanged, m_panel, &Panel::setPageNo);
-    connect(docwidget, &DocumentView::searchCountChanged, m_panel, &Panel::setSearchCount);
-    connect(docwidget, &DocumentView::searchModeChanged, m_panel, &Panel::setSearchMode);
-    connect(docwidget, &DocumentView::searchIndexChanged, m_panel, &Panel::setSearchIndex);
-    connect(docwidget, &DocumentView::totalPageCountChanged, m_panel, &Panel::setTotalPageCount);
-    connect(docwidget, &DocumentView::fitModeChanged, m_panel, &Panel::setFitMode);
-    connect(docwidget, &DocumentView::selectionModeChanged, m_panel, &Panel::setMode);
-    connect(docwidget, &DocumentView::highlightColorChanged, m_panel, &Panel::setHighlightColor);
-    connect(docwidget, &DocumentView::selectionModeChanged, m_panel, &Panel::setMode);
+    connect(docwidget, &DocumentView::fileNameChanged, this,
+            &dodo::handleFileNameChanged);
+    connect(docwidget, &DocumentView::pageNumberChanged, m_panel,
+            &Panel::setPageNo);
+    connect(docwidget, &DocumentView::searchCountChanged, m_panel,
+            &Panel::setSearchCount);
+    connect(docwidget, &DocumentView::searchModeChanged, m_panel,
+            &Panel::setSearchMode);
+    connect(docwidget, &DocumentView::searchIndexChanged, m_panel,
+            &Panel::setSearchIndex);
+    connect(docwidget, &DocumentView::totalPageCountChanged, m_panel,
+            &Panel::setTotalPageCount);
+    connect(docwidget, &DocumentView::fitModeChanged, m_panel,
+            &Panel::setFitMode);
+    connect(docwidget, &DocumentView::selectionModeChanged, m_panel,
+            &Panel::setMode);
+    connect(docwidget, &DocumentView::highlightColorChanged, m_panel,
+            &Panel::setHighlightColor);
+    connect(docwidget, &DocumentView::selectionModeChanged, m_panel,
+            &Panel::setMode);
     connect(docwidget, &DocumentView::clipboardContentChanged, this,
             [&](const QString &text) { m_clipboard->setText(text); });
 
@@ -1686,7 +1794,8 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::autoResizeActionUpdate, this,
             [&](bool state) { m_actionAutoresize->setChecked(state); });
 
-    connect(docwidget, &DocumentView::insertToDBRequested, this, &dodo::insertFileToDB);
+    connect(docwidget, &DocumentView::insertToDBRequested, this,
+            &dodo::insertFileToDB);
 }
 
 void
@@ -1695,7 +1804,8 @@ dodo::insertFileToDB(const QString &fname, int pageno) noexcept
     if (m_last_pages_db.isValid() && m_last_pages_db.isOpen())
     {
         QSqlQuery q(m_last_pages_db);
-        q.prepare("UPDATE last_visited SET page_number = ?, last_accessed = ? WHERE file_path = ?");
+        q.prepare("UPDATE last_visited SET page_number = ?, last_accessed = ? "
+                  "WHERE file_path = ?");
         q.bindValue(0, pageno);
         q.bindValue(1, QDateTime::currentDateTime());
         q.bindValue(2, fname);
@@ -1703,7 +1813,8 @@ dodo::insertFileToDB(const QString &fname, int pageno) noexcept
 
         if (!q.exec() || q.numRowsAffected() == 0)
         {
-            q.prepare("INSERT INTO last_visited (file_path, page_number, last_accessed) VALUES (?, ?, ?)");
+            q.prepare("INSERT INTO last_visited (file_path, page_number, "
+                      "last_accessed) VALUES (?, ?, ?)");
             q.bindValue(0, fname);
             q.bindValue(1, pageno);
             q.bindValue(2, QDateTime::currentDateTime());
@@ -1807,9 +1918,10 @@ dodo::LoadSession(QString sessionName) noexcept
     if (sessionName.isEmpty())
     {
         bool ok;
-        sessionName = QInputDialog::getItem(this, "Save Session",
-                                            "Enter name for session (existing sessions are listed): ", existingSessions,
-                                            0, true, &ok);
+        sessionName = QInputDialog::getItem(
+            this, "Save Session",
+            "Enter name for session (existing sessions are listed): ",
+            existingSessions, 0, true, &ok);
     }
 
     sessionName = sessionName + ".dodo";
@@ -1829,7 +1941,8 @@ dodo::LoadSession(QString sessionName) noexcept
             int fitMode       = entry["fit_mode"].toInt();
             bool invert       = entry["invert_color"].toBool();
 
-            DocumentView *view = new DocumentView(filePath, m_config, m_tab_widget);
+            DocumentView *view
+                = new DocumentView(filePath, m_config, m_tab_widget);
             view->GotoPage(page);
             view->Zoom(zoom);
             view->Fit(static_cast<DocumentView::FitMode>(fitMode));
@@ -1841,7 +1954,8 @@ dodo::LoadSession(QString sessionName) noexcept
     else
     {
         qDebug() << "Could not open session file!";
-        QMessageBox::critical(this, "Open Session", "Could not open session: " + sessionName);
+        QMessageBox::critical(this, "Open Session",
+                              "Could not open session: " + sessionName);
     }
 }
 
@@ -1854,12 +1968,15 @@ dodo::getSessionFiles() noexcept
     {
         if (!m_session_dir.mkpath("."))
         {
-            QMessageBox::warning(this, "Session Directory", "Unable to create sessions directory for some reason");
+            QMessageBox::warning(
+                this, "Session Directory",
+                "Unable to create sessions directory for some reason");
             return sessions;
         }
     }
 
-    for (const QString &file : m_session_dir.entryList(QStringList() << "*.dodo", QDir::Files | QDir::NoSymLinks))
+    for (const QString &file : m_session_dir.entryList(
+             QStringList() << "*.dodo", QDir::Files | QDir::NoSymLinks))
         sessions << QFileInfo(file).completeBaseName();
 
     return sessions;
@@ -1870,7 +1987,8 @@ dodo::SaveSession(QString sessionName) noexcept
 {
     if (!m_doc)
     {
-        QMessageBox::information(this, "Save Session", "No files in session to save the session");
+        QMessageBox::information(this, "Save Session",
+                                 "No files in session to save the session");
         return;
     }
 
@@ -1881,8 +1999,9 @@ dodo::SaveSession(QString sessionName) noexcept
         {
             bool ok;
             sessionName = QInputDialog::getItem(
-                this, "Save Session", "Enter name for session (existing sessions are listed): ", existingSessions, 0,
-                true, &ok);
+                this, "Save Session",
+                "Enter name for session (existing sessions are listed): ",
+                existingSessions, 0, true, &ok);
             if (sessionName.isEmpty())
                 return;
         }
@@ -1890,7 +2009,9 @@ dodo::SaveSession(QString sessionName) noexcept
         {
             if (existingSessions.contains(sessionName))
             {
-                QMessageBox::warning(this, "Save Session", QString("Session name %1 already exists").arg(sessionName));
+                QMessageBox::warning(
+                    this, "Save Session",
+                    QString("Session name %1 already exists").arg(sessionName));
                 return;
             }
         }
@@ -1902,7 +2023,8 @@ dodo::SaveSession(QString sessionName) noexcept
 
     for (int i = 0; i < m_tab_widget->count(); ++i)
     {
-        DocumentView *doc = qobject_cast<DocumentView *>(m_tab_widget->widget(i));
+        DocumentView *doc
+            = qobject_cast<DocumentView *>(m_tab_widget->widget(i));
         if (!doc || !doc->model()->valid())
             continue;
 
@@ -1930,36 +2052,44 @@ dodo::SaveSession(QString sessionName) noexcept
 void
 dodo::SaveAsSession(const QString &sessionPath) noexcept
 {
+    Q_UNUSED(sessionPath);
     if (m_session_name.isEmpty())
     {
-        QMessageBox::information(this, "Save As Session", "Cannot save session as you are not currently in a session");
+        QMessageBox::information(
+            this, "Save As Session",
+            "Cannot save session as you are not currently in a session");
         return;
     }
 
     QStringList existingSessions = getSessionFiles();
 
-    QString selectedPath = QFileDialog::getSaveFileName(this, "Save As Session", m_session_dir.absolutePath(),
-                                                        "dodo session files (*.dodo); All Files (*.*)");
+    QString selectedPath = QFileDialog::getSaveFileName(
+        this, "Save As Session", m_session_dir.absolutePath(),
+        "dodo session files (*.dodo); All Files (*.*)");
 
     if (selectedPath.isEmpty())
         return;
 
     if (QFile::exists(selectedPath))
     {
-        auto choice = QMessageBox::warning(this, "Overwrite Session",
-                                           QString("Session named \"%1\" already exists. Do you want to overwrite it?")
-                                               .arg(QFileInfo(selectedPath).fileName()),
-                                           QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        auto choice = QMessageBox::warning(
+            this, "Overwrite Session",
+            QString("Session named \"%1\" already exists. Do you want to "
+                    "overwrite it?")
+                .arg(QFileInfo(selectedPath).fileName()),
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
 
         if (choice != QMessageBox::Yes)
             return;
     }
 
     // Save the session
-    QString currentSessionPath = m_session_dir.filePath(m_session_name + ".dodo");
+    QString currentSessionPath
+        = m_session_dir.filePath(m_session_name + ".dodo");
     if (!QFile::copy(currentSessionPath, selectedPath))
     {
-        QMessageBox::critical(this, "Save As Session", "Failed to save session.");
+        QMessageBox::critical(this, "Save As Session",
+                              "Failed to save session.");
     }
 }
 
@@ -1994,20 +2124,28 @@ dodo::strToColor(const QString &color_str) noexcept
 void
 dodo::showStartupWidget() noexcept
 {
-    StartupWidget *widget = new StartupWidget(m_last_pages_db, m_tab_widget);
-    connect(widget, &StartupWidget::openFileRequested, this, [this, widget](const QString &filepath, int pageno)
+    if (m_startup_widget)
+    {
+        int index = m_tab_widget->indexOf(m_startup_widget);
+        if (index != -1)
+            m_tab_widget->setCurrentIndex(index);
+        return;
+    }
+
+    m_startup_widget = new StartupWidget(m_last_pages_db, m_tab_widget);
+    qDebug() << m_startup_widget;
+    connect(m_startup_widget, &StartupWidget::openFileRequested, this,
+            [this](const QString &filepath, int pageno)
     {
         OpenFile(filepath);
         gotoPage(pageno);
-        int index = m_tab_widget->indexOf(widget);
+
+        int index = m_tab_widget->indexOf(m_startup_widget);
         if (index != -1)
-        {
-            QWidget *w = m_tab_widget->widget(index);
-            m_tab_widget->removeTab(index);
-            w->deleteLater(); // Safe deletion
-        }
+            m_tab_widget->tabCloseRequested(index);
     });
-    m_tab_widget->addTab(widget, "Startup");
+    int index = m_tab_widget->addTab(m_startup_widget, "Startup");
+    m_tab_widget->setCurrentIndex(index);
     m_panel->setFileName("Startup");
 }
 
@@ -2059,7 +2197,8 @@ dodo::processCommand(const QString &cmd) noexcept
         }
         else
         {
-            m_message_bar->showMessage(QString("%1 command doesn't exist").arg(trimmed));
+            m_message_bar->showMessage(
+                QString("%1 command doesn't exist").arg(trimmed));
         }
     }
 
