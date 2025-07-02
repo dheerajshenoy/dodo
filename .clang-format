@@ -28,6 +28,6 @@ SpacesInAngles: false
 SpaceBeforeParens: ControlStatements
 AccessModifierOffset: -4
 IndentAccessModifiers: false
-BreakBeforeBinaryOperators: None
+BreakBeforeBinaryOperators: true
 AlignOperands: true
-ColumnLimit: 120  # Or whatever high value fits your code style
+ColumnLimit: 80  # Or whatever high value fits your code style
