@@ -31,6 +31,7 @@ void
 dodo::construct() noexcept
 {
     initGui();
+    initActionMap();
     initConfig();
     if (m_load_default_keybinding)
         initKeybinds();
