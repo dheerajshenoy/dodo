@@ -2277,7 +2277,9 @@ void
 dodo::trimRecentFilesDatabase() noexcept
 {
     // If no DB is loaded, return from this function
-    if (!m_last_pages_db.isValid())
+    // If num_recent_files config entry has negative value,
+    // retain all the recent files
+    if (!m_last_pages_db.isValid() || m_config.num_recent_files < 0)
         return;
 
     QSqlQuery query;
