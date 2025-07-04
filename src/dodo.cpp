@@ -1931,7 +1931,6 @@ dodo::showStartupWidget() noexcept
     }
 
     m_startup_widget = new StartupWidget(m_last_pages_db, m_tab_widget);
-    qDebug() << m_startup_widget;
     connect(m_startup_widget, &StartupWidget::openFileRequested, this,
             [this](const QString &filepath, int pageno)
     {
