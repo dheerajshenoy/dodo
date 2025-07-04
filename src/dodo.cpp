@@ -237,6 +237,7 @@ dodo::initMenubar() noexcept
     updateUiEnabledState();
 }
 
+// Initialize the `last_pages_db` related stuff
 void
 dodo::initDB() noexcept
 {
@@ -254,6 +255,8 @@ dodo::initDB() noexcept
                "last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 }
 
+// Initialize the default settings in case the config
+// file is not found
 void
 dodo::initDefaults() noexcept
 {
@@ -288,6 +291,7 @@ dodo::initDefaults() noexcept
     this->setContentsMargins(0, 0, 0, 0);
 }
 
+// Initialize the config related stuff
 void
 dodo::initConfig() noexcept
 {
@@ -395,244 +399,6 @@ dodo::initConfig() noexcept
     {
         m_load_default_keybinding = false;
         auto keys                 = toml["keybindings"];
-        m_actionMap               = {
-            {"command",
-                           [this]()
-                      {
-            invokeCommand();
-        }},
-            {"undo",
-                           [this]()
-                      {
-            Undo();
-        }},
-            {"redo",
-                           [this]()
-                      {
-            Redo();
-        }},
-            {"text_highlight_current_selection",
-                           [this]()
-                      {
-            TextHighlightCurrentSelection();
-        }},
-            {"toggle_tabs",
-                           [this]()
-                      {
-            ToggleTabBar();
-        }},
-            {"keybindings",
-                           [this]()
-                      {
-            ShowKeybindings();
-        }},
-            {"select_all",
-                           [this]()
-                      {
-            SelectAll();
-        }},
-            {"save",
-                           [this]()
-                      {
-            SaveFile();
-        }},
-            {"save_as",
-                           [this]()
-                      {
-            SaveAsFile();
-        }},
-            {"yank",
-                           [this]()
-                      {
-            YankSelection();
-        }},
-            {"cancel_selection",
-                           [this]()
-                      {
-            ClearTextSelection();
-        }},
-            {"about",
-                           [this]()
-                      {
-            ShowAbout();
-        }},
-            {"link_hint_visit",
-                           [this]()
-                      {
-            VisitLinkKB();
-        }},
-            {"link_hint_copy",
-                           [this]()
-                      {
-            CopyLinkKB();
-        }},
-            {"outline",
-                           [this]()
-                      {
-            TableOfContents();
-        }},
-            {"rotate_clock",
-                           [this]()
-                      {
-            RotateClock();
-        }},
-            {"rotate_anticlock",
-                           [this]()
-                      {
-            RotateAnticlock();
-        }},
-            {"prev_location",
-                           [this]()
-                      {
-            GoBackHistory();
-        }},
-            {"scroll_down",
-                           [this]()
-                      {
-            ScrollDown();
-        }},
-            {"scroll_up",
-                           [this]()
-                      {
-            ScrollUp();
-        }},
-            {"scroll_left",
-                           [this]()
-                      {
-            ScrollLeft();
-        }},
-            {"scroll_right",
-                           [this]()
-                      {
-            ScrollRight();
-        }},
-            {"invert_color",
-                           [this]()
-                      {
-            InvertColor();
-        }},
-            {"search",
-                           [this]()
-                      {
-            invokeSearch();
-        }},
-            {"search_next",
-                           [this]()
-                      {
-            NextHit();
-        }},
-            {"search_prev",
-                           [this]()
-                      {
-            PrevHit();
-        }},
-            {"next_page",
-                           [this]()
-                      {
-            NextPage();
-        }},
-            {"prev_page",
-                           [this]()
-                      {
-            PrevPage();
-        }},
-            {"goto_page",
-                           [this]()
-                      {
-            GotoPage();
-        }},
-            {"first_page",
-                           [this]()
-                      {
-            FirstPage();
-        }},
-            {"last_page",
-                           [this]()
-                      {
-            LastPage();
-        }},
-            {"zoom_in",
-                           [this]()
-                      {
-            ZoomIn();
-        }},
-            {"zoom_out",
-                           [this]()
-                      {
-            ZoomOut();
-        }},
-            {"zoom_reset",
-                           [this]()
-                      {
-            ZoomReset();
-        }},
-            {"annot_edit",
-                           [this]()
-                      {
-            ToggleAnnotSelect();
-        }},
-            {"text_highlight",
-                           [this]()
-                      {
-            ToggleTextHighlight();
-        }},
-            {"annot_rect",
-                           [this]()
-                      {
-            ToggleRectAnnotation();
-        }},
-            {"fullscreen",
-                           [this]()
-                      {
-            ToggleFullscreen();
-        }},
-            {"file_properties",
-                           [this]()
-                      {
-            FileProperties();
-        }},
-            {"open_file",
-                           [this]()
-                      {
-            OpenFile();
-        }},
-            {"close_file",
-                           [this]()
-                      {
-            CloseFile();
-        }},
-            {"fit_width",
-                           [this]()
-                      {
-            FitWidth();
-        }},
-            {"fit_height",
-                           [this]()
-                      {
-            FitHeight();
-        }},
-            {"fit_window",
-                           [this]()
-                      {
-            FitWindow();
-        }},
-            {"auto_resize",
-                           [this]()
-                      {
-            ToggleAutoResize();
-        }},
-            {"toggle_menubar",
-                           [this]()
-                      {
-            ToggleMenubar();
-        }},
-            {"toggle_panel",
-                           [this]()
-                      {
-            TogglePanel();
-        }},
-
-        };
 
         for (auto &[action, value] : *keys.as_table())
         {
@@ -653,6 +419,7 @@ dodo::initConfig() noexcept
     }
 }
 
+// Initialize the keybindings related stuff
 void
 dodo::initKeybinds() noexcept
 {
@@ -833,6 +600,7 @@ dodo::initKeybinds() noexcept
     }
 }
 
+// Initialize the GUI related Stuff
 void
 dodo::initGui() noexcept
 {
@@ -859,6 +627,8 @@ dodo::initGui() noexcept
                                  // visibility works
 }
 
+// Updates the UI elements checking if valid
+// file is open or not
 void
 dodo::updateUiEnabledState() noexcept
 {
@@ -883,6 +653,8 @@ dodo::updateUiEnabledState() noexcept
     m_actionRedo->setEnabled(hasOpenedFile);
 }
 
+// Helper function to construct `QShortcut` Qt shortcut
+// from the config file
 void
 dodo::setupKeybinding(const QString &action, const QString &key) noexcept
 {
@@ -896,6 +668,7 @@ dodo::setupKeybinding(const QString &action, const QString &key) noexcept
     m_config.shortcuts_map[action] = key;
 }
 
+// Toggles the fullscreen mode
 void
 dodo::ToggleFullscreen() noexcept
 {
@@ -907,6 +680,7 @@ dodo::ToggleFullscreen() noexcept
     m_actionFullscreen->setChecked(!isFullscreen);
 }
 
+// Toggles the panel
 void
 dodo::TogglePanel() noexcept
 {
@@ -915,6 +689,7 @@ dodo::TogglePanel() noexcept
     m_actionTogglePanel->setChecked(!shown);
 }
 
+// Toggles the menubar
 void
 dodo::ToggleMenubar() noexcept
 {
@@ -923,6 +698,7 @@ dodo::ToggleMenubar() noexcept
     m_actionToggleMenubar->setChecked(!shown);
 }
 
+// Shows the about page
 void
 dodo::ShowAbout() noexcept
 {
@@ -931,6 +707,8 @@ dodo::ShowAbout() noexcept
     abw->exec();
 }
 
+// Reads the arguments passed with `dodo` from the
+// commandline
 void
 dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 {
@@ -1006,9 +784,17 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
     m_config.startpage_override = -1;
 }
 
+// Populates the `QMenu` for recent files with
+// recent files entries from the database
 void
 dodo::populateRecentFiles() noexcept
 {
+    if (!m_config.recent_files)
+    {
+        m_recentFilesMenu->setEnabled(false);
+        return;
+    }
+
     m_recentFilesMenu->clear();
     QSqlQuery query;
     if (query.exec("SELECT file_path, page_number, last_accessed "
@@ -1044,6 +830,8 @@ dodo::populateRecentFiles() noexcept
         m_recentFilesMenu->setEnabled(true);
 }
 
+// Opens a widget that allows to edit the `last_pages_db`
+// entries
 void
 dodo::editLastPages() noexcept
 {
@@ -1063,6 +851,7 @@ dodo::editLastPages() noexcept
             &dodo::populateRecentFiles);
 }
 
+// Opens a widget which shows the currently set keybindings
 void
 dodo::ShowKeybindings() noexcept
 {
@@ -1070,6 +859,7 @@ dodo::ShowKeybindings() noexcept
     widget->show();
 }
 
+// Helper function to open last visited file
 void
 dodo::openLastVisitedFile() noexcept
 {
@@ -1099,6 +889,7 @@ dodo::openLastVisitedFile() noexcept
     }
 }
 
+// Search for term
 void
 dodo::Search(const QString &term) noexcept
 {
@@ -1106,6 +897,7 @@ dodo::Search(const QString &term) noexcept
         m_doc->Search(term);
 }
 
+// Zoom out the file
 void
 dodo::ZoomOut() noexcept
 {
@@ -1113,6 +905,7 @@ dodo::ZoomOut() noexcept
         m_doc->ZoomOut();
 }
 
+// Zoom in the file
 void
 dodo::ZoomIn() noexcept
 {
@@ -1120,6 +913,7 @@ dodo::ZoomIn() noexcept
         m_doc->ZoomIn();
 }
 
+// Resets zoom
 void
 dodo::ZoomReset() noexcept
 {
@@ -1127,6 +921,7 @@ dodo::ZoomReset() noexcept
         m_doc->ZoomReset();
 }
 
+// Go to a particular page (asks user with a dialog)
 void
 dodo::GotoPage() noexcept
 {
@@ -1155,6 +950,7 @@ dodo::GotoPage() noexcept
     gotoPage(pageno);
 }
 
+// Go to a particular page (no dialog)
 void
 dodo::gotoPage(int pageno) noexcept
 {
@@ -1162,6 +958,7 @@ dodo::gotoPage(int pageno) noexcept
         m_doc->GotoPage(pageno);
 }
 
+// Goes to the next search hit
 void
 dodo::NextHit() noexcept
 {
@@ -1169,6 +966,7 @@ dodo::NextHit() noexcept
         m_doc->NextHit();
 }
 
+// Goes to the previous search hit
 void
 dodo::PrevHit() noexcept
 {
@@ -1176,6 +974,7 @@ dodo::PrevHit() noexcept
         m_doc->PrevHit();
 }
 
+// Scrolls left in the file
 void
 dodo::ScrollLeft() noexcept
 {
@@ -1183,6 +982,7 @@ dodo::ScrollLeft() noexcept
         m_doc->ScrollLeft();
 }
 
+// Scrolls right in the file
 void
 dodo::ScrollRight() noexcept
 {
@@ -1190,6 +990,7 @@ dodo::ScrollRight() noexcept
         m_doc->ScrollRight();
 }
 
+// Scrolls up in the file
 void
 dodo::ScrollUp() noexcept
 {
@@ -1197,6 +998,7 @@ dodo::ScrollUp() noexcept
         m_doc->ScrollUp();
 }
 
+// Scrolls down in the file
 void
 dodo::ScrollDown() noexcept
 {
@@ -1204,18 +1006,22 @@ dodo::ScrollDown() noexcept
         m_doc->ScrollDown();
 }
 
+// Rotates the file in clockwise direction
 void
 dodo::RotateClock() noexcept
 {
     // TODO:
 }
 
+// Rotates the file in anticlockwise direction
 void
 dodo::RotateAnticlock() noexcept
 {
     // TODO:
 }
 
+// Shows link hints for each visible link to visit link
+// using the keyboard
 void
 dodo::VisitLinkKB() noexcept
 {
@@ -1230,6 +1036,8 @@ dodo::VisitLinkKB() noexcept
     }
 }
 
+// Shows link hints for each visible link to copy link
+// using the keyboard
 void
 dodo::CopyLinkKB() noexcept
 {
@@ -1244,6 +1052,7 @@ dodo::CopyLinkKB() noexcept
     }
 }
 
+// Clears the currently selected text in the file
 void
 dodo::ClearTextSelection() noexcept
 {
@@ -1251,6 +1060,7 @@ dodo::ClearTextSelection() noexcept
         m_doc->ClearTextSelection();
 }
 
+// Copies the text selection (if any) to the clipboard
 void
 dodo::YankSelection() noexcept
 {
@@ -1258,11 +1068,12 @@ dodo::YankSelection() noexcept
         m_doc->YankSelection();
 }
 
+// Selects all the text in the file
 void
-dodo::SelectAll() noexcept
+dodo::YankAll() noexcept
 {
     if (m_doc)
-        m_doc->SelectAll();
+        m_doc->YankAll();
 }
 
 void
@@ -1349,24 +1160,29 @@ dodo::OpenFile(QString filePath) noexcept
     // }
 }
 
+// Opens the properties widget with properties for the
+// current file
 void
 dodo::FileProperties() noexcept
 {
     if (m_doc)
         m_doc->FileProperties();
 }
+
 void
 dodo::SaveFile() noexcept
 {
     if (m_doc)
         m_doc->SaveFile();
 }
+
 void
 dodo::SaveAsFile() noexcept
 {
     if (m_doc)
         m_doc->SaveAsFile();
 }
+
 void
 dodo::CloseFile() noexcept
 {
@@ -1471,6 +1287,7 @@ dodo::GoBackHistory() noexcept
         m_doc->GoBackHistory();
 }
 
+// Highlight text annotation for the current selection
 void
 dodo::TextHighlightCurrentSelection() noexcept
 {
@@ -1478,12 +1295,7 @@ dodo::TextHighlightCurrentSelection() noexcept
         m_doc->TextHighlightCurrentSelection();
 }
 
-void
-dodo::resizeEvent(QResizeEvent *e)
-{
-    QMainWindow::resizeEvent(e);
-}
-
+// Initialize all the connections for the `dodo` class
 void
 dodo::initConnections() noexcept
 {
@@ -1744,6 +1556,8 @@ dodo::eventFilter(QObject *object, QEvent *event)
     return QObject::eventFilter(object, event);
 }
 
+// Opens the file of tab with index `index`
+// in file manager program
 void
 dodo::openInExplorerForIndex(int index) noexcept
 {
@@ -1756,6 +1570,7 @@ dodo::openInExplorerForIndex(int index) noexcept
     }
 }
 
+// Shows the properties of file of tab with index `index`
 void
 dodo::filePropertiesForIndex(int index) noexcept
 {
@@ -1765,6 +1580,7 @@ dodo::filePropertiesForIndex(int index) noexcept
         doc->FileProperties();
 }
 
+// Initialize connections on each tab addition
 void
 dodo::initTabConnections(DocumentView *docwidget) noexcept
 {
@@ -1804,6 +1620,8 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
             &dodo::insertFileToDB);
 }
 
+// Insert file to DB when tab is closed to track
+// recent files
 void
 dodo::insertFileToDB(const QString &fname, int pageno) noexcept
 {
@@ -1965,6 +1783,7 @@ dodo::LoadSession(QString sessionName) noexcept
     }
 }
 
+// Returns the session files
 QStringList
 dodo::getSessionFiles() noexcept
 {
@@ -2099,34 +1918,7 @@ dodo::SaveAsSession(const QString &sessionPath) noexcept
     }
 }
 
-QColor
-dodo::strToColor(const QString &color_str) noexcept
-{
-    QColor color;
-
-    if (color_str.startsWith("#"))
-    {
-        QString hex = color_str.mid(1);
-
-        if (hex.length() == 6)
-        {
-            color.setRed(hex.mid(0, 2).toInt(nullptr, 16));
-            color.setGreen(hex.mid(2, 2).toInt(nullptr, 16));
-            color.setBlue(hex.mid(4, 2).toInt(nullptr, 16));
-            color.setAlpha(255); // Default alpha
-        }
-        else if (hex.length() == 8)
-        {
-            color.setRed(hex.mid(0, 2).toInt(nullptr, 16));
-            color.setGreen(hex.mid(2, 2).toInt(nullptr, 16));
-            color.setBlue(hex.mid(4, 2).toInt(nullptr, 16));
-            color.setAlpha(hex.mid(6, 2).toInt(nullptr, 16));
-        }
-    }
-
-    return color;
-}
-
+// Shows the startup widget
 void
 dodo::showStartupWidget() noexcept
 {

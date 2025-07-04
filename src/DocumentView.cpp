@@ -18,11 +18,13 @@
 struct rusage usage;
 #endif
 
-DocumentView::DocumentView(const QString &fileName, const Config &config, QWidget *parent)
+DocumentView::DocumentView(const QString &fileName, const Config &config,
+                           QWidget *parent)
     : QWidget(parent), m_config(config)
 {
     setAcceptDrops(false);
-    // important for tab differentiating doc and dodo internal tabs like startup and other tabs
+    // important for tab differentiating doc and dodo internal tabs like startup
+    // and other tabs
     setProperty("tabRole", "doc");
     m_page_history_list.reserve(m_page_history_limit);
     m_gview->setPageNavWithMouse(m_page_nav_with_mouse);
@@ -76,10 +78,12 @@ DocumentView::DocumentView(const QString &fileName, const Config &config, QWidge
     m_model->setLinkBoundary(m_config.link_boundary);
 
     if (!m_config.vscrollbar_shown)
-        m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
+        m_gview->setVerticalScrollBarPolicy(
+            Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
     if (!m_config.hscrollbar_shown)
-        m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
+        m_gview->setHorizontalScrollBarPolicy(
+            Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
     initConnections();
     openFile(fileName);
@@ -110,16 +114,21 @@ DocumentView::setDPR(qreal DPR) noexcept
 void
 DocumentView::initConnections() noexcept
 {
-    connect(m_gview, &GraphicsView::scrollRequested, this, &DocumentView::mouseWheelScrollRequested);
-    connect(m_gview, &GraphicsView::populateContextMenuRequested, this, &DocumentView::populateContextMenu);
+    connect(m_gview, &GraphicsView::scrollRequested, this,
+            &DocumentView::mouseWheelScrollRequested);
+    connect(m_gview, &GraphicsView::populateContextMenuRequested, this,
+            &DocumentView::populateContextMenu);
     connect(m_model, &Model::documentSaved, this, [&]() { setDirty(false); });
 
-    connect(m_model, &Model::searchResultsReady, this,
-            [&](const QMap<int, QList<Model::SearchResult>> &maps, int matchCount)
+    connect(
+        m_model, &Model::searchResultsReady, this,
+        [&](const QMap<int, QList<Model::SearchResult>> &maps, int matchCount)
     {
         if (matchCount == 0)
         {
-            QMessageBox::information(this, "Search Result", QString("No match found for %1").arg(m_last_search_term));
+            QMessageBox::information(
+                this, "Search Result",
+                QString("No match found for %1").arg(m_last_search_term));
             return;
         }
         m_searchRectMap = maps;
@@ -130,21 +139,24 @@ DocumentView::initConnections() noexcept
         jumpToHit(page, 0);
     });
 
-    connect(m_gview, &GraphicsView::highlightDrawn, m_model, [&](const QRectF &rect)
+    connect(m_gview, &GraphicsView::highlightDrawn, m_model,
+            [&](const QRectF &rect)
     {
         m_model->addRectAnnotation(rect);
         setDirty(true);
         renderPage(m_pageno, true);
     });
 
-    connect(m_model, &Model::horizontalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location)
+    connect(m_model, &Model::horizontalFitRequested, this,
+            [&](int pageno, const BrowseLinkItem::Location &location)
     {
         gotoPage(pageno);
         FitWidth();
         scrollToNormalizedTop(location.y);
     });
 
-    connect(m_model, &Model::verticalFitRequested, this, [&](int pageno, const BrowseLinkItem::Location &location)
+    connect(m_model, &Model::verticalFitRequested, this,
+            [&](int pageno, const BrowseLinkItem::Location &location)
     {
         gotoPage(pageno, false);
         FitHeight();
@@ -157,41 +169,51 @@ DocumentView::initConnections() noexcept
         TopOfThePage();
     });
 
-    connect(m_model, &Model::jumpToLocationRequested, this, [&](int pageno, const BrowseLinkItem::Location &loc)
+    connect(m_model, &Model::jumpToLocationRequested, this,
+            [&](int pageno, const BrowseLinkItem::Location &loc)
     {
         gotoPage(pageno, false);
         scrollToXY(loc.x, loc.y);
     });
 
-    connect(m_model, &Model::pageRenderRequested, this, &DocumentView::renderPage);
+    connect(m_model, &Model::pageRenderRequested, this,
+            &DocumentView::renderPage);
 
-    connect(m_gview, &GraphicsView::synctexJumpRequested, this, &DocumentView::synctexJumpRequested);
+    connect(m_gview, &GraphicsView::synctexJumpRequested, this,
+            &DocumentView::synctexJumpRequested);
 
-    connect(m_gview, &GraphicsView::textSelectionRequested, m_model, [&](const QPointF &start, const QPointF &end)
+    connect(m_gview, &GraphicsView::textSelectionRequested, m_model,
+            [&](const QPointF &start, const QPointF &end)
     {
         m_model->highlightTextSelection(start, end);
         m_selection_present = true;
     });
 
-    connect(m_gview, &GraphicsView::textHighlightRequested, m_model, [&](const QPointF &start, const QPointF &end)
+    connect(m_gview, &GraphicsView::textHighlightRequested, m_model,
+            [&](const QPointF &start, const QPointF &end)
     {
         m_model->annotHighlightSelection(start, end);
         setDirty(true);
         renderPage(m_pageno, true);
     });
 
-    connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, &DocumentView::ClearTextSelection);
+    connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this,
+            &DocumentView::ClearTextSelection);
 
-    connect(m_gview, &GraphicsView::annotSelectRequested, m_model, [&](const QRectF &area)
+    connect(m_gview, &GraphicsView::annotSelectRequested, m_model,
+            [&](const QRectF &area)
     {
         m_selected_annots = m_model->getAnnotationsInArea(area);
         // FIXME: Show number of annots selected ?
         selectAnnots();
     });
 
-    connect(m_gview, &GraphicsView::annotSelectClearRequested, this, &DocumentView::clearAnnotSelection);
-    connect(m_gview, &GraphicsView::zoomInRequested, this, &DocumentView::ZoomIn);
-    connect(m_gview, &GraphicsView::zoomOutRequested, this, &DocumentView::ZoomOut);
+    connect(m_gview, &GraphicsView::annotSelectClearRequested, this,
+            &DocumentView::clearAnnotSelection);
+    connect(m_gview, &GraphicsView::zoomInRequested, this,
+            &DocumentView::ZoomIn);
+    connect(m_gview, &GraphicsView::zoomOutRequested, this,
+            &DocumentView::ZoomOut);
 }
 
 inline uint
@@ -208,7 +230,8 @@ DocumentView::selectAnnots() noexcept
 {
     for (const auto &item : m_gscene->items())
     {
-        if (item->data(0).toString() == "annot" && m_selected_annots.contains(item->data(1).toInt()))
+        if (item->data(0).toString() == "annot"
+            && m_selected_annots.contains(item->data(1).toInt()))
         {
             Annotation *gitem = dynamic_cast<Annotation *>(item);
             if (!gitem)
@@ -255,10 +278,12 @@ DocumentView::CloseFile() noexcept
 {
     if (m_model->hasUnsavedChanges())
     {
-        auto action =
-            QMessageBox::question(this, "Unsaved changes detected",
-                                  "There are unsaved changes in this document. Do you really want to close this file ?",
-                                  QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel);
+        auto action = QMessageBox::question(
+            this, "Unsaved changes detected",
+            "There are unsaved changes in this document. Do you really want to "
+            "close this file ?",
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+            QMessageBox::Cancel);
 
         switch (action)
         {
@@ -275,7 +300,8 @@ DocumentView::CloseFile() noexcept
         }
     }
 
-    if (m_config.remember_last_visited && !m_filename.isEmpty() && m_pageno >= 0)
+    if (m_config.remember_last_visited && !m_filename.isEmpty()
+        && m_pageno >= 0)
         emit insertToDBRequested(m_filename, m_pageno + 1);
 
     m_cache.clear();
@@ -355,7 +381,8 @@ DocumentView::openFile(const QString &fileName) noexcept
 
     if (!m_model->openFile(m_filename))
     {
-        QMessageBox::critical(this, "Error opening document", "Unable to open document for some reason");
+        QMessageBox::critical(this, "Error opening document",
+                              "Unable to open document for some reason");
         return;
     }
 
@@ -385,8 +412,8 @@ DocumentView::openFile(const QString &fileName) noexcept
     // if (m_remember_last_visited)
     // {
     //     QSqlQuery q;
-    //     q.prepare("SELECT page_number FROM last_visited WHERE file_path = ?");
-    //     q.addBindValue(m_filename);
+    //     q.prepare("SELECT page_number FROM last_visited WHERE file_path =
+    //     ?"); q.addBindValue(m_filename);
     //
     //     if (!q.exec())
     //     {
@@ -446,8 +473,9 @@ bool
 DocumentView::askForPassword() noexcept
 {
     bool ok;
-    auto pwd = QInputDialog::getText(this, "Document is locked", "Enter password", QLineEdit::EchoMode::Password,
-                                     QString(), &ok);
+    auto pwd
+        = QInputDialog::getText(this, "Document is locked", "Enter password",
+                                QLineEdit::EchoMode::Password, QString(), &ok);
     if (!ok)
         return false;
 
@@ -503,7 +531,8 @@ DocumentView::gotoPage(int pageno, bool refresh) noexcept
     if (!m_suppressHistory)
     {
         fz_point p = mapToPdf(m_gview->getCursorPos());
-        m_page_history_list.push_back((HistoryLocation){.x = p.x, .y = p.y, .zoom = 1, .pageno = m_pageno});
+        m_page_history_list.push_back((HistoryLocation){
+            .x = p.x, .y = p.y, .zoom = 1, .pageno = m_pageno});
         if (m_page_history_list.size() > m_page_history_limit)
             m_page_history_list.removeFirst();
     }
@@ -554,17 +583,20 @@ DocumentView::renderAnnotations(const QList<Annotation *> &annots) noexcept
     for (Annotation *annot : annots)
     {
         m_gscene->addItem(annot);
-        connect(annot, &Annotation::annotDeleteRequested, m_model, [&](int index)
+        connect(annot, &Annotation::annotDeleteRequested, m_model,
+                [&](int index)
         {
             m_model->annotDeleteRequested(index);
             setDirty(true);
             renderPage(m_pageno, true);
         });
 
-        connect(annot, &Annotation::annotColorChangeRequested, m_model, [this, annot](int index)
+        connect(annot, &Annotation::annotColorChangeRequested, m_model,
+                [this, annot](int index)
         {
-            auto color = QColorDialog::getColor(annot->data(3).value<QColor>(), this, "Highlight Color",
-                                                QColorDialog::ColorDialogOption::ShowAlphaChannel);
+            auto color = QColorDialog::getColor(
+                annot->data(3).value<QColor>(), this, "Highlight Color",
+                QColorDialog::ColorDialogOption::ShowAlphaChannel);
             if (color.isValid())
             {
                 m_model->annotChangeColorForIndex(index, color);
@@ -591,12 +623,14 @@ DocumentView::renderLinks(const QList<BrowseLinkItem *> &links) noexcept
     clearLinks();
     for (auto *link : links)
     {
-        connect(link, &BrowseLinkItem::linkCopyRequested, this, [&](const QString &link)
+        connect(link, &BrowseLinkItem::linkCopyRequested, this,
+                [&](const QString &link)
         {
             if (link.startsWith("#"))
             {
                 auto equal_pos = link.indexOf("=");
-                emit clipboardContentChanged(m_filename + "#" + link.mid(equal_pos + 1));
+                emit clipboardContentChanged(m_filename + "#"
+                                             + link.mid(equal_pos + 1));
             }
             else
             {
@@ -861,7 +895,8 @@ DocumentView::search(const QString &term) noexcept
 void
 DocumentView::jumpToHit(int page, int index)
 {
-    if (m_searchRectMap[page].empty() || index < 0 || index >= m_searchRectMap[page].size())
+    if (m_searchRectMap[page].empty() || index < 0
+        || index >= m_searchRectMap[page].size())
         return;
 
     m_search_index    = index;
@@ -1046,8 +1081,10 @@ DocumentView::closeEvent(QCloseEvent *e)
     if (m_model->hasUnsavedChanges())
     {
         auto reply = QMessageBox::question(
-            this, "Unsaved Changes", "There are unsaved changes in this document. Do you want to quit ?",
-            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+            this, "Unsaved Changes",
+            "There are unsaved changes in this document. Do you want to quit ?",
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+            QMessageBox::Save);
 
         switch (reply)
         {
@@ -1083,7 +1120,8 @@ DocumentView::scrollToNormalizedTop(double ntop) noexcept
     qreal targetSceneY = pageSceneY + ntop * pageHeight;
 
     // 4. Convert scene Y to viewport Y
-    QPointF targetViewportPoint = m_gview->mapFromScene(QPointF(0, targetSceneY));
+    QPointF targetViewportPoint
+        = m_gview->mapFromScene(QPointF(0, targetSceneY));
 
     // 5. Compute the scroll position required
     int scrollPos = m_vscrollbar->value() + targetViewportPoint.y();
@@ -1100,7 +1138,8 @@ DocumentView::TableOfContents() noexcept
     if (!m_owidget)
     {
         m_owidget = new OutlineWidget(m_model->clonedContext(), this);
-        connect(m_owidget, &OutlineWidget::jumpToPageRequested, this, [&](int pageno) { gotoPage(pageno); });
+        connect(m_owidget, &OutlineWidget::jumpToPageRequested, this,
+                [&](int pageno) { gotoPage(pageno); });
     }
 
     if (!m_owidget->hasOutline())
@@ -1108,7 +1147,8 @@ DocumentView::TableOfContents() noexcept
         fz_outline *outline = m_model->getOutline();
         if (!outline)
         {
-            QMessageBox::information(this, "Outline", "Document does not have outline information");
+            QMessageBox::information(
+                this, "Outline", "Document does not have outline information");
             return;
         }
         m_owidget->setOutline(outline);
@@ -1156,15 +1196,18 @@ DocumentView::SaveAsFile() noexcept
 
     if (!m_model->saveAs(CSTR(filename)))
     {
-        QMessageBox::critical(this, "Saving as failed", "Could not perform save as operation on the file");
+        QMessageBox::critical(
+            this, "Saving as failed",
+            "Could not perform save as operation on the file");
     }
 }
 
 QMap<int, Model::LinkInfo>
 DocumentView::LinkKB() noexcept
 {
-    int i           = 10;
-    QRectF viewport = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
+    int i = 10;
+    QRectF viewport
+        = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
     QMap<int, Model::LinkInfo> map;
 
     m_link_hints.clear();
@@ -1174,7 +1217,7 @@ DocumentView::LinkKB() noexcept
     for (const auto &link : m_link_items)
     {
         auto dest = m_model->resolveLink(link->URI());
-        map[i]    = (Model::LinkInfo){.uri = QString(link->URI()), .dest = dest};
+        map[i] = (Model::LinkInfo){.uri = QString(link->URI()), .dest = dest};
 
         float w        = 0.25 * m_model->zoom();
         auto link_rect = link->rect();
@@ -1182,7 +1225,8 @@ DocumentView::LinkKB() noexcept
 
         if (rect.intersects(viewport.toRect()))
         {
-            LinkHint *linkHint = new LinkHint(rect, m_link_hint_bg, m_link_hint_fg, i, w * 0.5);
+            LinkHint *linkHint = new LinkHint(rect, m_link_hint_bg,
+                                              m_link_hint_fg, i, w * 0.5);
             m_link_hints.append(linkHint);
             m_gscene->addItem(linkHint);
         }
@@ -1198,8 +1242,10 @@ DocumentView::GotoPage(int pageno) noexcept
 {
     if (pageno == -1)
     {
-        pageno = QInputDialog::getInt(this, "Goto Page", QString("Enter page number ({} to {})").arg(0, m_total_pages),
-                                      0, 1, m_total_pages);
+        pageno = QInputDialog::getInt(
+            this, "Goto Page",
+            QString("Enter page number ({} to {})").arg(0, m_total_pages), 0, 1,
+            m_total_pages);
     }
     gotoPage(pageno - 1, false);
 }
@@ -1288,14 +1334,16 @@ DocumentView::fzQuadToQRect(const fz_quad &q) noexcept
 {
     fz_quad tq = fz_transform_quad(q, m_model->transform());
 
-    return QRectF(tq.ul.x * m_inv_dpr, tq.ul.y * m_inv_dpr, (tq.ur.x - tq.ul.x) * m_inv_dpr,
+    return QRectF(tq.ul.x * m_inv_dpr, tq.ul.y * m_inv_dpr,
+                  (tq.ur.x - tq.ul.x) * m_inv_dpr,
                   (tq.ll.y - tq.ul.y) * m_inv_dpr);
 }
 
 void
 DocumentView::initSynctex() noexcept
 {
-    m_synctex_scanner = synctex_scanner_new_with_output_file(CSTR(m_filename), nullptr, 1);
+    m_synctex_scanner
+        = synctex_scanner_new_with_output_file(CSTR(m_filename), nullptr, 1);
     if (!m_synctex_scanner)
     {
 #ifdef NDEBUG
@@ -1313,7 +1361,8 @@ DocumentView::synctexLocateInFile(const char *texFile, int line) noexcept
     if (!tmp.contains("%f") || !tmp.contains("%l"))
     {
         QMessageBox::critical(this, "SyncTeX error",
-                              "Invalid SyncTeX editor command: missing placeholders (%l and/or %f).");
+                              "Invalid SyncTeX editor command: missing "
+                              "placeholders (%l and/or %f).");
         return;
     }
 
@@ -1326,9 +1375,12 @@ DocumentView::synctexLocateInFile(const char *texFile, int line) noexcept
 }
 
 void
-DocumentView::synctexLocateInPdf(const QString &texFile, int line, int column) noexcept
+DocumentView::synctexLocateInPdf(const QString &texFile, int line,
+                                 int column) noexcept
 {
-    if (synctex_display_query(m_synctex_scanner, CSTR(texFile), line, column, -1) > 0)
+    if (synctex_display_query(m_synctex_scanner, CSTR(texFile), line, column,
+                              -1)
+        > 0)
     {
         synctex_node_p node = nullptr;
         int page;
@@ -1366,7 +1418,8 @@ DocumentView::YankSelection() noexcept
     if (!m_model->valid())
         return;
 
-    emit clipboardContentChanged(m_model->getSelectionText(m_gview->selectionStart(), m_gview->selectionEnd()));
+    emit clipboardContentChanged(m_model->getSelectionText(
+        m_gview->selectionStart(), m_gview->selectionEnd()));
     ClearTextSelection();
 }
 
@@ -1427,8 +1480,9 @@ DocumentView::ToggleAnnotSelect() noexcept
     }
 }
 
+// Copies all the text in the page to clipboard
 void
-DocumentView::SelectAll() noexcept
+DocumentView::YankAll() noexcept
 {
     auto end = m_pix_item->boundingRect().bottomRight();
     emit clipboardContentChanged(m_model->selectAllText(QPointF(0, 0), end));
@@ -1547,8 +1601,9 @@ DocumentView::populateContextMenu(QMenu *menu) noexcept
 void
 DocumentView::annotChangeColor() noexcept
 {
-    auto color = QColorDialog::getColor(m_model->highlightColor(), this, "Highlight Color",
-                                        QColorDialog::ColorDialogOption::ShowAlphaChannel);
+    auto color = QColorDialog::getColor(
+        m_model->highlightColor(), this, "Highlight Color",
+        QColorDialog::ColorDialogOption::ShowAlphaChannel);
     if (color.isValid())
     {
         m_model->annotChangeColorForIndexes(m_selected_annots, color);
@@ -1559,8 +1614,9 @@ DocumentView::annotChangeColor() noexcept
 void
 DocumentView::changeHighlighterColor() noexcept
 {
-    auto color = QColorDialog::getColor(m_config.colors["highlight"], this, "Highlighter Color",
-                                        QColorDialog::ColorDialogOption::ShowAlphaChannel);
+    auto color = QColorDialog::getColor(
+        m_config.colors["highlight"], this, "Highlighter Color",
+        QColorDialog::ColorDialogOption::ShowAlphaChannel);
     if (color.isValid())
     {
         m_config.colors["highlight"] = color.name().toStdString().c_str();
@@ -1572,8 +1628,9 @@ DocumentView::changeHighlighterColor() noexcept
 void
 DocumentView::changeAnnotRectColor() noexcept
 {
-    auto color = QColorDialog::getColor(m_model->highlightColor(), this, "Annot Rect Color",
-                                        QColorDialog::ColorDialogOption::ShowAlphaChannel);
+    auto color = QColorDialog::getColor(
+        m_model->highlightColor(), this, "Annot Rect Color",
+        QColorDialog::ColorDialogOption::ShowAlphaChannel);
     if (color.isValid())
     {
         m_config.colors["annot_rect"] = color.name().toStdString().c_str();
@@ -1608,7 +1665,8 @@ DocumentView::mouseWheelScrollRequested(int delta) noexcept
                 m_scroll_cooldown.restart();
                 m_scroll_accumulator = 0;
 
-                QTimer::singleShot(0, this, [this]() { m_vscrollbar->setValue(m_vscrollbar->maximum()); });
+                QTimer::singleShot(0, this, [this]()
+                { m_vscrollbar->setValue(m_vscrollbar->maximum()); });
             }
         }
         else if (m_scroll_accumulator <= -kPageThreshold && atBottom)
@@ -1618,7 +1676,8 @@ DocumentView::mouseWheelScrollRequested(int delta) noexcept
                 m_scroll_cooldown.restart();
                 m_scroll_accumulator = 0;
 
-                QTimer::singleShot(0, this, [this]() { m_vscrollbar->setValue(m_vscrollbar->minimum()); });
+                QTimer::singleShot(0, this, [this]()
+                { m_vscrollbar->setValue(m_vscrollbar->minimum()); });
             }
         }
     }
@@ -1629,13 +1688,15 @@ DocumentView::mouseWheelScrollRequested(int delta) noexcept
     }
 }
 
+// Highlight text annotation for the current selection
 void
 DocumentView::TextHighlightCurrentSelection() noexcept
 {
     if (!m_selection_present)
         return;
 
-    m_model->annotHighlightSelection(m_gview->selectionStart(), m_gview->selectionEnd());
+    m_model->annotHighlightSelection(m_gview->selectionStart(),
+                                     m_gview->selectionEnd());
     renderPage(m_pageno, true);
 }
 
@@ -1677,11 +1738,13 @@ DocumentView::synctexJumpRequested(const QPointF &loc) noexcept
         {
             synctex_node_p node;
             while ((node = synctex_scanner_next_result(m_synctex_scanner)))
-                synctexLocateInFile(synctex_node_get_name(node), synctex_node_line(node));
+                synctexLocateInFile(synctex_node_get_name(node),
+                                    synctex_node_line(node));
         }
         else
         {
-            QMessageBox::warning(this, "SyncTeX Error", "No matching source found!");
+            QMessageBox::warning(this, "SyncTeX Error",
+                                 "No matching source found!");
         }
     }
     else

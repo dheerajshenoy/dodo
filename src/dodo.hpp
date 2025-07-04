@@ -38,7 +38,6 @@ public:
     void construct() noexcept;
 
 protected:
-    void resizeEvent(QResizeEvent *e) override;
     void closeEvent(QCloseEvent *e) override;
     bool eventFilter(QObject *object, QEvent *event) override;
 
@@ -56,6 +55,8 @@ private:
     void openLastVisitedFile() noexcept;
     void initConnections() noexcept;
     void initTabConnections(DocumentView *) noexcept;
+    void initActionMap() noexcept;
+    void trimRecentFilesDatabase() noexcept;
 
     // Interactive functions
     void Undo() noexcept;
@@ -93,7 +94,7 @@ private:
     void ToggleTextHighlight() noexcept;
     void ToggleRectAnnotation() noexcept;
     void ToggleAnnotSelect() noexcept;
-    void SelectAll() noexcept;
+    void YankAll() noexcept;
     void YankSelection() noexcept;
     void ClearTextSelection() noexcept;
     void VisitLinkKB() noexcept;
@@ -123,7 +124,6 @@ private:
     QStringList getSessionFiles() noexcept;
     void insertFileToDB(const QString &fname, int pageno) noexcept;
     void clearKBHintsOverlay() noexcept;
-    QColor strToColor(const QString &color_str) noexcept;
     void handleFSFileChanged(const QString &filePath) noexcept;
     void onFileReloadTimer() noexcept;
     void showStartupWidget() noexcept;

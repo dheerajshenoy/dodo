@@ -34,7 +34,8 @@ class DocumentView : public QWidget
 {
     Q_OBJECT
 public:
-    DocumentView(const QString &fileName, const Config &config, QWidget *parent = nullptr);
+    DocumentView(const QString &fileName, const Config &config,
+                 QWidget *parent = nullptr);
     ~DocumentView();
 
     enum class FitMode
@@ -61,7 +62,8 @@ public:
 
         bool operator==(const CacheKey &other) const
         {
-            return page == other.page && rotation == other.rotation && qFuzzyCompare(scale, other.scale);
+            return page == other.page && rotation == other.rotation
+                   && qFuzzyCompare(scale, other.scale);
         }
     };
 
@@ -71,7 +73,8 @@ public:
         QList<BrowseLinkItem *> links;
         QList<Annotation *> annot_highlights;
 
-        CacheValue(const QPixmap &pix, const QList<BrowseLinkItem *> &lnks, QList<Annotation *> annoth)
+        CacheValue(const QPixmap &pix, const QList<BrowseLinkItem *> &lnks,
+                   QList<Annotation *> annoth)
             : pixmap(pix), links(lnks), annot_highlights(annoth)
         {
         }
@@ -125,7 +128,7 @@ public:
     void ToggleTextHighlight() noexcept;
     void TextHighlightCurrentSelection() noexcept;
     void TextSelectionMode() noexcept;
-    void SelectAll() noexcept;
+    void YankAll() noexcept;
     void PrevHit();
     void NextHit();
     void ClearTextSelection() noexcept;
@@ -150,7 +153,8 @@ public:
         m_link_hint_bg = bg;
     }
 
-    // inline QString windowTitle() noexcept { return m_config.window_title_format; }
+    // inline QString windowTitle() noexcept { return
+    // m_config.window_title_format; }
 
     inline QString fileName() noexcept
     {
@@ -209,7 +213,8 @@ private:
     void initDefaults() noexcept;
     void initSynctex() noexcept;
     void synctexLocateInFile(const char *texFile, int line) noexcept;
-    void synctexLocateInPdf(const QString &texFile, int line, int column) noexcept;
+    void synctexLocateInPdf(const QString &texFile, int line,
+                            int column) noexcept;
     void initConnections() noexcept;
     void openFile(const QString &fileName) noexcept;
     bool gotoPage(int pageno, bool refresh = true) noexcept;
@@ -265,11 +270,13 @@ private:
     GraphicsScene *m_gscene{new GraphicsScene};
     QGraphicsPixmapItem *m_pix_item{new QGraphicsPixmapItem};
     synctex_scanner_p m_synctex_scanner{nullptr};
-    int m_pageno{-1}, m_start_page_override{-1}, m_rotation{0}, m_search_index{-1}, m_total_pages{0},
-        m_search_hit_page{-1}, m_page_history_limit{5};
+    int m_pageno{-1}, m_start_page_override{-1}, m_rotation{0},
+        m_search_index{-1}, m_total_pages{0}, m_search_hit_page{-1},
+        m_page_history_limit{5};
     float m_default_zoom{0.0}, m_zoom_by{1.25};
-    bool m_suppressHistory{false}, m_highlights_present{false}, m_selection_present{false},
-        m_annot_selection_present{false}, m_dirty{false}, m_page_nav_with_mouse{true}, m_jump_marker_shown{true},
+    bool m_suppressHistory{false}, m_highlights_present{false},
+        m_selection_present{false}, m_annot_selection_present{false},
+        m_dirty{false}, m_page_nav_with_mouse{true}, m_jump_marker_shown{true},
         m_auto_resize{false};
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
     QString m_last_search_term;
@@ -280,7 +287,8 @@ private:
     QScrollBar *m_vscrollbar{nullptr};
     QScrollBar *m_hscrollbar{nullptr};
     bool m_link_hints_present{false};
-    QColor m_link_hint_fg{QColor::fromRgba(0x000000)}, m_link_hint_bg{QColor::fromRgba(0xFFFF00)};
+    QColor m_link_hint_fg{QColor::fromRgba(0x000000)},
+        m_link_hint_bg{QColor::fromRgba(0xFFFF00)};
     QList<LinkHint *> m_link_hints{};
     QList<BrowseLinkItem *> m_link_items{};
 
@@ -289,5 +297,6 @@ private:
     QDateTime m_last_modified_time;
     const int kScrollCooldownMs{300}; // Prevent rapid-fire page turns
     const int kPageThreshold{300};
-    QList<TextHighlight> m_highlight_text_list{}; // Holds the text of all highlight annotations
+    QList<TextHighlight>
+        m_highlight_text_list{}; // Holds the text of all highlight annotations
 };

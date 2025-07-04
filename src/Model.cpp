@@ -1259,7 +1259,6 @@ Model::getAnnotationsInArea(const QRectF &area) noexcept
 }
 
 // Select all text from a page
-
 QString
 Model::selectAllText(const QPointF &start, const QPointF &end) noexcept
 {
