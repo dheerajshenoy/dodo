@@ -19,6 +19,7 @@ struct Config
     int selection_drag_threshold{50};
     int cache_pages{10};
     int antialiasing_bits{8};
+    int num_recent_files{10};
 
     bool auto_reload{true};
     bool icc_color_profile{true};
@@ -34,6 +35,7 @@ struct Config
     bool vscrollbar_shown{true};
     bool hscrollbar_shown{true};
     bool startup_tab{true};
+    bool recent_files{true};
 
     QString initial_fit{"none"};
     QString window_title_format{"{} - dodo"};

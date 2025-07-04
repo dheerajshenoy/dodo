@@ -12,19 +12,21 @@
 #include <qfilesystemwatcher.h>
 #include <qnamespace.h>
 
+// Constructs the `dodo` class
 dodo::dodo() noexcept
 {
-
     setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
     setAcceptDrops(true);
     installEventFilter(this);
 }
 
+// Destructor for `dodo` class
 dodo::~dodo() noexcept
 {
     m_last_pages_db.close();
 }
 
+// On-demand construction of `dodo` (for use with argparse)
 void
 dodo::construct() noexcept
 {
@@ -34,12 +36,14 @@ dodo::construct() noexcept
         initKeybinds();
     initMenubar();
     initDB();
+    trimRecentFilesDatabase();
     populateRecentFiles();
     setMinimumSize(600, 400);
     initConnections();
     this->show();
 }
 
+// Initialize the menubar related stuff
 void
 dodo::initMenubar() noexcept
 {
@@ -379,6 +383,8 @@ dodo::initConfig() noexcept
     m_config.icc_color_profile = behavior["icc_color_profile"].value_or(true);
     m_config.initial_fit       = behavior["initial_fit"].value_or("width");
     m_config.auto_reload       = behavior["auto_reload"].value_or(true);
+    m_config.recent_files      = behavior["recent_files"].value_or(true);
+    m_config.num_recent_files  = behavior["num_recent_files"].value_or(10);
 
     if (m_config.auto_reload)
     {
@@ -2226,4 +2232,275 @@ dodo::Redo() noexcept
 {
     if (m_doc && m_doc->model())
         m_doc->model()->undoStack()->redo();
+}
+
+// Initialize the actions with corresponding functions
+// to call
+void
+dodo::initActionMap() noexcept
+{
+    m_actionMap = {
+        {"command",
+         [this]()
+    {
+        invokeCommand();
+    }},
+        {"undo",
+         [this]()
+    {
+        Undo();
+    }},
+        {"redo",
+         [this]()
+    {
+        Redo();
+    }},
+        {"text_highlight_current_selection",
+         [this]()
+    {
+        TextHighlightCurrentSelection();
+    }},
+        {"toggle_tabs",
+         [this]()
+    {
+        ToggleTabBar();
+    }},
+        {"keybindings",
+         [this]()
+    {
+        ShowKeybindings();
+    }},
+        {"yank_all",
+         [this]()
+    {
+        YankAll();
+    }},
+        {"save",
+         [this]()
+    {
+        SaveFile();
+    }},
+        {"save_as",
+         [this]()
+    {
+        SaveAsFile();
+    }},
+        {"yank",
+         [this]()
+    {
+        YankSelection();
+    }},
+        {"cancel_selection",
+         [this]()
+    {
+        ClearTextSelection();
+    }},
+        {"about",
+         [this]()
+    {
+        ShowAbout();
+    }},
+        {"link_hint_visit",
+         [this]()
+    {
+        VisitLinkKB();
+    }},
+        {"link_hint_copy",
+         [this]()
+    {
+        CopyLinkKB();
+    }},
+        {"outline",
+         [this]()
+    {
+        TableOfContents();
+    }},
+        {"rotate_clock",
+         [this]()
+    {
+        RotateClock();
+    }},
+        {"rotate_anticlock",
+         [this]()
+    {
+        RotateAnticlock();
+    }},
+        {"prev_location",
+         [this]()
+    {
+        GoBackHistory();
+    }},
+        {"scroll_down",
+         [this]()
+    {
+        ScrollDown();
+    }},
+        {"scroll_up",
+         [this]()
+    {
+        ScrollUp();
+    }},
+        {"scroll_left",
+         [this]()
+    {
+        ScrollLeft();
+    }},
+        {"scroll_right",
+         [this]()
+    {
+        ScrollRight();
+    }},
+        {"invert_color",
+         [this]()
+    {
+        InvertColor();
+    }},
+        {"search",
+         [this]()
+    {
+        invokeSearch();
+    }},
+        {"search_next",
+         [this]()
+    {
+        NextHit();
+    }},
+        {"search_prev",
+         [this]()
+    {
+        PrevHit();
+    }},
+        {"next_page",
+         [this]()
+    {
+        NextPage();
+    }},
+        {"prev_page",
+         [this]()
+    {
+        PrevPage();
+    }},
+        {"goto_page",
+         [this]()
+    {
+        GotoPage();
+    }},
+        {"first_page",
+         [this]()
+    {
+        FirstPage();
+    }},
+        {"last_page",
+         [this]()
+    {
+        LastPage();
+    }},
+        {"zoom_in",
+         [this]()
+    {
+        ZoomIn();
+    }},
+        {"zoom_out",
+         [this]()
+    {
+        ZoomOut();
+    }},
+        {"zoom_reset",
+         [this]()
+    {
+        ZoomReset();
+    }},
+        {"annot_edit",
+         [this]()
+    {
+        ToggleAnnotSelect();
+    }},
+        {"text_highlight",
+         [this]()
+    {
+        ToggleTextHighlight();
+    }},
+        {"annot_rect",
+         [this]()
+    {
+        ToggleRectAnnotation();
+    }},
+        {"fullscreen",
+         [this]()
+    {
+        ToggleFullscreen();
+    }},
+        {"file_properties",
+         [this]()
+    {
+        FileProperties();
+    }},
+        {"open_file",
+         [this]()
+    {
+        OpenFile();
+    }},
+        {"close_file",
+         [this]()
+    {
+        CloseFile();
+    }},
+        {"fit_width",
+         [this]()
+    {
+        FitWidth();
+    }},
+        {"fit_height",
+         [this]()
+    {
+        FitHeight();
+    }},
+        {"fit_window",
+         [this]()
+    {
+        FitWindow();
+    }},
+        {"auto_resize",
+         [this]()
+    {
+        ToggleAutoResize();
+    }},
+        {"toggle_menubar",
+         [this]()
+    {
+        ToggleMenubar();
+    }},
+        {"toggle_panel",
+         [this]()
+    {
+        TogglePanel();
+    }},
+
+    };
+}
+
+// Trims the recent files DB (if it exists) to `num_recent_files` number of
+// files
+void
+dodo::trimRecentFilesDatabase() noexcept
+{
+    // If no DB is loaded, return from this function
+    if (!m_last_pages_db.isValid())
+        return;
+
+    QSqlQuery query;
+    const QString trimQuery = QString("DELETE FROM last_visited "
+                                      "WHERE file_path NOT IN ("
+                                      "    SELECT file_path "
+                                      "    FROM last_visited "
+                                      "    ORDER BY last_accessed DESC "
+                                      "    LIMIT %1"
+                                      ")")
+                                  .arg(m_config.num_recent_files);
+
+    if (!query.exec(trimQuery))
+    {
+        qWarning() << "Failed to trim recent files:"
+                   << query.lastError().text();
+    }
 }
