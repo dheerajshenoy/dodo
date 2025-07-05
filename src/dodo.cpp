@@ -6,6 +6,7 @@
 #include "StartupWidget.hpp"
 #include "toml.hpp"
 
+#include <QFile>
 #include <QJsonArray>
 #include <QStyleHints>
 #include <immintrin.h>
@@ -1102,7 +1103,7 @@ dodo::OpenFiles(const QStringList &files) noexcept
         OpenFile(file);
 }
 
-void
+bool
 dodo::OpenFile(DocumentView *view) noexcept
 {
     initTabConnections(view);
@@ -1118,12 +1119,14 @@ dodo::OpenFile(DocumentView *view) noexcept
         if (existingIndex != -1)
         {
             m_tab_widget->setCurrentIndex(existingIndex);
-            return;
+            return true;
         }
     }
+
+    return false;
 }
 
-void
+bool
 dodo::OpenFile(QString filePath) noexcept
 {
     if (filePath.isEmpty())
@@ -1131,7 +1134,7 @@ dodo::OpenFile(QString filePath) noexcept
         filePath = QFileDialog::getOpenFileName(
             this, "Open File", "", "PDF Files (*.pdf);; All Files (*)");
         if (filePath.isEmpty())
-            return;
+            return false;
     }
 
     // Switch to already opened filepath, if it's open.
@@ -1141,12 +1144,22 @@ dodo::OpenFile(QString filePath) noexcept
         if (existingIndex != -1)
         {
             m_tab_widget->setCurrentIndex(existingIndex);
-            return;
+            return true;
         }
+    }
+
+    filePath = filePath.replace("~", getenv("HOME"));
+
+    if (!QFile::exists(filePath))
+    {
+        QMessageBox::warning(this, "Open File",
+                             QString("Unable to find %1").arg(filePath));
+        return false;
     }
 
     DocumentView *docwidget
         = new DocumentView(filePath, m_config, m_tab_widget);
+
     docwidget->setDPR(m_dpr);
     initTabConnections(docwidget);
     int index = m_tab_widget->addTab(docwidget, filePath);
@@ -1159,6 +1172,7 @@ dodo::OpenFile(QString filePath) noexcept
     // {
     //     m_fs_watcher->addPath(filePath);
     // }
+    return true;
 }
 
 // Opens the properties widget with properties for the
@@ -1577,6 +1591,7 @@ dodo::filePropertiesForIndex(int index) noexcept
 {
     DocumentView *doc
         = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
+    doc->InvertColor();
     if (doc)
         doc->FileProperties();
 }
@@ -1939,7 +1954,9 @@ dodo::showStartupWidget() noexcept
     connect(m_startup_widget, &StartupWidget::openFileRequested, this,
             [this](const QString &filepath, int pageno)
     {
-        OpenFile(filepath);
+        bool opened = OpenFile(filepath);
+        if (!opened)
+            return;
         gotoPage(pageno);
 
         int index = m_tab_widget->indexOf(m_startup_widget);
