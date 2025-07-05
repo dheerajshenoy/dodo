@@ -1707,6 +1707,7 @@ dodo::updateMenuActions() noexcept
     }
 }
 
+// Update the panel info
 void
 dodo::updatePanel() noexcept
 {
@@ -1730,6 +1731,7 @@ dodo::updatePanel() noexcept
     }
 }
 
+// Loads the given session (if it exists)
 void
 dodo::LoadSession(QString sessionName) noexcept
 {
@@ -1808,6 +1810,7 @@ dodo::getSessionFiles() noexcept
     return sessions;
 }
 
+// Saves the current session
 void
 dodo::SaveSession(QString sessionName) noexcept
 {
@@ -1875,6 +1878,7 @@ dodo::SaveSession(QString sessionName) noexcept
     m_session_name = sessionName;
 }
 
+// Saves the current session under new name
 void
 dodo::SaveAsSession(const QString &sessionPath) noexcept
 {
@@ -1955,6 +1959,7 @@ dodo::updateActionsAndStuffForSystemTabs() noexcept
     m_panel->setFileName("Startup");
 }
 
+// Invokes the `CommandBar` with command mode
 void
 dodo::invokeCommand() noexcept
 {
@@ -1964,6 +1969,7 @@ dodo::invokeCommand() noexcept
     m_command_bar->setFocus();
 }
 
+// Invokes the `CommandBar` with search mode
 void
 dodo::invokeSearch() noexcept
 {
@@ -1973,6 +1979,7 @@ dodo::invokeSearch() noexcept
     m_command_bar->setFocus();
 }
 
+// Process the command sent by `CommandBar`
 void
 dodo::processCommand(const QString &cmd) noexcept
 {
