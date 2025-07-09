@@ -1,3 +1,5 @@
+<!-- -*- mode: nxml; -*- -->
+
 <RCC>
     <qresource prefix="/">
         <file>resources/dodo2.svg</file>

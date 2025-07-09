@@ -21,6 +21,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 find_package(Qt6 COMPONENTS Gui Widgets Core Sql Svg SvgWidgets REQUIRED)
 
+
+
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/dodo.cpp
