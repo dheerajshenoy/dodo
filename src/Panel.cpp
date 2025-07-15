@@ -1,7 +1,5 @@
 #include "Panel.hpp"
-
 #include "GraphicsView.hpp"
-
 #include <qsizepolicy.h>
 
 Panel::Panel(QWidget *parent) : QWidget(parent)
@@ -144,4 +142,5 @@ Panel::hidePageInfo(bool state) noexcept
     m_pageno_separator->setVisible(!state);
     m_totalpage_label->setVisible(!state);
     m_mode_label->setVisible(!state);
+    m_fitmode_label->setVisible(!state);
 }
