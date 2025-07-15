@@ -6,11 +6,13 @@
 #include "MessageBar.hpp"
 #include "OutlineWidget.hpp"
 #include "Panel.hpp"
+#include "PlaceholderWidget.hpp"
 #include "PropertiesWidget.hpp"
 #include "ShortcutsWidget.hpp"
 #include "StartupWidget.hpp"
 #include "TabWidget.hpp"
 #include "argparse.hpp"
+#include "PlaceholderWidget.hpp"
 
 #include <QActionGroup>
 #include <QApplication>
@@ -25,6 +27,8 @@
 #include <QSqlQuery>
 #include <QStandardPaths>
 #include <QTabWidget>
+#include <QStackedWidget>
+#include <qstackedlayout.h>
 
 #define __DODO_VERSION "v0.2.4-alpha"
 
@@ -42,6 +46,7 @@ protected:
     bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
+    void setDPR(float dpr) noexcept;
     void initDB() noexcept;
     void initDefaults() noexcept;
     void initMenubar() noexcept;
@@ -190,9 +195,11 @@ private:
     DocumentView *m_doc{nullptr};
     TabWidget *m_tab_widget = new TabWidget();
     QVBoxLayout *m_layout   = new QVBoxLayout();
+    QStackedLayout *m_stack_layout = new QStackedLayout;
+    PlaceholderWidget *m_placeholder_widget = new PlaceholderWidget;
     OutlineWidget *m_owidget{nullptr};
     PropertiesWidget *m_propsWidget{nullptr};
-    QMap<QString, std::function<void()>> m_actionMap;
+    QMap<QString, std::function<void(const QStringList &args)>> m_actionMap;
     bool m_load_default_keybinding{true};
     QClipboard *m_clipboard = QGuiApplication::clipboard();
     QSqlDatabase m_last_pages_db;

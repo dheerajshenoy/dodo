@@ -6,12 +6,11 @@
 #include "StartupWidget.hpp"
 #include "toml.hpp"
 
+#include <QStackedLayout>
 #include <QFile>
 #include <QJsonArray>
 #include <QStyleHints>
-#include <immintrin.h>
-#include <qfilesystemwatcher.h>
-#include <qnamespace.h>
+#include <qstackedlayout.h>
 
 // Constructs the `dodo` class
 dodo::dodo() noexcept
@@ -619,7 +618,12 @@ dodo::initGui() noexcept
     m_message_bar->setVisible(false);
 
     widget->setLayout(m_layout);
-    m_layout->addWidget(m_tab_widget);
+    // m_layout->addWidget(m_tab_widget);
+
+    m_stack_layout->addWidget(m_tab_widget);
+    m_stack_layout->addWidget(m_placeholder_widget);
+
+    m_layout->addLayout(m_stack_layout);
     m_layout->addWidget(m_command_bar);
     m_layout->addWidget(m_message_bar);
     m_layout->addWidget(m_panel);
@@ -665,7 +669,7 @@ dodo::setupKeybinding(const QString &action, const QString &key) noexcept
         return;
 
     QShortcut *shortcut = new QShortcut(QKeySequence(key), this);
-    connect(shortcut, &QShortcut::activated, this, [=]() { it.value()(); });
+    connect(shortcut, &QShortcut::activated, this, [=]() { it.value()({}); });
 
     m_config.shortcuts_map[action] = key;
 }
@@ -1314,20 +1318,21 @@ dodo::TextHighlightCurrentSelection() noexcept
 void
 dodo::initConnections() noexcept
 {
+
+    QList<QScreen *> outputs = QGuiApplication::screens();
     connect(m_tab_widget, &QTabWidget::currentChanged, this,
             &dodo::handleCurrentTabChanged);
     m_dpr = m_tab_widget->window()->devicePixelRatioF();
 
     QWindow *win = window()->windowHandle();
-    if (win)
+
+    // TODO:
+    connect(win, &QWindow::screenChanged, this, [&](QScreen *)
     {
-        connect(win, &QWindow::screenChanged, this, [&](QScreen *)
-        {
-            m_dpr = this->devicePixelRatioF();
-            if (m_doc)
-                m_doc->setDPR(m_dpr);
-        });
-    }
+        m_dpr = this->devicePixelRatioF();
+        if (m_doc)
+            m_doc->setDPR(m_dpr);
+    });
 
     connect(m_tab_widget, &QTabWidget::tabCloseRequested, this,
             [this](const int index)
@@ -1354,6 +1359,12 @@ dodo::initConnections() noexcept
         }
 
         m_tab_widget->removeTab(index);
+        if (m_tab_widget->count() == 0)
+        {
+            m_stack_layout->setCurrentWidget(m_placeholder_widget);
+            m_doc = nullptr;
+            updatePanel();
+        }
     });
 
     connect(m_command_bar, &CommandBar::processCommand, this,
@@ -1729,6 +1740,8 @@ dodo::updatePanel() noexcept
     if (m_doc)
     {
         Model *model = m_doc->model();
+        if (!model)
+            return;
         m_panel->setFileName(m_doc->windowTitle());
         m_panel->setHighlightColor(model->highlightColor());
         m_panel->setMode(m_doc->selectionMode());
@@ -2000,7 +2013,11 @@ dodo::invokeSearch() noexcept
 void
 dodo::processCommand(const QString &cmd) noexcept
 {
-    QString trimmed = cmd.mid(1);
+    if (cmd.isEmpty())
+        return;
+
+    QString trimmed = cmd.mid(1).trimmed();
+
     if (cmd.startsWith(":"))
     {
         // If number, goto page
@@ -2013,14 +2030,22 @@ dodo::processCommand(const QString &cmd) noexcept
             return;
         }
 
-        if (m_actionMap.contains(trimmed))
+        QStringList parts
+            = trimmed.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+        if (parts.isEmpty())
+            return;
+
+        QString command = parts[0];
+
+        if (m_actionMap.contains(command))
         {
-            m_actionMap[trimmed]();
+            QStringList args = parts.mid(1);
+            m_actionMap[command](args);
         }
         else
         {
             m_message_bar->showMessage(
-                QString("%1 command doesn't exist").arg(trimmed));
+                QString("%1 command doesn't exist").arg(command));
         }
     }
 
@@ -2056,239 +2081,301 @@ void
 dodo::initActionMap() noexcept
 {
     m_actionMap = {
-        {"command",
-         [this]()
+        {"setdpr",
+         [this](const QStringList &args)
     {
+        if (!args.isEmpty())
+        {
+            bool ok;
+            float dpr = args.at(0).toFloat(&ok);
+            if (ok)
+                setDPR(dpr);
+        }
+        else
+        {
+            m_message_bar->showMessage("setdpr command needs an argument");
+        }
+    }},
+        {"command",
+         [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
         invokeCommand();
     }},
         {"undo",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         Undo();
     }},
         {"redo",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         Redo();
     }},
         {"text_highlight_current_selection",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         TextHighlightCurrentSelection();
     }},
         {"toggle_tabs",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ToggleTabBar();
     }},
         {"keybindings",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ShowKeybindings();
     }},
         {"yank_all",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         YankAll();
     }},
         {"save",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         SaveFile();
     }},
         {"save_as",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         SaveAsFile();
     }},
         {"yank",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         YankSelection();
     }},
         {"cancel_selection",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ClearTextSelection();
     }},
         {"about",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ShowAbout();
     }},
         {"link_hint_visit",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         VisitLinkKB();
     }},
         {"link_hint_copy",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         CopyLinkKB();
     }},
         {"outline",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         TableOfContents();
     }},
         {"rotate_clock",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         RotateClock();
     }},
         {"rotate_anticlock",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         RotateAnticlock();
     }},
         {"prev_location",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         GoBackHistory();
     }},
         {"scroll_down",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ScrollDown();
     }},
         {"scroll_up",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ScrollUp();
     }},
         {"scroll_left",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ScrollLeft();
     }},
         {"scroll_right",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ScrollRight();
     }},
         {"invert_color",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         InvertColor();
     }},
         {"search",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         invokeSearch();
     }},
         {"search_next",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         NextHit();
     }},
         {"search_prev",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         PrevHit();
     }},
         {"next_page",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         NextPage();
     }},
         {"prev_page",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         PrevPage();
     }},
         {"goto_page",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         GotoPage();
     }},
         {"first_page",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         FirstPage();
     }},
         {"last_page",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         LastPage();
     }},
         {"zoom_in",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ZoomIn();
     }},
         {"zoom_out",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ZoomOut();
     }},
         {"zoom_reset",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ZoomReset();
     }},
         {"annot_edit",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ToggleAnnotSelect();
     }},
         {"text_highlight",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ToggleTextHighlight();
     }},
         {"annot_rect",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ToggleRectAnnotation();
     }},
         {"fullscreen",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ToggleFullscreen();
     }},
         {"file_properties",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         FileProperties();
     }},
         {"open_file",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         OpenFile();
     }},
         {"close_file",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         CloseFile();
     }},
         {"fit_width",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         FitWidth();
     }},
         {"fit_height",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         FitHeight();
     }},
         {"fit_window",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         FitWindow();
     }},
         {"auto_resize",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ToggleAutoResize();
     }},
         {"toggle_menubar",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         ToggleMenubar();
     }},
         {"toggle_panel",
-         [this]()
+         [this](const QStringList &args)
     {
+        Q_UNUSED(args);
         TogglePanel();
     }},
 
@@ -2320,5 +2407,14 @@ dodo::trimRecentFilesDatabase() noexcept
     {
         qWarning() << "Failed to trim recent files:"
                    << query.lastError().text();
+    }
+}
+
+void
+dodo::setDPR(float dpr) noexcept
+{
+    if (m_doc)
+    {
+        m_doc->setDPR(dpr);
     }
 }
