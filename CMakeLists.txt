@@ -51,7 +51,9 @@ add_executable(${PROJECT_NAME}
     src/CircleLabel.hpp
     src/TabWidget.hpp
     src/commands/RectAnnotationCommand.hpp
-    src/PopupAnnotation.hpp)
+    src/PopupAnnotation.hpp
+    src/PlaceholderWidget.hpp
+)
 
 qt_add_resources(RESOURCES resources.qrc)
 
