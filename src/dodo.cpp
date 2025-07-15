@@ -6,9 +6,9 @@
 #include "StartupWidget.hpp"
 #include "toml.hpp"
 
-#include <QStackedLayout>
 #include <QFile>
 #include <QJsonArray>
+#include <QStackedLayout>
 #include <QStyleHints>
 #include <qstackedlayout.h>
 
@@ -1369,6 +1369,13 @@ dodo::initConnections() noexcept
 
     connect(m_command_bar, &CommandBar::processCommand, this,
             &dodo::processCommand);
+
+    connect(m_tab_widget, &TabWidget::tabAdded, this, [&](int index)
+    {
+        Q_UNUSED(index);
+        if (m_tab_widget->count() > 0)
+            m_stack_layout->setCurrentWidget(m_tab_widget);
+    });
 }
 
 void

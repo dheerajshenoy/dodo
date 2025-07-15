@@ -24,7 +24,22 @@ QTabWidget::pane {
         )");
     }
 
+    int addTab(QWidget *page, const QString &title)
+    {
+        int result = QTabWidget::addTab(page, title);
+        emit tabAdded(result);
+        return result;
+    }
+
+    int insertTab(int index, QWidget *page, const QString &title)
+    {
+        int result = QTabWidget::insertTab(index, page, title);
+        emit tabAdded(result);
+        return result;
+    }
+
 signals:
+    void tabAdded(int index);
     void openInExplorerRequested(int index);
     void filePropertiesRequested(int index);
 };
