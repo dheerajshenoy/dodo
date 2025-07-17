@@ -74,59 +74,61 @@ Show command line help.
 
 ## Commands
 
-about
-annot_edit
-annot_rect
-auto_resize
-cancel_selection
-close_file
-command
-file_properties
-fit_height
-fit_width
-fit_window
-first_page
-fullscreen
-goto_page
-invert_color
-keybindings
-last_page
-link_hint_copy
-link_hint_visit
-next_page
-outline
-open_file
-prev_location
-prev_page
-reload
-redo
-rotate_anticlock
-rotate_clock
-save
-save_as
-scroll_down
-scroll_left
-scroll_right
-scroll_up
-search
-search_next
-search_prev
-setdpr
-tabclose
-tabgoto
-tabnext
-tabprev
-text_highlight
-text_highlight_current_selection
-toggle_menubar
-toggle_panel
-toggle_tabs
-undo
-yank
-yank_all
-zoom_in
-zoom_out
-zoom_reset
+List of valid commands in dodo:
+
+- `about`
+- `annot_edit`
+- `annot_rect`
+- `auto_resize`
+- `cancel_selection`
+- `close_file`
+- `command`
+- `file_properties`
+- `fit_height`
+- `fit_width`
+- `fit_window`
+- `first_page`
+- `fullscreen`
+- `goto_page`
+- `invert_color`
+- `keybindings`
+- `last_page`
+- `link_hint_copy`
+- `link_hint_visit`
+- `next_page`
+- `open_file`
+- `outline`
+- `prev_location`
+- `prev_page`
+- `redo`
+- `reload`
+- `rotate_anticlock`
+- `rotate_clock`
+- `save`
+- `save_as`
+- `scroll_down`
+- `scroll_left`
+- `scroll_right`
+- `scroll_up`
+- `search`
+- `search_next`
+- `search_prev`
+- `setdpr`
+- `tabclose`
+- `tabgoto`
+- `tabnext`
+- `tabprev`
+- `text_highlight`
+- `text_highlight_current_selection`
+- `toggle_menubar`
+- `toggle_panel`
+- `toggle_tabs`
+- `undo`
+- `yank`
+- `yank_all`
+- `zoom_in`
+- `zoom_out`
+- `zoom_reset`
 
 ## Search
 
