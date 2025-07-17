@@ -12,7 +12,6 @@
 #include "StartupWidget.hpp"
 #include "TabWidget.hpp"
 #include "argparse.hpp"
-#include "PlaceholderWidget.hpp"
 
 #include <QActionGroup>
 #include <QApplication>
@@ -25,9 +24,9 @@
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QStackedWidget>
 #include <QStandardPaths>
 #include <QTabWidget>
-#include <QStackedWidget>
 #include <qstackedlayout.h>
 
 #define __DODO_VERSION "v0.2.4-alpha"
@@ -62,6 +61,8 @@ private:
     void initTabConnections(DocumentView *) noexcept;
     void initActionMap() noexcept;
     void trimRecentFilesDatabase() noexcept;
+    void reloadDocument() noexcept;
+    bool validTabIndex(int index) noexcept;
 
     // Interactive functions
     void Undo() noexcept;
@@ -119,6 +120,12 @@ private:
     void LoadSession(QString name = QString()) noexcept;
     void SaveSession(QString name = QString()) noexcept;
     void SaveAsSession(const QString &name = QString()) noexcept;
+    void GotoTab(int tabno) noexcept;
+    void LastTab() noexcept;
+    void FirstTab() noexcept;
+    void CloseTab(int tabno = -1) noexcept;
+    void NextTab() noexcept;
+    void PrevTab() noexcept;
 
     void handleFileNameChanged(const QString &name) noexcept;
     void handleCurrentTabChanged(int index) noexcept;
@@ -193,9 +200,9 @@ private:
     LinkHintMode m_link_hint_current_mode{LinkHintMode::None};
     QMap<int, Model::LinkInfo> m_link_hint_map;
     DocumentView *m_doc{nullptr};
-    TabWidget *m_tab_widget = new TabWidget();
-    QVBoxLayout *m_layout   = new QVBoxLayout();
-    QStackedLayout *m_stack_layout = new QStackedLayout;
+    TabWidget *m_tab_widget                 = new TabWidget();
+    QVBoxLayout *m_layout                   = new QVBoxLayout();
+    QStackedLayout *m_stack_layout          = new QStackedLayout;
     PlaceholderWidget *m_placeholder_widget = new PlaceholderWidget;
     OutlineWidget *m_owidget{nullptr};
     PropertiesWidget *m_propsWidget{nullptr};

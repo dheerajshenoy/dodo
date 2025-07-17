@@ -387,14 +387,14 @@ dodo::initConfig() noexcept
     m_config.invert_mode       = behavior["invert_mode"].value_or(false);
     m_config.icc_color_profile = behavior["icc_color_profile"].value_or(true);
     m_config.initial_fit       = behavior["initial_fit"].value_or("width");
-    m_config.auto_reload       = behavior["auto_reload"].value_or(true);
-    m_config.recent_files      = behavior["recent_files"].value_or(true);
-    m_config.num_recent_files  = behavior["num_recent_files"].value_or(10);
+    // m_config.auto_reload       = behavior["auto_reload"].value_or(true);
+    m_config.recent_files     = behavior["recent_files"].value_or(true);
+    m_config.num_recent_files = behavior["num_recent_files"].value_or(10);
 
-    if (m_config.auto_reload)
-    {
-        // TODO:
-    }
+    // if (m_config.auto_reload)
+    // {
+    //     // TODO:
+    // }
 
     if (toml.contains("keybindings"))
     {
@@ -2062,6 +2062,7 @@ dodo::processCommand(const QString &cmd) noexcept
     }
 }
 
+// Undo operation
 void
 dodo::Undo() noexcept
 {
@@ -2075,6 +2076,7 @@ dodo::Undo() noexcept
     }
 }
 
+// Redo operation
 void
 dodo::Redo() noexcept
 {
@@ -2091,17 +2093,50 @@ dodo::initActionMap() noexcept
         {"setdpr",
          [this](const QStringList &args)
     {
-        if (!args.isEmpty())
-        {
-            bool ok;
-            float dpr = args.at(0).toFloat(&ok);
-            if (ok)
-                setDPR(dpr);
-        }
+        if (args.isEmpty())
+            return;
+        bool ok;
+        float dpr = args.at(0).toFloat(&ok);
+        if (ok)
+            setDPR(dpr);
         else
-        {
-            m_message_bar->showMessage("setdpr command needs an argument");
-        }
+            m_message_bar->showMessage("Invalid DPR");
+    }},
+        {"tabgoto",
+         [this](const QStringList &args)
+    {
+        if (args.isEmpty())
+            return;
+        bool ok;
+        int index = args.at(0).toInt(&ok);
+        if (ok)
+            GotoTab(index);
+        else
+            m_message_bar->showMessage("Invalid tab index");
+    }},
+        {"tabnext",
+         [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        NextTab();
+    }},
+        {"tabprev",
+         [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        PrevTab();
+    }},
+        {"tabclose",
+         [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        CloseTab();
+    }},
+        {"reload",
+         [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        reloadDocument();
     }},
         {"command",
          [this](const QStringList &args)
@@ -2417,11 +2452,109 @@ dodo::trimRecentFilesDatabase() noexcept
     }
 }
 
+// Sets the DPR of the current document
 void
 dodo::setDPR(float dpr) noexcept
 {
     if (m_doc)
     {
+        m_doc->FirstPage();
         m_doc->setDPR(dpr);
     }
+}
+
+// Reload the document in place
+void
+dodo::reloadDocument() noexcept
+{
+    // TODO: Fix this implementation
+    if (m_doc)
+    {
+        m_doc->reloadDocument();
+    }
+}
+
+// Go to the first tab
+void
+dodo::FirstTab() noexcept
+{
+    if (m_tab_widget->count() != 0)
+    {
+        m_tab_widget->setCurrentIndex(0);
+    }
+}
+
+// Go to the last tab
+void
+dodo::LastTab() noexcept
+{
+    int count = m_tab_widget->count();
+    if (count != 0)
+    {
+        m_tab_widget->setCurrentIndex(count - 1);
+    }
+}
+
+void
+dodo::NextTab() noexcept
+{
+    int count        = m_tab_widget->count();
+    int currentIndex = m_tab_widget->currentIndex();
+    if (count != 0 && currentIndex < count)
+    {
+        m_tab_widget->setCurrentIndex(currentIndex + 1);
+    }
+}
+
+void
+dodo::PrevTab() noexcept
+{
+    int count        = m_tab_widget->count();
+    int currentIndex = m_tab_widget->currentIndex();
+    if (count != 0 && currentIndex > 0)
+    {
+        m_tab_widget->setCurrentIndex(currentIndex - 1);
+    }
+}
+
+// Go to the tab at nth position specified by `tabno`
+void
+dodo::GotoTab(int tabno) noexcept
+{
+    if (tabno > 0 || tabno < m_tab_widget->count())
+    {
+        m_tab_widget->setCurrentIndex(tabno - 1);
+    }
+    else
+    {
+        m_message_bar->showMessage("Invalid Tab Number");
+    }
+}
+
+// Close the current tab
+void
+dodo::CloseTab(int tabno) noexcept
+{
+    if (m_tab_widget->count() == 0)
+        return;
+
+    qDebug() << m_tab_widget->count();
+    // Current tab
+    if (tabno == -1)
+    {
+        m_tab_widget->tabCloseRequested(m_tab_widget->currentIndex());
+    }
+    else // someother tab that's not current
+    {
+        if (validTabIndex(tabno - 1))
+            m_tab_widget->tabCloseRequested(tabno - 1);
+        else
+            m_message_bar->showMessage("Invalid tab index");
+    }
+}
+
+bool
+dodo::validTabIndex(int index) noexcept
+{
+    return index >= 0 && index < m_tab_widget->count();
 }

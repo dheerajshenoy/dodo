@@ -1768,3 +1768,9 @@ DocumentView::showJumpMarker(const fz_point &p) noexcept
     m_jump_marker->show();
     QTimer::singleShot(1000, [this]() { fadeJumpMarker(m_jump_marker); });
 }
+
+void
+DocumentView::reloadDocument() noexcept
+{
+    m_model->reloadDocument();
+}

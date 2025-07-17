@@ -213,6 +213,7 @@ Model::openFile(const QString &fileName)
     return true;
 }
 
+// Reloads the document
 void
 Model::reloadDocument() noexcept
 {

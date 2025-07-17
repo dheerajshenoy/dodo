@@ -12,3 +12,4 @@
 - [ ] Telescope like search with preview
 - [ ] Popup Annotation
 - [ ] Popup Annotation edit support
+- [ ] Reload document on request

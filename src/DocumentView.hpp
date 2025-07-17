@@ -188,6 +188,7 @@ public:
     }
 
     void clearKBHintsOverlay() noexcept;
+    void reloadDocument() noexcept;
 
 signals:
     void pageNumberChanged(int pageno);

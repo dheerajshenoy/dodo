@@ -14,11 +14,13 @@ extern "C"
 }
 
 AboutDialog::AboutDialog(QWidget *parent)
-    : QDialog(parent), icon(new QSvgWidget), infoLabel(new QLabel), closeButton(new QPushButton("Close"))
+    : QDialog(parent), icon(new QSvgWidget), infoLabel(new QLabel),
+      closeButton(new QPushButton("Close"))
 {
     setWindowTitle("About");
     setModal(true);
-    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint & ~Qt::WindowMaximizeButtonHint);
+    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint
+                   & ~Qt::WindowMaximizeButtonHint);
 
     setMinimumSize(600, 400);
 
@@ -69,10 +71,14 @@ AboutDialog::AboutDialog(QWidget *parent)
 }
 
 void
-AboutDialog::setAppInfo(const QString &version, const QString &description) noexcept
+AboutDialog::setAppInfo(const QString &version,
+                        const QString &description) noexcept
 {
     auto link = "<a href='https://github.com/dheerajshenoy/dodo'>github</a>";
-    infoLabel->setText(QString("%1<br>Version: %2<br>Project homepage: %3").arg(description, version, link));
+    infoLabel->setText(
+        QString("%1<br>Build Type: %2<br>Version: %3<br>Project homepage: %4")
+            .arg(description, __DODO_BUILD_TYPE, version, link));
+
 }
 
 QWidget *
@@ -102,7 +108,9 @@ AboutDialog::authorsSection() noexcept
     QFormLayout *layout = new QFormLayout(widget);
     layout->addRow("Created by", new QLabel("Dheeraj Vittal Shenoy"));
     layout->addRow("Github",
-                   new QLabel("<a href='https://github.com/dheerajshenoy'>https://github.com/dheerajshenoy</a>"));
+                   new QLabel("<a "
+                              "href='https://github.com/dheerajshenoy'>https://"
+                              "github.com/dheerajshenoy</a>"));
     widget->setLayout(layout);
 
     return widget;

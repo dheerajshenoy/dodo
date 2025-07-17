@@ -1,0 +1,19 @@
+# -*- mode: yaml-ts; -*-
+
+CompileFlag:
+    Add: [-Wall, -Wextra, -Wpedantic, -Wconversion, -Wsign-conversion]
+    Remove: [-Werror, -mno-direct-extern-access]
+
+InlayHints:
+    Enabled: false
+
+Hover:
+  ShowAKA: true
+
+Completion:
+  AllScopes: true
+  Dedupe: true
+
+Style:
+  FullyQualifiedNamespaces: false
+  ShowOrigins: false

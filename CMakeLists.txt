@@ -6,6 +6,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+add_compile_definitions(__DODO_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
@@ -20,8 +21,6 @@ set(CMAKE_CXX_FLAGS_DEBUG " -fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 find_package(Qt6 COMPONENTS Gui Widgets Core Sql Svg SvgWidgets REQUIRED)
-
-
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
