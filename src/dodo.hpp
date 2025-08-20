@@ -144,6 +144,7 @@ private:
     void processCommand(const QString &cmd) noexcept;
     void invokeCommand() noexcept;
     void invokeSearch() noexcept;
+    void updatePageNavigationActions() noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};
@@ -153,6 +154,7 @@ private:
     QMenu *m_fitMenu{nullptr};
     QMenu *m_recentFilesMenu{nullptr};
     QMenu *m_editMenu{nullptr};
+    QMenu *m_navMenu{nullptr};
 
     QAction *m_actionUndo{nullptr};
     QAction *m_actionRedo{nullptr};

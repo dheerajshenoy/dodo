@@ -197,35 +197,35 @@ dodo::initMenubar() noexcept
     selectionActionGroup->addAction(m_actionAnnotEdit);
 
     // --- Navigation Menu ---
-    QMenu *navMenu = m_menuBar->addMenu("&Navigation");
+    m_navMenu = m_menuBar->addMenu("&Navigation");
 
-    navMenu->addAction(
+    m_navMenu->addAction(
         QString("StartPage").arg(m_config.shortcuts_map["startpage"]), this,
         &dodo::showStartupWidget);
 
-    m_actionGotoPage = navMenu->addAction(
+    m_actionGotoPage = m_navMenu->addAction(
         QString("Goto Page\t%1").arg(m_config.shortcuts_map["goto_page"]), this,
         &dodo::GotoPage);
 
-    m_actionFirstPage = navMenu->addAction(
+    m_actionFirstPage = m_navMenu->addAction(
         QString("First Page\t%1").arg(m_config.shortcuts_map["first_page"]),
         this, &dodo::FirstPage);
 
-    m_actionPrevPage = navMenu->addAction(
+    m_actionPrevPage = m_navMenu->addAction(
         QString("Previous Page\t%1").arg(m_config.shortcuts_map["prev_page"]),
         this, &dodo::PrevPage);
 
-    m_actionNextPage = navMenu->addAction(
+    m_actionNextPage = m_navMenu->addAction(
         QString("Next Page\t%1").arg(m_config.shortcuts_map["next_page"]), this,
         &dodo::NextPage);
-    m_actionLastPage = navMenu->addAction(
+    m_actionLastPage = m_navMenu->addAction(
         QString("Last Page\t%1").arg(m_config.shortcuts_map["last_page"]), this,
         &dodo::LastPage);
 
-    m_actionPrevLocation
-        = navMenu->addAction(QString("Previous Location\t%1")
-                                 .arg(m_config.shortcuts_map["prev_location"]),
-                             this, &dodo::GoBackHistory);
+    m_actionPrevLocation = m_navMenu->addAction(
+        QString("Previous Location\t%1")
+            .arg(m_config.shortcuts_map["prev_location"]),
+        this, &dodo::GoBackHistory);
 
     QMenu *helpMenu = m_menuBar->addMenu("&Help");
     m_actionAbout   = helpMenu->addAction(
@@ -1245,7 +1245,10 @@ void
 dodo::InvertColor() noexcept
 {
     if (m_doc)
+    {
         m_doc->InvertColor();
+        m_actionInvertColor->setChecked(!m_actionInvertColor->isChecked());
+    }
 }
 
 void
@@ -1295,6 +1298,8 @@ dodo::LastPage() noexcept
 {
     if (m_doc)
         m_doc->LastPage();
+
+    updatePageNavigationActions();
 }
 
 void
@@ -1366,6 +1371,11 @@ dodo::initConnections() noexcept
 
     connect(m_command_bar, &CommandBar::processCommand, this,
             &dodo::processCommand);
+
+    connect(m_actionInvertColor, &QAction::triggered, [&]() { InvertColor(); });
+
+    connect(m_navMenu, &QMenu::aboutToShow, this,
+            &dodo::updatePageNavigationActions);
 }
 
 void
@@ -1610,34 +1620,41 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
 {
     connect(docwidget, &DocumentView::panelNameChanged, this,
             [this](const QString &name) { m_panel->setFileName(name); });
-
     connect(m_panel, &Panel::modeChangeRequested, docwidget,
             &DocumentView::nextSelectionMode);
+
     connect(docwidget, &DocumentView::fileNameChanged, this,
             &dodo::handleFileNameChanged);
+
     connect(docwidget, &DocumentView::pageNumberChanged, m_panel,
             &Panel::setPageNo);
+
     connect(docwidget, &DocumentView::searchCountChanged, m_panel,
             &Panel::setSearchCount);
+
     connect(docwidget, &DocumentView::searchModeChanged, m_panel,
             &Panel::setSearchMode);
+
     connect(docwidget, &DocumentView::searchIndexChanged, m_panel,
             &Panel::setSearchIndex);
+
     connect(docwidget, &DocumentView::totalPageCountChanged, m_panel,
             &Panel::setTotalPageCount);
+
     connect(docwidget, &DocumentView::fitModeChanged, m_panel,
             &Panel::setFitMode);
+
     connect(docwidget, &DocumentView::selectionModeChanged, m_panel,
             &Panel::setMode);
+
     connect(docwidget, &DocumentView::highlightColorChanged, m_panel,
             &Panel::setHighlightColor);
+
     connect(docwidget, &DocumentView::selectionModeChanged, m_panel,
             &Panel::setMode);
+
     connect(docwidget, &DocumentView::clipboardContentChanged, this,
             [&](const QString &text) { m_clipboard->setText(text); });
-
-    connect(docwidget, &DocumentView::invertColorActionUpdate, this,
-            [&](bool state) { m_actionInvertColor->setChecked(state); });
 
     connect(docwidget, &DocumentView::autoResizeActionUpdate, this,
             [&](bool state) { m_actionAutoresize->setChecked(state); });
@@ -2547,4 +2564,23 @@ bool
 dodo::validTabIndex(int index) noexcept
 {
     return index >= 0 && index < m_tab_widget->count();
+}
+
+void
+dodo::updatePageNavigationActions() noexcept
+{
+
+    if (!m_doc)
+    {
+        m_actionFirstPage->setEnabled(false);
+        m_actionPrevPage->setEnabled(false);
+        m_actionNextPage->setEnabled(false);
+        m_actionLastPage->setEnabled(false);
+        return;
+    }
+
+    const int page = m_doc->pageNo();
+
+    m_actionNextPage->setEnabled(page < m_doc->count());
+    m_actionPrevPage->setEnabled(page > 1);
 }
