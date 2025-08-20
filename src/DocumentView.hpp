@@ -190,6 +190,13 @@ public:
     void clearKBHintsOverlay() noexcept;
     void reloadDocument() noexcept;
 
+    inline void nextSelectionMode() noexcept
+    {
+        GraphicsView::Mode nextMode = m_gview->getNextMode();
+        m_gview->setMode(nextMode);
+        emit selectionModeChanged(nextMode);
+    }
+
 signals:
     void pageNumberChanged(int pageno);
     void searchCountChanged(int count);
