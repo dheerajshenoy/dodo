@@ -1,5 +1,7 @@
 #include "Panel.hpp"
+
 #include "GraphicsView.hpp"
+
 #include <qsizepolicy.h>
 
 Panel::Panel(QWidget *parent) : QWidget(parent)
@@ -27,6 +29,9 @@ Panel::initGui() noexcept
     m_layout->addWidget(m_search_label);
     m_layout->addWidget(m_search_index_label);
     m_layout->addWidget(m_search_count_label);
+
+    connect(m_mode_label, &QPushButton::clicked, this,
+            [&]() { emit modeChangeRequested(); });
 
     this->setSearchMode(false);
 }

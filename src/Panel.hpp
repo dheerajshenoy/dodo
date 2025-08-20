@@ -5,6 +5,7 @@
 #include "ElidableLabel.hpp"
 #include "GraphicsView.hpp"
 
+#include <QPushButton>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -12,6 +13,7 @@ enum class FitMode;
 
 class Panel : public QWidget
 {
+    Q_OBJECT
 public:
     Panel(QWidget *parent = nullptr);
 
@@ -30,11 +32,14 @@ public:
     void setSearchMode(bool state) noexcept;
     void setHighlightColor(const QColor &color) noexcept;
 
+signals:
+    void modeChangeRequested();
+
 private:
     void initGui() noexcept;
     void labelBG(QLabel *label, const QColor &color) noexcept;
     ElidableLabel *m_filename_label = new ElidableLabel();
-    QLabel *m_mode_label            = new QLabel();
+    QPushButton *m_mode_label       = new QPushButton();
     CircleLabel *m_mode_color_label = new CircleLabel();
     QLabel *m_pageno_label          = new QLabel();
     QLabel *m_totalpage_label       = new QLabel();
