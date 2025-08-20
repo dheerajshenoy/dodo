@@ -87,7 +87,8 @@ public:
         return m_pdfpage;
     }
 
-    void annotHighlightSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
+    void annotHighlightSelection(const QPointF &selectionStart,
+                                 const QPointF &selectionEnd) noexcept;
     QSet<int> getAnnotationsInArea(const QRectF &area) noexcept;
     inline QUndoStack *undoStack() noexcept
     {
@@ -119,8 +120,10 @@ public:
 
     inline QColor highlightColor() noexcept
     {
-        return QColor(static_cast<int>(m_highlight_color[0] * 255), static_cast<int>(m_highlight_color[1] * 255),
-                      static_cast<int>(m_highlight_color[2] * 255), static_cast<int>(m_highlight_color[3] * 255));
+        return QColor(static_cast<int>(m_highlight_color[0] * 255),
+                      static_cast<int>(m_highlight_color[1] * 255),
+                      static_cast<int>(m_highlight_color[2] * 255),
+                      static_cast<int>(m_highlight_color[3] * 255));
     }
 
     inline void setHighlightColor(const QColor &color) noexcept
@@ -188,13 +191,19 @@ public:
 
     void selectWord(const QPointF &loc) noexcept;
     void selectLine(const QPointF &loc) noexcept;
-    void highlightHelper(const QPointF &selectionStart, const QPointF &selectionEnd, fz_point &a, fz_point &b) noexcept;
-    void highlightTextSelection(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
+    void highlightHelper(const QPointF &selectionStart,
+                         const QPointF &selectionEnd, fz_point &a,
+                         fz_point &b) noexcept;
+    void highlightTextSelection(const QPointF &selectionStart,
+                                const QPointF &selectionEnd) noexcept;
     void highlightQuad(fz_quad quad) noexcept;
-    QString getSelectionText(const QPointF &selectionStart, const QPointF &selectionEnd) noexcept;
+    QString getSelectionText(const QPointF &selectionStart,
+                             const QPointF &selectionEnd) noexcept;
     void deleteAnnots(const QSet<int> &indices) noexcept;
-    void annotChangeColorForIndexes(const QSet<int> &indexes, const QColor &color) noexcept;
-    void annotChangeColorForIndex(const int index, const QColor &color) noexcept;
+    void annotChangeColorForIndexes(const QSet<int> &indexes,
+                                    const QColor &color) noexcept;
+    void annotChangeColorForIndex(const int index,
+                                  const QColor &color) noexcept;
     fz_point mapToPdf(QPointF loc) noexcept;
     bool isBreak(int c) noexcept;
     void reloadDocument() noexcept;
@@ -202,10 +211,14 @@ public:
 signals:
     void pageRenderRequested(int pageno, bool cache);
     void jumpToPageRequested(int pageno);
-    void jumpToLocationRequested(int pageno, const BrowseLinkItem::Location &loc);
-    void searchResultsReady(const QMap<int, QList<SearchResult>> &results, int matchCount);
-    void horizontalFitRequested(int pageno, const BrowseLinkItem::Location &location);
-    void verticalFitRequested(int pageno, const BrowseLinkItem::Location &location);
+    void jumpToLocationRequested(int pageno,
+                                 const BrowseLinkItem::Location &loc);
+    void searchResultsReady(const QMap<int, QList<SearchResult>> &results,
+                            int matchCount);
+    void horizontalFitRequested(int pageno,
+                                const BrowseLinkItem::Location &location);
+    void verticalFitRequested(int pageno,
+                              const BrowseLinkItem::Location &location);
     void fitRectRequested(int pageno, float x, float y, float w, float h);
     void fitXYZRequested(int pageno, float x, float y, float zoom);
     void showMessageRequested(const char *message, MessageType type);
@@ -213,9 +226,11 @@ signals:
 
 private:
     void apply_night_mode(fz_pixmap *pixmap) noexcept;
-    QImage recolorImage(const QImage &src, QColor fgColor, QColor bgColor) noexcept;
+    QImage recolorImage(const QImage &src, QColor fgColor,
+                        QColor bgColor) noexcept;
 
-    QList<SearchResult> searchHelper(int pageno, const QString &term, bool caseSensitive);
+    QList<SearchResult> searchHelper(int pageno, const QString &term,
+                                     bool caseSensitive);
 
     fz_colorspace *m_colorspace;
 
@@ -223,7 +238,7 @@ private:
     int m_match_count{0};
 
     float m_dpi;
-    bool m_link_boundary, m_invert_color_mode{false};
+    bool m_link_boundary, m_invert_color_mode;
     QGraphicsScene *m_scene{nullptr};
     int m_pageno{-1};
 
@@ -237,7 +252,8 @@ private:
     fz_matrix m_transform;
     std::string m_password; // Used when reloading document
 
-    float m_height, m_width, m_rotation{0.0f}, m_scale_factor{1.0f}, m_dpr{1.0f}, m_inv_dpr{1.0f}, m_highlight_color[4],
+    float m_height, m_width, m_rotation{0.0f}, m_scale_factor{1.0f},
+        m_dpr{1.0f}, m_inv_dpr{1.0f}, m_highlight_color[4],
         m_annot_rect_color[4];
     QColor m_selection_color;
     float m_page_height{0.0f};
