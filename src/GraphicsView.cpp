@@ -57,7 +57,8 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                 m_rect  = QRect();
 
                 if (!m_rubberBand)
-                    m_rubberBand = new QRubberBand(QRubberBand::Rectangle, this);
+                    m_rubberBand
+                        = new QRubberBand(QRubberBand::Rectangle, this);
 
                 m_rubberBand->setGeometry(QRect(m_start, QSize()));
                 m_rubberBand->show();
@@ -78,9 +79,12 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                 }
 
                 m_mousePressPos = mapToScene(event->pos());
-                QGuiApplication::setOverrideCursor(Qt::CursorShape::IBeamCursor);
+                QGuiApplication::setOverrideCursor(
+                    Qt::CursorShape::IBeamCursor);
                 m_selecting = true;
-                if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(m_mousePressPos))
+                if (m_pixmapItem
+                    && m_pixmapItem->sceneBoundingRect().contains(
+                        m_mousePressPos))
                 {
                     m_selection_start = m_mousePressPos;
                     emit textSelectionDeletionRequested();
@@ -93,11 +97,13 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         {
             if (event->button() == Qt::LeftButton)
             {
-                QGuiApplication::setOverrideCursor(Qt::CursorShape::IBeamCursor);
+                QGuiApplication::setOverrideCursor(
+                    Qt::CursorShape::IBeamCursor);
                 m_mousePressPos = event->pos();
                 m_selecting     = true;
                 auto pos        = mapToScene(event->pos());
-                if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(pos))
+                if (m_pixmapItem
+                    && m_pixmapItem->sceneBoundingRect().contains(pos))
                 {
                     m_selection_start = pos;
                     emit textSelectionDeletionRequested();
@@ -107,7 +113,8 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         }
         break;
     }
-    QGraphicsView::mousePressEvent(event); // Let QGraphicsItems (like links) respond
+    QGraphicsView::mousePressEvent(
+        event); // Let QGraphicsItems (like links) respond
 }
 
 void
@@ -121,10 +128,12 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
             if (m_selecting)
             {
                 auto pos = mapToScene(event->pos());
-                if (m_pixmapItem && m_pixmapItem->sceneBoundingRect().contains(pos))
+                if (m_pixmapItem
+                    && m_pixmapItem->sceneBoundingRect().contains(pos))
                 {
                     m_selection_end = pos;
-                    emit textSelectionRequested(m_selection_start, m_selection_end);
+                    emit textSelectionRequested(m_selection_start,
+                                                m_selection_end);
                 }
             }
         }
@@ -187,7 +196,8 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
                 if (!m_pixmapItem)
                     return;
 
-                QRectF clippedRect = sceneRect.intersected(m_pixmapItem->boundingRect());
+                QRectF clippedRect
+                    = sceneRect.intersected(m_pixmapItem->boundingRect());
                 if (!clippedRect.isEmpty())
                     emit annotSelectRequested(clippedRect);
             }
@@ -205,7 +215,8 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
                 if (!m_pixmapItem)
                     return;
 
-                QRectF clippedRect = sceneRect.intersected(m_pixmapItem->boundingRect());
+                QRectF clippedRect
+                    = sceneRect.intersected(m_pixmapItem->boundingRect());
                 if (!clippedRect.isEmpty())
                     emit highlightDrawn(clippedRect);
             }
@@ -232,7 +243,8 @@ GraphicsView::wheelEvent(QWheelEvent *e)
     {
         if (m_page_nav_with_mouse)
         {
-            int delta = !e->pixelDelta().isNull() ? e->pixelDelta().y() : e->angleDelta().y();
+            int delta = !e->pixelDelta().isNull() ? e->pixelDelta().y()
+                                                  : e->angleDelta().y();
             emit scrollRequested(delta);
         }
     }
@@ -245,7 +257,8 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *e)
 
     if (m_mode == Mode::AnnotSelect)
     {
-        QGraphicsItem *item = scene()->itemAt(mapToScene(e->pos()), transform());
+        QGraphicsItem *item
+            = scene()->itemAt(mapToScene(e->pos()), transform());
 
         if (!item || item == m_pixmapItem)
         {
@@ -257,7 +270,9 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *e)
             return;
         }
         QGraphicsView::contextMenuEvent(e);
-    } else {
+    }
+    else
+    {
         QMenu menu(this);
         emit populateContextMenuRequested(&menu);
         if (!menu.isEmpty())

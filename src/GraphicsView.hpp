@@ -20,7 +20,8 @@ public:
         TextSelection = 0,
         TextHighlight,
         AnnotSelect,
-        AnnotRect
+        AnnotRect,
+        COUNT
     };
 
     QPointF getCursorPos() noexcept;
@@ -37,15 +38,31 @@ public:
     {
         return m_mode;
     }
+
     inline void setPixmapItem(QGraphicsPixmapItem *item) noexcept
     {
         m_pixmapItem = item;
     }
+
     inline QGraphicsPixmapItem *pixmapItem() const noexcept
     {
         return m_pixmapItem;
     }
+
     void setMode(Mode mode) noexcept;
+
+    inline Mode getNextMode() noexcept
+    {
+        return static_cast<Mode>((static_cast<int>(m_mode) + 1)
+                                 % static_cast<int>(Mode::COUNT));
+    }
+
+    inline Mode getPrevMode() noexcept
+    {
+        return static_cast<Mode>((static_cast<int>(m_mode) - 1)
+                                 % static_cast<int>(Mode::COUNT));
+    }
+
     void setPageNavWithMouse(bool state) noexcept
     {
         m_page_nav_with_mouse = state;
