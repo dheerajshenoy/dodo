@@ -6,7 +6,6 @@
 #include "MessageBar.hpp"
 #include "OutlineWidget.hpp"
 #include "Panel.hpp"
-#include "PlaceholderWidget.hpp"
 #include "PropertiesWidget.hpp"
 #include "ShortcutsWidget.hpp"
 #include "StartupWidget.hpp"
@@ -126,7 +125,9 @@ private:
     void CloseTab(int tabno = -1) noexcept;
     void NextTab() noexcept;
     void PrevTab() noexcept;
+    void someFunction();
 
+    // private helpers
     void handleFileNameChanged(const QString &name) noexcept;
     void handleCurrentTabChanged(int index) noexcept;
     void openInExplorerForIndex(int index) noexcept;
@@ -200,10 +201,8 @@ private:
     LinkHintMode m_link_hint_current_mode{LinkHintMode::None};
     QMap<int, Model::LinkInfo> m_link_hint_map;
     DocumentView *m_doc{nullptr};
-    TabWidget *m_tab_widget                 = new TabWidget();
-    QVBoxLayout *m_layout                   = new QVBoxLayout();
-    QStackedLayout *m_stack_layout          = new QStackedLayout;
-    PlaceholderWidget *m_placeholder_widget = new PlaceholderWidget;
+    TabWidget *m_tab_widget = new TabWidget();
+    QVBoxLayout *m_layout   = new QVBoxLayout();
     OutlineWidget *m_owidget{nullptr};
     PropertiesWidget *m_propsWidget{nullptr};
     QMap<QString, std::function<void(const QStringList &args)>> m_actionMap;

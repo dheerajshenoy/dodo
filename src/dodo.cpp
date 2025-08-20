@@ -618,12 +618,8 @@ dodo::initGui() noexcept
     m_message_bar->setVisible(false);
 
     widget->setLayout(m_layout);
-    // m_layout->addWidget(m_tab_widget);
 
-    m_stack_layout->addWidget(m_tab_widget);
-    m_stack_layout->addWidget(m_placeholder_widget);
-
-    m_layout->addLayout(m_stack_layout);
+    m_layout->addWidget(m_tab_widget);
     m_layout->addWidget(m_command_bar);
     m_layout->addWidget(m_message_bar);
     m_layout->addWidget(m_panel);
@@ -1361,7 +1357,6 @@ dodo::initConnections() noexcept
         m_tab_widget->removeTab(index);
         if (m_tab_widget->count() == 0)
         {
-            m_stack_layout->setCurrentWidget(m_placeholder_widget);
             m_doc = nullptr;
             updatePanel();
         }
@@ -1369,13 +1364,6 @@ dodo::initConnections() noexcept
 
     connect(m_command_bar, &CommandBar::processCommand, this,
             &dodo::processCommand);
-
-    connect(m_tab_widget, &TabWidget::tabAdded, this, [&](int index)
-    {
-        Q_UNUSED(index);
-        if (m_tab_widget->count() > 0)
-            m_stack_layout->setCurrentWidget(m_tab_widget);
-    });
 }
 
 void
@@ -1704,7 +1692,6 @@ dodo::updateMenuActions() noexcept
 
         m_actionAutoresize->setCheckable(true);
         m_actionAutoresize->setChecked(m_doc->autoResize());
-
         m_actionTextSelect->setChecked(false);
         m_actionTextHighlight->setChecked(false);
         m_actionAnnotEdit->setChecked(false);
@@ -2538,7 +2525,6 @@ dodo::CloseTab(int tabno) noexcept
     if (m_tab_widget->count() == 0)
         return;
 
-    qDebug() << m_tab_widget->count();
     // Current tab
     if (tabno == -1)
     {
