@@ -2569,18 +2569,11 @@ dodo::validTabIndex(int index) noexcept
 void
 dodo::updatePageNavigationActions() noexcept
 {
+    const int page  = m_doc ? m_doc->pageNo() : -1;
+    const int count = m_doc ? m_doc->count() : 0;
 
-    if (!m_doc)
-    {
-        m_actionFirstPage->setEnabled(false);
-        m_actionPrevPage->setEnabled(false);
-        m_actionNextPage->setEnabled(false);
-        m_actionLastPage->setEnabled(false);
-        return;
-    }
-
-    const int page = m_doc->pageNo();
-
-    m_actionNextPage->setEnabled(page < m_doc->count());
-    m_actionPrevPage->setEnabled(page > 1);
+    m_actionFirstPage->setEnabled(page > 0);
+    m_actionPrevPage->setEnabled(page > 0);
+    m_actionNextPage->setEnabled(page >= 0 && page < count - 1);
+    m_actionLastPage->setEnabled(page >= 0 && page < count - 1);
 }
