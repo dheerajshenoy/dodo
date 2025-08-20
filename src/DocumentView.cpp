@@ -48,7 +48,9 @@ DocumentView::DocumentView(const QString &fileName, const Config &config,
     setLinkHintBackground(m_config.colors["link_hint_bg"]);
     setLinkHintForeground(m_config.colors["link_hint_fg"]);
     m_model->setAntialiasingBits(m_config.antialiasing_bits);
-    m_model->toggleInvertColor();
+
+    if (m_config.invert_mode)
+        m_model->toggleInvertColor();
     m_cache.setMaxCost(m_config.cache_pages);
 
     if (m_config.icc_color_profile)
