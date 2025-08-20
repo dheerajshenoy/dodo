@@ -4,6 +4,7 @@
 
 - Fix drag and drop not opening files
 - Popup Annotation support
+- Page navigation menu disable unintended buttons
 
 ## 0.2.3
 
@@ -44,4 +45,3 @@
 - Render
 - Navigation
 - Panel
-
