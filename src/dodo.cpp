@@ -2560,12 +2560,7 @@ dodo::CloseTab(int tabno) noexcept
     }
 }
 
-bool
-dodo::validTabIndex(int index) noexcept
-{
-    return index >= 0 && index < m_tab_widget->count();
-}
-
+// Useful for updating the Navigation QMenu
 void
 dodo::updatePageNavigationActions() noexcept
 {

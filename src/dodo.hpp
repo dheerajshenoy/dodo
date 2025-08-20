@@ -61,7 +61,11 @@ private:
     void initActionMap() noexcept;
     void trimRecentFilesDatabase() noexcept;
     void reloadDocument() noexcept;
-    bool validTabIndex(int index) noexcept;
+
+    inline bool validTabIndex(int index) const noexcept
+    {
+        return index >= 0 && index < m_tab_widget->count();
+    }
 
     // Interactive functions
     void Undo() noexcept;
