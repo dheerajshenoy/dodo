@@ -1081,11 +1081,13 @@ dodo::YankAll() noexcept
 void
 dodo::FitNone() noexcept
 {
+    // TODO: Implement `FitNone`
 }
 
 void
 dodo::TextSelectionMode() noexcept
 {
+    // TODO: Implement `TextSelectionMode`
 }
 
 void
