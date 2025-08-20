@@ -1,8 +1,8 @@
 #pragma once
 
+#include <QLabel>
+#include <QVBoxLayout>
 #include <QWidget>
-#include <qboxlayout.h>
-#include <qlabel.h>
 
 class PlaceholderWidget : public QWidget
 {
@@ -12,9 +12,9 @@ public:
         QVBoxLayout *layout = new QVBoxLayout();
         layout->setAlignment(Qt::AlignCenter);
 
-        QLabel *text = new QLabel("Open file(s) to see them here");
+        QLabel *text     = new QLabel("Open file(s) to see them here");
         QPalette palette = text->palette();
-        QColor color = palette.color(QPalette::PlaceholderText);
+        QColor color     = palette.color(QPalette::PlaceholderText);
         palette.setColor(QPalette::WindowText, color);
         text->setPalette(palette);
         layout->addWidget(text);
