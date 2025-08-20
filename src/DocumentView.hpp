@@ -86,7 +86,7 @@ public:
         int pageno;
     };
 
-    bool autoResize() noexcept
+    inline bool autoResize() const noexcept
     {
         return m_auto_resize;
     }
@@ -133,14 +133,21 @@ public:
     void NextHit();
     void ClearTextSelection() noexcept;
 
-    inline QDateTime lastModified() noexcept
+    inline QDateTime lastModified() const noexcept
     {
         return m_last_modified_time;
     }
 
-    inline Model *model() noexcept
+    inline Model *model() const noexcept
     {
         return m_model;
+    }
+
+    inline int count() const noexcept
+    {
+        if (m_model)
+            return m_model->numPages();
+        return -1;
     }
 
     inline void setLinkHintForeground(const QColor &fg) noexcept
@@ -156,33 +163,35 @@ public:
     // inline QString windowTitle() noexcept { return
     // m_config.window_title_format; }
 
-    inline QString fileName() noexcept
+    inline QString fileName() const noexcept
     {
         return m_filename;
     }
 
-    inline int pageNo() noexcept
+    inline int pageNo() const noexcept
     {
         return m_pageno + 1;
     }
-    inline GraphicsView *gview() noexcept
+    inline GraphicsView *gview() const noexcept
     {
         return m_gview;
     }
-    inline GraphicsView::Mode selectionMode() noexcept
+    inline GraphicsView::Mode selectionMode() const noexcept
     {
         return m_gview->mode();
     }
-    inline FitMode fitMode() noexcept
+    inline FitMode fitMode() const noexcept
     {
         return m_fit_mode;
     }
-    inline float zoom() noexcept
+    inline float zoom() const noexcept
     {
         return m_model->zoom();
     }
+
     void Fit(DocumentView::FitMode mode) noexcept;
-    inline float rotation() noexcept
+
+    inline float rotation() const noexcept
     {
         return m_rotation;
     }
@@ -209,7 +218,6 @@ signals:
     void selectionModeChanged(GraphicsView::Mode mode);
     void highlightColorChanged(const QColor &color);
     void panelNameChanged(const QString &name);
-    void invertColorActionUpdate(bool state);
     void autoResizeActionUpdate(bool state);
     void insertToDBRequested(const QString &filepath, int pageno);
 
