@@ -165,17 +165,25 @@ public:
     QString selectAllText(const QPointF &start, const QPointF &end) noexcept;
     void initSaveOptions() noexcept;
     fz_outline *getOutline() noexcept;
+
     inline fz_matrix transform() noexcept
     {
         return m_transform;
     }
+
     void followLink(const LinkInfo &info) noexcept;
     void loadColorProfile(const QString &profileName) noexcept;
+
     inline bool invertColor() noexcept
     {
         return m_invert_color_mode;
     }
-    void toggleInvertColor() noexcept;
+
+    inline void toggleInvertColor() noexcept
+    {
+        m_invert_color_mode = !m_invert_color_mode;
+    }
+
     inline float width() noexcept
     {
         return m_width;
@@ -184,6 +192,7 @@ public:
     {
         return m_height;
     }
+
     inline fz_link_dest resolveLink(const char *URI) noexcept
     {
         return fz_resolve_link_dest(m_ctx, m_doc, URI);

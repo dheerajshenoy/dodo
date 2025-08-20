@@ -1005,12 +1005,6 @@ Model::extractPDFProperties() noexcept
 }
 
 void
-Model::toggleInvertColor() noexcept
-{
-    m_invert_color_mode = !m_invert_color_mode;
-}
-
-void
 Model::apply_night_mode(fz_pixmap *pixmap) noexcept
 {
     unsigned char *samples = fz_pixmap_samples(m_ctx, pixmap);
