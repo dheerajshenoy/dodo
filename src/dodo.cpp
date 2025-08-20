@@ -1761,7 +1761,7 @@ dodo::updatePanel() noexcept
         m_panel->setHighlightColor(model->highlightColor());
         m_panel->setMode(m_doc->selectionMode());
         m_panel->setTotalPageCount(model->numPages());
-        m_panel->setPageNo(m_doc->pageNo());
+        m_panel->setPageNo(m_doc->pageNo() + 1);
         m_panel->setFitMode(m_doc->fitMode());
     }
     else
