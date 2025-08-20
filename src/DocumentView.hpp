@@ -170,7 +170,7 @@ public:
 
     inline int pageNo() const noexcept
     {
-        return m_pageno + 1;
+        return m_pageno;
     }
     inline GraphicsView *gview() const noexcept
     {
