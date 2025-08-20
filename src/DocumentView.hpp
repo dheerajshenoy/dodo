@@ -172,18 +172,22 @@ public:
     {
         return m_pageno;
     }
+
     inline GraphicsView *gview() const noexcept
     {
         return m_gview;
     }
+
     inline GraphicsView::Mode selectionMode() const noexcept
     {
         return m_gview->mode();
     }
+
     inline FitMode fitMode() const noexcept
     {
         return m_fit_mode;
     }
+
     inline float zoom() const noexcept
     {
         return m_model->zoom();
