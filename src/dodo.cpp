@@ -1609,6 +1609,8 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::panelNameChanged, this,
             [this](const QString &name) { m_panel->setFileName(name); });
 
+    connect(m_panel, &Panel::modeChangeRequested, docwidget,
+            &DocumentView::nextSelectionMode);
     connect(docwidget, &DocumentView::fileNameChanged, this,
             &dodo::handleFileNameChanged);
     connect(docwidget, &DocumentView::pageNumberChanged, m_panel,
