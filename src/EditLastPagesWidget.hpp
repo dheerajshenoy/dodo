@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QDialog>
+#include <QHBoxLayout>
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QPushButton>
@@ -8,8 +9,22 @@
 #include <QSqlTableModel>
 #include <QTableView>
 #include <QVBoxLayout>
-#include <qboxlayout.h>
-#include <qt6/QtWidgets/qpushbutton.h>
+
+class MySqlTableModel : public QSqlTableModel
+{
+public:
+    using QSqlTableModel::QSqlTableModel; // inherit constructors
+
+    Qt::ItemFlags flags(const QModelIndex &index) const override
+    {
+        // First column (column 0) non-editable
+        if (index.column() == 0)
+        {
+            return QSqlTableModel::flags(index) & ~Qt::ItemIsEditable;
+        }
+        return QSqlTableModel::flags(index);
+    }
+};
 
 class EditLastPagesWidget : public QDialog
 {
@@ -22,7 +37,7 @@ private:
     void revertChanges() noexcept;
     void deleteRows() noexcept;
 
-    QSqlTableModel *m_model{nullptr};
+    MySqlTableModel *m_model{nullptr};
     QTableView *m_tableView{new QTableView()};
     QSqlDatabase m_db;
 
