@@ -1059,12 +1059,8 @@ void
 Model::highlightQuad(fz_quad quad) noexcept
 {
     for (QGraphicsItem *object : m_scene->items())
-    {
         if (object->data(0).toString() == "selection")
-        {
             m_scene->removeItem(object);
-        }
-    }
 
     QBrush brush(m_selection_color);
 
@@ -1078,7 +1074,6 @@ Model::highlightQuad(fz_quad quad) noexcept
 
     QGraphicsPolygonItem *item = m_scene->addPolygon(poly, Qt::NoPen, brush);
     item->setData(0, "selection");
-    // item->setZValue(10); // Ensure it draws over the page
     item->setFlag(QGraphicsItem::ItemIsSelectable, false);
     item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
 }
@@ -1088,12 +1083,8 @@ Model::highlightTextSelection(const QPointF &selectionStart,
                               const QPointF &selectionEnd) noexcept
 {
     for (QGraphicsItem *object : m_scene->items())
-    {
         if (object->data(0).toString() == "selection")
-        {
             m_scene->removeItem(object);
-        }
-    }
 
     fz_point a, b;
 
