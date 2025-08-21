@@ -1774,3 +1774,31 @@ DocumentView::reloadDocument() noexcept
 {
     m_model->reloadDocument();
 }
+
+void
+DocumentView::nextFitMode() noexcept
+{
+    FitMode nextMode = static_cast<FitMode>((static_cast<int>(m_fit_mode) + 1)
+                                            % static_cast<int>(FitMode::COUNT));
+    m_fit_mode       = nextMode;
+    switch (m_fit_mode)
+    {
+        case FitMode::Width:
+            FitWidth();
+            break;
+
+        case FitMode::Height:
+            FitHeight();
+            break;
+
+        case FitMode::Window:
+            FitWindow();
+            break;
+
+        case FitMode::None:
+            FitNone();
+            break;
+    }
+    fitModeChanged(m_fit_mode);
+    // Fit(static_cast<FitMode>(nextMode));
+}

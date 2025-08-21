@@ -44,6 +44,7 @@ public:
         Width,
         Height,
         Window,
+        COUNT
     };
 
     // For use with text annotations click
@@ -188,12 +189,14 @@ public:
         return m_fit_mode;
     }
 
+    void nextFitMode() noexcept;
+
     inline float zoom() const noexcept
     {
         return m_model->zoom();
     }
 
-    void Fit(DocumentView::FitMode mode) noexcept;
+    void Fit(FitMode mode) noexcept;
 
     inline float rotation() const noexcept
     {
@@ -317,6 +320,6 @@ private:
     QDateTime m_last_modified_time;
     const int kScrollCooldownMs{300}; // Prevent rapid-fire page turns
     const int kPageThreshold{300};
-    QList<TextHighlight>
-        m_highlight_text_list{}; // Holds the text of all highlight annotations
+    QList<TextHighlight> m_highlight_text_list{}; // Holds the text of all
+                                                  // highlight annotations
 };
