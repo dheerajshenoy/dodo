@@ -2,6 +2,7 @@
 
 #include "GraphicsView.hpp"
 
+#include <qnamespace.h>
 #include <qsizepolicy.h>
 
 Panel::Panel(QWidget *parent) : QWidget(parent)
@@ -14,24 +15,36 @@ Panel::initGui() noexcept
 {
     setLayout(m_layout);
 
-    // Left widgets
-    m_layout->addWidget(m_filename_label, 1);
+    auto *leftLayout = new QHBoxLayout;
+    leftLayout->addWidget(m_filename_label);
 
-    // Right widgets
-    m_layout->addWidget(m_mode_color_label);
-    m_layout->addWidget(m_mode_label);
+    auto *centerLayout = new QHBoxLayout;
+    centerLayout->addWidget(m_pageno_label);
+    centerLayout->addWidget(m_pageno_separator);
+    centerLayout->addWidget(m_totalpage_label);
 
-    m_layout->addWidget(m_pageno_label);
-    m_layout->addWidget(m_pageno_separator);
-    m_layout->addWidget(m_totalpage_label);
+    auto *rightLayout = new QHBoxLayout;
+    rightLayout->addWidget(m_mode_color_label);
+    rightLayout->addWidget(m_mode_label);
+    rightLayout->addWidget(m_fitmode_label);
+    rightLayout->addWidget(m_search_label);
+    rightLayout->addWidget(m_search_index_label);
+    rightLayout->addWidget(m_search_count_label);
 
-    m_layout->addWidget(m_fitmode_label);
-    m_layout->addWidget(m_search_label);
-    m_layout->addWidget(m_search_index_label);
-    m_layout->addWidget(m_search_count_label);
+    m_layout->addLayout(leftLayout, 0, 0, Qt::AlignLeft);
+    m_layout->addLayout(centerLayout, 0, 1, Qt::AlignCenter);
+    m_layout->addLayout(rightLayout, 0, 2, Qt::AlignRight);
 
-    connect(m_mode_label, &QPushButton::clicked, this,
+    // Stretch the columns correctly
+    m_layout->setColumnStretch(0, 1); // left can expand
+    m_layout->setColumnStretch(1, 0); // center fixed
+    m_layout->setColumnStretch(2, 1); // right can expand
+
+    connect(m_mode_label, &QPushButton::clicked,
             [&]() { emit modeChangeRequested(); });
+
+    connect(m_fitmode_label, &QPushButton::clicked,
+            [&]() { emit fitModeChangeRequested(); });
 
     this->setSearchMode(false);
 }
@@ -95,7 +108,7 @@ Panel::setFitMode(DocumentView::FitMode mode) noexcept
     switch (mode)
     {
         case DocumentView::FitMode::None:
-            m_fitmode_label->clear();
+            m_fitmode_label->setText("None");
             break;
 
         case DocumentView::FitMode::Width:
