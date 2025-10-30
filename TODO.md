@@ -1,4 +1,5 @@
 # TODO
+- [ ] Fix scaling problem in single monitor systems
 - [X] Scroll to nav pages using delta thresholding
 - [X] Remember exact position for Goto previous location
 - [X] Filename label panel file modified state update
