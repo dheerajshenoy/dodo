@@ -883,6 +883,9 @@ DocumentView::setFitMode(const FitMode &mode) noexcept
         case FitMode::None:
             emit fitModeChanged(FitMode::None);
             break;
+
+        default:
+            break;
     }
 }
 
