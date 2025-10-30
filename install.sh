@@ -7,7 +7,7 @@ PREFIX="${1:-/usr/}"
 echo "Installing dodo with install prefix: $PREFIX"
 
 # === Configuration ===
-MUPDF_VERSION="1.26.2"
+MUPDF_VERSION="1.26.8"
 MUPDF_URL="https://mupdf.com/downloads/archive/mupdf-${MUPDF_VERSION}-source.tar.gz"
 MUPDF_DIR="extern/mupdf"
 
