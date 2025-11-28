@@ -1,0 +1,114 @@
+# ===== Appearance Settings =====
+[ui]
+panel = true # enable/disable panel
+fullscreen = false # fullscreen or not on startup
+zoom_level = 1.0 # Default zoom factor
+compact = true # Minimal margins in dodo
+link_boundary = false # show link boundary box
+hscrollbar = false # show/hide horizontal scrollbar
+vscrollbar = false # show/hide vertical scrollbar
+full_file_path_in_panel = false
+menubar = false # show/hide menubar
+window_title = "{} - dodo" # '{}' will be replaced with the base name of the opened file
+jump_marker = true # show/hide markers at the location of the destination after jump
+selection_drag_threshold = 100
+tabs = true # show/hide tabs
+auto_hide_tabs = true # hide tabs when there is only one file
+startup_tab = true # show/hide startup tab
+
+# Format is #AARRGGBB (ARGB format)
+[colors]
+accent = "#3daee9FF"
+background = "#00000000"
+search_match = "#55500033"
+search_index = "#55FF0055"
+link_hint_bg = "#FFFF0088"
+link_hint_fg = "#FF0000FF"
+selection = "#330000FF"
+highlight = "#55FF0055"
+jump_marker = "#FFFF0000"
+annot_rect = "#55FF5500"
+
+# ===== Rendering Settings =====
+[rendering]
+dpi = 300.0 # DPI of the rendered PDF file
+dpr = 1.25 # Device Pixel Ratio for high-DPI displays
+cache_pages = 5 # Number of pages to keep in RAM
+antialiasing_bits = 8 # 4=good, 8=high quality
+icc_color_profile = true # whether to use ICC color profile
+
+# ===== Navigation & Behavior =====
+[behavior]
+remember_last_visited = true   # Helps to go to last visited page of document
+page_history = 100 # History for visited pages in the file (only for the session)
+confirm_on_quit = true # Ask before quitting dodo
+auto_resize = false # Resize the document to fit the window
+zoom_factor = 1.25 # Factor by which to zoom in/out
+initial_fit = "width" # Fit applied once every file opened; values: "none", "width", "height", "window":
+invert_mode = false # Start in invert color mode
+synctex_editor_command = "kitty -e nvim --remote-silent +%l %f"
+auto_reload = true # reload document on file change
+recent_files = true # save recent files
+num_recent_files = 25 # number of recent files (if negative, makes it unlimited)
+# page_nav_with_mouse = true # scrolling to the top/bottom goes to the prev/next page
+# session_files_dir = auto
+# save_session = true # open the last session on startup
+
+# ===== Shortcuts =====
+[keybindings]
+open_file = "o"
+close_file = "Ctrl+w"
+link_hint_visit = "f"
+link_hint_copy = "Shift+F"
+
+scroll_left = "h"
+scroll_down = "j"
+scroll_up = "k"
+scroll_right = "l"
+
+prev_location = "Ctrl+o"
+
+next_page = "Shift+J"
+prev_page = "Shift+K"
+first_page = "g,g"
+last_page = "Shift+G"
+goto_page = "b"
+
+outline = "t"
+
+search = "/"
+search_this_page = "?" #TODO
+search_next = "n"
+search_prev = "Shift+N"
+
+zoom_reset = "0"
+zoom_in = "="
+zoom_out = "-"
+
+text_highlight_current_selection = "1"
+text_highlight = "Alt+1"
+annot_rect = "Alt+2"
+annot_edit = "Alt+3"
+delete = "d"
+
+file_properties = "Ctrl+Shift+F"
+invert_color = "i"
+
+fullscreen = "F11"
+fit_height = "Ctrl+Shift+H"
+fit_width = "Ctrl+Shift+W"
+fit_window = "Ctrl+Shift+="
+auto_resize = "Ctrl+Shift+R"
+
+toggle_menubar = "Ctrl+Shift+M"
+toggle_panel = "Ctrl+Shift+B"
+toggle_tabs = "Ctrl+Shift+T"
+
+cancel_selection = "escape"
+yank = "y"
+about = "F12"
+save = "Ctrl+S"
+select_all = "Ctrl+A"
+command = ":"
+
+list_text_highlights = "]"
