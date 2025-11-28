@@ -8,6 +8,7 @@
 
 #include <QFile>
 #include <QJsonArray>
+#include <QSplitter>
 #include <QStackedLayout>
 #include <QStyleHints>
 #include <qstackedlayout.h>
@@ -138,7 +139,7 @@ dodo::initMenubar() noexcept
 
     m_actionToggleOutline = viewMenu->addAction(
         QString("Outline\t%1").arg(m_config.shortcuts_map["outline"]), this,
-        &dodo::TableOfContents);
+        &dodo::ShowOutline);
 
     m_actionToggleMenubar = viewMenu->addAction(
         QString("Menubar\t%1").arg(m_config.shortcuts_map["toggle_menubar"]),
@@ -277,9 +278,10 @@ dodo::initDefaults() noexcept
     m_config.colors["jump_marker"]  = "#FFFF0000";
     m_config.colors["annot_rect"]   = "#55FF0000";
 
-    m_config.dpi         = 300.0f;
-    m_config.dpr         = 1.0f;
-    m_config.cache_pages = 10;
+    m_config.dpi            = 300.0f;
+    m_config.dpr            = 1.0f;
+    m_config.cache_pages    = 10;
+    m_config.link_hint_size = 16.0f;
 
     m_config.remember_last_visited = true;
     m_config.page_history_limit    = 10;
@@ -336,8 +338,11 @@ dodo::initConfig() noexcept
     if (ui["fullscreen"].value_or(false))
         this->showFullScreen();
 
-    m_config.vscrollbar_shown = ui["vscrollbar"].value_or(true);
-    m_config.hscrollbar_shown = ui["hscrollbar"].value_or(true);
+    m_config.link_hint_size = ui["link_hint_size"].value_or(0.5f);
+
+    m_config.outline_as_side_panel = ui["outline_as_side_panel"].value_or(true);
+    m_config.vscrollbar_shown      = ui["vscrollbar"].value_or(true);
+    m_config.hscrollbar_shown      = ui["hscrollbar"].value_or(true);
     m_config.selection_drag_threshold
         = ui["selection_drag_threshold"].value_or(50);
     m_config.jump_marker_shown = ui["jump_marker"].value_or(true);
@@ -369,10 +374,10 @@ dodo::initConfig() noexcept
         = colors["jump_marker"].value_or("#FFFF0000");
     m_config.colors["annot_rect"] = colors["annot_rect"].value_or("#55FF0000");
 
-    auto rendering       = toml["rendering"];
-    m_config.dpi         = rendering["dpi"].value_or(300.0f);
-    m_config.dpr = rendering["dpr"]
-                         .value_or(QApplication::primaryScreen()->devicePixelRatio());
+    auto rendering = toml["rendering"];
+    m_config.dpi   = rendering["dpi"].value_or(300.0f);
+    m_config.dpr   = rendering["dpr"].value_or(
+        QApplication::primaryScreen()->devicePixelRatio());
     m_config.cache_pages = rendering["cache_pages"].value_or(10);
 
     auto behavior = toml["behavior"];
@@ -464,7 +469,7 @@ dodo::initKeybinds() noexcept
         {"Alt+1", [this]() { ToggleTextHighlight(); }},
         {"Alt+2", [this]() { ToggleRectAnnotation(); }},
         {"Alt+3", [this]() { ToggleAnnotSelect(); }},
-        {"t", [this]() { TableOfContents(); }},
+        {"t", [this]() { ShowOutline(); }},
         {"/", [this]() { invokeSearch(); }},
         {"n", [this]() { NextHit(); }},
         {"Shift+n", [this]() { PrevHit(); }},
@@ -508,9 +513,28 @@ dodo::initGui() noexcept
     m_message_bar = new MessageBar(this);
     m_message_bar->setVisible(false);
 
+    m_outline_widget = new OutlineWidget(this);
+
     widget->setLayout(m_layout);
 
-    m_layout->addWidget(m_tab_widget);
+    m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+    if (m_config.outline_as_side_panel)
+    {
+        QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
+        splitter->addWidget(m_outline_widget);
+        splitter->addWidget(m_tab_widget);
+        splitter->setStretchFactor(0, 0);
+        splitter->setStretchFactor(1, 1);
+        splitter->setContentsMargins(0, 0, 0, 0);
+        splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+        m_layout->addWidget(splitter, 1);
+    }
+    else
+    {
+        m_layout->addWidget(m_tab_widget);
+    }
+
     m_layout->addWidget(m_command_bar);
     m_layout->addWidget(m_message_bar);
     m_layout->addWidget(m_panel);
@@ -1058,6 +1082,9 @@ dodo::OpenFile(QString filePath) noexcept
     int index = m_tab_widget->addTab(docwidget, filePath);
     m_tab_widget->setCurrentIndex(index);
 
+    m_outline_widget->setOutline(m_doc ? m_doc->model()->getOutline()
+                                       : nullptr);
+
     m_path_tab_map[filePath] = docwidget;
 
     // Auto file reload
@@ -1126,10 +1153,14 @@ dodo::ToggleAutoResize() noexcept
 }
 
 void
-dodo::TableOfContents() noexcept
+dodo::ShowOutline() noexcept
 {
+    // if (m_doc)
+    //     m_doc->ShowOutline();
     if (m_doc)
-        m_doc->TableOfContents();
+    {
+        fz_outline *outline = m_doc->model()->getOutline();
+    }
 }
 
 void
@@ -1305,6 +1336,8 @@ dodo::handleCurrentTabChanged(int index) noexcept
     updateMenuActions();
     updateUiEnabledState();
     updatePanel();
+    m_outline_widget->setOutline(m_doc ? m_doc->model()->getOutline()
+                                       : nullptr);
 
     this->setWindowTitle(m_doc->windowTitle());
 }
@@ -2130,7 +2163,7 @@ dodo::initActionMap() noexcept
          [this](const QStringList &args)
     {
         Q_UNUSED(args);
-        TableOfContents();
+        ShowOutline();
     }},
         {"rotate_clock",
          [this](const QStringList &args)
