@@ -10,23 +10,26 @@
 #include <QTableView>
 #include <QVBoxLayout>
 
-class OutlineWidget : public QDialog
+class OutlineWidget : public QWidget
 {
     Q_OBJECT
 public:
-    OutlineWidget(fz_context *ctx, QWidget *parent = nullptr) : QDialog(parent), m_ctx(ctx)
+    OutlineWidget(QWidget *parent = nullptr) : QWidget(parent)
     {
-        auto *layout = new QVBoxLayout(this);
+        QVBoxLayout *layout = new QVBoxLayout(this);
         searchEdit->setPlaceholderText("Search TOC...");
         layout->addWidget(searchEdit);
+        setContentsMargins(0, 0, 0, 0);
 
         m_view = new QTableView(this);
-        m_view->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
+        m_view->setSelectionBehavior(
+            QAbstractItemView::SelectionBehavior::SelectRows);
         m_view->setSelectionMode(QAbstractItemView::SingleSelection);
 
         m_view->verticalHeader()->setVisible(false);
 
-        connect(m_view, &QTableView::doubleClicked, this, [&](const QModelIndex &index)
+        connect(m_view, &QTableView::doubleClicked, this,
+                [&](const QModelIndex &index)
         {
             int pageno = index.siblingAtColumn(1).data().toInt() - 1;
             emit jumpToPageRequested(pageno);
@@ -43,8 +46,12 @@ public:
         m_view->setModel(proxy);
         m_view->setSelectionBehavior(QAbstractItemView::SelectRows);
 
-        connect(searchEdit, &QLineEdit::textChanged, this, [proxy](const QString &text)
-        { proxy->setFilterRegularExpression(QRegularExpression(text, QRegularExpression::CaseInsensitiveOption)); });
+        connect(searchEdit, &QLineEdit::textChanged, this,
+                [proxy](const QString &text)
+        {
+            proxy->setFilterRegularExpression(QRegularExpression(
+                text, QRegularExpression::CaseInsensitiveOption));
+        });
     }
 
     ~OutlineWidget()
@@ -57,18 +64,15 @@ public:
     {
         if (outline)
         {
-            if (m_outline)
-                fz_drop_outline(m_ctx, m_outline);
+            // if (m_outline)
+            //     fz_drop_outline(m_ctx, m_outline);
             m_outline = outline;
             m_model->loadFromOutline(outline);
-            m_view->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+            m_view->horizontalHeader()->setSectionResizeMode(
+                0, QHeaderView::Stretch);
+        } else {
+            m_model->clear();
         }
-    }
-
-    void open() override
-    {
-        searchEdit->clear();
-        QDialog::open();
     }
 
     bool hasOutline() noexcept
