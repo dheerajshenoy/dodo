@@ -1284,6 +1284,11 @@ dodo::initConnections() noexcept
             if (doc)
             {
                 m_path_tab_map.remove(doc->fileName());
+
+                // Set the outline to nullptr if the closed tab was the current
+                // one
+                if (m_doc == doc)
+                    m_outline_widget->setOutline(nullptr);
                 doc->CloseFile();
             }
         }
