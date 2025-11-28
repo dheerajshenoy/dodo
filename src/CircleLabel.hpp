@@ -8,7 +8,7 @@ class CircleLabel : public QLabel
 public:
     CircleLabel(QWidget *parent = nullptr) : QLabel(parent)
     {
-        setFixedSize(24, 24); // or any square size
+        setFixedSize(50, 50); // or any square size
     }
 
     void setColor(const QColor &color)
