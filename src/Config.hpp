@@ -13,6 +13,7 @@ struct Config
     float inv_dpr{1.0f};
     float zoom_by{1.25f};
     float zoom{1.0};
+    float link_hint_size{0.5f};
 
     int startpage_override{-1};
     int page_history_limit{5};
@@ -20,6 +21,7 @@ struct Config
     int cache_pages{10};
     int antialiasing_bits{8};
     int num_recent_files{10};
+
 
     // bool auto_reload{true};
     bool icc_color_profile{true};
