@@ -45,8 +45,6 @@ DocumentView::DocumentView(const QString &fileName, const Config &config,
     m_model->setAnnotRectColor(QColor(m_config.colors["annot_rect"]).toRgb());
     m_model->setSelectionColor(m_config.colors["selection"]);
     m_model->setHighlightColor(m_config.colors["highlight"]);
-    setLinkHintBackground(m_config.colors["link_hint_bg"]);
-    setLinkHintForeground(m_config.colors["link_hint_fg"]);
     m_model->setAntialiasingBits(m_config.antialiasing_bits);
 
     if (m_config.invert_mode)
@@ -678,11 +676,6 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
 }
 
 void
-DocumentView::renderLinkHints() noexcept
-{
-}
-
-void
 DocumentView::renderPixmap(const QPixmap &pix) noexcept
 {
     m_pix_item->setPixmap(pix);
@@ -1130,32 +1123,32 @@ DocumentView::scrollToNormalizedTop(double ntop) noexcept
     m_vscrollbar->setValue(scrollPos);
 }
 
-void
-DocumentView::TableOfContents() noexcept
-{
-    if (!m_model->valid())
-        return;
-
-    if (!m_owidget)
-    {
-        m_owidget = new OutlineWidget(m_model->clonedContext(), this);
-        connect(m_owidget, &OutlineWidget::jumpToPageRequested, this,
-                [&](int pageno) { gotoPage(pageno); });
-    }
-
-    if (!m_owidget->hasOutline())
-    {
-        fz_outline *outline = m_model->getOutline();
-        if (!outline)
-        {
-            QMessageBox::information(
-                this, "Outline", "Document does not have outline information");
-            return;
-        }
-        m_owidget->setOutline(outline);
-    }
-    m_owidget->open();
-}
+// void
+// DocumentView::ShowOutline() noexcept
+// {
+//     if (!m_model->valid())
+//         return;
+//
+//     if (!m_owidget)
+//     {
+//         m_owidget = new OutlineWidget(m_model->clonedContext(), this);
+//         connect(m_owidget, &OutlineWidget::jumpToPageRequested, this,
+//                 [&](int pageno) { gotoPage(pageno); });
+//     }
+//
+//     if (!m_owidget->hasOutline())
+//     {
+//         fz_outline *outline = m_model->getOutline();
+//         if (!outline)
+//         {
+//             QMessageBox::information(
+//                 this, "Outline", "Document does not have outline information");
+//             return;
+//         }
+//         m_owidget->setOutline(outline);
+//     }
+//     m_owidget->open();
+// }
 
 void
 DocumentView::ToggleRectAnnotation() noexcept
@@ -1723,7 +1716,9 @@ void
 DocumentView::clearKBHintsOverlay() noexcept
 {
     for (auto &link : m_link_hints)
+    {
         m_gscene->removeItem(link);
+    }
     m_link_hints_present = false;
 }
 
