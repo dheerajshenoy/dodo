@@ -15,6 +15,9 @@ selection_drag_threshold = 100
 tabs = true # show/hide tabs
 auto_hide_tabs = true # hide tabs when there is only one file
 startup_tab = true # show/hide startup tab
+link_hint_size = 0.25 # size of link hints (px)
+outline_as_side_panel = true # outline whether to show in popup or side panel
+outline_panel_width = 300 # outline panel width (if outline_in_panel is true)
 
 # Format is #AARRGGBB (ARGB format)
 [colors]
@@ -22,7 +25,7 @@ accent = "#3daee9FF"
 background = "#00000000"
 search_match = "#55500033"
 search_index = "#55FF0055"
-link_hint_bg = "#FFFF0088"
+link_hint_bg = "#FFFF0044"
 link_hint_fg = "#FF0000FF"
 selection = "#330000FF"
 highlight = "#55FF0055"
@@ -57,7 +60,7 @@ num_recent_files = 25 # number of recent files (if negative, makes it unlimited)
 # ===== Shortcuts =====
 [keybindings]
 open_file = "o"
-#close_file = ""
+close_file = "Ctrl+w"
 link_hint_visit = "f"
 link_hint_copy = "Shift+F"
 
