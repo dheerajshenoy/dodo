@@ -16,12 +16,8 @@ public:
         setMovable(true);
         setTabsClosable(true);
         setAcceptDrops(false);
-        setStyleSheet(R"(
-QTabWidget::pane {
-    border: 0;
-    margin: 0;
-}
-        )");
+        setStyleSheet("border: 0");
+        tabBar()->setDrawBase(false);
     }
 
     int addTab(QWidget *page, const QString &title)
