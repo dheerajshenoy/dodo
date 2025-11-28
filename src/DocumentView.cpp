@@ -1199,14 +1199,12 @@ DocumentView::SaveAsFile() noexcept
 QMap<int, Model::LinkInfo>
 DocumentView::LinkKB() noexcept
 {
+    if (m_link_items.isEmpty())
+        return {};
     int i = 10;
     QRectF viewport
         = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
     QMap<int, Model::LinkInfo> map;
-
-    m_link_hints.clear();
-    if (m_link_items.isEmpty())
-        return {};
 
     for (const auto &link : m_link_items)
     {
@@ -1215,12 +1213,14 @@ DocumentView::LinkKB() noexcept
 
         float w        = 0.25 * m_model->zoom();
         auto link_rect = link->rect();
-        QRect rect(link_rect.x(), link_rect.y(), w, w);
+        QRectF rect(link_rect.topLeft(), QSizeF(w, w));
 
-        if (rect.intersects(viewport.toRect()))
+        if (rect.intersects(viewport))
         {
-            LinkHint *linkHint = new LinkHint(rect, m_link_hint_bg,
-                                              m_link_hint_fg, i, w * 0.5);
+            LinkHint *linkHint
+                = new LinkHint(rect, m_config.colors["link_hint_bg"],
+                               m_config.colors["link_hint_fg"], i,
+                               w * m_config.link_hint_size);
             m_link_hints.append(linkHint);
             m_gscene->addItem(linkHint);
         }
