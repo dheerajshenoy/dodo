@@ -7,8 +7,22 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QSortFilterProxyModel>
+#include <QStyledItemDelegate>
 #include <QTreeView>
 #include <QVBoxLayout>
+
+class RightAlignDelegate : public QStyledItemDelegate
+{
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    void initStyleOption(QStyleOptionViewItem *opt,
+                         const QModelIndex &index) const override
+    {
+        QStyledItemDelegate::initStyleOption(opt, index);
+        opt->displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
+    }
+};
 
 class OutlineFilterProxy : public QSortFilterProxyModel
 {
@@ -102,7 +116,6 @@ public:
 
         // m_tree->setEditTriggers(QTableView::EditTrigger::NoEditTriggers);
         m_tree->setEditTriggers(QAbstractItemView::NoEditTriggers);
-        m_tree->setModel(proxy);
         m_tree->setSelectionBehavior(QAbstractItemView::SelectRows);
 
         connect(searchEdit, &QLineEdit::textChanged, this,
@@ -111,6 +124,10 @@ public:
             proxy->setFilterRegularExpression(QRegularExpression(
                 text, QRegularExpression::CaseInsensitiveOption));
         });
+
+        m_tree->setItemDelegateForColumn(1, new RightAlignDelegate(this));
+        m_tree->setAnimated(true);
+        m_tree->setModel(proxy);
     }
 
     ~OutlineWidget() {}
@@ -122,7 +139,8 @@ public:
             m_model->loadFromOutline(outline);
             m_tree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
             m_tree->header()->setSectionResizeMode(
-                1, QHeaderView::ResizeToContents); // page number
+                1, QHeaderView::ResizeToContents);
+            m_tree->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
         }
         else
         {
