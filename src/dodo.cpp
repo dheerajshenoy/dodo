@@ -455,146 +455,34 @@ dodo::initKeybinds() noexcept
     m_config.shortcuts_map["last_page"]       = "Shift+g";
 
     std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
-        {":",
-         [this]()
-    {
-        invokeCommand();
-    }},
-        {"Ctrl+Shift+m",
-         [this]()
-    {
-        ToggleMenubar();
-    }},
-        {"i",
-         [this]()
-    {
-        InvertColor();
-    }},
-        {"b",
-         [this]()
-    {
-        GotoPage();
-    }},
-        {"f",
-         [this]()
-    {
-        VisitLinkKB();
-    }},
-        {"Ctrl+s",
-         [this]()
-    {
-        SaveFile();
-    }},
-        {"Alt+1",
-         [this]()
-    {
-        ToggleTextHighlight();
-    }},
-        {"Alt+2",
-         [this]()
-    {
-        ToggleRectAnnotation();
-    }},
-        {"Alt+3",
-         [this]()
-    {
-        ToggleAnnotSelect();
-    }},
-        {"t",
-         [this]()
-    {
-        TableOfContents();
-    }},
-        {"/",
-         [this]()
-    {
-        invokeSearch();
-    }},
-        {"n",
-         [this]()
-    {
-        NextHit();
-    }},
-        {"Shift+n",
-         [this]()
-    {
-        PrevHit();
-    }},
-        {"Ctrl+o",
-         [this]()
-    {
-        GoBackHistory();
-    }},
-        {"o",
-         [this]()
-    {
-        OpenFile();
-    }},
-        {"j",
-         [this]()
-    {
-        ScrollDown();
-    }},
-        {"k",
-         [this]()
-    {
-        ScrollUp();
-    }},
-        {"h",
-         [this]()
-    {
-        ScrollLeft();
-    }},
-        {"l",
-         [this]()
-    {
-        ScrollRight();
-    }},
-        {"Shift+j",
-         [this]()
-    {
-        NextPage();
-    }},
-        {"Shift+k",
-         [this]()
-    {
-        PrevPage();
-    }},
-        {"g,g",
-         [this]()
-    {
-        FirstPage();
-    }},
-        {"Shift+g",
-         [this]()
-    {
-        LastPage();
-    }},
-        {"0",
-         [this]()
-    {
-        ZoomReset();
-    }},
-        {"=",
-         [this]()
-    {
-        ZoomIn();
-    }},
-        {"-",
-         [this]()
-    {
-        ZoomOut();
-    }},
-        {"<",
-         [this]()
-    {
-        RotateAnticlock();
-    }},
-        {">",
-         [this]()
-    {
-        RotateClock();
-    }},
+        {":", [this]() { invokeCommand(); }},
+        {"Ctrl+Shift+m", [this]() { ToggleMenubar(); }},
+        {"i", [this]() { InvertColor(); }},
+        {"b", [this]() { GotoPage(); }},
+        {"f", [this]() { VisitLinkKB(); }},
+        {"Ctrl+s", [this]() { SaveFile(); }},
+        {"Alt+1", [this]() { ToggleTextHighlight(); }},
+        {"Alt+2", [this]() { ToggleRectAnnotation(); }},
+        {"Alt+3", [this]() { ToggleAnnotSelect(); }},
+        {"t", [this]() { TableOfContents(); }},
+        {"/", [this]() { invokeSearch(); }},
+        {"n", [this]() { NextHit(); }},
+        {"Shift+n", [this]() { PrevHit(); }},
+        {"Ctrl+o", [this]() { GoBackHistory(); }},
+        {"o", [this]() { OpenFile(); }},
+        {"j", [this]() { ScrollDown(); }},
+        {"k", [this]() { ScrollUp(); }},
+        {"h", [this]() { ScrollLeft(); }},
+        {"l", [this]() { ScrollRight(); }},
+        {"Shift+j", [this]() { NextPage(); }},
+        {"Shift+k", [this]() { PrevPage(); }},
+        {"g,g", [this]() { FirstPage(); }},
+        {"Shift+g", [this]() { LastPage(); }},
+        {"0", [this]() { ZoomReset(); }},
+        {"=", [this]() { ZoomIn(); }},
+        {"-", [this]() { ZoomOut(); }},
+        {"<", [this]() { RotateAnticlock(); }},
+        {">", [this]() { RotateClock(); }},
     };
 
     for (const auto &[key, func] : shortcuts)
