@@ -1262,7 +1262,7 @@ dodo::initConnections() noexcept
 
     QWindow *win = window()->windowHandle();
 
-    // TODO:
+    // TODO: Check for multiple screen support
     connect(win, &QWindow::screenChanged, this, [&](QScreen *)
     {
         m_dpr = this->devicePixelRatioF();
