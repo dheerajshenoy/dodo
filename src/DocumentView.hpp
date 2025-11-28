@@ -9,7 +9,6 @@
 #include "JumpMarker.hpp"
 #include "LinkHint.hpp"
 #include "Model.hpp"
-#include "OutlineWidget.hpp"
 #include "PropertiesWidget.hpp"
 
 #include <QFileDialog>
@@ -115,7 +114,7 @@ public:
     void RotateAntiClock() noexcept;
     void Search(const QString &term) noexcept;
     void GoBackHistory() noexcept;
-    void TableOfContents() noexcept;
+    // void ShowOutline() noexcept;
     void ToggleRectAnnotation() noexcept;
     void ToggleAnnotSelect() noexcept;
     void SaveFile() noexcept;
@@ -149,16 +148,6 @@ public:
         if (m_model)
             return m_model->numPages();
         return -1;
-    }
-
-    inline void setLinkHintForeground(const QColor &fg) noexcept
-    {
-        m_link_hint_fg = fg;
-    }
-
-    inline void setLinkHintBackground(const QColor &bg) noexcept
-    {
-        m_link_hint_bg = bg;
     }
 
     // inline QString windowTitle() noexcept { return
@@ -245,7 +234,6 @@ private:
     void search(const QString &term) noexcept;
     void setFitMode(const FitMode &mode) noexcept;
     bool renderPage(int pageno, bool refresh = true) noexcept;
-    void renderLinkHints() noexcept;
     void renderLinks(const QList<BrowseLinkItem *> &links) noexcept;
     void renderPixmap(const QPixmap &pix) noexcept;
     void renderAnnotations(const QList<Annotation *> &annots) noexcept;
@@ -310,8 +298,6 @@ private:
     QScrollBar *m_vscrollbar{nullptr};
     QScrollBar *m_hscrollbar{nullptr};
     bool m_link_hints_present{false};
-    QColor m_link_hint_fg{QColor::fromRgba(0x000000)},
-        m_link_hint_bg{QColor::fromRgba(0xFFFF00)};
     QList<LinkHint *> m_link_hints{};
     QList<BrowseLinkItem *> m_link_items{};
 
