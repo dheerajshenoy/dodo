@@ -21,9 +21,12 @@ struct Config
     int cache_pages{10};
     int antialiasing_bits{8};
     int num_recent_files{10};
+    int outline_panel_width{300};
 
 
     // bool auto_reload{true};
+    bool menubar_shown{true};
+    bool panel_shown{true};
     bool icc_color_profile{true};
     bool invert_mode{false};
     bool page_nav_with_mouse{false};
@@ -39,6 +42,8 @@ struct Config
     bool startup_tab{true};
     bool recent_files{true};
     bool outline_as_side_panel{true};
+    bool auto_hide_tabs{false};
+    bool tabs_shown{true};
 
     QString initial_fit{"none"};
     QString window_title_format{"{} - dodo"};
