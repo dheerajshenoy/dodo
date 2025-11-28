@@ -66,12 +66,9 @@ DocumentView::DocumentView(const QString &fileName, const Config &config,
     m_layout->setAlignment(Qt::AlignCenter);
     m_layout->addWidget(m_gview);
 
-    if (m_config.compact)
-    {
-        m_gview->setContentsMargins(0, 0, 0, 0);
-        m_layout->setContentsMargins(0, 0, 0, 0);
-        this->setContentsMargins(0, 0, 0, 0);
-    }
+    m_gview->setContentsMargins(0, 0, 0, 0);
+    m_layout->setContentsMargins(0, 0, 0, 0);
+    this->setContentsMargins(0, 0, 0, 0);
 
     this->setLayout(m_layout);
 
