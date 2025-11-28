@@ -4,6 +4,7 @@
 
 - Display Pixel Ratio user config option (fix blurry text on high DPI screens)
 - Outline widget as a sidebar option
+- Outline widget page numbers displayed properly
 - Outline hierarchy search support
 - Config options:
     - UI
