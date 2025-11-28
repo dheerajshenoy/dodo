@@ -2,8 +2,18 @@
 
 ## 0.3.0
 
+- Display Pixel Ratio user config option (fix blurry text on high DPI screens)
 - Outline widget as a sidebar option
 - Outline hierarchy search support
+- Config options:
+    - UI
+        - `outline_as_side_panel`
+        - `outline_panel_width`
+        - `link_hint_size`
+    - Rendering
+        - `dpr`
+
+
 
 ## 0.2.4
 
