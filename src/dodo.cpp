@@ -1273,7 +1273,9 @@ dodo::initConnections() noexcept
     connect(m_tab_widget, &QTabWidget::tabCloseRequested, this,
             [this](const int index)
     {
-        QWidget *widget       = m_tab_widget->widget(index);
+        QWidget *widget = m_tab_widget->widget(index);
+        if (!widget)
+            return;
         const QString tabRole = widget->property("tabRole").toString();
         if (tabRole == "doc")
         {
