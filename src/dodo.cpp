@@ -31,9 +31,9 @@ dodo::~dodo() noexcept
 void
 dodo::construct() noexcept
 {
-    initGui();
     initActionMap();
     initConfig();
+    initGui();
     if (m_load_default_keybinding)
         initKeybinds();
     initMenubar();
@@ -330,12 +330,11 @@ dodo::initConfig() noexcept
 
     auto ui = toml["ui"];
 
-    m_config.startup_tab = ui["startup_tab"].value_or(true);
-
-    m_tab_widget->tabBar()->setVisible(ui["tabs"].value_or(true));
-    m_tab_widget->setTabBarAutoHide(ui["auto_hide_tabs"].value_or(false));
-    m_panel->setVisible(ui["panel"].value_or(true));
-    m_menuBar->setVisible(ui["menubar"].value_or(true));
+    m_config.startup_tab    = ui["startup_tab"].value_or(true);
+    m_config.auto_hide_tabs = ui["auto_hide_tabs"].value_or(false);
+    m_config.panel_shown    = ui["panel"].value_or(true);
+    m_config.menubar_shown  = ui["menubar"].value_or(true);
+    m_config.tabs_shown     = ui["tabs"].value_or(true);
 
     if (ui["fullscreen"].value_or(false))
         this->showFullScreen();
@@ -343,6 +342,7 @@ dodo::initConfig() noexcept
     m_config.link_hint_size = ui["link_hint_size"].value_or(0.5f);
 
     m_config.outline_as_side_panel = ui["outline_as_side_panel"].value_or(true);
+    m_config.outline_panel_width   = ui["outline_panel_width"].value_or(300);
     m_config.vscrollbar_shown      = ui["vscrollbar"].value_or(true);
     m_config.hscrollbar_shown      = ui["hscrollbar"].value_or(true);
     m_config.selection_drag_threshold
@@ -418,15 +418,6 @@ dodo::initConfig() noexcept
                     QString::fromStdString(std::string(action.str())),
                     QString::fromStdString(value.value_or<std::string>("")));
         }
-    }
-
-    if (m_config.compact)
-    {
-        m_layout->setContentsMargins(0, 0, 0, 0);
-        m_panel->layout()->setContentsMargins(5, 1, 5, 1);
-        m_panel->setContentsMargins(0, 0, 0, 0);
-        m_tab_widget->setContentsMargins(0, 0, 0, 0);
-        this->setContentsMargins(0, 0, 0, 0);
     }
 }
 
@@ -530,6 +521,8 @@ dodo::initGui() noexcept
         splitter->setStretchFactor(1, 1);
         splitter->setContentsMargins(0, 0, 0, 0);
         splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+        splitter->setSizes({m_config.outline_panel_width,
+                            this->width() - m_config.outline_panel_width});
         m_layout->addWidget(splitter, 1);
     }
     else
@@ -544,6 +537,20 @@ dodo::initGui() noexcept
 
     m_menuBar = this->menuBar(); // initialize here so that the config
                                  // visibility works
+
+    m_tab_widget->setTabBarAutoHide(m_config.auto_hide_tabs);
+    m_panel->setVisible(m_config.panel_shown);
+    m_menuBar->setVisible(m_config.menubar_shown);
+    m_tab_widget->tabBar()->setVisible(m_config.tabs_shown);
+
+    if (m_config.compact)
+    {
+        m_layout->setContentsMargins(0, 0, 0, 0);
+        m_panel->layout()->setContentsMargins(5, 1, 5, 1);
+        m_panel->setContentsMargins(0, 0, 0, 0);
+        m_tab_widget->setContentsMargins(0, 0, 0, 0);
+        this->setContentsMargins(0, 0, 0, 0);
+    }
 }
 
 // Updates the UI elements checking if valid
