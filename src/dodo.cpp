@@ -290,11 +290,6 @@ dodo::initDefaults() noexcept
     m_config.auto_resize           = false;
     m_config.zoom_by               = 1.25;
     m_config.initial_fit           = "width";
-
-    m_layout->setContentsMargins(0, 0, 0, 0);
-    m_panel->layout()->setContentsMargins(5, 1, 5, 1);
-    m_panel->setContentsMargins(0, 0, 0, 0);
-    this->setContentsMargins(0, 0, 0, 0);
 }
 
 // Initialize the config related stuff
@@ -351,7 +346,6 @@ dodo::initConfig() noexcept
     m_config.full_filepath_in_panel
         = ui["full_file_path_in_panel"].value_or(false);
     m_config.zoom          = ui["zoom_level"].value_or(1.0);
-    m_config.compact       = ui["compact"].value_or(false);
     m_config.link_boundary = ui["link_boundary"].value_or(false);
     QString window_title
         = QString::fromStdString(ui["window_title"].value_or("{} - dodo"));
@@ -519,6 +513,9 @@ dodo::initGui() noexcept
         splitter->addWidget(m_tab_widget);
         splitter->setStretchFactor(0, 0);
         splitter->setStretchFactor(1, 1);
+        splitter->setFrameShape(QFrame::NoFrame);
+        splitter->setFrameShadow(QFrame::Plain);
+        splitter->setHandleWidth(1);
         splitter->setContentsMargins(0, 0, 0, 0);
         splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
         splitter->setSizes({m_config.outline_panel_width,
@@ -543,14 +540,14 @@ dodo::initGui() noexcept
     m_menuBar->setVisible(m_config.menubar_shown);
     m_tab_widget->tabBar()->setVisible(m_config.tabs_shown);
 
-    if (m_config.compact)
-    {
-        m_layout->setContentsMargins(0, 0, 0, 0);
-        m_panel->layout()->setContentsMargins(5, 1, 5, 1);
-        m_panel->setContentsMargins(0, 0, 0, 0);
-        m_tab_widget->setContentsMargins(0, 0, 0, 0);
-        this->setContentsMargins(0, 0, 0, 0);
-    }
+    // Remove padding and shit
+    // m_tab_widget->tabBar()->setContentsMargins(0, 0, 0, 0);
+    // m_layout->setSpacing(0);
+    // m_layout->setContentsMargins(0, 0, 0, 0);
+    // m_command_bar->setContentsMargins(0, 0, 0, 0);
+    // m_panel->layout()->setContentsMargins(5, 1, 5, 1);
+    // m_panel->setContentsMargins(0, 0, 0, 0);
+    // this->setContentsMargins(0, 0, 0, 0);
 }
 
 // Updates the UI elements checking if valid
