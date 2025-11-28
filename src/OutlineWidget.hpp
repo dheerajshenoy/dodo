@@ -95,6 +95,7 @@ public:
         searchEdit->setPlaceholderText("Search Outline");
         layout->addWidget(searchEdit);
         setContentsMargins(0, 0, 0, 0);
+        layout->setContentsMargins(0, 0, 0, 0);
 
         m_tree = new QTreeView(this);
         m_tree->setSelectionBehavior(
@@ -128,6 +129,7 @@ public:
         m_tree->setItemDelegateForColumn(1, new RightAlignDelegate(this));
         m_tree->setAnimated(true);
         m_tree->setModel(proxy);
+        m_tree->setFrameShape(QFrame::NoFrame);
     }
 
     ~OutlineWidget() {}
