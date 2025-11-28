@@ -54,30 +54,20 @@ public:
         });
     }
 
-    ~OutlineWidget()
-    {
-        fz_drop_outline(m_ctx, m_outline);
-        fz_drop_context(m_ctx);
-    }
+    ~OutlineWidget() {}
 
     void setOutline(fz_outline *outline)
     {
         if (outline)
         {
-            // if (m_outline)
-            //     fz_drop_outline(m_ctx, m_outline);
-            m_outline = outline;
             m_model->loadFromOutline(outline);
             m_view->horizontalHeader()->setSectionResizeMode(
                 0, QHeaderView::Stretch);
-        } else {
+        }
+        else
+        {
             m_model->clear();
         }
-    }
-
-    bool hasOutline() noexcept
-    {
-        return m_outline != nullptr;
     }
 
 signals:
@@ -87,8 +77,6 @@ private:
     QTableView *m_view{nullptr};
     QLineEdit *searchEdit{new QLineEdit(this)};
     OutlineModel *m_model{new OutlineModel(this)};
-    fz_outline *m_outline{nullptr};
-    fz_context *m_ctx{nullptr};
 
 protected:
     void keyPressEvent(QKeyEvent *e) override
