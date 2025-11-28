@@ -15,7 +15,7 @@ streamlined interface and robust functionality with minimal resource usage.
 > Dodo is currently in alpha and may experience crashes or instability.
 
 > [!NOTE]
-> dodo version is v0.2.3-alpha
+> dodo version is v0.3.0
 
 ## Table of Contents
 

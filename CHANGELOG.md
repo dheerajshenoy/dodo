@@ -1,5 +1,10 @@
 # dodo
 
+## 0.3.0
+
+- Outline widget as a sidebar option
+- Outline hierarchy search support
+
 ## 0.2.4
 
 - Fix drag and drop not opening files
