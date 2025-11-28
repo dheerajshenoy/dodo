@@ -38,6 +38,7 @@ struct Config
     bool hscrollbar_shown{true};
     bool startup_tab{true};
     bool recent_files{true};
+    bool outline_as_side_panel{true};
 
     QString initial_fit{"none"};
     QString window_title_format{"{} - dodo"};
