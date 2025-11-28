@@ -278,6 +278,7 @@ dodo::initDefaults() noexcept
     m_config.colors["annot_rect"]   = "#55FF0000";
 
     m_config.dpi         = 300.0f;
+    m_config.dpr         = 1.0f;
     m_config.cache_pages = 10;
 
     m_config.remember_last_visited = true;
@@ -369,7 +370,9 @@ dodo::initConfig() noexcept
     m_config.colors["annot_rect"] = colors["annot_rect"].value_or("#55FF0000");
 
     auto rendering       = toml["rendering"];
-    m_config.dpi         = rendering["dpi"].value_or(300.0);
+    m_config.dpi         = rendering["dpi"].value_or(300.0f);
+    m_config.dpr = rendering["dpr"]
+                         .value_or(QApplication::primaryScreen()->devicePixelRatio());
     m_config.cache_pages = rendering["cache_pages"].value_or(10);
 
     auto behavior = toml["behavior"];
@@ -1325,7 +1328,8 @@ dodo::initConnections() noexcept
     QList<QScreen *> outputs = QGuiApplication::screens();
     connect(m_tab_widget, &QTabWidget::currentChanged, this,
             &dodo::handleCurrentTabChanged);
-    m_dpr = m_tab_widget->window()->devicePixelRatioF();
+    // m_dpr = m_tab_widget->window()->devicePixelRatioF();
+    m_dpr = m_config.dpr;
 
     QWindow *win = window()->windowHandle();
 
