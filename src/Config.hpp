@@ -30,7 +30,6 @@ struct Config
     bool icc_color_profile{true};
     bool invert_mode{false};
     bool page_nav_with_mouse{false};
-    bool compact{false};
     bool jump_marker_shown{true};
     bool full_filepath_in_panel{false};
     bool open_last_visited{false};
