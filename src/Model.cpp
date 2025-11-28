@@ -704,7 +704,6 @@ Model::getLinks() noexcept
                     const fz_link_dest dest
                         = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
                     const int pageno = dest.loc.page;
-                    const float ty   = (m_page_height - dest.y);
 
                     switch (dest.type)
                     {
@@ -715,7 +714,7 @@ Model::getLinks() noexcept
                                 qtRect, uri, BrowseLinkItem::LinkType::FitH,
                                 m_link_boundary);
                             item->setGotoPageNo(pageno);
-                            item->setXYZ({.x = 0, .y = ty, .zoom = 0});
+                            item->setXYZ({.x = 0, .y = dest.y, .zoom = 0});
                             connect(item,
                                     &BrowseLinkItem::horizontalFitRequested,
                                     this, &Model::horizontalFitRequested);
@@ -741,7 +740,7 @@ Model::getLinks() noexcept
                                 m_link_boundary);
                             item->setGotoPageNo(pageno);
                             item->setXYZ(
-                                {.x = dest.x, .y = ty, .zoom = dest.zoom});
+                                {.x = dest.x, .y = dest.y, .zoom = dest.zoom});
                             connect(item,
                                     &BrowseLinkItem::jumpToLocationRequested,
                                     this, &Model::jumpToLocationRequested);
