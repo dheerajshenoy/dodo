@@ -2,10 +2,6 @@
 
 #include "Annotation.hpp"
 #include "BrowseLinkItem.hpp"
-#include "HighlightItem.hpp"
-#include "LinkHint.hpp"
-#include "OutlineWidget.hpp"
-#include "RenderTask.hpp"
 
 #include <QFuture>
 #include <QImage>
@@ -164,7 +160,7 @@ public:
 
     QString selectAllText(const QPointF &start, const QPointF &end) noexcept;
     void initSaveOptions() noexcept;
-    fz_outline *getOutline() noexcept;
+    inline fz_outline *getOutline() noexcept { return m_outline; }
 
     inline fz_matrix transform() noexcept
     {
@@ -267,4 +263,5 @@ private:
     QColor m_selection_color;
     float m_page_height{0.0f};
     QUndoStack *m_undoStack;
+    fz_outline *m_outline{nullptr};
 };

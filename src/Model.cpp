@@ -102,6 +102,7 @@ Model::~Model()
     fz_drop_stext_page(m_ctx, m_text_page);
     fz_drop_page(m_ctx, m_page);
     fz_drop_document(m_ctx, m_doc);
+    fz_drop_outline(m_ctx, m_outline);
     fz_drop_context(m_ctx);
 }
 
@@ -139,12 +140,6 @@ Model::authenticate(const QString &pwd) noexcept
 {
     m_password = pwd.toStdString();
     return fz_authenticate_password(m_ctx, m_doc, m_password.c_str());
-}
-
-fz_outline *
-Model::getOutline() noexcept
-{
-    return fz_load_outline(m_ctx, m_doc);
 }
 
 fz_context *
@@ -190,6 +185,7 @@ Model::openFile(const QString &fileName)
         //     m_doc = fz_open_accelerated_document(m_ctx, CSTR(fileName),
         //     "/home/neo/accel");
         // }
+        m_outline = fz_load_outline(m_ctx, m_doc);
 
         if (!m_doc)
         {

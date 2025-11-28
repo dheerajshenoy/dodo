@@ -9,6 +9,7 @@
 #include "JumpMarker.hpp"
 #include "LinkHint.hpp"
 #include "Model.hpp"
+#include "OutlineWidget.hpp"
 #include "PropertiesWidget.hpp"
 
 #include <QFileDialog>
