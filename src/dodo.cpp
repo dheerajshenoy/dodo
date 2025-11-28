@@ -140,6 +140,8 @@ dodo::initMenubar() noexcept
     m_actionToggleOutline = viewMenu->addAction(
         QString("Outline\t%1").arg(m_config.shortcuts_map["outline"]), this,
         &dodo::ShowOutline);
+    m_actionToggleOutline->setCheckable(true);
+    m_actionToggleOutline->setChecked(!m_outline_widget->isHidden());
 
     m_actionToggleMenubar = viewMenu->addAction(
         QString("Menubar\t%1").arg(m_config.shortcuts_map["toggle_menubar"]),
@@ -1155,11 +1157,15 @@ dodo::ToggleAutoResize() noexcept
 void
 dodo::ShowOutline() noexcept
 {
-    // if (m_doc)
-    //     m_doc->ShowOutline();
-    if (m_doc)
+    if (m_outline_widget->isVisible())
     {
-        fz_outline *outline = m_doc->model()->getOutline();
+        m_outline_widget->hide();
+        m_actionToggleOutline->setChecked(false);
+    }
+    else
+    {
+        m_outline_widget->show();
+        m_actionToggleOutline->setChecked(true);
     }
 }
 
@@ -1299,6 +1305,9 @@ dodo::initConnections() noexcept
 
     connect(m_navMenu, &QMenu::aboutToShow, this,
             &dodo::updatePageNavigationActions);
+
+    connect(m_outline_widget, &OutlineWidget::jumpToPageRequested, this,
+            &dodo::gotoPage);
 }
 
 void
@@ -1336,6 +1345,7 @@ dodo::handleCurrentTabChanged(int index) noexcept
     updateMenuActions();
     updateUiEnabledState();
     updatePanel();
+
     m_outline_widget->setOutline(m_doc ? m_doc->model()->getOutline()
                                        : nullptr);
 

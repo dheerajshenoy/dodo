@@ -19,35 +19,35 @@ public:
         struct StackItem
         {
             fz_outline *node;
-            int level;
+            QStandardItem *parent;
         };
 
         StackItem stack[256];
-        int sp              = 0;
-        fz_outline *current = root;
-        int level           = 0;
+        int sp = 0;
+
+        fz_outline *current       = root;
+        QStandardItem *parentItem = invisibleRootItem();
 
         while (current || sp > 0)
         {
             while (current)
             {
-                QList<QStandardItem *> rowItems;
-                rowItems << new QStandardItem(QString::fromUtf8(current->title ? current->title : "<no title>"));
-                rowItems << new QStandardItem(QString::number(current->page.page + 1));
+                QStandardItem *titleItem = new QStandardItem(QString::fromUtf8(
+                    current->title ? current->title : "<no title>"));
+                QStandardItem *pageItem  = new QStandardItem(
+                    QString::number(current->page.page + 1));
 
-                // Indent by level
-                rowItems[0]->setData(level, Qt::UserRole);
-
-                appendRow(rowItems);
+                // Add row under the correct parent
+                parentItem->appendRow({titleItem, pageItem});
 
                 if (current->down)
                 {
                     if (current->next)
                     {
-                        stack[sp++] = {current->next, level};
+                        stack[sp++] = {current->next, parentItem};
                     }
-                    current = current->down;
-                    ++level;
+                    parentItem = titleItem; // new parent for children
+                    current    = current->down;
                 }
                 else
                 {
@@ -59,7 +59,7 @@ public:
             {
                 StackItem s = stack[--sp];
                 current     = s.node;
-                level       = s.level;
+                parentItem  = s.parent;
             }
         }
     }
