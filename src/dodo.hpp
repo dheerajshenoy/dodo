@@ -88,7 +88,7 @@ private:
     void FitHeight() noexcept;
     void FitWindow() noexcept;
     void ToggleAutoResize() noexcept;
-    void TableOfContents() noexcept;
+    void ShowOutline() noexcept;
     void InvertColor() noexcept;
     void TextSelectionMode() noexcept;
     void GoBackHistory() noexcept;
@@ -190,6 +190,7 @@ private:
     QAction *m_actionAnnotRect{nullptr};
     QAction *m_actionTextSelect{nullptr};
     QAction *m_actionAnnotEdit{nullptr};
+    OutlineWidget *m_outline_widget{nullptr};
 
     Config m_config;
     float m_dpr{1.0f};
