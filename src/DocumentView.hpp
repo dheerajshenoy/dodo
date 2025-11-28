@@ -92,7 +92,7 @@ public:
         return m_auto_resize;
     }
 
-    void setDPR(qreal DPR) noexcept;
+    void setDPR(qreal dpr) noexcept;
     void CloseFile() noexcept;
     void FileProperties() noexcept;
     bool FirstPage() noexcept;
