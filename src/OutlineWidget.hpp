@@ -78,7 +78,7 @@ public:
     OutlineWidget(QWidget *parent = nullptr) : QWidget(parent)
     {
         QVBoxLayout *layout = new QVBoxLayout(this);
-        searchEdit->setPlaceholderText("Search TOC...");
+        searchEdit->setPlaceholderText("Search Outline");
         layout->addWidget(searchEdit);
         setContentsMargins(0, 0, 0, 0);
 
