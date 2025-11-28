@@ -22,8 +22,8 @@ public:
     {
         QVariant original = QSqlTableModel::data(index, role);
 
-        if (role == Qt::DisplayRole &&
-            original.typeId() == QMetaType::Type::QString)
+        if (role == Qt::DisplayRole
+            && original.typeId() == QMetaType::Type::QString)
         {
             QString str = original.toString();
             if (str.startsWith(homePath))
