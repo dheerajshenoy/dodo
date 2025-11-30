@@ -4,18 +4,22 @@
 #include "HighlightItem.hpp"
 #include "PopupAnnotation.hpp"
 
+#include <QClipboard>
 #include <QDebug>
 #include <QGraphicsRectItem>
 #include <QGraphicsScene>
 #include <QImage>
+#include <mupdf/fitz/image.h>
 #include <qbytearrayview.h>
 #include <qnamespace.h>
 extern "C"
 {
-#include <mupdf/fitz.h>
 #include <mupdf/fitz/context.h>
+#include <mupdf/fitz/device.h>
+#include <mupdf/fitz/display-list.h>
 #include <mupdf/fitz/document.h>
 #include <mupdf/fitz/geometry.h>
+#include <mupdf/fitz/image.h>
 #include <mupdf/fitz/link.h>
 #include <mupdf/fitz/pixmap.h>
 #include <mupdf/fitz/structured-text.h>
@@ -1443,4 +1447,173 @@ Model::getMimeData(const QString &filepath) noexcept
 {
     QMimeDatabase db;
     return db.mimeTypeForFile(filepath).name();
+}
+
+// Function to get images from the PDF page
+QList<QImage>
+Model::getImagesFromPage(int pageno) noexcept
+{
+    QList<QImage> images;
+    fz_try(m_ctx)
+    {
+        fz_page *page          = fz_load_page(m_ctx, m_doc, pageno);
+        fz_display_list *dlist = fz_new_display_list(m_ctx, fz_rect{});
+        fz_device *dev         = fz_new_list_device(m_ctx, dlist);
+        fz_run_page(m_ctx, page, dev, m_transform, nullptr);
+        fz_drop_device(m_ctx, dev);
+
+        fz_stext_page *text_page
+            = fz_new_stext_page(m_ctx, fz_bound_page(m_ctx, page));
+        fz_stext_options options = {};
+        fz_new_stext_page_from_page(m_ctx, page, &options);
+
+        for (fz_stext_block *block = text_page->first_block; block;
+             block                 = block->next)
+        {
+            if (block->type == FZ_STEXT_BLOCK_IMAGE)
+            {
+                fz_image *img     = block->u.i.image;
+                fz_pixmap *pixmap = fz_get_pixmap_from_image(
+                    m_ctx, img, nullptr, &m_transform, &img->w, &img->h);
+                QImage qimg(fz_pixmap_width(m_ctx, pixmap),
+                            fz_pixmap_height(m_ctx, pixmap),
+                            QImage::Format_RGBA8888);
+                memcpy(qimg.bits(), fz_pixmap_samples(m_ctx, pixmap),
+                       fz_pixmap_width(m_ctx, pixmap)
+                           * fz_pixmap_height(m_ctx, pixmap) * 4);
+                images.append(qimg);
+                fz_drop_pixmap(m_ctx, pixmap);
+            }
+        }
+
+        fz_drop_stext_page(m_ctx, text_page);
+        fz_drop_display_list(m_ctx, dlist);
+        fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "MuPDF exception during image extraction on page"
+                   << pageno;
+    }
+    return images;
+}
+
+// Function to get image's location info from the PDF page
+QList<Model::ElementInfo>
+Model::getImageInfoFromPage(int pageno) noexcept
+{
+    QList<Model::ElementInfo> result;
+    fz_try(m_ctx)
+    {
+        fz_page *page          = fz_load_page(m_ctx, m_doc, pageno);
+        fz_display_list *dlist = fz_new_display_list(m_ctx, fz_rect{});
+        fz_device *dev         = fz_new_list_device(m_ctx, dlist);
+        fz_run_page(m_ctx, page, dev, m_transform, nullptr);
+        fz_drop_device(m_ctx, dev);
+
+        fz_stext_page *text_page
+            = fz_new_stext_page(m_ctx, fz_bound_page(m_ctx, page));
+        fz_stext_options options = {};
+        fz_new_stext_page_from_page(m_ctx, page, &options);
+
+        qDebug() << "Scanning page" << pageno << "for images...";
+        for (fz_stext_block *block = text_page->first_block; block;
+             block                 = block->next)
+        {
+            qDebug() << "Block type:" << block->type;
+            if (block->type == FZ_STEXT_BLOCK_IMAGE)
+            {
+                Model::ElementInfo loc{.bbox   = block->bbox,
+                                       .pageno = pageno,
+                                       .type   = Model::ElementType::IMAGE};
+
+                result.append(loc);
+                qDebug() << "Found image on page" << pageno
+                         << "at bbox:" << loc.bbox.x0 << loc.bbox.y0
+                         << loc.bbox.x1 << loc.bbox.y1;
+            }
+        }
+
+        fz_drop_stext_page(m_ctx, text_page);
+        fz_drop_display_list(m_ctx, dlist);
+        fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "MuPDF exception during image extraction on page"
+                   << pageno;
+    }
+    return result;
+}
+
+/* Function to hit-test an image at a specific position on the PDF page
+   Returns the fz_pixmap of the image if found, nullptr otherwise
+   Caller is responsible for dropping the returned fz_pixmap */
+fz_pixmap *
+Model::hitTestImage(int pageno, const QPointF &pagePos) noexcept
+{
+    fz_pixmap *result{nullptr};
+    fz_try(m_ctx)
+    {
+        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+
+        ImageHitTestDevice *dev = reinterpret_cast<ImageHitTestDevice *>(
+            fz_new_device_of_size(m_ctx, sizeof(ImageHitTestDevice)));
+
+        dev->query            = pagePos;
+        dev->super.fill_image = hit_test_image;
+        dev->img              = nullptr;
+
+        fz_run_page(m_ctx, page, (fz_device *)dev, m_transform, nullptr);
+
+        result = fz_get_pixmap_from_image(
+            m_ctx, dev->img, nullptr, &m_transform, nullptr, nullptr);
+
+        // fz_drop_pixmap(m_ctx, result);
+        fz_drop_device(m_ctx, (fz_device *)dev);
+        fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "MuPDF exception during on-demand image hit-test";
+    }
+
+    return result;
+}
+
+// Function to save image at a specific position on the PDF page to a file named
+// `filename`
+void
+Model::SavePixmap(fz_pixmap *pixmap, const QString &filename) noexcept
+{
+    if (!pixmap || filename.isEmpty())
+        return;
+    FILE *file        = fopen(filename.toStdString().c_str(), "wb");
+    fz_output *output = fz_new_output_with_file_ptr(m_ctx, file);
+    if (filename.endsWith(".psd", Qt::CaseInsensitive))
+        fz_write_pixmap_as_psd(m_ctx, output, pixmap);
+    else if (filename.endsWith(".jpg", Qt::CaseInsensitive)
+             || filename.endsWith(".jpeg", Qt::CaseInsensitive))
+        fz_write_pixmap_as_jpeg(m_ctx, output, pixmap, 100, 0);
+    else // default to PNG
+        fz_write_pixmap_as_png(m_ctx, output, pixmap);
+    fz_close_output(m_ctx, output);
+    fz_drop_output(m_ctx, output);
+    fz_drop_pixmap(m_ctx, pixmap);
+}
+
+void
+Model::CopyPixmapToClipboard(fz_pixmap *pixmap) noexcept
+{
+    if (!pixmap)
+        return;
+
+    QImage qimg(fz_pixmap_samples(m_ctx, pixmap),
+                fz_pixmap_width(m_ctx, pixmap), fz_pixmap_height(m_ctx, pixmap),
+                fz_pixmap_stride(m_ctx, pixmap), QImage::Format_RGB888);
+
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    clipboard->setImage(qimg);
+
+    fz_drop_pixmap(m_ctx, pixmap);
 }
