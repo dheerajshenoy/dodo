@@ -97,6 +97,11 @@ dodo::initMenubar() noexcept
         &dodo::ToggleFullscreen);
     m_actionFullscreen->setCheckable(true);
 
+    // Write code for Control for getting list of figures in the document
+    viewMenu->addAction(
+        QString("Figures\t%1").arg(m_config.shortcuts["figures"]), this,
+        [&]() { m_doc->model()->getImageInfoFromPage(m_doc->pageNo()); });
+
     m_actionZoomIn = viewMenu->addAction(
         QString("Zoom In\t%1").arg(m_config.shortcuts["zoom_in"]), this,
         &dodo::ZoomIn);
@@ -263,6 +268,7 @@ dodo::initDefaults() noexcept
     m_config.ui.jump_marker_shown      = true;
     m_config.ui.full_filepath_in_panel = false;
     m_config.ui.zoom                   = 1.0f;
+    m_config.ui.outline_shown          = false;
     m_config.ui.window_title_format    = "%1 - dodo";
     m_config.ui.link_hint_size         = 16.0f;
 
@@ -324,6 +330,7 @@ dodo::initConfig() noexcept
     m_config.ui.startup_tab    = ui["startup_tab"].value_or(true);
     m_config.ui.auto_hide_tabs = ui["auto_hide_tabs"].value_or(false);
     m_config.ui.panel_shown    = ui["panel"].value_or(true);
+    m_config.ui.outline_shown  = ui["outline"].value_or(false);
     m_config.ui.menubar_shown  = ui["menubar"].value_or(true);
     m_config.ui.tabs_shown     = ui["tabs"].value_or(true);
 
@@ -504,6 +511,7 @@ dodo::initGui() noexcept
     m_message_bar->setVisible(false);
 
     m_outline_widget = new OutlineWidget(this);
+    m_outline_widget->setVisible(m_config.ui.outline_shown);
 
     widget->setLayout(m_layout);
 
@@ -527,7 +535,10 @@ dodo::initGui() noexcept
     }
     else
     {
-        m_layout->addWidget(m_tab_widget);
+        m_layout->addWidget(m_tab_widget, 1);
+        // Make the outline a popup panel
+        m_outline_widget->setWindowFlags(Qt::Dialog);
+        m_outline_widget->setWindowModality(Qt::NonModal);
     }
 
     m_layout->addWidget(m_command_bar);
@@ -1174,6 +1185,7 @@ dodo::ShowOutline() noexcept
         m_outline_widget->show();
         m_actionToggleOutline->setChecked(true);
     }
+    qDebug() << "Outline shown: " << m_outline_widget->isVisible();
 }
 
 void
