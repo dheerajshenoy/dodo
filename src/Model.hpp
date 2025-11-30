@@ -136,6 +136,11 @@ public:
         return m_rotation;
     }
 
+    inline void setRotation(float rotation) noexcept
+    {
+        m_rotation = rotation;
+    }
+
     inline fz_context *context() noexcept
     {
         return m_ctx;
