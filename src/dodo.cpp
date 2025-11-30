@@ -52,20 +52,20 @@ dodo::initMenubar() noexcept
     // --- File Menu ---
     QMenu *fileMenu = m_menuBar->addMenu("&File");
     fileMenu->addAction(
-        QString("Open File\t%1").arg(m_config.shortcuts_map["open_file"]), this,
+        QString("Open File\t%1").arg(m_config.shortcuts["open_file"]), this,
         [&]() { OpenFile(); });
-    m_actionFileProperties = fileMenu->addAction(
-        QString("File Properties\t%1")
-            .arg(m_config.shortcuts_map["file_properties"]),
-        this, &dodo::FileProperties);
+    m_actionFileProperties
+        = fileMenu->addAction(QString("File Properties\t%1")
+                                  .arg(m_config.shortcuts["file_properties"]),
+                              this, &dodo::FileProperties);
 
     m_actionSaveFile = fileMenu->addAction(
-        QString("Save File\t%1").arg(m_config.shortcuts_map["save"]), this,
+        QString("Save File\t%1").arg(m_config.shortcuts["save"]), this,
         &dodo::SaveFile);
 
     m_actionSaveAsFile = fileMenu->addAction(
-        QString("Save As File\t%1").arg(m_config.shortcuts_map["save_as"]),
-        this, &dodo::SaveAsFile);
+        QString("Save As File\t%1").arg(m_config.shortcuts["save_as"]), this,
+        &dodo::SaveAsFile);
 
     QMenu *sessionMenu = fileMenu->addMenu("Session");
 
@@ -74,8 +74,8 @@ dodo::initMenubar() noexcept
     sessionMenu->addAction("Load", this, [&]() { LoadSession(); });
 
     m_actionCloseFile = fileMenu->addAction(
-        QString("Close File\t%1").arg(m_config.shortcuts_map["close_file"]),
-        this, &dodo::CloseFile);
+        QString("Close File\t%1").arg(m_config.shortcuts["close_file"]), this,
+        &dodo::CloseFile);
 
     m_recentFilesMenu = fileMenu->addMenu("Recent Files");
     fileMenu->addSeparator();
@@ -83,27 +83,25 @@ dodo::initMenubar() noexcept
 
     QMenu *editMenu = m_menuBar->addMenu("&Edit");
     m_actionUndo    = editMenu->addAction(
-        QString("Undo\t%1").arg(m_config.shortcuts_map["undo"]), this,
-        &dodo::Undo);
+        QString("Undo\t%1").arg(m_config.shortcuts["undo"]), this, &dodo::Undo);
     m_actionRedo = editMenu->addAction(
-        QString("Redo\t%1").arg(m_config.shortcuts_map["redo"]), this,
-        &dodo::Redo);
-    editMenu->addAction(QString("Last Pages\t%1")
-                            .arg(m_config.shortcuts_map["edit_last_pages"]),
-                        this, &dodo::editLastPages);
+        QString("Redo\t%1").arg(m_config.shortcuts["redo"]), this, &dodo::Redo);
+    editMenu->addAction(
+        QString("Last Pages\t%1").arg(m_config.shortcuts["edit_last_pages"]),
+        this, &dodo::editLastPages);
 
     // --- View Menu ---
     QMenu *viewMenu    = m_menuBar->addMenu("&View");
     m_actionFullscreen = viewMenu->addAction(
-        QString("Fullscreen\t%1").arg(m_config.shortcuts_map["fullscreen"]),
-        this, &dodo::ToggleFullscreen);
+        QString("Fullscreen\t%1").arg(m_config.shortcuts["fullscreen"]), this,
+        &dodo::ToggleFullscreen);
     m_actionFullscreen->setCheckable(true);
 
     m_actionZoomIn = viewMenu->addAction(
-        QString("Zoom In\t%1").arg(m_config.shortcuts_map["zoom_in"]), this,
+        QString("Zoom In\t%1").arg(m_config.shortcuts["zoom_in"]), this,
         &dodo::ZoomIn);
     m_actionZoomOut = viewMenu->addAction(
-        QString("Zoom Out\t%1").arg(m_config.shortcuts_map["zoom_out"]), this,
+        QString("Zoom Out\t%1").arg(m_config.shortcuts["zoom_out"]), this,
         &dodo::ZoomOut);
 
     viewMenu->addSeparator();
@@ -111,61 +109,62 @@ dodo::initMenubar() noexcept
     m_fitMenu = viewMenu->addMenu("Fit");
 
     m_actionFitNone = m_fitMenu->addAction(
-        QString("None\t%1").arg(m_config.shortcuts_map["fit_none"]), this,
+        QString("None\t%1").arg(m_config.shortcuts["fit_none"]), this,
         &dodo::FitNone);
 
     m_actionFitWidth = m_fitMenu->addAction(
-        QString("Width\t%1").arg(m_config.shortcuts_map["fit_width"]), this,
+        QString("Width\t%1").arg(m_config.shortcuts["fit_width"]), this,
         &dodo::FitWidth);
 
     m_actionFitHeight = m_fitMenu->addAction(
-        QString("Height\t%1").arg(m_config.shortcuts_map["fit_height"]), this,
+        QString("Height\t%1").arg(m_config.shortcuts["fit_height"]), this,
         &dodo::FitHeight);
 
     m_actionFitWindow = m_fitMenu->addAction(
-        QString("Window\t%1").arg(m_config.shortcuts_map["fit_window"]), this,
+        QString("Window\t%1").arg(m_config.shortcuts["fit_window"]), this,
         &dodo::FitWindow);
 
     m_fitMenu->addSeparator();
 
     // Auto Resize toggle (independent)
     m_actionAutoresize = m_fitMenu->addAction(
-        QString("Auto Resize\t%1").arg(m_config.shortcuts_map["auto_resize"]),
-        this, &dodo::ToggleAutoResize);
+        QString("Auto Resize\t%1").arg(m_config.shortcuts["auto_resize"]), this,
+        &dodo::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
-    m_actionAutoresize->setChecked(m_config.auto_resize); // default on or off
+    m_actionAutoresize->setChecked(
+        m_config.ui.auto_resize); // default on or off
 
     viewMenu->addSeparator();
 
     m_actionToggleOutline = viewMenu->addAction(
-        QString("Outline\t%1").arg(m_config.shortcuts_map["outline"]), this,
+        QString("Outline\t%1").arg(m_config.shortcuts["outline"]), this,
         &dodo::ShowOutline);
     m_actionToggleOutline->setCheckable(true);
     m_actionToggleOutline->setChecked(!m_outline_widget->isHidden());
 
     m_actionToggleMenubar = viewMenu->addAction(
-        QString("Menubar\t%1").arg(m_config.shortcuts_map["toggle_menubar"]),
-        this, &dodo::ToggleMenubar);
+        QString("Menubar\t%1").arg(m_config.shortcuts["toggle_menubar"]), this,
+        &dodo::ToggleMenubar);
     m_actionToggleMenubar->setCheckable(true);
     m_actionToggleMenubar->setChecked(!m_menuBar->isHidden());
 
     m_actionToggleTabBar = viewMenu->addAction(
-        QString("Tabs\t%1").arg(m_config.shortcuts_map["toggle_tabs"]), this,
+        QString("Tabs\t%1").arg(m_config.shortcuts["toggle_tabs"]), this,
         &dodo::ToggleTabBar);
     m_actionToggleTabBar->setCheckable(true);
     m_actionToggleTabBar->setChecked(!m_tab_widget->tabBar()->isHidden());
 
     m_actionTogglePanel = viewMenu->addAction(
-        QString("Panel\t%1").arg(m_config.shortcuts_map["toggle_panel"]), this,
+        QString("Panel\t%1").arg(m_config.shortcuts["toggle_panel"]), this,
         &dodo::TogglePanel);
     m_actionTogglePanel->setCheckable(true);
     m_actionTogglePanel->setChecked(!m_panel->isHidden());
 
     m_actionInvertColor = viewMenu->addAction(
-        QString("Invert Color\t%1").arg(m_config.shortcuts_map["invert_color"]),
+        QString("Invert Color\t%1").arg(m_config.shortcuts["invert_color"]),
         this, &dodo::InvertColor);
     m_actionInvertColor->setCheckable(true);
-    m_actionInvertColor->setChecked(m_config.invert_mode);
+    m_actionInvertColor->setChecked(m_config.behavior.invert_mode);
 
     QMenu *toolsMenu = m_menuBar->addMenu("Tools");
 
@@ -179,23 +178,20 @@ dodo::initMenubar() noexcept
     selectionActionGroup->addAction(m_actionTextSelect);
 
     m_actionTextHighlight = toolsMenu->addAction(
-        QString("Text Highlight\t%1")
-            .arg(m_config.shortcuts_map["text_highlight"]),
+        QString("Text Highlight\t%1").arg(m_config.shortcuts["text_highlight"]),
         this, &dodo::ToggleTextHighlight);
     m_actionTextHighlight->setCheckable(true);
     selectionActionGroup->addAction(m_actionTextHighlight);
 
-    m_actionAnnotRect
-        = toolsMenu->addAction(QString("Annotate Rectangle\t%1")
-                                   .arg(m_config.shortcuts_map["annot_rect"]),
-                               this, &dodo::ToggleRectAnnotation);
+    m_actionAnnotRect = toolsMenu->addAction(
+        QString("Annotate Rectangle\t%1").arg(m_config.shortcuts["annot_rect"]),
+        this, &dodo::ToggleRectAnnotation);
     m_actionAnnotRect->setCheckable(true);
     selectionActionGroup->addAction(m_actionAnnotRect);
 
-    m_actionAnnotEdit
-        = toolsMenu->addAction(QString("Edit Annotations\t%1")
-                                   .arg(m_config.shortcuts_map["annot_edit"]),
-                               this, &dodo::ToggleAnnotSelect);
+    m_actionAnnotEdit = toolsMenu->addAction(
+        QString("Edit Annotations\t%1").arg(m_config.shortcuts["annot_edit"]),
+        this, &dodo::ToggleAnnotSelect);
     m_actionAnnotEdit->setCheckable(true);
     selectionActionGroup->addAction(m_actionAnnotEdit);
 
@@ -203,40 +199,40 @@ dodo::initMenubar() noexcept
     m_navMenu = m_menuBar->addMenu("&Navigation");
 
     m_navMenu->addAction(
-        QString("StartPage").arg(m_config.shortcuts_map["startpage"]), this,
+        QString("StartPage").arg(m_config.shortcuts["startpage"]), this,
         &dodo::showStartupWidget);
 
     m_actionGotoPage = m_navMenu->addAction(
-        QString("Goto Page\t%1").arg(m_config.shortcuts_map["goto_page"]), this,
+        QString("Goto Page\t%1").arg(m_config.shortcuts["goto_page"]), this,
         &dodo::GotoPage);
 
     m_actionFirstPage = m_navMenu->addAction(
-        QString("First Page\t%1").arg(m_config.shortcuts_map["first_page"]),
-        this, &dodo::FirstPage);
+        QString("First Page\t%1").arg(m_config.shortcuts["first_page"]), this,
+        &dodo::FirstPage);
 
     m_actionPrevPage = m_navMenu->addAction(
-        QString("Previous Page\t%1").arg(m_config.shortcuts_map["prev_page"]),
-        this, &dodo::PrevPage);
+        QString("Previous Page\t%1").arg(m_config.shortcuts["prev_page"]), this,
+        &dodo::PrevPage);
 
     m_actionNextPage = m_navMenu->addAction(
-        QString("Next Page\t%1").arg(m_config.shortcuts_map["next_page"]), this,
+        QString("Next Page\t%1").arg(m_config.shortcuts["next_page"]), this,
         &dodo::NextPage);
     m_actionLastPage = m_navMenu->addAction(
-        QString("Last Page\t%1").arg(m_config.shortcuts_map["last_page"]), this,
+        QString("Last Page\t%1").arg(m_config.shortcuts["last_page"]), this,
         &dodo::LastPage);
 
-    m_actionPrevLocation = m_navMenu->addAction(
-        QString("Previous Location\t%1")
-            .arg(m_config.shortcuts_map["prev_location"]),
-        this, &dodo::GoBackHistory);
+    m_actionPrevLocation
+        = m_navMenu->addAction(QString("Previous Location\t%1")
+                                   .arg(m_config.shortcuts["prev_location"]),
+                               this, &dodo::GoBackHistory);
 
     QMenu *helpMenu = m_menuBar->addMenu("&Help");
     m_actionAbout   = helpMenu->addAction(
-        QString("About\t%1").arg(m_config.shortcuts_map["about"]), this,
+        QString("About\t%1").arg(m_config.shortcuts["about"]), this,
         &dodo::ShowAbout);
     helpMenu->addAction(
-        QString("Keybindings\t%1").arg(m_config.shortcuts_map["keybindings"]),
-        this, &dodo::ShowKeybindings);
+        QString("Keybindings\t%1").arg(m_config.shortcuts["keybindings"]), this,
+        &dodo::ShowKeybindings);
 
     updateUiEnabledState();
 }
@@ -264,32 +260,32 @@ dodo::initDB() noexcept
 void
 dodo::initDefaults() noexcept
 {
-    m_config.jump_marker_shown      = true;
-    m_config.full_filepath_in_panel = false;
-    m_config.zoom                   = 1.0f;
-    m_config.window_title_format    = "%1 - dodo";
+    m_config.ui.jump_marker_shown      = true;
+    m_config.ui.full_filepath_in_panel = false;
+    m_config.ui.zoom                   = 1.0f;
+    m_config.ui.window_title_format    = "%1 - dodo";
+    m_config.ui.link_hint_size         = 16.0f;
 
-    m_config.colors["search_index"] = "#3daee944";
-    m_config.colors["search_match"] = "#55FF8844";
-    m_config.colors["accent"]       = "#FF500044";
-    m_config.colors["background"]   = "#00000000";
-    m_config.colors["link_hint_fg"] = "#000000";
-    m_config.colors["link_hint_bg"] = "#FFFF00";
-    m_config.colors["highlight"]    = "#55FFFF00";
-    m_config.colors["selection"]    = "#55000055";
-    m_config.colors["jump_marker"]  = "#FFFF0000";
-    m_config.colors["annot_rect"]   = "#55FF0000";
+    m_config.ui.colors["search_index"] = "#3daee944";
+    m_config.ui.colors["search_match"] = "#55FF8844";
+    m_config.ui.colors["accent"]       = "#FF500044";
+    m_config.ui.colors["background"]   = "#00000000";
+    m_config.ui.colors["link_hint_fg"] = "#000000";
+    m_config.ui.colors["link_hint_bg"] = "#FFFF00";
+    m_config.ui.colors["highlight"]    = "#55FFFF00";
+    m_config.ui.colors["selection"]    = "#55000055";
+    m_config.ui.colors["jump_marker"]  = "#FFFF0000";
+    m_config.ui.colors["annot_rect"]   = "#55FF0000";
 
-    m_config.dpi            = 300.0f;
-    m_config.dpr            = 1.0f;
-    m_config.cache_pages    = 10;
-    m_config.link_hint_size = 16.0f;
+    m_config.rendering.dpi        = 300.0f;
+    m_config.rendering.dpr        = 1.0f;
+    m_config.behavior.cache_pages = 10;
 
-    m_config.remember_last_visited = true;
-    m_config.page_history_limit    = 10;
-    m_config.auto_resize           = false;
-    m_config.zoom_by               = 1.25;
-    m_config.initial_fit           = "width";
+    m_config.behavior.remember_last_visited = true;
+    m_config.behavior.page_history_limit    = 10;
+    m_config.ui.auto_resize                 = false;
+    m_config.ui.zoom_by                     = 1.25;
+    m_config.ui.initial_fit                 = "width";
 }
 
 // Initialize the config related stuff
@@ -325,75 +321,82 @@ dodo::initConfig() noexcept
 
     auto ui = toml["ui"];
 
-    m_config.startup_tab    = ui["startup_tab"].value_or(true);
-    m_config.auto_hide_tabs = ui["auto_hide_tabs"].value_or(false);
-    m_config.panel_shown    = ui["panel"].value_or(true);
-    m_config.menubar_shown  = ui["menubar"].value_or(true);
-    m_config.tabs_shown     = ui["tabs"].value_or(true);
+    m_config.ui.startup_tab    = ui["startup_tab"].value_or(true);
+    m_config.ui.auto_hide_tabs = ui["auto_hide_tabs"].value_or(false);
+    m_config.ui.panel_shown    = ui["panel"].value_or(true);
+    m_config.ui.menubar_shown  = ui["menubar"].value_or(true);
+    m_config.ui.tabs_shown     = ui["tabs"].value_or(true);
 
     if (ui["fullscreen"].value_or(false))
         this->showFullScreen();
 
-    m_config.link_hint_size = ui["link_hint_size"].value_or(0.5f);
+    m_config.ui.link_hint_size = ui["link_hint_size"].value_or(0.5f);
 
-    m_config.outline_as_side_panel = ui["outline_as_side_panel"].value_or(true);
-    m_config.outline_panel_width   = ui["outline_panel_width"].value_or(300);
-    m_config.vscrollbar_shown      = ui["vscrollbar"].value_or(true);
-    m_config.hscrollbar_shown      = ui["hscrollbar"].value_or(true);
-    m_config.selection_drag_threshold
+    m_config.ui.outline_as_side_panel
+        = ui["outline_as_side_panel"].value_or(true);
+    m_config.ui.outline_panel_width = ui["outline_panel_width"].value_or(300);
+    m_config.ui.vscrollbar_shown    = ui["vscrollbar"].value_or(true);
+    m_config.ui.hscrollbar_shown    = ui["hscrollbar"].value_or(true);
+    m_config.ui.selection_drag_threshold
         = ui["selection_drag_threshold"].value_or(50);
-    m_config.jump_marker_shown = ui["jump_marker"].value_or(true);
-    m_config.full_filepath_in_panel
+    m_config.ui.jump_marker_shown = ui["jump_marker"].value_or(true);
+    m_config.ui.full_filepath_in_panel
         = ui["full_file_path_in_panel"].value_or(false);
-    m_config.zoom          = ui["zoom_level"].value_or(1.0);
-    m_config.link_boundary = ui["link_boundary"].value_or(false);
+    m_config.ui.zoom          = ui["zoom_level"].value_or(1.0);
+    m_config.ui.link_boundary = ui["link_boundary"].value_or(false);
     QString window_title
         = QString::fromStdString(ui["window_title"].value_or("{} - dodo"));
     window_title.replace("{}", "%1");
-    m_config.window_title_format = window_title;
+    m_config.ui.window_title_format = window_title;
 
     auto colors = toml["colors"];
 
-    m_config.colors["search_index"]
+    m_config.ui.colors["search_index"]
         = colors["search_index"].value_or("#3daee944");
-    m_config.colors["search_match"]
+    m_config.ui.colors["search_match"]
         = colors["search_match"].value_or("#FFFF8844");
-    m_config.colors["accent"]     = colors["accent"].value_or("#FF500044");
-    m_config.colors["background"] = colors["background"].value_or("#FFFFFF");
-    m_config.colors["link_hint_fg"]
+    m_config.ui.colors["accent"]     = colors["accent"].value_or("#FF500044");
+    m_config.ui.colors["background"] = colors["background"].value_or("#FFFFFF");
+    m_config.ui.colors["link_hint_fg"]
         = colors["link_hint_fg"].value_or("#000000");
-    m_config.colors["link_hint_bg"]
+    m_config.ui.colors["link_hint_bg"]
         = colors["link_hint_bg"].value_or("#FFFF00");
-    m_config.colors["highlight"] = colors["highlight"].value_or("#55FFFF00");
-    m_config.colors["selection"] = colors["selection"].value_or("#550000FF");
-    m_config.colors["jump_marker"]
+    m_config.ui.colors["highlight"] = colors["highlight"].value_or("#55FFFF00");
+    m_config.ui.colors["selection"] = colors["selection"].value_or("#550000FF");
+    m_config.ui.colors["jump_marker"]
         = colors["jump_marker"].value_or("#FFFF0000");
-    m_config.colors["annot_rect"] = colors["annot_rect"].value_or("#55FF0000");
+    m_config.ui.colors["annot_rect"]
+        = colors["annot_rect"].value_or("#55FF0000");
 
-    auto rendering = toml["rendering"];
-    m_config.dpi   = rendering["dpi"].value_or(300.0f);
-    m_config.dpr   = rendering["dpr"].value_or(
+    auto rendering         = toml["rendering"];
+    m_config.rendering.dpi = rendering["dpi"].value_or(300.0f);
+    m_config.rendering.dpr = rendering["dpr"].value_or(
         QApplication::primaryScreen()->devicePixelRatio());
-    m_config.cache_pages = rendering["cache_pages"].value_or(10);
+    m_config.behavior.cache_pages = rendering["cache_pages"].value_or(10);
 
     auto behavior = toml["behavior"];
-    m_config.remember_last_visited
+    m_config.behavior.remember_last_visited
         = behavior["remember_last_visited"].value_or(true);
-    m_config.open_last_visited  = behavior["open_last_visited"].value_or(false);
-    m_config.page_history_limit = behavior["page_history"].value_or(100);
-    m_config.antialiasing_bits  = behavior["antialasing_bits"].value_or(8);
-    m_config.auto_resize        = behavior["auto_resize"].value_or(false);
-    m_config.zoom_by            = behavior["zoom_factor"].value_or(1.25);
-    m_config.page_nav_with_mouse
+    m_config.behavior.open_last_visited
+        = behavior["open_last_visited"].value_or(false);
+    m_config.behavior.page_history_limit
+        = behavior["page_history"].value_or(100);
+    m_config.rendering.antialiasing_bits
+        = behavior["antialasing_bits"].value_or(8);
+    m_config.ui.auto_resize = behavior["auto_resize"].value_or(false);
+    m_config.ui.zoom_by     = behavior["zoom_factor"].value_or(1.25);
+    m_config.ui.page_nav_with_mouse
         = behavior["page_nav_with_mouse"].value_or(false);
-    m_config.synctex_editor_command = QString::fromStdString(
+    m_config.behavior.synctex_editor_command = QString::fromStdString(
         behavior["synctex_editor_command"].value_or(""));
-    m_config.invert_mode       = behavior["invert_mode"].value_or(false);
-    m_config.icc_color_profile = behavior["icc_color_profile"].value_or(true);
-    m_config.initial_fit       = behavior["initial_fit"].value_or("width");
+    m_config.behavior.invert_mode = behavior["invert_mode"].value_or(false);
+    m_config.rendering.icc_color_profile
+        = behavior["icc_color_profile"].value_or(true);
+    m_config.ui.initial_fit = behavior["initial_fit"].value_or("width");
     // m_config.auto_reload       = behavior["auto_reload"].value_or(true);
-    m_config.recent_files     = behavior["recent_files"].value_or(true);
-    m_config.num_recent_files = behavior["num_recent_files"].value_or(10);
+    m_config.behavior.recent_files = behavior["recent_files"].value_or(true);
+    m_config.behavior.num_recent_files
+        = behavior["num_recent_files"].value_or(10);
 
     // if (m_config.auto_reload)
     // {
@@ -419,32 +422,32 @@ dodo::initConfig() noexcept
 void
 dodo::initKeybinds() noexcept
 {
-    m_config.shortcuts_map["undo"]            = "u";
-    m_config.shortcuts_map["redo"]            = "Ctrl+r";
-    m_config.shortcuts_map["toggle_menubar"]  = "Ctrl+Shift+m";
-    m_config.shortcuts_map["invert_color"]    = "b";
-    m_config.shortcuts_map["link_hint_visit"] = "f";
-    m_config.shortcuts_map["save"]            = "Ctrl+s";
-    m_config.shortcuts_map["text_highlight"]  = "Alt+1";
-    m_config.shortcuts_map["annot_rect"]      = "Alt+2";
-    m_config.shortcuts_map["annot_edit"]      = "Alt+3";
-    m_config.shortcuts_map["outline"]         = "t";
-    m_config.shortcuts_map["search"]          = "/";
-    m_config.shortcuts_map["search_next"]     = "n";
-    m_config.shortcuts_map["search_prev"]     = "Shift+n";
-    m_config.shortcuts_map["zoom_in"]         = "+";
-    m_config.shortcuts_map["zoom_out"]        = "-";
-    m_config.shortcuts_map["zoom_reset"]      = "0";
-    m_config.shortcuts_map["prev_location"]   = "Ctrl+o";
-    m_config.shortcuts_map["open"]            = "o";
-    m_config.shortcuts_map["scroll_left"]     = "h";
-    m_config.shortcuts_map["scroll_down"]     = "j";
-    m_config.shortcuts_map["scroll_up"]       = "k";
-    m_config.shortcuts_map["scroll_right"]    = "l";
-    m_config.shortcuts_map["next_page"]       = "Shift+j";
-    m_config.shortcuts_map["prev_page"]       = "Shift+k";
-    m_config.shortcuts_map["first_page"]      = "g,g";
-    m_config.shortcuts_map["last_page"]       = "Shift+g";
+    m_config.shortcuts["undo"]            = "u";
+    m_config.shortcuts["redo"]            = "Ctrl+r";
+    m_config.shortcuts["toggle_menubar"]  = "Ctrl+Shift+m";
+    m_config.shortcuts["invert_color"]    = "b";
+    m_config.shortcuts["link_hint_visit"] = "f";
+    m_config.shortcuts["save"]            = "Ctrl+s";
+    m_config.shortcuts["text_highlight"]  = "Alt+1";
+    m_config.shortcuts["annot_rect"]      = "Alt+2";
+    m_config.shortcuts["annot_edit"]      = "Alt+3";
+    m_config.shortcuts["outline"]         = "t";
+    m_config.shortcuts["search"]          = "/";
+    m_config.shortcuts["search_next"]     = "n";
+    m_config.shortcuts["search_prev"]     = "Shift+n";
+    m_config.shortcuts["zoom_in"]         = "+";
+    m_config.shortcuts["zoom_out"]        = "-";
+    m_config.shortcuts["zoom_reset"]      = "0";
+    m_config.shortcuts["prev_location"]   = "Ctrl+o";
+    m_config.shortcuts["open"]            = "o";
+    m_config.shortcuts["scroll_left"]     = "h";
+    m_config.shortcuts["scroll_down"]     = "j";
+    m_config.shortcuts["scroll_up"]       = "k";
+    m_config.shortcuts["scroll_right"]    = "l";
+    m_config.shortcuts["next_page"]       = "Shift+j";
+    m_config.shortcuts["prev_page"]       = "Shift+k";
+    m_config.shortcuts["first_page"]      = "g,g";
+    m_config.shortcuts["last_page"]       = "Shift+g";
 
     std::vector<std::pair<QString, std::function<void()>>> shortcuts = {
         {":", [this]() { invokeCommand(); }},
@@ -506,7 +509,7 @@ dodo::initGui() noexcept
 
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
-    if (m_config.outline_as_side_panel)
+    if (m_config.ui.outline_as_side_panel)
     {
         QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
         splitter->addWidget(m_outline_widget);
@@ -518,8 +521,8 @@ dodo::initGui() noexcept
         splitter->setHandleWidth(1);
         splitter->setContentsMargins(0, 0, 0, 0);
         splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-        splitter->setSizes({m_config.outline_panel_width,
-                            this->width() - m_config.outline_panel_width});
+        splitter->setSizes({m_config.ui.outline_panel_width,
+                            this->width() - m_config.ui.outline_panel_width});
         m_layout->addWidget(splitter, 1);
     }
     else
@@ -535,10 +538,10 @@ dodo::initGui() noexcept
     m_menuBar = this->menuBar(); // initialize here so that the config
                                  // visibility works
 
-    m_tab_widget->setTabBarAutoHide(m_config.auto_hide_tabs);
-    m_panel->setVisible(m_config.panel_shown);
-    m_menuBar->setVisible(m_config.menubar_shown);
-    m_tab_widget->tabBar()->setVisible(m_config.tabs_shown);
+    m_tab_widget->setTabBarAutoHide(m_config.ui.auto_hide_tabs);
+    m_panel->setVisible(m_config.ui.panel_shown);
+    m_menuBar->setVisible(m_config.ui.menubar_shown);
+    m_tab_widget->tabBar()->setVisible(m_config.ui.tabs_shown);
 
     // Remove padding and shit
     // m_tab_widget->tabBar()->setContentsMargins(0, 0, 0, 0);
@@ -588,7 +591,7 @@ dodo::setupKeybinding(const QString &action, const QString &key) noexcept
     QShortcut *shortcut = new QShortcut(QKeySequence(key), this);
     connect(shortcut, &QShortcut::activated, this, [=]() { it.value()({}); });
 
-    m_config.shortcuts_map[action] = key;
+    m_config.shortcuts[action] = key;
 }
 
 // Toggles the fullscreen mode
@@ -651,11 +654,11 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
     }
 
     if (argparser.is_used("--page"))
-        m_config.startpage_override = argparser.get<int>("--page");
+        m_config.behavior.startpage_override = argparser.get<int>("--page");
 
     if (argparser.is_used("--synctex-forward"))
     {
-        m_config.startpage_override = -1; // do not override the page
+        m_config.behavior.startpage_override = -1; // do not override the page
 
         // Format: --synctex-forward={pdf}#{src}:{line}:{column}
         // Example: --synctex-forward=test.pdf#main.tex:14
@@ -692,19 +695,19 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
         if (!files.empty())
         {
             OpenFiles(files);
-            m_config.open_last_visited = false;
+            m_config.behavior.open_last_visited = false;
         }
 
-        if (m_config.open_last_visited)
+        if (m_config.behavior.open_last_visited)
             openLastVisitedFile();
     }
     catch (...)
     {
     }
 
-    if (m_config.startup_tab && m_tab_widget->count() == 0)
+    if (m_config.ui.startup_tab && m_tab_widget->count() == 0)
         showStartupWidget();
-    m_config.startpage_override = -1;
+    m_config.behavior.startpage_override = -1;
 }
 
 // Populates the `QMenu` for recent files with
@@ -712,7 +715,7 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 void
 dodo::populateRecentFiles() noexcept
 {
-    if (!m_config.recent_files)
+    if (!m_config.behavior.recent_files)
     {
         m_recentFilesMenu->setEnabled(false);
         return;
@@ -758,7 +761,7 @@ dodo::populateRecentFiles() noexcept
 void
 dodo::editLastPages() noexcept
 {
-    if (!m_config.remember_last_visited
+    if (!m_config.behavior.remember_last_visited
         || (!m_last_pages_db.isOpen() && !m_last_pages_db.isValid()))
     {
         QMessageBox::information(
@@ -778,7 +781,7 @@ dodo::editLastPages() noexcept
 void
 dodo::ShowKeybindings() noexcept
 {
-    ShortcutsWidget *widget = new ShortcutsWidget(m_config.shortcuts_map, this);
+    ShortcutsWidget *widget = new ShortcutsWidget(m_config.shortcuts, this);
     widget->show();
 }
 
@@ -1093,7 +1096,7 @@ dodo::OpenFile(QString filePath) noexcept
 
     m_path_tab_map[filePath] = docwidget;
 
-    // Auto file reload
+    // TODO: Auto file reload
     // if (m_config.auto_reload)
     // {
     //     m_fs_watcher->addPath(filePath);
@@ -1258,7 +1261,7 @@ dodo::initConnections() noexcept
     connect(m_tab_widget, &QTabWidget::currentChanged, this,
             &dodo::handleCurrentTabChanged);
     // m_dpr = m_tab_widget->window()->devicePixelRatioF();
-    m_dpr = m_config.dpr;
+    m_dpr = m_config.rendering.dpr;
 
     QWindow *win = window()->windowHandle();
 
@@ -1861,9 +1864,15 @@ dodo::SaveSession(QString sessionName) noexcept
         sessionArray.append(entry);
     }
 
-    QJsonDocument doc(sessionArray);
     QFile file(m_session_dir.filePath(m_session_name + ".dodo"));
-    file.open(QIODevice::WriteOnly);
+    bool result = file.open(QIODevice::WriteOnly);
+    if (!result)
+    {
+        QMessageBox::critical(this, "Save Session",
+                              "Could not save session: " + m_session_name);
+        return;
+    }
+    QJsonDocument doc(sessionArray);
     file.write(doc.toJson());
     file.write("\n\n// vim:ft=json");
     file.close();
@@ -2390,7 +2399,7 @@ dodo::trimRecentFilesDatabase() noexcept
     // If no DB is loaded, return from this function
     // If num_recent_files config entry has negative value,
     // retain all the recent files
-    if (!m_last_pages_db.isValid() || m_config.num_recent_files < 0)
+    if (!m_last_pages_db.isValid() || m_config.behavior.num_recent_files < 0)
         return;
 
     QSqlQuery query;
@@ -2401,7 +2410,7 @@ dodo::trimRecentFilesDatabase() noexcept
                                       "    ORDER BY last_accessed DESC "
                                       "    LIMIT %1"
                                       ")")
-                                  .arg(m_config.num_recent_files);
+                                  .arg(m_config.behavior.num_recent_files);
 
     if (!query.exec(trimQuery))
     {
