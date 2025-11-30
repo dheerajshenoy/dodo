@@ -16,9 +16,18 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
 void
 GraphicsView::setMode(Mode mode) noexcept
 {
+    m_selecting = false;
     switch (m_mode)
     {
         case Mode::RegionSelection:
+            if (m_rubberBand)
+            {
+                m_rubberBand->hide();
+                delete m_rubberBand;
+                m_rubberBand = nullptr;
+            }
+            break;
+
         case Mode::TextSelection:
         case Mode::TextHighlight:
             emit textSelectionDeletionRequested();
@@ -44,6 +53,13 @@ void
 GraphicsView::mousePressEvent(QMouseEvent *event)
 {
 
+    // Right click on image to open context menu
+    if (event->button() == Qt::RightButton)
+    {
+        QPointF scenePos = mapToScene(event->pos());
+        emit rightClickRequested(scenePos);
+        return;
+    }
     switch (m_mode)
     {
         case Mode::RegionSelection:
@@ -59,6 +75,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 
                 m_rubberBand->setGeometry(QRect(m_start, QSize()));
                 m_rubberBand->show();
+                m_selecting = true;
                 return;
             }
         }
@@ -116,13 +133,6 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                     emit textSelectionDeletionRequested();
                 }
             }
-
-            else if (event->button() == Qt::RightButton)
-            {
-                QPointF scenePos = mapToScene(event->pos());
-                emit rightClickRequested(scenePos);
-                return;
-            }
         }
         break;
 
@@ -179,9 +189,12 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
         case Mode::AnnotSelect:
         case Mode::AnnotRect:
         {
-            m_rect = QRect(m_start, event->pos()).normalized();
-            if (m_rubberBand)
-                m_rubberBand->setGeometry(m_rect);
+            if (m_selecting)
+            {
+                m_rect = QRect(m_start, event->pos()).normalized();
+                if (m_rubberBand)
+                    m_rubberBand->setGeometry(m_rect);
+            }
         }
         break;
 
@@ -201,7 +214,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     {
         case Mode::RegionSelection:
         {
-            if (event->button() == Qt::LeftButton)
+            if (event->button() == Qt::LeftButton && dist > m_drag_threshold)
             {
                 QRectF sceneRect = mapToScene(m_rect).boundingRect();
 
@@ -212,6 +225,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
                     = sceneRect.intersected(m_pixmapItem->boundingRect());
                 if (!clippedRect.isEmpty())
                     emit regionSelectRequested(clippedRect);
+                m_selecting = false;
             }
         }
         break;
