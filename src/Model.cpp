@@ -1560,7 +1560,7 @@ Model::hitTestImage(int pageno, const QPointF &pagePos) noexcept
         ImageHitTestDevice *dev = reinterpret_cast<ImageHitTestDevice *>(
             fz_new_device_of_size(m_ctx, sizeof(ImageHitTestDevice)));
 
-        dev->query            = pagePos;
+        dev->query            = pagePos * m_dpr; // scale to PDF space
         dev->super.fill_image = hit_test_image;
         dev->img              = nullptr;
 
