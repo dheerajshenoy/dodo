@@ -1566,8 +1566,8 @@ Model::hitTestImage(int pageno, const QPointF &pagePos) noexcept
 
         fz_run_page(m_ctx, page, (fz_device *)dev, m_transform, nullptr);
 
-        result = fz_get_pixmap_from_image(
-            m_ctx, dev->img, nullptr, &m_transform, nullptr, nullptr);
+        result = fz_get_pixmap_from_image(m_ctx, dev->img, nullptr,
+                                          &m_transform, nullptr, nullptr);
 
         // fz_drop_pixmap(m_ctx, result);
         fz_drop_device(m_ctx, (fz_device *)dev);
