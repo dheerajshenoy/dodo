@@ -68,7 +68,11 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         {
             if (event->button() == Qt::LeftButton)
             {
+                // emit annotSelectClearRequested();
+                // Select annotation under cursor if any
+                QPointF scenePos = mapToScene(event->pos());
                 emit annotSelectClearRequested();
+                emit annotSelectRequested(scenePos);
             }
         }
         case Mode::AnnotRect:
