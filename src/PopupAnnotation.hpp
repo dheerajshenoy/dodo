@@ -11,47 +11,6 @@
 #include <QVBoxLayout>
 #include <qgraphicssceneevent.h>
 
-class PopupWidget : public QWidget
-{
-public:
-    PopupWidget(QWidget *parent = nullptr)
-        : QWidget(parent), m_textEdit(new QTextEdit(this)),
-          m_layout(new QVBoxLayout(this))
-    {
-        // Style
-        setAttribute(Qt::WA_ShowWithoutActivating);
-        setWindowFlags(Qt::ToolTip | Qt::FramelessWindowHint);
-        setStyleSheet(R"(
-            QWidget {
-                background-color: #fefefe;
-                border: 1px solid #c5c5c5;
-                border-radius: 8px;
-            }
-            QTextEdit {
-                background: transparent;
-                border: none;
-                padding: 6px;
-                font-size: 13px;
-            }
-        )");
-
-        m_textEdit->setReadOnly(true); // makes it clean
-        m_textEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
-
-        m_layout->setContentsMargins(0, 0, 0, 0);
-        m_layout->addWidget(m_textEdit);
-    }
-
-    void setText(const QString &text) noexcept
-    {
-        m_textEdit->setText(text);
-    }
-
-private:
-    QTextEdit *m_textEdit;
-    QVBoxLayout *m_layout;
-};
-
 class PopupAnnotation : public Annotation
 {
 public:
@@ -60,7 +19,6 @@ public:
         : Annotation(index, color, parent), m_rect(rect), m_text(text),
           m_popupProxy(nullptr), m_clicked(false)
     {
-        setAcceptHoverEvents(true);
     }
 
     ~PopupAnnotation() override = default; // proxy and widget are auto-deleted
@@ -88,6 +46,7 @@ public:
         // Position popup relative to annotation
         m_popupProxy->setPos(m_rect.topRight() + QPointF(12, 12));
         m_popupProxy->show();
+        m_popupProxy->setFocus();
 
         m_pen = QPen(Qt::red);
         QGraphicsItem::hoverEnterEvent(event);
@@ -113,6 +72,7 @@ public:
 
         m_popupProxy->setPos(m_rect.topRight() + QPointF(12, 12));
         m_popupProxy->show();
+        m_popupProxy->setFocus();
 
         m_pen     = QPen(Qt::red);
         m_clicked = !m_clicked;
@@ -135,12 +95,16 @@ private:
                                   "border-radius: 8px; padding: 6px; ");
         textWidget->setTextInteractionFlags(Qt::TextSelectableByMouse
                                             | Qt::LinksAccessibleByMouse);
+        textWidget->setContentsMargins(0, 0, 0, 0);
 
         // Wrap in proxy and parent to annotation
         m_popupProxy = scene()->addWidget(textWidget);
+        m_popupProxy->setContentsMargins(0, 0, 0, 0);
         m_popupProxy->setParentItem(this);
         m_popupProxy->setZValue(9999);
+
         m_popupProxy->setFlag(QGraphicsItem::ItemIsFocusable);
+        m_popupProxy->setAcceptedMouseButtons(Qt::AllButtons);
         m_popupProxy->hide();
     }
 
