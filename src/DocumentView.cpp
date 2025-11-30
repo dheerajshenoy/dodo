@@ -14,6 +14,7 @@
 #include <qcontainerinfo.h>
 #include <qgraphicsitem.h>
 #include <qnamespace.h>
+#include <qstandardpaths.h>
 #include <qthread.h>
 
 #ifdef NDEBUG
@@ -225,7 +226,7 @@ DocumentView::initConnections() noexcept
         menu.addAction("Copy Image", this, [this, area]()
         {
             // Scale the area according to DPR
-            QRectF scaledArea
+            const QRectF scaledArea
                 = QRectF(area.x() * m_dpr, area.y() * m_dpr,
                          area.width() * m_dpr, area.height() * m_dpr);
             CopyRegionAsImage(scaledArea);
@@ -233,10 +234,17 @@ DocumentView::initConnections() noexcept
         menu.addAction("Save Image", this, [this, area]()
         {
             // Scale the area according to DPR
-            QRectF scaledArea
+            const QRectF scaledArea
                 = QRectF(area.x() * m_dpr, area.y() * m_dpr,
                          area.width() * m_dpr, area.height() * m_dpr);
             SaveRegionAsImage(scaledArea);
+        });
+        menu.addAction("Open image using external viewer", this, [this, area]()
+        {
+            const QRectF scaledArea
+                = QRectF(area.x() * m_dpr, area.y() * m_dpr,
+                         area.width() * m_dpr, area.height() * m_dpr);
+            OpenRegionInExternalViewer(scaledArea);
         });
         menu.exec(QCursor::pos());
         m_gview->rubberBand()->hide();
@@ -1587,7 +1595,7 @@ DocumentView::populateContextMenu(QMenu *menu) noexcept
     if (m_hit_pixmap)
     {
         addAction("Open Image in External Viewer",
-                  &DocumentView::OpenImageInExternalViewer);
+                  &DocumentView::OpenHitPixmapInExternalViewer);
         addAction("Save Image As...", &DocumentView::SaveImageAs);
         addAction("Copy Image", &DocumentView::CopyImageToClipboard);
         return;
@@ -1836,18 +1844,49 @@ DocumentView::nextFitMode() noexcept
 }
 
 void
-DocumentView::OpenImageInExternalViewer() noexcept
+DocumentView::OpenHitPixmapInExternalViewer() noexcept
 {
     if (!m_hit_pixmap)
         return;
 
-    QString tempPath
-        = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-    QString filePath = tempPath + "/docviewer_temp_image.png";
+    QTemporaryFile tempFile(QDir::tempPath() + "/XXXXXX.png");
+    tempFile.setAutoRemove(false);
 
-    m_model->SavePixmap(m_hit_pixmap, filePath);
+    if (tempFile.open())
+    {
+        m_model->SavePixmap(m_hit_pixmap, tempFile.fileName());
+        tempFile.close();
+        QDesktopServices::openUrl(QUrl::fromLocalFile(tempFile.fileName()));
+    }
+    else
+    {
+        QMessageBox::critical(this, "Error",
+                              "Could not open in external viewer. [Could not "
+                              "create temporary file.]");
+    }
+}
 
-    QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
+void
+DocumentView::OpenImageInExternalViewer(const QImage &img) noexcept
+{
+    if (img.isNull())
+        return;
+
+    QTemporaryFile tempFile(QDir::tempPath() + "/XXXXXX.png");
+    tempFile.setAutoRemove(false);
+
+    if (tempFile.open())
+    {
+        img.save(tempFile.fileName(), "PNG");
+        tempFile.close();
+        QDesktopServices::openUrl(QUrl::fromLocalFile(tempFile.fileName()));
+    }
+    else
+    {
+        QMessageBox::critical(this, "Error",
+                              "Could not open in external viewer. [Could not "
+                              "create temporary file.]");
+    }
 }
 
 void
@@ -1894,26 +1933,33 @@ void
 DocumentView::SaveRegionAsImage(const QRectF &area) noexcept
 {
     QImage img = m_pix_item->pixmap().copy(area.toRect()).toImage();
-    if (!img.isNull())
-    {
-        QFileDialog fd(this);
-        const QString &fileName
-            = fd.getSaveFileName(this, "Save Image", "",
-                                 "PNG Image (*.png), "
-                                 "JPEG Image (*.jpg *.jpeg), "
-                                 "BMP Image (*.bmp);; All Files (*)");
-        if (fileName.isEmpty())
-            return;
-        QString format;
-        if (fileName.endsWith(".png", Qt::CaseInsensitive))
-            format = "PNG";
-        else if (fileName.endsWith(".jpg", Qt::CaseInsensitive)
-                 || fileName.endsWith(".jpeg", Qt::CaseInsensitive))
-            format = "JPEG";
-        else if (fileName.endsWith(".bmp", Qt::CaseInsensitive))
-            format = "BMP";
-        else
-            format = "PNG"; // Default to PNG
-        img.save(fileName, format.toStdString().c_str());
-    }
+    if (img.isNull())
+        return;
+    QFileDialog fd(this);
+    const QString &fileName
+        = fd.getSaveFileName(this, "Save Image", "",
+                             "PNG Image (*.png), "
+                             "JPEG Image (*.jpg *.jpeg), "
+                             "BMP Image (*.bmp);; All Files (*)");
+    if (fileName.isEmpty())
+        return;
+    QString format;
+    if (fileName.endsWith(".png", Qt::CaseInsensitive))
+        format = "PNG";
+    else if (fileName.endsWith(".jpg", Qt::CaseInsensitive)
+             || fileName.endsWith(".jpeg", Qt::CaseInsensitive))
+        format = "JPEG";
+    else if (fileName.endsWith(".bmp", Qt::CaseInsensitive))
+        format = "BMP";
+    else
+        format = "PNG"; // Default to PNG
+    img.save(fileName, format.toStdString().c_str());
+}
+
+void
+DocumentView::OpenRegionInExternalViewer(const QRectF &area) noexcept
+{
+    QImage img = m_pix_item->pixmap().copy(area.toRect()).toImage();
+    OpenImageInExternalViewer(img);
+    qDebug() << "Opened region in external viewer";
 }
