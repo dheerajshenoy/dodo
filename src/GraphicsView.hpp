@@ -89,6 +89,7 @@ signals:
     void synctexJumpRequested(QPointF pos);
     void regionSelectRequested(const QRectF &rect);
     void annotSelectRequested(const QRectF &rect);
+    void annotSelectRequested(const QPointF &);
     void annotSelectClearRequested();
     void zoomInRequested();
     void zoomOutRequested();
