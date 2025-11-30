@@ -311,10 +311,15 @@ dodo::initConfig() noexcept
 {
     m_config_dir = QDir(
         QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
-    auto config_file_path = m_config_dir.filePath("config.toml");
-    m_session_dir         = QDir(m_config_dir.filePath("sessions"));
 
-    if (!QFile::exists(config_file_path))
+    // If config file path is not set, use the default one
+    if (m_config_file_path.isEmpty())
+        m_config_file_path = m_config_dir.filePath("config.toml");
+
+    m_session_dir = QDir(m_config_dir.filePath("sessions"));
+
+    qDebug() << "Using config file:" << m_config_file_path;
+    if (!QFile::exists(m_config_file_path))
     {
         initDefaults();
         return;
@@ -324,7 +329,7 @@ dodo::initConfig() noexcept
 
     try
     {
-        toml = toml::parse_file(config_file_path.toStdString());
+        toml = toml::parse_file(m_config_file_path.toStdString());
     }
     catch (std::exception &e)
     {
@@ -664,6 +669,12 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
     {
         qInfo() << "dodo version: " << __DODO_VERSION;
         exit(0);
+    }
+
+    if (argparser.is_used("--config"))
+    {
+        m_config_file_path
+            = QString::fromStdString(argparser.get<std::string>("--config"));
     }
 
     this->construct();
