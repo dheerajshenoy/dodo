@@ -181,6 +181,12 @@ dodo::initMenubar() noexcept
     QActionGroup *selectionActionGroup = new QActionGroup(this);
     selectionActionGroup->setExclusive(true);
 
+    m_actionRegionSelect = toolsMenu->addAction(
+        QString("Region Selection"), this, &dodo::RegionSelectionMode);
+    m_actionRegionSelect->setCheckable(true);
+    m_actionRegionSelect->setChecked(true);
+    selectionActionGroup->addAction(m_actionRegionSelect);
+
     m_actionTextSelect = toolsMenu->addAction(QString("Text Selection"), this,
                                               &dodo::TextSelectionMode);
     m_actionTextSelect->setCheckable(true);
@@ -1028,6 +1034,12 @@ void
 dodo::TextSelectionMode() noexcept
 {
     // TODO: Implement `TextSelectionMode`
+}
+
+void
+dodo::RegionSelectionMode() noexcept
+{
+    // TODO: Implement `RegionSelectionMode`
 }
 
 void
