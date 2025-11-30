@@ -206,6 +206,7 @@ private:
         Copy
     };
 
+    QString m_config_file_path;
     QString m_currentHintInput;
     bool m_link_hint_mode{false};
     StartupWidget *m_startup_widget{nullptr};
