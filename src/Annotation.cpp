@@ -2,9 +2,12 @@
 
 #include <QPainter>
 
-Annotation::Annotation(int index, QGraphicsItem *parent)
-    : QGraphicsItem(parent), m_index(index)
+Annotation::Annotation(int index, const QColor &color, QGraphicsItem *parent)
+    : m_brush(color), QGraphicsItem(parent), m_index(index)
 {
+    m_originalBrush = m_brush;
+    m_originalPen   = m_pen;
+    setData(0, "annot");
     setAcceptHoverEvents(true);
     setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsFocusable);
 }
@@ -12,12 +15,15 @@ Annotation::Annotation(int index, QGraphicsItem *parent)
 void
 Annotation::select(const QColor &color) noexcept
 {
+    if (m_selected)
+        return;
     m_originalBrush = m_brush;
     m_originalPen   = m_pen;
 
     // setBrush(color);
     // m_brush = QBrush(color, Qt::BrushStyle::NoBrush);
-    m_pen   = QPen(color, 3, Qt::PenStyle::SolidLine);
+    m_pen      = QPen(color, 3, Qt::PenStyle::SolidLine);
+    m_selected = true;
 
     update();
 }
@@ -27,6 +33,8 @@ Annotation::restoreBrushPen() noexcept
 {
     m_brush = m_originalBrush;
     m_pen   = m_originalPen;
+
+    m_selected = false;
 
     update(); // Trigger repaint
 }
