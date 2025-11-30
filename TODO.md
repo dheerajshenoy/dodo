@@ -1,16 +1,18 @@
 # TODO
-- [ ] Fix scaling problem in single monitor systems
+- [X] Fix scaling problem in single monitor systems
 - [X] Scroll to nav pages using delta thresholding
 - [X] Remember exact position for Goto previous location
 - [X] Filename label panel file modified state update
 - [X] Highlight current selection function
 - [X] Command bar
 - [X] Search highlights
-- [ ] Undo/Redo operations
+- [X] Image operations (copy, save as, open externally)
 - [X] Custom bg and fg colors
+- [X] Open containing folder option
+- [ ] Undo/Redo operations
 - [ ] Synctex highlight line
-- [ ] Hot reload config
 - [ ] Telescope like search with preview
 - [ ] Popup Annotation
 - [ ] Popup Annotation edit support
 - [ ] Reload document on request
+- [ ] Printing support
