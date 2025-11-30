@@ -642,7 +642,6 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
 #else
             qDebug() << "Using cached pixmap";
 #endif
-            m_model->renderPage(pageno, true);
             renderPixmap(cached->pixmap);
             m_link_items = cached->links;
             renderLinks(m_link_items);
@@ -1270,10 +1269,6 @@ DocumentView::InvertColor() noexcept
 {
     if (!m_model->valid())
         return;
-
-#ifdef NDEBUG
-    qDebug() << "Inverting colors";
-#endif
 
     m_cache.clear();
     m_model->toggleInvertColor();

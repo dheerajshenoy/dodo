@@ -299,7 +299,7 @@ Model::renderPage(int pageno, bool cache) noexcept
     if (!m_ctx)
         return qpix;
 
-    float scale = m_scale_factor * m_dpr;
+    const float scale = m_scale_factor * m_dpr;
     fz_device *dev{nullptr};
     fz_pixmap *pix{nullptr};
 
@@ -351,9 +351,9 @@ Model::renderPage(int pageno, bool cache) noexcept
 
         m_width                       = fz_pixmap_width(m_ctx, pix);
         m_height                      = fz_pixmap_height(m_ctx, pix);
-        int stride                    = fz_pixmap_stride(m_ctx, pix);
-        int n                         = fz_pixmap_components(m_ctx, pix);
-        int size                      = m_width * m_height * n;
+        const int stride              = fz_pixmap_stride(m_ctx, pix);
+        const int n                   = fz_pixmap_components(m_ctx, pix);
+        const int size                = m_width * m_height * n;
         unsigned char *samples        = fz_pixmap_samples(m_ctx, pix);
         unsigned char *copyed_samples = new unsigned char[size];
         memcpy(copyed_samples, samples, size);
@@ -1569,7 +1569,6 @@ Model::hitTestImage(int pageno, const QPointF &pagePos) noexcept
         result = fz_get_pixmap_from_image(m_ctx, dev->img, nullptr,
                                           &m_transform, nullptr, nullptr);
 
-        // fz_drop_pixmap(m_ctx, result);
         fz_drop_device(m_ctx, (fz_device *)dev);
         fz_drop_page(m_ctx, page);
     }
