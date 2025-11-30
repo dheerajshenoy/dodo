@@ -19,6 +19,7 @@ public:
         : Annotation(index, color, parent), m_rect(rect), m_text(text),
           m_popupProxy(nullptr), m_clicked(false)
     {
+        setData(0, "annot");
     }
 
     ~PopupAnnotation() override = default; // proxy and widget are auto-deleted
@@ -91,14 +92,13 @@ private:
         textWidget->setPlainText(m_text);
         textWidget->setReadOnly(true);
         textWidget->setFrameStyle(QFrame::Box | QFrame::Plain);
-        textWidget->setStyleSheet("background-color: #fefefe; "
-                                  "border-radius: 8px; padding: 6px; ");
+        textWidget->setStyleSheet("border-radius: 8px; padding: 6px; ");
         textWidget->setTextInteractionFlags(Qt::TextSelectableByMouse
                                             | Qt::LinksAccessibleByMouse);
         textWidget->setContentsMargins(0, 0, 0, 0);
 
         // Wrap in proxy and parent to annotation
-        m_popupProxy = scene()->addWidget(textWidget);
+        m_popupProxy = scene()->addWidget(textWidget, Qt::FramelessWindowHint);
         m_popupProxy->setContentsMargins(0, 0, 0, 0);
         m_popupProxy->setParentItem(this);
         m_popupProxy->setZValue(9999);
