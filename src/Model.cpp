@@ -1,8 +1,10 @@
 #include "Model.hpp"
 
+#include "Annotation.hpp"
 #include "BrowseLinkItem.hpp"
 #include "HighlightItem.hpp"
 #include "PopupAnnotation.hpp"
+#include "RectAnnotation.hpp"
 
 #include <QClipboard>
 #include <QDebug>
@@ -556,19 +558,17 @@ Model::getAnnotations() noexcept
                          (bbox.x1 - bbox.x0) * m_inv_dpr,
                          (bbox.y1 - bbox.y0) * m_inv_dpr);
             enum pdf_annot_type type = pdf_annot_type(m_ctx, annot);
+            const float alpha        = pdf_annot_opacity(m_ctx, annot);
             switch (type)
             {
                 case PDF_ANNOT_TEXT:
                 {
                     pdf_annot_color(m_ctx, annot, &n, color);
                     QString text = pdf_annot_contents(m_ctx, annot);
+                    const QColor qcolor
+                        = QColor::fromRgbF(color[0], color[1], color[2], alpha);
                     PopupAnnotation *popup
-                        = new PopupAnnotation(qrect, text, index);
-                    float alpha = pdf_annot_opacity(m_ctx, annot);
-                    popup->setData(0, "annot");
-                    popup->setData(1, index);
-                    popup->setData(2, QColor::fromRgbF(color[0], color[1],
-                                                       color[2], alpha));
+                        = new PopupAnnotation(qrect, text, index, qcolor);
                     annot_item = popup;
                 }
                 break;
@@ -576,20 +576,21 @@ Model::getAnnotations() noexcept
                 case PDF_ANNOT_SQUARE:
                 {
                     pdf_annot_interior_color(m_ctx, annot, &n, color);
-                    // TODO:
+                    const QColor qcolor
+                        = QColor::fromRgbF(color[0], color[1], color[2], alpha);
+                    RectAnnotation *rect_annot
+                        = new RectAnnotation(qrect, index, qcolor);
+                    annot_item = rect_annot;
                 }
                 break;
 
                 case PDF_ANNOT_HIGHLIGHT:
                 {
                     pdf_annot_color(m_ctx, annot, &n, color);
-
-                    HighlightItem *highlight = new HighlightItem(qrect, index);
-                    float alpha              = pdf_annot_opacity(m_ctx, annot);
-                    highlight->setData(0, "annot");
-                    highlight->setData(1, index);
-                    highlight->setData(2, QColor::fromRgbF(color[0], color[1],
-                                                           color[2], alpha));
+                    const QColor qcolor
+                        = QColor::fromRgbF(color[0], color[1], color[2], alpha);
+                    HighlightAnnotation *highlight
+                        = new HighlightAnnotation(qrect, index, qcolor);
                     annot_item = highlight;
                 }
                 break;
@@ -776,28 +777,29 @@ void
 Model::addRectAnnotation(const QRectF &pdfRect) noexcept
 {
     fz_rect bbox = convertToMuPdfRect(pdfRect);
-    RectAnnotationCommand *cmd
-        = new RectAnnotationCommand(this, m_pageno, bbox, m_annot_rect_color);
-    m_undoStack->push(cmd);
-    // fz_try(m_ctx)
-    // {
-    //     pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage,
-    //     pdf_annot_type::PDF_ANNOT_SQUARE);
-    //
-    //     if (!annot)
-    //         return;
-    //
-    //     pdf_set_annot_rect(m_ctx, annot, bbox);
-    //     pdf_set_annot_interior_color(m_ctx, annot, 3, m_annot_rect_color);
-    //     pdf_set_annot_opacity(m_ctx, annot, m_annot_rect_color[3]);
-    //     pdf_update_annot(m_ctx, annot);
-    //     pdf_drop_annot(m_ctx, annot);
-    // }
-    // fz_catch(m_ctx)
-    // {
-    //     qWarning() << "Cannot add highlight annotation!: " <<
-    //     fz_caught_message(m_ctx);
-    // }
+    // RectAnnotationCommand *cmd
+    //     = new RectAnnotationCommand(this, m_pageno, bbox,
+    //     m_annot_rect_color);
+    // m_undoStack->push(cmd);
+    fz_try(m_ctx)
+    {
+        pdf_annot *annot = pdf_create_annot(m_ctx, m_pdfpage,
+                                            pdf_annot_type::PDF_ANNOT_SQUARE);
+
+        if (!annot)
+            return;
+
+        pdf_set_annot_rect(m_ctx, annot, bbox);
+        pdf_set_annot_interior_color(m_ctx, annot, 3, m_annot_rect_color);
+        pdf_set_annot_opacity(m_ctx, annot, m_annot_rect_color[3]);
+        pdf_update_annot(m_ctx, annot);
+        pdf_drop_annot(m_ctx, annot);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Cannot add highlight annotation!: "
+                   << fz_caught_message(m_ctx);
+    }
 }
 
 bool
@@ -1241,6 +1243,38 @@ Model::getAnnotationsInArea(const QRectF &area) noexcept
     }
 
     return results;
+}
+
+int
+Model::getAnnotationAtPoint(const QPointF &point) noexcept
+{
+    if (!m_ctx || !m_pdfpage)
+        return -1;
+
+    pdf_annot *annot = pdf_first_annot(m_ctx, m_pdfpage);
+
+    if (!annot)
+        return -1;
+
+    int index = 0;
+
+    fz_matrix inv_mat = fz_scale(m_inv_dpr, m_inv_dpr);
+    fz_matrix mat     = fz_concat(inv_mat, m_transform);
+
+    while (annot)
+    {
+        fz_rect bbox = pdf_bound_annot(m_ctx, annot);
+        bbox         = fz_transform_rect(bbox, mat);
+        QRectF annotRect(bbox.x0, bbox.y0, (bbox.x1 - bbox.x0),
+                         (bbox.y1 - bbox.y0));
+
+        if (annotRect.contains(point))
+            return index;
+        annot = pdf_next_annot(m_ctx, annot);
+        index++;
+    }
+
+    return -1;
 }
 
 // Select all text from a page
