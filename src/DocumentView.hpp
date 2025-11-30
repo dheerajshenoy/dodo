@@ -136,6 +136,9 @@ public:
     void OpenImageInExternalViewer() noexcept;
     void SaveImageAs() noexcept;
     void CopyImageToClipboard() noexcept;
+    void CopyRegionAsImage(const QRectF &area) noexcept;
+    void SaveRegionAsImage(const QRectF &area) noexcept;
+    void CopyTextFromRegion(const QRectF &area) noexcept;
 
     inline QDateTime lastModified() const noexcept
     {
