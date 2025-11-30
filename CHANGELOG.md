@@ -2,6 +2,11 @@
 
 ## 0.3.0
 
+- Region select mode
+    - Copy text from selected region to clipboard
+    - Copy selected region as image to clipboard
+    - Save selected region as jpeg/png etc. image
+    - Open selected region externally
 - Image right click context menu
     - Copy image to clipboard
     - Save image as jpeg/png/psd
