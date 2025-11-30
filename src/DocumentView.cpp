@@ -222,7 +222,6 @@ DocumentView::initConnections() noexcept
             QOverload<const QPointF &>::of(&GraphicsView::annotSelectRequested),
             m_model, [this](const QPointF &p)
     {
-        qDebug() << "DD";
         m_selected_annots = QSet<int>({m_model->getAnnotationAtPoint(p)});
         selectAnnots();
     });
