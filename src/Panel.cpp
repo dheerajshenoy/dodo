@@ -120,6 +120,8 @@ Panel::setFitMode(DocumentView::FitMode mode) noexcept
         case DocumentView::FitMode::Window:
             m_fitmode_label->setText("Window");
             break;
+        default:
+            break;
     }
 }
 
@@ -128,8 +130,12 @@ Panel::setMode(GraphicsView::Mode mode) noexcept
 {
     switch (mode)
     {
+        case GraphicsView::Mode::RegionSelection:
+            m_mode_label->setText("Region Selection");
+            m_mode_color_label->hide();
+            break;
         case GraphicsView::Mode::TextSelection:
-            m_mode_label->setText("Selection");
+            m_mode_label->setText("Text Selection");
             m_mode_color_label->hide();
             break;
         case GraphicsView::Mode::TextHighlight:
@@ -143,6 +149,8 @@ Panel::setMode(GraphicsView::Mode mode) noexcept
         case GraphicsView::Mode::AnnotRect:
             m_mode_label->setText("Annot Rect");
             m_mode_color_label->show();
+            break;
+        default:
             break;
     }
 }
