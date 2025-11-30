@@ -13,7 +13,15 @@ init_args(argparse::ArgumentParser &program)
         .default_value(-1)
         .metavar("PAGE_NUMBER");
 
-    program.add_argument("-s", "--session").help("Load a session").nargs(1).metavar("SESSION_NAME");
+    program.add_argument("-c", "--config")
+        .help("Path to config.toml file")
+        .nargs(1)
+        .metavar("CONFIG_PATH");
+
+    program.add_argument("-s", "--session")
+        .help("Load a session")
+        .nargs(1)
+        .metavar("SESSION_NAME");
 
     program.add_argument("--synctex-forward")
         .help("Format: --synctex-forward={pdf-file-path}#{src-file-path}:{line}:{column}")
