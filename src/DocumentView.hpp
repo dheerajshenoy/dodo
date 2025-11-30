@@ -52,7 +52,6 @@ public:
     {
         QString content;
         int pageno;
-        // BrowseLinkItem::Location location; // TODO:
     };
 
     struct CacheKey
@@ -202,7 +201,6 @@ public:
     }
 
     void clearKBHintsOverlay() noexcept;
-    void reloadDocument() noexcept;
 
     inline void nextSelectionMode() noexcept
     {
@@ -251,7 +249,7 @@ private:
     void scrollToNormalizedTop(double top) noexcept;
     fz_point mapToPdf(QPointF loc) noexcept;
     void clearLinks() noexcept;
-    void clearAnnots() noexcept;
+    void clearAnnotations() noexcept;
     void clearPixmapItems() noexcept;
 
     void jumpToHit(int page, int index);
