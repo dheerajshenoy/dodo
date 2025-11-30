@@ -124,9 +124,7 @@ DocumentView::initConnections() noexcept
 
     connect(m_gview, &GraphicsView::rightClickRequested, this,
             [&](QPointF scenePos)
-    {
-        m_hit_pixmap = m_model->hitTestImage(m_pageno, scenePos);
-    });
+    { m_hit_pixmap = m_model->hitTestImage(m_pageno, scenePos); });
 
     connect(
         m_model, &Model::searchResultsReady, this,
