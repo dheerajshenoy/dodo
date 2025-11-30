@@ -121,6 +121,10 @@ DocumentView::initConnections() noexcept
             &DocumentView::populateContextMenu);
     connect(m_model, &Model::documentSaved, this, [&]() { setDirty(false); });
 
+    connect(m_gview, &GraphicsView::rightClickRequested, this,
+            [&](QPointF scenePos)
+    { m_hit_pixmap = m_model->hitTestImage(m_pageno, scenePos); });
+
     connect(
         m_model, &Model::searchResultsReady, this,
         [&](const QMap<int, QList<Model::SearchResult>> &maps, int matchCount)
@@ -1554,6 +1558,17 @@ DocumentView::populateContextMenu(QMenu *menu) noexcept
         connect(action, &QAction::triggered, this, slot);
         menu->addAction(action);
     };
+
+    // If right-clicked on an image
+    if (m_hit_pixmap)
+    {
+        addAction("Open Image in External Viewer",
+                  &DocumentView::OpenImageInExternalViewer);
+        addAction("Save Image As...", &DocumentView::SaveImageAs);
+        addAction("Copy Image", &DocumentView::CopyImageToClipboard);
+        return;
+    }
+
     switch (m_gview->mode())
     {
         case GraphicsView::Mode::TextSelection:
@@ -1794,4 +1809,30 @@ DocumentView::nextFitMode() noexcept
     }
     fitModeChanged(m_fit_mode);
     // Fit(static_cast<FitMode>(nextMode));
+}
+
+void
+DocumentView::OpenImageInExternalViewer() noexcept
+{
+}
+
+void
+DocumentView::SaveImageAs() noexcept
+{
+    if (!m_hit_pixmap)
+        return;
+
+    QFileDialog fd(this);
+    const QString &fileName
+        = fd.getSaveFileName(this, "Save Image", "",
+                             "PNG Image (*.png), "
+                             "JPEG Image (*.jpg *.jpeg), "
+                             "BMP Image (*.bmp);; All Files (*)");
+    m_model->SavePixmap(m_hit_pixmap, fileName);
+}
+
+void
+DocumentView::CopyImageToClipboard() noexcept
+{
+    m_model->CopyPixmapToClipboard(m_hit_pixmap);
 }

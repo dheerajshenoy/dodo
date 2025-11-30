@@ -133,6 +133,9 @@ public:
     void PrevHit();
     void NextHit();
     void ClearTextSelection() noexcept;
+    void OpenImageInExternalViewer() noexcept;
+    void SaveImageAs() noexcept;
+    void CopyImageToClipboard() noexcept;
 
     inline QDateTime lastModified() const noexcept
     {
@@ -301,6 +304,7 @@ private:
     bool m_link_hints_present{false};
     QList<LinkHint *> m_link_hints{};
     QList<BrowseLinkItem *> m_link_items{};
+    fz_pixmap *m_hit_pixmap{nullptr}; // For image hit testing
 
     int m_scroll_accumulator{0};
     QElapsedTimer m_scroll_cooldown;

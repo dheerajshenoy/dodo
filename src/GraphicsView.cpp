@@ -31,6 +31,9 @@ GraphicsView::setMode(Mode mode) noexcept
             emit annotSelectClearRequested();
         }
         break;
+
+        default:
+            break;
     }
 
     m_mode = mode;
@@ -90,6 +93,13 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                     emit textSelectionDeletionRequested();
                 }
             }
+
+            else if (event->button() == Qt::RightButton)
+            {
+                QPointF scenePos = mapToScene(event->pos());
+                emit rightClickRequested(scenePos);
+                return;
+            }
         }
         break;
 
@@ -112,6 +122,9 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
             }
         }
         break;
+
+        default:
+            break;
     }
     QGraphicsView::mousePressEvent(
         event); // Let QGraphicsItems (like links) respond
@@ -147,6 +160,9 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
                 m_rubberBand->setGeometry(m_rect);
         }
         break;
+
+        default:
+            break;
     }
 
     QGraphicsView::mouseMoveEvent(event); // Allow hover/cursor events
@@ -222,6 +238,9 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
             }
         }
         break;
+
+        default:
+            break;
     }
 
     QGuiApplication::restoreOverrideCursor();
