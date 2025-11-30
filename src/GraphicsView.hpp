@@ -17,7 +17,8 @@ class GraphicsView : public QGraphicsView
 public:
     enum class Mode
     {
-        TextSelection = 0,
+        RegionSelection = 0,
+        TextSelection,
         TextHighlight,
         AnnotSelect,
         AnnotRect,
