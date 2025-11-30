@@ -89,7 +89,8 @@ class OutlineWidget : public QWidget
 {
     Q_OBJECT
 public:
-    OutlineWidget(QWidget *parent = nullptr) : QWidget(parent)
+    OutlineWidget(QWidget *parent = nullptr, bool is_side_panel = true) noexcept
+        : QWidget(parent), m_is_side_panel(is_side_panel)
     {
         QVBoxLayout *layout = new QVBoxLayout(this);
         searchEdit->setPlaceholderText("Search Outline");
@@ -132,9 +133,12 @@ public:
         m_tree->setFrameShape(QFrame::NoFrame);
     }
 
-    ~OutlineWidget() {}
+    bool isSidePanel() const noexcept
+    {
+        return m_is_side_panel;
+    }
 
-    void setOutline(fz_outline *outline)
+    void setOutline(fz_outline *outline) noexcept
     {
         if (outline)
         {
@@ -142,7 +146,8 @@ public:
             m_tree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
             m_tree->header()->setSectionResizeMode(
                 1, QHeaderView::ResizeToContents);
-            m_tree->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+            m_tree->header()->setSectionResizeMode(
+                QHeaderView::ResizeToContents);
         }
         else
         {
@@ -157,6 +162,7 @@ private:
     QTreeView *m_tree{nullptr};
     QLineEdit *searchEdit{new QLineEdit(this)};
     OutlineModel *m_model{new OutlineModel(this)};
+    bool m_is_side_panel{true};
 
 protected:
     void keyPressEvent(QKeyEvent *e) override
