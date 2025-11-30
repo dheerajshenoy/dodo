@@ -3,7 +3,6 @@
 panel = true # enable/disable panel
 fullscreen = false # fullscreen or not on startup
 zoom_level = 1.0 # Default zoom factor
-compact = true # Minimal margins in dodo
 link_boundary = false # show link boundary box
 hscrollbar = false # show/hide horizontal scrollbar
 vscrollbar = false # show/hide vertical scrollbar
@@ -16,7 +15,9 @@ tabs = true # show/hide tabs
 auto_hide_tabs = true # hide tabs when there is only one file
 startup_tab = true # show/hide startup tab
 link_hint_size = 0.25 # size of link hints (px)
-outline_as_side_panel = true # outline whether to show in popup or side panel
+outline = true # show/hide outline panel
+outline_as_side_panel = false # outline whether to show in popup or side panel
+outline_panel_position = "left" # outline panel position ("left" or "right")
 outline_panel_width = 300 # outline panel width (if outline_in_panel is true)
 
 # Format is #AARRGGBB (ARGB format)
@@ -42,13 +43,14 @@ icc_color_profile = true # whether to use ICC color profile
 
 # ===== Navigation & Behavior =====
 [behavior]
+initial_selection_mode = "region" # values: "region", "text", "annot_highlight", "annot_select"
 remember_last_visited = true   # Helps to go to last visited page of document
 page_history = 100 # History for visited pages in the file (only for the session)
 confirm_on_quit = true # Ask before quitting dodo
 auto_resize = false # Resize the document to fit the window
 zoom_factor = 1.25 # Factor by which to zoom in/out
 initial_fit = "width" # Fit applied once every file opened; values: "none", "width", "height", "window":
-invert_mode = false # Start in invert color mode
+invert_mode = true # Start in invert color mode
 synctex_editor_command = "kitty -e nvim --remote-silent +%l %f"
 auto_reload = true # reload document on file change
 recent_files = true # save recent files

@@ -101,8 +101,7 @@ Check out [usage](./USAGE.md) to learn how to use dodo.
 
 ## Configuration
 
-Dodo will search for `config.toml` file in the `~/.config/dodo` directory, and load it if it exists.
-Check out the `config.toml` file for reference
+Check out [configuration](./CONFIGURATION.md) to learn how to configure dodo.
 
 ## Theming dodo
 
