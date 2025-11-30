@@ -24,7 +24,9 @@ init_args(argparse::ArgumentParser &program)
         .metavar("SESSION_NAME");
 
     program.add_argument("--synctex-forward")
-        .help("Format: --synctex-forward={pdf-file-path}#{src-file-path}:{line}:{column}")
+        .help(
+            "Format: "
+            "--synctex-forward={pdf-file-path}#{src-file-path}:{line}:{column}")
         .default_value(std::string{})
         .metavar("SYNCTEX_FORMAT");
 
@@ -34,7 +36,8 @@ init_args(argparse::ArgumentParser &program)
 int
 main(int argc, char *argv[])
 {
-    argparse::ArgumentParser program("dodo", __DODO_VERSION, argparse::default_arguments::all);
+    argparse::ArgumentParser program("dodo", __DODO_VERSION,
+                                     argparse::default_arguments::all);
     init_args(program);
     try
     {
@@ -45,7 +48,8 @@ main(int argc, char *argv[])
         qDebug() << e.what();
     }
 
-    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
+        Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/resources/dodo2.svg"));
     dodo d;
