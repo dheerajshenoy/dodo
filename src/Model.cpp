@@ -557,14 +557,14 @@ Model::getAnnotations() noexcept
             QRectF qrect(bbox.x0 * m_inv_dpr, bbox.y0 * m_inv_dpr,
                          (bbox.x1 - bbox.x0) * m_inv_dpr,
                          (bbox.y1 - bbox.y0) * m_inv_dpr);
-            enum pdf_annot_type type = pdf_annot_type(m_ctx, annot);
-            const float alpha        = pdf_annot_opacity(m_ctx, annot);
+            const enum pdf_annot_type type = pdf_annot_type(m_ctx, annot);
+            const float alpha              = pdf_annot_opacity(m_ctx, annot);
             switch (type)
             {
                 case PDF_ANNOT_TEXT:
                 {
                     pdf_annot_color(m_ctx, annot, &n, color);
-                    QString text = pdf_annot_contents(m_ctx, annot);
+                    const QString text = pdf_annot_contents(m_ctx, annot);
                     const QColor qcolor
                         = QColor::fromRgbF(color[0], color[1], color[2], alpha);
                     PopupAnnotation *popup
