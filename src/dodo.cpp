@@ -59,6 +59,11 @@ dodo::initMenubar() noexcept
                                   .arg(m_config.shortcuts["file_properties"]),
                               this, &dodo::FileProperties);
 
+    m_actionOpenContainingFolder = fileMenu->addAction(
+        QString("Open Containing Folder\t%1")
+            .arg(m_config.shortcuts["open_containing_folder"]),
+        this, &dodo::OpenContainingFolder);
+
     m_actionSaveFile = fileMenu->addAction(
         QString("Save File\t%1").arg(m_config.shortcuts["save"]), this,
         &dodo::SaveFile);
@@ -2542,4 +2547,14 @@ dodo::updatePageNavigationActions() noexcept
     m_actionPrevPage->setEnabled(page > 0);
     m_actionNextPage->setEnabled(page >= 0 && page < count - 1);
     m_actionLastPage->setEnabled(page >= 0 && page < count - 1);
+}
+
+void
+dodo::OpenContainingFolder() noexcept
+{
+    if (m_doc)
+    {
+        QString filepath = m_doc->fileName();
+        QDesktopServices::openUrl(QUrl(QFileInfo(filepath).absolutePath()));
+    }
 }

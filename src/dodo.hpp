@@ -94,6 +94,7 @@ private:
     void GoBackHistory() noexcept;
     void LastPage() noexcept;
     void NextPage() noexcept;
+    void OpenContainingFolder() noexcept;
     void OpenFiles(const std::vector<std::string> &files) noexcept;
     void OpenFiles(const QList<QString> &files) noexcept;
     bool OpenFile(QString filename = QString()) noexcept;
@@ -167,6 +168,7 @@ private:
     QAction *m_actionZoomIn{nullptr};
     QAction *m_actionInvertColor{nullptr};
     QAction *m_actionFileProperties{nullptr};
+    QAction *m_actionOpenContainingFolder{nullptr};
     QAction *m_actionSaveFile{nullptr};
     QAction *m_actionSaveAsFile{nullptr};
     QAction *m_actionCloseFile{nullptr};
