@@ -27,14 +27,17 @@ public:
 
     QPointF getCursorPos() noexcept;
     explicit GraphicsView(QWidget *parent = nullptr);
+
     inline QPointF selectionStart() noexcept
     {
         return m_selection_start;
     }
+
     inline QPointF selectionEnd() noexcept
     {
         return m_selection_end;
     }
+
     inline Mode mode() const noexcept
     {
         return m_mode;
