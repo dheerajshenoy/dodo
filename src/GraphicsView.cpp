@@ -18,6 +18,7 @@ GraphicsView::setMode(Mode mode) noexcept
 {
     switch (m_mode)
     {
+        case Mode::RegionSelection:
         case Mode::TextSelection:
         case Mode::TextHighlight:
             emit textSelectionDeletionRequested();
@@ -45,6 +46,24 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 
     switch (m_mode)
     {
+        case Mode::RegionSelection:
+        {
+            if (event->button() == Qt::LeftButton)
+            {
+                m_start = event->pos();
+                m_rect  = QRect();
+
+                if (!m_rubberBand)
+                    m_rubberBand
+                        = new QRubberBand(QRubberBand::Rectangle, this);
+
+                m_rubberBand->setGeometry(QRect(m_start, QSize()));
+                m_rubberBand->show();
+                return;
+            }
+        }
+        break;
+
         case Mode::AnnotSelect:
         {
             if (event->button() == Qt::LeftButton)
@@ -152,6 +171,7 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
         }
         break;
 
+        case Mode::RegionSelection:
         case Mode::AnnotSelect:
         case Mode::AnnotRect:
         {
@@ -175,6 +195,23 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 
     switch (m_mode)
     {
+        case Mode::RegionSelection:
+        {
+            if (event->button() == Qt::LeftButton)
+            {
+                QRectF sceneRect = mapToScene(m_rect).boundingRect();
+
+                if (!m_pixmapItem)
+                    return;
+
+                QRectF clippedRect
+                    = sceneRect.intersected(m_pixmapItem->boundingRect());
+                if (!clippedRect.isEmpty())
+                    emit regionSelectRequested(clippedRect);
+            }
+        }
+        break;
+
         case Mode::TextSelection:
         {
             if (event->button() == Qt::LeftButton && dist > m_drag_threshold)
