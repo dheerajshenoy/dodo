@@ -43,6 +43,11 @@ public:
         return m_mode;
     }
 
+    inline QRubberBand *rubberBand() const noexcept
+    {
+        return m_rubberBand;
+    }
+
     inline void setPixmapItem(QGraphicsPixmapItem *item) noexcept
     {
         m_pixmapItem = item;
