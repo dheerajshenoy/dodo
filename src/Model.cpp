@@ -1532,54 +1532,6 @@ Model::getImagesFromPage(int pageno) noexcept
     return images;
 }
 
-// Function to get image's location info from the PDF page
-QList<Model::ElementInfo>
-Model::getImageInfoFromPage(int pageno) noexcept
-{
-    QList<Model::ElementInfo> result;
-    fz_try(m_ctx)
-    {
-        fz_page *page          = fz_load_page(m_ctx, m_doc, pageno);
-        fz_display_list *dlist = fz_new_display_list(m_ctx, fz_rect{});
-        fz_device *dev         = fz_new_list_device(m_ctx, dlist);
-        fz_run_page(m_ctx, page, dev, m_transform, nullptr);
-        fz_drop_device(m_ctx, dev);
-
-        fz_stext_page *text_page
-            = fz_new_stext_page(m_ctx, fz_bound_page(m_ctx, page));
-        fz_stext_options options = {};
-        fz_new_stext_page_from_page(m_ctx, page, &options);
-
-        qDebug() << "Scanning page" << pageno << "for images...";
-        for (fz_stext_block *block = text_page->first_block; block;
-             block                 = block->next)
-        {
-            qDebug() << "Block type:" << block->type;
-            if (block->type == FZ_STEXT_BLOCK_IMAGE)
-            {
-                Model::ElementInfo loc{.bbox   = block->bbox,
-                                       .pageno = pageno,
-                                       .type   = Model::ElementType::IMAGE};
-
-                result.append(loc);
-                qDebug() << "Found image on page" << pageno
-                         << "at bbox:" << loc.bbox.x0 << loc.bbox.y0
-                         << loc.bbox.x1 << loc.bbox.y1;
-            }
-        }
-
-        fz_drop_stext_page(m_ctx, text_page);
-        fz_drop_display_list(m_ctx, dlist);
-        fz_drop_page(m_ctx, page);
-    }
-    fz_catch(m_ctx)
-    {
-        qWarning() << "MuPDF exception during image extraction on page"
-                   << pageno;
-    }
-    return result;
-}
-
 /* Function to hit-test an image at a specific position on the PDF page
    Returns the fz_pixmap of the image if found, nullptr otherwise
    Caller is responsible for dropping the returned fz_pixmap */
