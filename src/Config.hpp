@@ -1,5 +1,7 @@
 #pragma once
 
+#include "GraphicsView.hpp"
+
 #include <QColor>
 #include <QHash>
 
@@ -53,10 +55,12 @@ struct Config
         int page_history_limit{5};
         int num_recent_files{10};
         int startpage_override{-1};
+        GraphicsView::Mode initial_selection_mode{
+            GraphicsView::Mode::RegionSelection};
         QString synctex_editor_command{QString()};
     };
 
-    ui     ui{};
+    ui ui{};
     rendering rendering{};
     behavior behavior{};
 };
