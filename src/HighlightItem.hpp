@@ -12,12 +12,13 @@
 #include <QPainter>
 #include <QPen>
 
-class HighlightItem : public Annotation
+class HighlightAnnotation : public Annotation
 {
     Q_OBJECT
 public:
-    HighlightItem(const QRectF &rect, int index, QGraphicsItem *parent = nullptr)
-        : Annotation(index, parent), m_rect(rect)
+    HighlightAnnotation(const QRectF &rect, int index, const QColor &color,
+                        QGraphicsItem *parent = nullptr)
+        : Annotation(index, color, parent), m_rect(rect)
     {
     }
 
@@ -58,8 +59,10 @@ protected:
         QAction *deleteAction      = new QAction("Delete");
         QAction *changeColorAction = new QAction("Change Color");
 
-        connect(deleteAction, &QAction::triggered, this, [this]() { emit annotDeleteRequested(m_index); });
-        connect(changeColorAction, &QAction::triggered, this, [this]() { emit annotColorChangeRequested(m_index); });
+        connect(deleteAction, &QAction::triggered, this,
+                [this]() { emit annotDeleteRequested(m_index); });
+        connect(changeColorAction, &QAction::triggered, this,
+                [this]() { emit annotColorChangeRequested(m_index); });
 
         menu.addAction(deleteAction);
         menu.addAction(changeColorAction);
@@ -67,7 +70,8 @@ protected:
         e->accept();
     }
 
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
+               QWidget *widget) override
     {
         Q_UNUSED(option);
         Q_UNUSED(widget);
