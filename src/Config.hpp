@@ -13,6 +13,7 @@ struct Config
         float link_hint_size{0.5f};
         float zoom_by{1.25f};
         float zoom{1.0};
+        bool outline_shown{false};
         bool menubar_shown{true};
         bool panel_shown{true};
         bool auto_resize{false};
