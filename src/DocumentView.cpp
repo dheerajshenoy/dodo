@@ -4,6 +4,7 @@
 #include "GraphicsView.hpp"
 #include "HighlightsDialog.hpp"
 
+#include <QClipboard>
 #include <algorithm>
 #include <mupdf/fitz/context.h>
 #include <mupdf/fitz/image.h>
@@ -212,6 +213,33 @@ DocumentView::initConnections() noexcept
         m_selected_annots = m_model->getAnnotationsInArea(area);
         // FIXME: Show number of annots selected ?
         selectAnnots();
+    });
+
+    connect(m_gview, &GraphicsView::regionSelectRequested, m_model,
+            [&](const QRectF &area)
+    {
+        // Show a context menu to choose what to do with the selected region
+        QMenu menu(this);
+        menu.addAction("Copy Text", this,
+                       [this, area]() { CopyTextFromRegion(area); });
+        menu.addAction("Copy Image", this, [this, area]()
+        {
+            // Scale the area according to DPR
+            QRectF scaledArea
+                = QRectF(area.x() * m_dpr, area.y() * m_dpr,
+                         area.width() * m_dpr, area.height() * m_dpr);
+            CopyRegionAsImage(scaledArea);
+        });
+        menu.addAction("Save Image", this, [this, area]()
+        {
+            // Scale the area according to DPR
+            QRectF scaledArea
+                = QRectF(area.x() * m_dpr, area.y() * m_dpr,
+                         area.width() * m_dpr, area.height() * m_dpr);
+            SaveRegionAsImage(scaledArea);
+        });
+        menu.exec(QCursor::pos());
+        m_gview->rubberBand()->hide();
     });
 
     connect(m_gview, &GraphicsView::annotSelectClearRequested, this,
@@ -1272,7 +1300,7 @@ DocumentView::InvertColor() noexcept
 
     m_cache.clear();
     m_model->toggleInvertColor();
-    renderPage(m_pageno);
+    renderPage(m_pageno, true);
 }
 
 void
@@ -1841,4 +1869,51 @@ void
 DocumentView::CopyImageToClipboard() noexcept
 {
     m_model->CopyPixmapToClipboard(m_hit_pixmap);
+}
+
+void
+DocumentView::CopyTextFromRegion(const QRectF &area) noexcept
+{
+    QClipboard *clip = QApplication::clipboard();
+    clip->setText(
+        m_model->getSelectionText(area.topLeft(), area.bottomRight()));
+}
+
+void
+DocumentView::CopyRegionAsImage(const QRectF &area) noexcept
+{
+    QImage img = m_pix_item->pixmap().copy(area.toRect()).toImage();
+    if (!img.isNull())
+    {
+        QClipboard *clip = QApplication::clipboard();
+        clip->setImage(img);
+    }
+}
+
+void
+DocumentView::SaveRegionAsImage(const QRectF &area) noexcept
+{
+    QImage img = m_pix_item->pixmap().copy(area.toRect()).toImage();
+    if (!img.isNull())
+    {
+        QFileDialog fd(this);
+        const QString &fileName
+            = fd.getSaveFileName(this, "Save Image", "",
+                                 "PNG Image (*.png), "
+                                 "JPEG Image (*.jpg *.jpeg), "
+                                 "BMP Image (*.bmp);; All Files (*)");
+        if (fileName.isEmpty())
+            return;
+        QString format;
+        if (fileName.endsWith(".png", Qt::CaseInsensitive))
+            format = "PNG";
+        else if (fileName.endsWith(".jpg", Qt::CaseInsensitive)
+                 || fileName.endsWith(".jpeg", Qt::CaseInsensitive))
+            format = "JPEG";
+        else if (fileName.endsWith(".bmp", Qt::CaseInsensitive))
+            format = "BMP";
+        else
+            format = "PNG"; // Default to PNG
+        img.save(fileName, format.toStdString().c_str());
+    }
 }
