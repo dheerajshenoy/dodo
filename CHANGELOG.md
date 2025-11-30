@@ -2,6 +2,10 @@
 
 ## 0.3.0
 
+- Image right click context menu
+    - Copy image to clipboard
+    - Save image as jpeg/png/psd
+    - Open image externally
 - Display Pixel Ratio user config option (fix blurry text on high DPI screens)
 - Outline widget as a sidebar option
 - Outline widget page numbers displayed properly
@@ -13,8 +17,6 @@
         - `link_hint_size`
     - Rendering
         - `dpr`
-
-
 
 ## 0.2.4
 
