@@ -1817,6 +1817,16 @@ DocumentView::nextFitMode() noexcept
 void
 DocumentView::OpenImageInExternalViewer() noexcept
 {
+    if (!m_hit_pixmap)
+        return;
+
+    QString tempPath
+        = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    QString filePath = tempPath + "/docviewer_temp_image.png";
+
+    m_model->SavePixmap(m_hit_pixmap, filePath);
+
+    QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
 }
 
 void
