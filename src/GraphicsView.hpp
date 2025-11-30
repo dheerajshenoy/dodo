@@ -84,6 +84,7 @@ signals:
     void zoomOutRequested();
     void populateContextMenuRequested(QMenu *menu);
     void scrollRequested(int direction);
+    void rightClickRequested(QPointF scenePos);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
