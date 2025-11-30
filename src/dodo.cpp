@@ -102,11 +102,6 @@ dodo::initMenubar() noexcept
         &dodo::ToggleFullscreen);
     m_actionFullscreen->setCheckable(true);
 
-    // Write code for Control for getting list of figures in the document
-    viewMenu->addAction(
-        QString("Figures\t%1").arg(m_config.shortcuts["figures"]), this,
-        [&]() { m_doc->model()->getImageInfoFromPage(m_doc->pageNo()); });
-
     m_actionZoomIn = viewMenu->addAction(
         QString("Zoom In\t%1").arg(m_config.shortcuts["zoom_in"]), this,
         &dodo::ZoomIn);
@@ -1713,6 +1708,9 @@ dodo::updateMenuActions() noexcept
 
         switch (m_doc->selectionMode())
         {
+            case GraphicsView::Mode::RegionSelection:
+                m_actionRegionSelect->setChecked(true);
+                break;
             case GraphicsView::Mode::TextSelection:
                 m_actionTextSelect->setChecked(true);
                 break;
@@ -1724,6 +1722,8 @@ dodo::updateMenuActions() noexcept
                 break;
             case GraphicsView::Mode::AnnotRect:
                 m_actionAnnotRect->setChecked(true);
+                break;
+            default:
                 break;
         }
     }
