@@ -404,7 +404,6 @@ DocumentView::clearPixmapItems() noexcept
 
     for (QGraphicsItem *item : items)
         m_gscene->removeItem(item);
-    qDeleteAll(items);
 }
 
 /* Function for opening the file using the model.
