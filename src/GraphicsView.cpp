@@ -1,5 +1,6 @@
 #include "GraphicsView.hpp"
 
+#include <QGraphicsProxyWidget>
 #include <qgraphicssceneevent.h>
 #include <qgraphicsview.h>
 #include <qmenu.h>
@@ -52,14 +53,23 @@ GraphicsView::setMode(Mode mode) noexcept
 void
 GraphicsView::mousePressEvent(QMouseEvent *event)
 {
-
     // Right click on image to open context menu
     if (event->button() == Qt::RightButton)
     {
         QPointF scenePos = mapToScene(event->pos());
         emit rightClickRequested(scenePos);
+        event->accept();
         return;
     }
+
+    QGraphicsItem *item = itemAt(event->pos());
+    if (item && item->type() == QGraphicsProxyWidget::Type)
+    {
+        // Let the proxy widget handle the event
+        QGraphicsView::mousePressEvent(event);
+        return;
+    }
+
     switch (m_mode)
     {
         case Mode::RegionSelection:
@@ -76,6 +86,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                 m_rubberBand->setGeometry(QRect(m_start, QSize()));
                 m_rubberBand->show();
                 m_selecting = true;
+                event->accept();
                 return;
             }
         }
@@ -90,6 +101,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                 QPointF scenePos = mapToScene(event->pos());
                 emit annotSelectClearRequested();
                 emit annotSelectRequested(scenePos);
+                event->accept();
             }
         }
         case Mode::AnnotRect:
@@ -105,6 +117,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 
                 m_rubberBand->setGeometry(QRect(m_start, QSize()));
                 m_rubberBand->show();
+                event->accept();
                 return;
             }
         }
@@ -132,6 +145,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                     m_selection_start = m_mousePressPos;
                     emit textSelectionDeletionRequested();
                 }
+                event->accept();
             }
         }
         break;
@@ -151,6 +165,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                     m_selection_start = pos;
                     emit textSelectionDeletionRequested();
                 }
+                event->accept();
                 return;
             }
         }
@@ -159,13 +174,20 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         default:
             break;
     }
-    QGraphicsView::mousePressEvent(
-        event); // Let QGraphicsItems (like links) respond
+    QGraphicsView::mousePressEvent(event);
 }
 
 void
 GraphicsView::mouseMoveEvent(QMouseEvent *event)
 {
+    // Check if we're dragging over a proxy widget
+    QGraphicsItem *item = itemAt(event->pos());
+    if (item && item->type() == QGraphicsProxyWidget::Type && !m_selecting)
+    {
+        QGraphicsView::mouseMoveEvent(event);
+        return;
+    }
+
     switch (m_mode)
     {
         case Mode::TextSelection:
@@ -201,13 +223,22 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
         default:
             break;
     }
-
-    QGraphicsView::mouseMoveEvent(event); // Allow hover/cursor events
+    QGraphicsView::mouseMoveEvent(event);
 }
 
 void
 GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 {
+    // Check if we're releasing over a proxy widget and we didn't start a
+    // selection
+    QGraphicsItem *item = itemAt(event->pos());
+    if (item && item->type() == QGraphicsProxyWidget::Type && !m_selecting)
+    {
+        QGraphicsView::mouseReleaseEvent(event);
+        return;
+    }
+
+    // Check if it was a drag or a click
     int dist = (event->pos() - m_mousePressPos).manhattanLength();
 
     switch (m_mode)
@@ -299,7 +330,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     }
 
     QGuiApplication::restoreOverrideCursor();
-    QGraphicsView::mouseReleaseEvent(event); // Let items handle clicks
+    QGraphicsView::mouseReleaseEvent(event);
 }
 
 void
