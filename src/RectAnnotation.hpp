@@ -39,9 +39,6 @@ public:
 
         if (event->button() == Qt::LeftButton)
         {
-            setSelected(true);
-            setFocus();
-
             emit annotSelectRequested(m_index);
         }
 

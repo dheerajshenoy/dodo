@@ -85,6 +85,8 @@ public:
             m_popupWidget->move(screenPos + QPoint(10, 10));
             m_popupWidget->show();
         }
+
+        QGraphicsItem::mousePressEvent(event);
     }
 
     void hoverEnterEvent(QGraphicsSceneHoverEvent *event) override
