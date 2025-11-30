@@ -55,6 +55,9 @@ dodo::initMenubar() noexcept
     fileMenu->addAction(
         QString("Open File\t%1").arg(m_config.shortcuts["open_file"]), this,
         [&]() { OpenFile(); });
+
+    m_recentFilesMenu = fileMenu->addMenu("Recent Files");
+
     m_actionFileProperties
         = fileMenu->addAction(QString("File Properties\t%1")
                                   .arg(m_config.shortcuts["file_properties"]),
@@ -83,7 +86,6 @@ dodo::initMenubar() noexcept
         QString("Close File\t%1").arg(m_config.shortcuts["close_file"]), this,
         &dodo::CloseFile);
 
-    m_recentFilesMenu = fileMenu->addMenu("Recent Files");
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, &QMainWindow::close);
 
@@ -314,7 +316,6 @@ dodo::initConfig() noexcept
 
     m_session_dir = QDir(m_config_dir.filePath("sessions"));
 
-    qDebug() << "Using config file:" << m_config_file_path;
     if (!QFile::exists(m_config_file_path))
     {
         initDefaults();
@@ -986,6 +987,8 @@ void
 dodo::RotateClock() noexcept
 {
     // TODO:
+    if (m_doc)
+        m_doc->RotateClock();
 }
 
 // Rotates the file in anticlockwise direction
@@ -993,6 +996,8 @@ void
 dodo::RotateAnticlock() noexcept
 {
     // TODO:
+    if (m_doc)
+        m_doc->RotateAntiClock();
 }
 
 // Shows link hints for each visible link to visit link
@@ -2503,9 +2508,7 @@ dodo::reloadDocument() noexcept
 {
     // TODO: Fix this implementation
     if (m_doc)
-    {
-        m_doc->reloadDocument();
-    }
+        m_doc->model()->reloadDocument();
 }
 
 // Go to the first tab
