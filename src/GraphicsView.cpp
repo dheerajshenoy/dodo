@@ -38,10 +38,8 @@ GraphicsView::setMode(Mode mode) noexcept
             break;
 
         case Mode::AnnotSelect:
-        {
             emit annotSelectClearRequested();
-        }
-        break;
+            break;
 
         default:
             break;
@@ -58,7 +56,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     {
         QPointF scenePos = mapToScene(event->pos());
         emit rightClickRequested(scenePos);
-        event->accept();
+        QGraphicsView::mousePressEvent(event);
         return;
     }
 
@@ -86,8 +84,6 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                 m_rubberBand->setGeometry(QRect(m_start, QSize()));
                 m_rubberBand->show();
                 m_selecting = true;
-                event->accept();
-                return;
             }
         }
         break;
@@ -104,6 +100,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                 event->accept();
             }
         }
+
         case Mode::AnnotRect:
         {
             if (event->button() == Qt::LeftButton)
@@ -145,7 +142,6 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                     m_selection_start = m_mousePressPos;
                     emit textSelectionDeletionRequested();
                 }
-                event->accept();
             }
         }
         break;
@@ -165,8 +161,6 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                     m_selection_start = pos;
                     emit textSelectionDeletionRequested();
                 }
-                event->accept();
-                return;
             }
         }
         break;
@@ -207,7 +201,6 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
         }
         break;
 
-        case Mode::RegionSelection:
         case Mode::AnnotSelect:
         case Mode::AnnotRect:
         {
@@ -293,15 +286,16 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
                 if (m_rubberBand)
                     m_rubberBand->hide();
 
-                QRectF sceneRect = mapToScene(m_rect).boundingRect();
+                    QRectF sceneRect = mapToScene(m_rect).boundingRect();
 
-                if (!m_pixmapItem)
-                    return;
+                    if (!m_pixmapItem)
+                        return;
 
-                QRectF clippedRect
-                    = sceneRect.intersected(m_pixmapItem->boundingRect());
-                if (!clippedRect.isEmpty())
-                    emit annotSelectRequested(clippedRect);
+                    QRectF clippedRect
+                        = sceneRect.intersected(m_pixmapItem->boundingRect());
+                    if (!clippedRect.isEmpty())
+                        emit annotSelectRequested(clippedRect);
+                }
             }
         }
         break;
