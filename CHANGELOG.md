@@ -2,6 +2,8 @@
 
 ## 0.3.0
 
+### Features
+
 - Region select mode
     - Copy text from selected region to clipboard
     - Copy selected region as image to clipboard
@@ -22,6 +24,13 @@
         - `link_hint_size`
     - Rendering
         - `dpr`
+- Popup annotations improved
+
+### Bug Fixes
+
+- Fix buggy selection behavior after clicking
+- Fix blurry text on high DPI screens
+- Fix popup annotation not deleting properly
 
 ## 0.2.4
 
