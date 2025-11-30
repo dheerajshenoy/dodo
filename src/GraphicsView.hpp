@@ -104,7 +104,7 @@ private:
     QPointF m_selection_start, m_selection_end;
     bool m_selecting{false};
     bool m_page_nav_with_mouse{true};
-    Mode m_mode{Mode::TextSelection};
+    Mode m_mode{Mode::RegionSelection};
     QGraphicsPixmapItem *m_pixmapItem{nullptr};
     QRubberBand *m_rubberBand{nullptr};
     int m_drag_threshold{50};
