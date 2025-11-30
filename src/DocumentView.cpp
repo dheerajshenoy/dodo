@@ -283,14 +283,11 @@ DocumentView::selectAnnots() noexcept
 {
     for (const auto &item : m_gscene->items())
     {
-        if (item->data(0).toString() == "annot"
-            && m_selected_annots.contains(item->data(1).toInt()))
+        if (item->data(0).toString() == "annot")
         {
-            Annotation *gitem = dynamic_cast<Annotation *>(item);
-            if (!gitem)
-                continue;
-
-            gitem->select(Qt::red);
+            Annotation *gitem = static_cast<Annotation *>(item);
+            if (gitem && m_selected_annots.contains(gitem->index()))
+                gitem->select(Qt::black);
         }
     }
     m_annot_selection_present = true;
@@ -1479,15 +1476,12 @@ DocumentView::clearAnnotSelection() noexcept
 
     for (const auto &item : m_gscene->items())
     {
-        if (!m_selected_annots.contains(item->data(1).toInt()))
-            continue;
-
-        Annotation *gitem = dynamic_cast<Annotation *>(item);
-
-        if (!gitem)
-            continue;
-
-        gitem->restoreBrushPen();
+        if (item->data(0).toString() == "annot")
+        {
+            Annotation *gitem = static_cast<Annotation *>(item);
+            if (gitem && m_selected_annots.contains(gitem->index()))
+                gitem->restoreBrushPen();
+        }
     }
 
     m_annot_selection_present = false;
