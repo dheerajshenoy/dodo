@@ -133,7 +133,9 @@ public:
     void PrevHit();
     void NextHit();
     void ClearTextSelection() noexcept;
-    void OpenImageInExternalViewer() noexcept;
+    void OpenImageInExternalViewer(const QImage &img) noexcept;
+    void OpenRegionInExternalViewer(const QRectF &area) noexcept;
+    void OpenHitPixmapInExternalViewer() noexcept;
     void SaveImageAs() noexcept;
     void CopyImageToClipboard() noexcept;
     void CopyRegionAsImage(const QRectF &area) noexcept;
