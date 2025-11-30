@@ -6,6 +6,9 @@
 
 #include <algorithm>
 #include <mupdf/fitz/context.h>
+#include <mupdf/fitz/image.h>
+#include <mupdf/fitz/output.h>
+#include <mupdf/fitz/write-pixmap.h>
 #include <qcolordialog.h>
 #include <qcontainerinfo.h>
 #include <qgraphicsitem.h>
@@ -38,27 +41,28 @@ DocumentView::DocumentView(const QString &fileName, const Config &config,
     m_gview->setRenderHint(QPainter::Antialiasing);
     m_gview->setScene(m_gscene);
 
-    m_jump_marker = new JumpMarker(m_config.colors["jump_marker"]);
+    m_jump_marker = new JumpMarker(m_config.ui.colors["jump_marker"]);
     m_gscene->addItem(m_jump_marker);
-    m_gview->setBackgroundBrush(QColor(m_config.colors["background"]));
-    m_model->setDPI(m_config.dpi);
-    m_model->setAnnotRectColor(QColor(m_config.colors["annot_rect"]).toRgb());
-    m_model->setSelectionColor(m_config.colors["selection"]);
-    m_model->setHighlightColor(m_config.colors["highlight"]);
-    m_model->setAntialiasingBits(m_config.antialiasing_bits);
+    m_gview->setBackgroundBrush(QColor(m_config.ui.colors["background"]));
+    m_model->setDPI(m_config.rendering.dpi);
+    m_model->setAnnotRectColor(
+        QColor(m_config.ui.colors["annot_rect"]).toRgb());
+    m_model->setSelectionColor(m_config.ui.colors["selection"]);
+    m_model->setHighlightColor(m_config.ui.colors["highlight"]);
+    m_model->setAntialiasingBits(m_config.rendering.antialiasing_bits);
 
-    if (m_config.invert_mode)
+    if (m_config.behavior.invert_mode)
         m_model->toggleInvertColor();
-    m_cache.setMaxCost(m_config.cache_pages);
+    m_cache.setMaxCost(m_config.behavior.cache_pages);
 
-    if (m_config.icc_color_profile)
+    if (m_config.rendering.icc_color_profile)
         m_model->enableICC();
 
-    if (m_config.initial_fit == "height")
+    if (m_config.ui.initial_fit == "height")
         m_initial_fit = FitMode::Height;
-    else if (m_config.initial_fit == "width")
+    else if (m_config.ui.initial_fit == "width")
         m_initial_fit = FitMode::Width;
-    else if (m_config.initial_fit == "window")
+    else if (m_config.ui.initial_fit == "window")
         m_initial_fit = FitMode::Window;
     else
         m_initial_fit = FitMode::None;
@@ -72,13 +76,13 @@ DocumentView::DocumentView(const QString &fileName, const Config &config,
 
     this->setLayout(m_layout);
 
-    m_model->setLinkBoundary(m_config.link_boundary);
+    m_model->setLinkBoundary(m_config.ui.link_boundary);
 
-    if (!m_config.vscrollbar_shown)
+    if (!m_config.ui.vscrollbar_shown)
         m_gview->setVerticalScrollBarPolicy(
             Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
-    if (!m_config.hscrollbar_shown)
+    if (!m_config.ui.hscrollbar_shown)
         m_gview->setHorizontalScrollBarPolicy(
             Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
@@ -297,7 +301,7 @@ DocumentView::CloseFile() noexcept
         }
     }
 
-    if (m_config.remember_last_visited && !m_filename.isEmpty()
+    if (m_config.behavior.remember_last_visited && !m_filename.isEmpty()
         && m_pageno >= 0)
         emit insertToDBRequested(m_filename, m_pageno + 1);
 
@@ -405,25 +409,6 @@ DocumentView::openFile(const QString &fileName) noexcept
 
     int targetPage = 0;
 
-    // TODO:
-    // if (m_remember_last_visited)
-    // {
-    //     QSqlQuery q;
-    //     q.prepare("SELECT page_number FROM last_visited WHERE file_path =
-    //     ?"); q.addBindValue(m_filename);
-    //
-    //     if (!q.exec())
-    //     {
-    //         qWarning() << "DB Error: " << q.lastError().text();
-    //     }
-    //     else if (q.next())
-    //     {
-    //         int page = q.value(0).toInt();
-    //         if (page >= 0 && page < m_total_pages)
-    //             targetPage = page;
-    //     }
-    // }
-
     m_gview->setEnabled(true);
     gotoPage(targetPage);
 
@@ -452,6 +437,7 @@ DocumentView::openFile(const QString &fileName) noexcept
                     FitWindow();
                     break;
                 case FitMode::None:
+                default:
                     break;
             }
         });
@@ -459,7 +445,7 @@ DocumentView::openFile(const QString &fileName) noexcept
 
     initSynctex();
 
-    QString title = m_config.window_title_format;
+    QString title = m_config.ui.window_title_format;
     title         = title.replace("%1", m_basename);
     setWindowTitle(title);
     m_last_modified_time = QFileInfo(m_filename).lastModified();
@@ -913,7 +899,7 @@ DocumentView::highlightHitsInPage()
         QRectF scaledRect = fzQuadToQRect(quad);
         auto *highlight   = new QGraphicsRectItem(scaledRect);
 
-        highlight->setBrush(QColor(m_config.colors["search_match"]));
+        highlight->setBrush(QColor(m_config.ui.colors["search_match"]));
         highlight->setPen(Qt::NoPen);
         highlight->setData(0, "searchHighlight");
         m_gscene->addItem(highlight);
@@ -932,7 +918,7 @@ DocumentView::highlightSingleHit() noexcept
 
     QRectF scaledRect = fzQuadToQRect(quad);
     auto *highlight   = new QGraphicsRectItem(scaledRect);
-    highlight->setBrush(QColor(m_config.colors["search_index"]));
+    highlight->setBrush(QColor(m_config.ui.colors["search_index"]));
     highlight->setPen(Qt::NoPen);
     highlight->setData(0, "searchIndexHighlight");
 
@@ -1139,7 +1125,8 @@ DocumentView::scrollToNormalizedTop(double ntop) noexcept
 //         if (!outline)
 //         {
 //             QMessageBox::information(
-//                 this, "Outline", "Document does not have outline information");
+//                 this, "Outline", "Document does not have outline
+//                 information");
 //             return;
 //         }
 //         m_owidget->setOutline(outline);
@@ -1158,7 +1145,7 @@ DocumentView::ToggleRectAnnotation() noexcept
     else
     {
         m_gview->setMode(GraphicsView::Mode::AnnotRect);
-        emit highlightColorChanged(m_config.colors["annot_rect"]);
+        emit highlightColorChanged(m_config.ui.colors["annot_rect"]);
         emit selectionModeChanged(GraphicsView::Mode::AnnotRect);
     }
 }
@@ -1215,9 +1202,9 @@ DocumentView::LinkKB() noexcept
         if (rect.intersects(viewport))
         {
             LinkHint *linkHint
-                = new LinkHint(rect, m_config.colors["link_hint_bg"],
-                               m_config.colors["link_hint_fg"], i,
-                               w * m_config.link_hint_size);
+                = new LinkHint(rect, m_config.ui.colors["link_hint_bg"],
+                               m_config.ui.colors["link_hint_fg"], i,
+                               w * m_config.ui.link_hint_size);
             m_link_hints.append(linkHint);
             m_gscene->addItem(linkHint);
         }
@@ -1279,6 +1266,10 @@ DocumentView::InvertColor() noexcept
     if (!m_model->valid())
         return;
 
+#ifdef NDEBUG
+    qDebug() << "Inverting colors";
+#endif
+
     m_cache.clear();
     m_model->toggleInvertColor();
     renderPage(m_pageno);
@@ -1311,6 +1302,9 @@ DocumentView::resizeEvent(QResizeEvent *e)
                 break;
 
             case FitMode::None:
+                break;
+
+            default:
                 break;
         }
     }
@@ -1346,7 +1340,7 @@ DocumentView::initSynctex() noexcept
 void
 DocumentView::synctexLocateInFile(const char *texFile, int line) noexcept
 {
-    QString tmp = m_config.synctex_editor_command;
+    QString tmp = m_config.behavior.synctex_editor_command;
     if (!tmp.contains("%f") || !tmp.contains("%l"))
     {
         QMessageBox::critical(this, "SyncTeX error",
@@ -1424,7 +1418,7 @@ DocumentView::ToggleTextHighlight() noexcept
     else
     {
         m_gview->setMode(GraphicsView::Mode::TextHighlight);
-        emit highlightColorChanged(m_config.colors["highlight"]);
+        emit highlightColorChanged(m_config.ui.colors["highlight"]);
         emit selectionModeChanged(GraphicsView::Mode::TextHighlight);
         ClearTextSelection();
     }
@@ -1499,7 +1493,7 @@ DocumentView::setDirty(bool state) noexcept
 
     m_dirty = state;
 
-    QString title     = m_config.window_title_format;
+    QString title     = m_config.ui.window_title_format;
     QString panelName = m_filename;
 
     if (m_dirty)
@@ -1583,6 +1577,9 @@ DocumentView::populateContextMenu(QMenu *menu) noexcept
         case GraphicsView::Mode::AnnotRect:
             addAction("Change color", &DocumentView::changeAnnotRectColor);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -1604,11 +1601,11 @@ void
 DocumentView::changeHighlighterColor() noexcept
 {
     auto color = QColorDialog::getColor(
-        m_config.colors["highlight"], this, "Highlighter Color",
+        m_config.ui.colors["highlight"], this, "Highlighter Color",
         QColorDialog::ColorDialogOption::ShowAlphaChannel);
     if (color.isValid())
     {
-        m_config.colors["highlight"] = color.name().toStdString().c_str();
+        m_config.ui.colors["highlight"] = color.name().toStdString().c_str();
         m_model->setHighlightColor(color);
         emit highlightColorChanged(color);
     }
@@ -1622,7 +1619,7 @@ DocumentView::changeAnnotRectColor() noexcept
         QColorDialog::ColorDialogOption::ShowAlphaChannel);
     if (color.isValid())
     {
-        m_config.colors["annot_rect"] = color.name().toStdString().c_str();
+        m_config.ui.colors["annot_rect"] = color.name().toStdString().c_str();
         m_model->setAnnotRectColor(color);
         emit highlightColorChanged(color);
     }
@@ -1706,6 +1703,8 @@ DocumentView::Fit(DocumentView::FitMode mode) noexcept
         case FitMode::Window:
             FitWindow();
             break;
+        default:
+            break;
     }
 }
 
@@ -1788,6 +1787,9 @@ DocumentView::nextFitMode() noexcept
 
         case FitMode::None:
             FitNone();
+            break;
+
+        default:
             break;
     }
     fitModeChanged(m_fit_mode);
