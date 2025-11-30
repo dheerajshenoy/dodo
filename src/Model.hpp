@@ -36,6 +36,37 @@ public:
         return m_doc != nullptr;
     }
 
+    QList<QImage> getImagesFromPage(int pageno) noexcept;
+
+    // Used for hit-testing images on a page
+    struct ImageHitTestDevice
+    {
+        fz_device super;
+        QPointF query;
+        fz_image *img{nullptr};
+    };
+
+    static void hit_test_image(fz_context *ctx, fz_device *d, fz_image *img,
+                               fz_matrix ctm, float alpha,
+                               fz_color_params color_params)
+    {
+        Q_UNUSED(ctx);
+        Q_UNUSED(alpha);
+        Q_UNUSED(color_params);
+
+        ImageHitTestDevice *dev = reinterpret_cast<ImageHitTestDevice *>(d);
+        fz_rect rect            = fz_transform_rect(fz_unit_rect, ctm);
+        const float x           = dev->query.x();
+        const float y           = dev->query.y();
+
+        if (x >= rect.x0 && x <= rect.x1 && y >= rect.y0 && y <= rect.y1)
+            dev->img = img;
+    }
+
+    fz_pixmap *hitTestImage(int pageno, const QPointF &pagePos) noexcept;
+    void SavePixmap(fz_pixmap *pixmap, const QString &filename) noexcept;
+    void CopyPixmapToClipboard(fz_pixmap *pixmap) noexcept;
+
     QString getMimeData(const QString &filepath) noexcept;
     bool authenticate(const QString &pwd) noexcept;
     bool passwordRequired() noexcept;
@@ -86,6 +117,7 @@ public:
     void annotHighlightSelection(const QPointF &selectionStart,
                                  const QPointF &selectionEnd) noexcept;
     QSet<int> getAnnotationsInArea(const QRectF &area) noexcept;
+    int getAnnotationAtPoint(const QPointF &area) noexcept;
     inline QUndoStack *undoStack() noexcept
     {
         return m_undoStack;
@@ -160,7 +192,10 @@ public:
 
     QString selectAllText(const QPointF &start, const QPointF &end) noexcept;
     void initSaveOptions() noexcept;
-    inline fz_outline *getOutline() noexcept { return m_outline; }
+    inline fz_outline *getOutline() noexcept
+    {
+        return m_outline;
+    }
 
     inline fz_matrix transform() noexcept
     {
@@ -242,8 +277,8 @@ private:
     QString m_filename;
     int m_match_count{0};
 
-    float m_dpi;
-    bool m_link_boundary, m_invert_color_mode;
+    float m_dpi{72.0f};
+    bool m_link_boundary{false}, m_invert_color_mode{false};
     QGraphicsScene *m_scene{nullptr};
     int m_pageno{-1};
 
