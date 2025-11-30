@@ -110,6 +110,7 @@ private:
     QPointF m_mousePressPos;
     QPointF m_selection_start, m_selection_end;
     bool m_selecting{false};
+    bool m_dragging{false};
     bool m_page_nav_with_mouse{true};
     Mode m_mode{Mode::RegionSelection};
     QGraphicsPixmapItem *m_pixmapItem{nullptr};
