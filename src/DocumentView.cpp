@@ -99,6 +99,7 @@ DocumentView::DocumentView(const QString &fileName, const Config &config,
 DocumentView::~DocumentView()
 {
     synctex_scanner_free(m_synctex_scanner);
+    fz_drop_pixmap(m_model->context(), m_hit_pixmap);
 }
 
 void
