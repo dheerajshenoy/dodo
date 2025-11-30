@@ -33,12 +33,12 @@ annot_rect = "#55FF5500"
 [rendering]
 dpi = 300.0 # DPI of the rendered PDF file
 dpr = 1.25 # Device Pixel Ratio for high-DPI displays
-cache_pages = 5 # Number of pages to keep in RAM
 antialiasing_bits = 8 # 4=good, 8=high quality
 icc_color_profile = true # whether to use ICC color profile
 
 # ===== Navigation & Behavior =====
 [behavior]
+cache_pages = 5 # Number of pages to keep in RAM
 remember_last_visited = true   # Helps to go to last visited page of document
 page_history = 100 # History for visited pages in the file (only for the session)
 confirm_on_quit = true # Ask before quitting dodo
