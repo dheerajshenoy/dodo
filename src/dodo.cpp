@@ -2098,6 +2098,12 @@ dodo::initActionMap() noexcept
         else
             m_message_bar->showMessage("Invalid tab index");
     }},
+        {"open_containing_folder",
+         [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        OpenContainingFolder();
+    }},
         {"tabnext",
          [this](const QStringList &args)
     {
