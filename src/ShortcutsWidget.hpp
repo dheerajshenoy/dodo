@@ -4,12 +4,13 @@
 #include <QTableWidget>
 #include <QVBoxLayout>
 #include <QHeaderView>
+#include <QHash>
 
 class ShortcutsWidget : public QDialog
 {
 
 public:
-    ShortcutsWidget(const QMap<QString, QString> &shortcutsMap, QWidget *parent = nullptr) : QDialog(parent)
+    ShortcutsWidget(const QHash<QString, QString> &shortcutsMap, QWidget *parent = nullptr) : QDialog(parent)
     {
         auto *layout      = new QVBoxLayout(this);
         auto *tableWidget = new QTableWidget();
