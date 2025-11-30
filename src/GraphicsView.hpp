@@ -82,6 +82,7 @@ signals:
     void textHighlightRequested(const QPointF &a, const QPointF &b);
     void textSelectionDeletionRequested();
     void synctexJumpRequested(QPointF pos);
+    void regionSelectRequested(const QRectF &rect);
     void annotSelectRequested(const QRectF &rect);
     void annotSelectClearRequested();
     void zoomInRequested();
