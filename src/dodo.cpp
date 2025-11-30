@@ -6,6 +6,7 @@
 #include "StartupWidget.hpp"
 #include "toml.hpp"
 
+#include <QColorDialog>
 #include <QFile>
 #include <QJsonArray>
 #include <QSplitter>
@@ -523,6 +524,26 @@ dodo::initGui() noexcept
 
     m_outline_widget = new OutlineWidget(this);
     m_outline_widget->setVisible(m_config.ui.outline_shown);
+
+    connect(m_panel, &Panel::modeColorChangeRequested, this,
+            [&](GraphicsView::Mode mode)
+    {
+        QColorDialog colorDialog(this);
+        colorDialog.setOption(QColorDialog::ShowAlphaChannel, true);
+        colorDialog.setWindowTitle("Select Color");
+        if (colorDialog.exec() == QDialog::Accepted)
+        {
+            QColor color = colorDialog.selectedColor();
+            auto model   = m_doc->model();
+            if (mode == GraphicsView::Mode::AnnotRect)
+                model->setAnnotRectColor(color);
+            else if (mode == GraphicsView::Mode::TextHighlight)
+                model->setHighlightColor(color);
+            else if (mode == GraphicsView::Mode::TextSelection)
+                model->setSelectionColor(color);
+            m_panel->setHighlightColor(color);
+        }
+    });
 
     widget->setLayout(m_layout);
 

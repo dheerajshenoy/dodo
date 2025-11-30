@@ -35,6 +35,7 @@ public:
 signals:
     void modeChangeRequested();
     void fitModeChangeRequested();
+    void modeColorChangeRequested(GraphicsView::Mode);
 
 private:
     void initGui() noexcept;
@@ -51,4 +52,5 @@ private:
     QPushButton *m_fitmode_label    = new QPushButton();
     QGridLayout *m_layout           = new QGridLayout();
     bool m_search_mode{false};
+    GraphicsView::Mode m_current_mode;
 };

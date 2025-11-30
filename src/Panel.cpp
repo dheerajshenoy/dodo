@@ -8,6 +8,8 @@
 Panel::Panel(QWidget *parent) : QWidget(parent)
 {
     initGui();
+    connect(m_mode_color_label, &CircleLabel::clicked,
+            [&]() { emit modeColorChangeRequested(m_current_mode); });
 }
 
 void
@@ -153,6 +155,7 @@ Panel::setMode(GraphicsView::Mode mode) noexcept
         default:
             break;
     }
+    m_current_mode = mode;
 }
 
 void
