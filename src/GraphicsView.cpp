@@ -92,12 +92,9 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         {
             if (event->button() == Qt::LeftButton)
             {
-                // emit annotSelectClearRequested();
-                // Select annotation under cursor if any
-                QPointF scenePos = mapToScene(event->pos());
-                emit annotSelectClearRequested();
-                emit annotSelectRequested(scenePos);
-                event->accept();
+                m_start     = event->pos();
+                m_dragging  = false;
+                m_selecting = true;
             }
         }
 
@@ -114,8 +111,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 
                 m_rubberBand->setGeometry(QRect(m_start, QSize()));
                 m_rubberBand->show();
-                event->accept();
-                return;
+                m_selecting = true;
             }
         }
         break;
@@ -202,6 +198,41 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
         break;
 
         case Mode::AnnotSelect:
+        {
+            if (event->buttons() & Qt::LeftButton)
+            {
+                if (!m_dragging)
+                {
+                    // Check if drag should start
+                    if ((event->pos() - m_selection_start).manhattanLength()
+                        > m_drag_threshold)
+                    {
+                        m_dragging  = true;
+                        m_selecting = true;
+
+                        // Initialize rubberband *now*, not earlier
+                        if (!m_rubberBand)
+                            m_rubberBand
+                                = new QRubberBand(QRubberBand::Rectangle, this);
+
+                        // m_start = m_selection_start.toPoint();
+                        m_rubberBand->setGeometry(QRect(m_start, QSize()));
+                        m_rubberBand->show();
+                    }
+                }
+
+                if (m_dragging)
+                {
+                    m_rect = QRect(m_start, event->pos()).normalized();
+                    if (m_rubberBand)
+                        m_rubberBand->setGeometry(m_rect);
+                }
+            }
+        }
+
+        break;
+
+        case Mode::RegionSelection:
         case Mode::AnnotRect:
         {
             if (m_selecting)
@@ -283,8 +314,17 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
         {
             if (event->button() == Qt::LeftButton)
             {
-                if (m_rubberBand)
-                    m_rubberBand->hide();
+                if (!m_dragging)
+                {
+                    // Single click on annotation
+                    emit annotSelectClearRequested();
+                    emit annotSelectRequested(mapToScene(event->pos()));
+                }
+                else
+                {
+                    // Drag selection of annotations
+                    if (m_rubberBand)
+                        m_rubberBand->hide();
 
                     QRectF sceneRect = mapToScene(m_rect).boundingRect();
 
