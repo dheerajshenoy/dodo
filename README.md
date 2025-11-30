@@ -95,13 +95,16 @@ cd dodo
 1. Install the required dependencies
 2. Clone the repository and build similar to the Arch Linux build approach.
 
+> [!NOTE]
+> If the text in the PDF appears blurry or not rendered properly, ensure that you have set the `dpr` equal to your screen's scale factor in the configuration file.
+
 # Usage
 
-Check out [usage](./USAGE.md) to learn how to use dodo.
+Check out [USAGE](./USAGE.md) to learn how to use dodo.
 
 ## Configuration
 
-Check out [configuration](./CONFIGURATION.md) to learn how to configure dodo.
+Check out [CONFIGURATION](./CONFIGURATION.md) to learn how to configure dodo.
 
 ## Theming dodo
 
