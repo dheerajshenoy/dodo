@@ -398,11 +398,11 @@ DocumentView::CloseFile() noexcept
 void
 DocumentView::clearPixmapItems() noexcept
 {
-    if (m_pix_item->pixmap().isNull())
+    const auto items = m_pix_item->childItems();
+    if (items.isEmpty())
         return;
 
-    QList<QGraphicsItem *> items = m_pix_item->childItems();
-    for (const auto &item : items)
+    for (QGraphicsItem *item : items)
         m_gscene->removeItem(item);
     qDeleteAll(items);
 }
