@@ -208,11 +208,22 @@ DocumentView::initConnections() noexcept
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this,
             &DocumentView::ClearTextSelection);
 
-    connect(m_gview, &GraphicsView::annotSelectRequested, m_model,
-            [&](const QRectF &area)
+    // QRectF version
+    connect(m_gview,
+            QOverload<const QRectF &>::of(&GraphicsView::annotSelectRequested),
+            m_model, [this](const QRectF &area)
     {
         m_selected_annots = m_model->getAnnotationsInArea(area);
-        // FIXME: Show number of annots selected ?
+        selectAnnots();
+    });
+
+    // QPointF version (if exists)
+    connect(m_gview,
+            QOverload<const QPointF &>::of(&GraphicsView::annotSelectRequested),
+            m_model, [this](const QPointF &p)
+    {
+        qDebug() << "DD";
+        m_selected_annots = QSet<int>({m_model->getAnnotationAtPoint(p)});
         selectAnnots();
     });
 
