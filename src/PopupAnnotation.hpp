@@ -13,12 +13,14 @@ class PopupWidget : public QWidget
 {
 public:
     PopupWidget(QWidget *parent = nullptr)
-        : QWidget(parent), m_textEdit(new QTextEdit(this)), m_layout(new QVBoxLayout(this))
+        : QWidget(parent), m_textEdit(new QTextEdit(this)),
+          m_layout(new QVBoxLayout(this))
     {
         setWindowFlags(Qt::ToolTip); // Makes it a floating tooltip-like window
         setAttribute(Qt::WA_ShowWithoutActivating);
         setAttribute(Qt::WA_TransparentForMouseEvents);
-        setStyleSheet("QTextEdit { background-color: #ffffcc; border: 1px solid black; }");
+        setStyleSheet("QTextEdit { background-color: #ffffcc; border: 1px "
+                      "solid black; }");
 
         m_layout->addWidget(m_textEdit);
     }
@@ -36,8 +38,10 @@ private:
 class PopupAnnotation : public Annotation
 {
 public:
-    PopupAnnotation(const QRectF &rect, const QString &text, int index, QGraphicsItem *parent = nullptr)
-        : Annotation(index, parent), m_rect(rect), m_text(text), m_popupWidget(nullptr)
+    PopupAnnotation(const QRectF &rect, const QString &text, int index,
+                    const QColor &color, QGraphicsItem *parent = nullptr)
+        : Annotation(index, color, parent), m_rect(rect), m_text(text),
+          m_popupWidget(nullptr)
     {
         setAcceptHoverEvents(true);
     }
@@ -47,7 +51,8 @@ public:
         return m_rect;
     }
 
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
+               QWidget *widget) override
     {
         Q_UNUSED(option);
         Q_UNUSED(widget);
