@@ -1318,6 +1318,13 @@ dodo::ToggleAnnotSelect() noexcept
 }
 
 void
+dodo::ToggleRegionSelect() noexcept
+{
+    if (m_doc)
+        m_doc->ToggleRegionSelect();
+}
+
+void
 dodo::FirstPage() noexcept
 {
     if (m_doc)
@@ -2449,19 +2456,25 @@ dodo::initActionMap() noexcept
         Q_UNUSED(args);
         ZoomReset();
     }},
-        {"annot_edit",
+        {"annot_edit_mode",
          [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ToggleAnnotSelect();
     }},
-        {"text_highlight",
+        {"text_highlight_mode",
          [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ToggleTextHighlight();
     }},
-        {"annot_rect",
+        {"region_select_mode",
+         [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        ToggleRegionSelect();
+    }},
+        {"annot_rect_mode",
          [this](const QStringList &args)
     {
         Q_UNUSED(args);

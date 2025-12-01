@@ -103,6 +103,7 @@ private:
     void PrevPage() noexcept;
     void FirstPage() noexcept;
     void ToggleTextHighlight() noexcept;
+    void ToggleRegionSelect() noexcept;
     void ToggleRectAnnotation() noexcept;
     void ToggleAnnotSelect() noexcept;
     void YankAll() noexcept;
