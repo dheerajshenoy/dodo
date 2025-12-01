@@ -116,6 +116,7 @@ public:
     void GoBackHistory() noexcept;
     // void ShowOutline() noexcept;
     void ToggleRectAnnotation() noexcept;
+    void ToggleRegionSelect() noexcept;
     void ToggleAnnotSelect() noexcept;
     void SaveFile() noexcept;
     void SaveAsFile() noexcept;
