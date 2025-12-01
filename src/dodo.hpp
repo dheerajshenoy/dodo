@@ -206,6 +206,7 @@ private:
         Copy
     };
 
+    QMap<QScreen *, float> m_screen_dpr_map; // DPR per screen
     QString m_config_file_path;
     QString m_currentHintInput;
     bool m_link_hint_mode{false};

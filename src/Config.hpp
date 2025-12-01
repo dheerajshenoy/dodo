@@ -38,7 +38,11 @@ struct Config
     struct rendering
     {
         float dpi{300};
-        float dpr{1.0f};
+
+        // dpr can be of type scalar (float) or map of screen to dpr
+        // QMap<QScreen*, float>
+        std::variant<float, QMap<QScreen *, float>> dpr{1.0f};
+
         float inv_dpr{1.0f};
         bool icc_color_profile{true};
         int antialiasing_bits{8};
