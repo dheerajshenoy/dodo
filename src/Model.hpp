@@ -125,11 +125,11 @@ public:
 
     inline float zoom() noexcept
     {
-        return m_scale_factor;
+        return m_zoom_factor;
     }
     inline void setZoom(float zoom) noexcept
     {
-        m_scale_factor = zoom;
+        m_zoom_factor = zoom;
     }
     inline float rotation() noexcept
     {
@@ -297,7 +297,7 @@ private:
     fz_matrix m_transform;
     std::string m_password; // Used when reloading document
 
-    float m_height, m_width, m_rotation{0.0f}, m_scale_factor{1.0f},
+    float m_height, m_width, m_rotation{0.0f}, m_zoom_factor{1.0f},
         m_dpr{1.0f}, m_inv_dpr{1.0f}, m_highlight_color[4],
         m_annot_rect_color[4];
     QColor m_selection_color;
