@@ -301,7 +301,7 @@ Model::renderPage(int pageno, bool cache) noexcept
     if (!m_ctx)
         return qpix;
 
-    const float scale = m_scale_factor * m_dpr;
+    const float scale = m_zoom_factor * m_dpr;
     fz_device *dev{nullptr};
     fz_pixmap *pix{nullptr};
 
