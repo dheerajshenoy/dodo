@@ -526,10 +526,15 @@ DocumentView::RotateClock() noexcept
         return;
 
     m_rotation = (m_rotation + 90) % 360;
+    m_model->setRotation(m_rotation);
+
     m_cache.clear();
-    renderPage(m_pageno);
-    // m_gview->setSceneRect(m_pix_item->boundingRect());
-    m_gview->centerOn(m_pix_item); // center view
+    renderPage(m_pageno, true);
+
+    QRectF bbox
+        = m_pix_item->mapToScene(m_pix_item->boundingRect()).boundingRect();
+    m_gview->setSceneRect(bbox);
+    m_gview->centerOn(bbox.center()); // center view
 }
 
 void
@@ -539,10 +544,13 @@ DocumentView::RotateAntiClock() noexcept
         return;
 
     m_rotation = (m_rotation + 270) % 360;
+    m_model->setRotation(m_rotation);
     m_cache.clear();
-    renderPage(m_pageno);
-    // m_gview->setSceneRect(m_pix_item->boundingRect());
-    m_gview->centerOn(m_pix_item); // center view
+    renderPage(m_pageno, true);
+    QRectF bbox
+        = m_pix_item->mapToScene(m_pix_item->boundingRect()).boundingRect();
+    m_gview->setSceneRect(bbox);
+    m_gview->centerOn(bbox.center()); // center view
 }
 
 bool
@@ -605,7 +613,7 @@ DocumentView::clearLinks() noexcept
 void
 DocumentView::renderAnnotations(const QList<Annotation *> &annots) noexcept
 {
-    clearAnnots();
+    clearAnnotations();
     for (Annotation *annot : annots)
     {
         m_gscene->addItem(annot);
@@ -634,12 +642,14 @@ DocumentView::renderAnnotations(const QList<Annotation *> &annots) noexcept
 }
 
 void
-DocumentView::clearAnnots() noexcept
+DocumentView::clearAnnotations() noexcept
 {
     for (auto &link : m_gscene->items())
     {
         if (link->data(0).toString() == "annot")
+        {
             m_gscene->removeItem(link);
+        }
     }
 }
 
@@ -692,9 +702,9 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
         }
     }
 
-    auto pix              = m_model->renderPage(pageno);
-    m_link_items          = m_model->getLinks();
-    auto annot_highlights = m_model->getAnnotations();
+    QPixmap pix                          = m_model->renderPage(pageno);
+    m_link_items                         = m_model->getLinks();
+    QList<Annotation *> annot_highlights = m_model->getAnnotations();
 
     m_cache.insert(key, new CacheValue(pix, m_link_items, annot_highlights));
     renderPixmap(pix);
@@ -1185,14 +1195,29 @@ DocumentView::ToggleRectAnnotation() noexcept
 {
     if (m_gview->mode() == GraphicsView::Mode::AnnotRect)
     {
-        m_gview->setMode(GraphicsView::Mode::TextSelection);
-        emit selectionModeChanged(GraphicsView::Mode::TextSelection);
+        m_gview->setMode(m_default_mode);
+        emit selectionModeChanged(m_default_mode);
     }
     else
     {
         m_gview->setMode(GraphicsView::Mode::AnnotRect);
         emit highlightColorChanged(m_config.ui.colors["annot_rect"]);
         emit selectionModeChanged(GraphicsView::Mode::AnnotRect);
+    }
+}
+
+void
+DocumentView::ToggleRegionSelect() noexcept
+{
+    if (m_gview->mode() == GraphicsView::Mode::RegionSelection)
+    {
+        m_gview->setMode(m_default_mode);
+        emit selectionModeChanged(m_default_mode);
+    }
+    else
+    {
+        m_gview->setMode(GraphicsView::Mode::RegionSelection);
+        emit selectionModeChanged(GraphicsView::Mode::RegionSelection);
     }
 }
 
@@ -1453,8 +1478,8 @@ DocumentView::ToggleTextHighlight() noexcept
 {
     if (m_gview->mode() == GraphicsView::Mode::TextHighlight)
     {
-        m_gview->setMode(GraphicsView::Mode::TextSelection);
-        emit selectionModeChanged(GraphicsView::Mode::TextSelection);
+        m_gview->setMode(m_default_mode);
+        emit selectionModeChanged(m_default_mode);
         // m_actionTextSelect->setChecked(true);
     }
     else
@@ -1490,8 +1515,9 @@ DocumentView::ToggleAnnotSelect() noexcept
 {
     if (m_gview->mode() == GraphicsView::Mode::AnnotSelect)
     {
-        m_gview->setMode(GraphicsView::Mode::TextSelection);
-        emit selectionModeChanged(GraphicsView::Mode::TextSelection);
+
+        m_gview->setMode(m_default_mode);
+        emit selectionModeChanged(m_default_mode);
         // m_actionTextSelect->setChecked(true);
     }
     else
@@ -1807,12 +1833,6 @@ DocumentView::showJumpMarker(const fz_point &p) noexcept
     m_jump_marker->setRect(QRectF(p.x, p.y, 10, 10));
     m_jump_marker->show();
     QTimer::singleShot(1000, [this]() { fadeJumpMarker(m_jump_marker); });
-}
-
-void
-DocumentView::reloadDocument() noexcept
-{
-    m_model->reloadDocument();
 }
 
 void
