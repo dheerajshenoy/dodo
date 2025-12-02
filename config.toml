@@ -16,7 +16,7 @@ auto_hide_tabs = true # hide tabs when there is only one file
 startup_tab = true # show/hide startup tab
 link_hint_size = 0.25 # size of link hints (px)
 outline = true # show/hide outline panel
-outline_as_side_panel = false # outline whether to show in popup or side panel
+outline_as_side_panel = true # outline whether to show in popup or side panel
 outline_panel_position = "left" # outline panel position ("left" or "right")
 outline_panel_width = 300 # outline panel width (if outline_in_panel is true)
 
@@ -36,14 +36,14 @@ annot_rect = "#55FF5500"
 # ===== Rendering Settings =====
 [rendering]
 dpi = 300.0 # DPI of the rendered PDF file
-dpr = 1.25 # Device Pixel Ratio for high-DPI displays
+dpr = { "eDP-1" = 1.25, "DP-5" = 1.0, "DP-7" = 1.0 } # Device Pixel Ratio for high-DPI displays; can be a single float value or a map of display names to DPR values
 cache_pages = 5 # Number of pages to keep in RAM
 antialiasing_bits = 8 # 4=good, 8=high quality
 icc_color_profile = true # whether to use ICC color profile
 
 # ===== Navigation & Behavior =====
 [behavior]
-initial_selection_mode = "region" # values: "region", "text", "annot_highlight", "annot_select"
+initial_mode = "text_select" # values: "region_select", "annot_rect", "annot_select", "text_select", "text_highlight"
 remember_last_visited = true   # Helps to go to last visited page of document
 page_history = 100 # History for visited pages in the file (only for the session)
 confirm_on_quit = true # Ask before quitting dodo
@@ -91,9 +91,11 @@ zoom_in = "="
 zoom_out = "-"
 
 text_highlight_current_selection = "1"
-text_highlight = "Alt+1"
-annot_rect = "Alt+2"
-annot_edit = "Alt+3"
+
+text_highlight_mode = "Alt+1"
+annot_rect_mode = "Alt+2"
+annot_edit_mode = "Alt+3"
+
 delete = "d"
 
 file_properties = "Ctrl+Shift+F"
@@ -115,5 +117,8 @@ about = "F12"
 save = "Ctrl+S"
 select_all = "Ctrl+A"
 command = ":"
+
+rotate_clock = ">"
+rotate_anticlock = "<"
 
 list_text_highlights = "]"
