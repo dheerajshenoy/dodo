@@ -1,4 +1,7 @@
 # TODO
+- [X] Multi-monitor user defined scaling support
+- [X] Fix copy text popup when no text is selected
+- [X] Wonky selection handling
 - [X] Fix scaling problem in single monitor systems
 - [X] Scroll to nav pages using delta thresholding
 - [X] Remember exact position for Goto previous location
@@ -19,5 +22,3 @@
 - [ ] Fix popup z value issue
 - [ ] Easy reference paper search
 - [ ] Highlight already selected text
-- [X] Fix copy text popup when no text is selected
-- [ ] Wonky selection handling

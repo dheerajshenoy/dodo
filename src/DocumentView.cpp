@@ -697,6 +697,10 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
 #else
             qDebug() << "Using cached pixmap";
 #endif
+            // Update text page and transform for text selection even when
+            // using cached pixmap
+            m_model->renderPage(pageno, true);
+
             renderPixmap(cached->pixmap);
             m_link_items = cached->links;
             renderLinks(m_link_items);

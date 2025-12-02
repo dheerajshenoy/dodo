@@ -1393,6 +1393,9 @@ dodo::initConnections() noexcept
 
     QWindow *win = window()->windowHandle();
 
+    m_dpr = m_screen_dpr_map.value(
+        QGuiApplication::primaryScreen()->name(), 1.0f);
+
     connect(win, &QWindow::screenChanged, this, [&](QScreen *screen)
     {
         if (std::holds_alternative<QMap<QString, float>>(
@@ -1405,11 +1408,9 @@ dodo::initConnections() noexcept
         else if (std::holds_alternative<float>(m_config.rendering.dpr))
         {
             m_dpr = std::get<float>(m_config.rendering.dpr);
+
         }
-        else
-        {
-            m_dpr = 1.0f;
-        }
+        qDebug() << "DPR set to fixed value:" << m_dpr;
     });
 
     connect(m_tab_widget, &QTabWidget::tabCloseRequested, this,

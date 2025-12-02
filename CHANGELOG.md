@@ -4,6 +4,10 @@
 
 ### Features
 
+- Fix copy text popup when no text is selected
+- Wonky selection handling
+- Fix scaling problem in single monitor systems
+- Multi-monitor user defined scaling support
 - Region select mode
     - Copy text from selected region to clipboard
     - Copy selected region as image to clipboard
