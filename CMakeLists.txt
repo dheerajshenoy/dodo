@@ -50,6 +50,7 @@ add_executable(${PROJECT_NAME}
     src/CircleLabel.hpp
     src/TabWidget.hpp
     src/commands/RectAnnotationCommand.hpp
+    src/commands/TextHighlightAnnotationCommand.hpp
     src/PopupAnnotation.hpp
     src/PlaceholderWidget.hpp
 )

@@ -14,6 +14,10 @@
 - [X] Open containing folder option
 - [X] Popup Annotation
 - [ ] Undo/Redo operations
+  - [X] Rect Annotation
+  - [ ] Text Highlight Annotation
+  - [ ] Popup Annotation
+- [ ] Fix unsaved changes being asked multiple times 
 - [ ] Synctex highlight line
 - [ ] Telescope like search with preview
 - [ ] Popup Annotation edit support

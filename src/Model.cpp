@@ -33,6 +33,7 @@ extern "C"
 #include <synctex/synctex_parser.h>
 }
 #include "commands/RectAnnotationCommand.hpp"
+#include "commands/TextHighlightAnnotationCommand.hpp"
 
 #include <QStringDecoder>
 #include <qgraphicsitem.h>
@@ -1173,29 +1174,21 @@ Model::annotHighlightSelection(const QPointF &selectionStart,
         return;
     }
 
-    fz_try(m_ctx)
-    {
-        for (int i = 0; i < count; ++i)
-        {
-            pdf_annot *annot = pdf_create_annot(
-                m_ctx, m_pdfpage, pdf_annot_type::PDF_ANNOT_HIGHLIGHT);
+    if (count <= 0)
+        return;
 
-            if (!annot)
-                return;
-
-            fz_quad q = hits[i];
-            pdf_set_annot_quad_points(m_ctx, annot, 1, &q);
-            pdf_set_annot_color(m_ctx, annot, 3, m_highlight_color);
-            pdf_set_annot_opacity(m_ctx, annot, m_highlight_color[3]);
-            pdf_update_annot(m_ctx, annot);
-            pdf_drop_annot(m_ctx, annot);
-        }
-    }
-    fz_catch(m_ctx)
+    // Collect quads for the command
+    QVector<fz_quad> quads;
+    quads.reserve(count);
+    for (int i = 0; i < count; ++i)
     {
-        qWarning() << "Cannot add highlight annotation!: "
-                   << fz_caught_message(m_ctx);
+        quads.append(hits[i]);
     }
+
+    // Create and push the command onto the undo stack
+    TextHighlightAnnotationCommand *cmd = new TextHighlightAnnotationCommand(
+        this, m_pageno, quads, m_highlight_color);
+    m_undoStack->push(cmd);
 }
 
 void
