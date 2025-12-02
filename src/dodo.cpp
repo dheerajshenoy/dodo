@@ -300,6 +300,7 @@ dodo::initDefaults() noexcept
         = m_screen_dpr_map.value(QApplication::primaryScreen()->name(), 1.0f);
     m_config.behavior.cache_pages = 10;
 
+    m_config.behavior.undo_limit            = 25;
     m_config.behavior.remember_last_visited = true;
     m_config.behavior.page_history_limit    = 10;
     m_config.ui.auto_resize                 = false;
@@ -450,6 +451,7 @@ dodo::initConfig() noexcept
         m_config.behavior.initial_mode = initial_mode;
     }
 
+    m_config.behavior.undo_limit  = behavior["undo_limit"].value_or(25);
     m_config.behavior.cache_pages = behavior["cache_pages"].value_or(10);
     m_config.behavior.remember_last_visited
         = behavior["remember_last_visited"].value_or(true);
@@ -1203,7 +1205,6 @@ dodo::OpenFile(QString filePath) noexcept
     DocumentView *docwidget
         = new DocumentView(filePath, m_config, m_tab_widget);
 
-    docwidget->SetInitialMode(m_config.behavior.initial_mode);
     docwidget->setDPR(m_dpr);
     initTabConnections(docwidget);
     int index = m_tab_widget->addTab(docwidget, filePath);

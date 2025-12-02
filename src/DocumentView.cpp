@@ -42,6 +42,8 @@ DocumentView::DocumentView(const QString &fileName, const Config &config,
     m_gview->setEnabled(false);
     m_gview->setRenderHint(QPainter::Antialiasing);
     m_gview->setScene(m_gscene);
+    m_gview->setMode(m_config.behavior.initial_mode);
+    m_default_mode = m_config.behavior.initial_mode;
 
     m_jump_marker = new JumpMarker(m_config.ui.colors["jump_marker"]);
     m_gscene->addItem(m_jump_marker);
@@ -52,6 +54,7 @@ DocumentView::DocumentView(const QString &fileName, const Config &config,
     m_model->setSelectionColor(m_config.ui.colors["selection"]);
     m_model->setHighlightColor(m_config.ui.colors["highlight"]);
     m_model->setAntialiasingBits(m_config.rendering.antialiasing_bits);
+    m_model->undoStack()->setUndoLimit(m_config.behavior.undo_limit);
 
     if (m_config.behavior.invert_mode)
         m_model->toggleInvertColor();
@@ -1980,11 +1983,4 @@ DocumentView::OpenRegionInExternalViewer(const QRectF &area) noexcept
     QImage img = m_pix_item->pixmap().copy(area.toRect()).toImage();
     OpenImageInExternalViewer(img);
     qDebug() << "Opened region in external viewer";
-}
-
-void
-DocumentView::SetInitialMode(GraphicsView::Mode mode) noexcept
-{
-    m_gview->setMode(mode);
-    m_default_mode = mode;
 }

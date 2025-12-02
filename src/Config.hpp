@@ -48,6 +48,7 @@ struct Config
 
     struct behavior
     {
+        int undo_limit{25};
         int cache_pages{10};
         // bool auto_reload{true};
         bool invert_mode{false};
