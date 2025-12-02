@@ -2002,4 +2002,5 @@ void
 DocumentView::SetInitialMode(GraphicsView::Mode mode) noexcept
 {
     m_gview->setMode(mode);
+    m_default_mode = mode;
 }

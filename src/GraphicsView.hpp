@@ -112,7 +112,7 @@ private:
     bool m_selecting{false};
     bool m_dragging{false};
     bool m_page_nav_with_mouse{true};
-    Mode m_mode{Mode::RegionSelection};
+    Mode m_mode{Mode::TextSelection};
     QGraphicsPixmapItem *m_pixmapItem{nullptr};
     QRubberBand *m_rubberBand{nullptr};
     int m_drag_threshold{50};
