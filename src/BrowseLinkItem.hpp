@@ -88,8 +88,6 @@ protected:
                 case LinkType::Page:
                     if (_pageno)
                         emit jumpToPageRequested(_pageno);
-                    else
-                        qWarning() << "No page number found!";
                     break;
 
                 case LinkType::Section:
@@ -110,6 +108,8 @@ protected:
             }
             setBrush(Qt::transparent);
         }
+
+        QGraphicsRectItem::mouseReleaseEvent(e);
     }
 
     void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override
