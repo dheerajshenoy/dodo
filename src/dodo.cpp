@@ -1732,9 +1732,6 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::totalPageCountChanged, m_panel,
             &Panel::setTotalPageCount);
 
-    connect(docwidget, &DocumentView::fitModeChanged, m_panel,
-            &Panel::setFitMode);
-
     connect(docwidget, &DocumentView::selectionModeChanged, m_panel,
             &Panel::setMode);
 
@@ -1858,7 +1855,6 @@ dodo::updatePanel() noexcept
         m_panel->setMode(m_doc->selectionMode());
         m_panel->setTotalPageCount(model->numPages());
         m_panel->setPageNo(m_doc->pageNo() + 1);
-        m_panel->setFitMode(m_doc->fitMode());
     }
     else
     {
@@ -1866,7 +1862,6 @@ dodo::updatePanel() noexcept
         m_panel->setFileName("");
         m_panel->setHighlightColor("");
         // m_panel->setMode();
-        // m_panel->setFitMode(m_doc->fitMode());
     }
 }
 

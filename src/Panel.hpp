@@ -49,7 +49,6 @@ private:
     QLabel *m_search_count_label    = new QLabel();
     QLabel *m_search_index_label    = new QLabel();
     QLabel *m_search_label          = new QLabel("Search: ");
-    QPushButton *m_fitmode_label    = new QPushButton();
     QGridLayout *m_layout           = new QGridLayout();
     bool m_search_mode{false};
     GraphicsView::Mode m_current_mode;

@@ -1,4 +1,5 @@
 # TODO
+- [X] Jump marker fading early fix
 - [X] Multi-monitor user defined scaling support
 - [X] Fix copy text popup when no text is selected
 - [X] Wonky selection handling

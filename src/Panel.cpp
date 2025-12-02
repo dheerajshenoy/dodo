@@ -17,6 +17,8 @@ Panel::initGui() noexcept
 {
     setLayout(m_layout);
 
+    setContentsMargins(0, 0, 0, 0);
+    m_layout->setContentsMargins(0, 0, 0, 0);
     auto *leftLayout = new QHBoxLayout;
     leftLayout->addWidget(m_filename_label);
 
@@ -28,7 +30,6 @@ Panel::initGui() noexcept
     auto *rightLayout = new QHBoxLayout;
     rightLayout->addWidget(m_mode_color_label);
     rightLayout->addWidget(m_mode_label);
-    rightLayout->addWidget(m_fitmode_label);
     rightLayout->addWidget(m_search_label);
     rightLayout->addWidget(m_search_index_label);
     rightLayout->addWidget(m_search_count_label);
@@ -44,9 +45,6 @@ Panel::initGui() noexcept
 
     connect(m_mode_label, &QPushButton::clicked,
             [&]() { emit modeChangeRequested(); });
-
-    connect(m_fitmode_label, &QPushButton::clicked,
-            [&]() { emit fitModeChangeRequested(); });
 
     this->setSearchMode(false);
 }
@@ -105,29 +103,6 @@ Panel::setSearchMode(bool state) noexcept
 }
 
 void
-Panel::setFitMode(DocumentView::FitMode mode) noexcept
-{
-    switch (mode)
-    {
-        case DocumentView::FitMode::None:
-            m_fitmode_label->setText("None");
-            break;
-
-        case DocumentView::FitMode::Width:
-            m_fitmode_label->setText("Width");
-            break;
-        case DocumentView::FitMode::Height:
-            m_fitmode_label->setText("Height");
-            break;
-        case DocumentView::FitMode::Window:
-            m_fitmode_label->setText("Window");
-            break;
-        default:
-            break;
-    }
-}
-
-void
 Panel::setMode(GraphicsView::Mode mode) noexcept
 {
     switch (mode)
@@ -171,5 +146,4 @@ Panel::hidePageInfo(bool state) noexcept
     m_pageno_separator->setVisible(!state);
     m_totalpage_label->setVisible(!state);
     m_mode_label->setVisible(!state);
-    m_fitmode_label->setVisible(!state);
 }
