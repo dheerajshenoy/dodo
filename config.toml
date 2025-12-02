@@ -92,9 +92,22 @@ zoom_out = "-"
 
 text_highlight_current_selection = "1"
 
-text_highlight_mode = "Alt+1"
-annot_rect_mode = "Alt+2"
-annot_edit_mode = "Alt+3"
+tab1 = "Alt+1"
+tab2 = "Alt+2"
+tab3 = "Alt+3"
+tab4 = "Alt+4"
+tab5 = "Alt+5"
+tab6 = "Alt+6"
+tab7 = "Alt+7"
+tab8 = "Alt+8"
+tab9 = "Alt+9"
+
+tab_next = "Ctrl+Period"
+tab_prev = "Ctrl+Comma"
+
+region_select_mode = "1"
+annot_rect_mode = "2"
+annot_edit_mode = "3"
 
 delete = "d"
 
@@ -122,3 +135,5 @@ rotate_clock = ">"
 rotate_anticlock = "<"
 
 list_text_highlights = "]"
+undo = "u"
+redo = "Ctrl+R"
