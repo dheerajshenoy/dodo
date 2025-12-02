@@ -686,8 +686,8 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
     if (!m_model->valid())
         return false;
 
+    // Cache only if m_config.behavior.cache_pages > 0
     CacheKey key{pageno, m_rotation, m_model->zoom()};
-    emit pageNumberChanged(pageno + 1);
 
     if (m_config.behavior.cache_pages && !refresh)
     {
