@@ -100,8 +100,7 @@ private:
         // Wrap in proxy and parent to annotation
         m_popupProxy = scene()->addWidget(textWidget, Qt::FramelessWindowHint);
         m_popupProxy->setContentsMargins(0, 0, 0, 0);
-        m_popupProxy->setParentItem(this);
-        m_popupProxy->setZValue(9999);
+        m_popupProxy->setParentItem(nullptr);
 
         m_popupProxy->setFlag(QGraphicsItem::ItemIsFocusable);
         m_popupProxy->setAcceptedMouseButtons(Qt::AllButtons);

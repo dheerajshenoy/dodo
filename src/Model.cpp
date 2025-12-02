@@ -358,6 +358,7 @@ Model::renderPage(int pageno, bool cache) noexcept
         const int size                = m_width * m_height * n;
         unsigned char *samples        = fz_pixmap_samples(m_ctx, pix);
         unsigned char *copyed_samples = new unsigned char[size];
+        // let QImage own the pixmap memory and delete it when done
         memcpy(copyed_samples, samples, size);
         QImage::Format fmt;
 
@@ -607,10 +608,7 @@ Model::getAnnotations() noexcept
     }
     fz_catch(m_ctx)
     {
-#ifdef NDEBUG
-#else
-        qDebug() << "Unable to get annotations";
-#endif
+        qDebug() << "MuPDF exception during annotation retrieval";
     }
 
     return annots;
@@ -1109,9 +1107,10 @@ Model::highlightTextSelection(const QPointF &selectionStart,
 
     for (int i = 0; i < count; ++i)
     {
+        QPolygonF poly;
+        // Convert fz_transform (m_transform) to QTransform
         fz_quad q = fz_transform_quad(hits[i], m_transform);
 
-        QPolygonF poly;
         poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr)
              << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
              << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
@@ -1120,7 +1119,6 @@ Model::highlightTextSelection(const QPointF &selectionStart,
         QGraphicsPolygonItem *item
             = m_scene->addPolygon(poly, Qt::NoPen, brush);
         item->setData(0, "selection");
-        // item->setZValue(10); // Ensure it draws over the page
         item->setFlag(QGraphicsItem::ItemIsSelectable, false);
         item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
     }

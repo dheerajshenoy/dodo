@@ -21,21 +21,27 @@ GraphicsView::setMode(Mode mode) noexcept
     switch (m_mode)
     {
         case Mode::RegionSelection:
+        {
             if (m_rubberBand)
             {
                 m_rubberBand->hide();
                 delete m_rubberBand;
                 m_rubberBand = nullptr;
             }
-            break;
+        }
+        break;
 
         case Mode::TextSelection:
         case Mode::TextHighlight:
+        {
             emit textSelectionDeletionRequested();
-            break;
+        }
+        break;
 
         case Mode::AnnotRect:
-            break;
+        {
+        }
+        break;
 
         case Mode::AnnotSelect:
             emit annotSelectClearRequested();
@@ -63,7 +69,8 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     QGraphicsItem *item = itemAt(event->pos());
     if (item && item->type() == QGraphicsProxyWidget::Type)
     {
-        // Let the proxy widget handle the event
+        QPointF scenePos = mapToScene(event->pos());
+        emit rightClickRequested(scenePos);
         QGraphicsView::mousePressEvent(event);
         return;
     }
@@ -215,7 +222,6 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
                             m_rubberBand
                                 = new QRubberBand(QRubberBand::Rectangle, this);
 
-                        // m_start = m_selection_start.toPoint();
                         m_rubberBand->setGeometry(QRect(m_start, QSize()));
                         m_rubberBand->show();
                     }

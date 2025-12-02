@@ -3,6 +3,7 @@
 #include "AboutDialog.hpp"
 #include "DocumentView.hpp"
 #include "EditLastPagesWidget.hpp"
+#include "GraphicsView.hpp"
 #include "StartupWidget.hpp"
 #include "toml.hpp"
 
@@ -29,8 +30,6 @@ dodo::~dodo() noexcept
 {
     m_last_pages_db.close();
 }
-
-
 
 
 // On-demand construction of `dodo` (for use with argparse)
@@ -435,14 +434,7 @@ dodo::initConfig() noexcept
     {
         const std::string mode_str
             = behavior["initial_mode"].value_or("text_select");
-        qDebug() << "Initial mode from config:"
-                 << QString::fromStdString(mode_str);
 
-        // "region_select" -> GraphicsView::Mode::RegionSelection
-        // "text_select" -> GraphicsView::Mode::TextSelection
-        // "text_highlight" -> GraphicsView::Mode::TextHighlight
-        // "annot_rect" -> GraphicsView::Mode::AnnotRect
-        // "annot_select" -> GraphicsView::Mode::AnnotSelect
         GraphicsView::Mode initial_mode;
         if (mode_str == "region_select")
             initial_mode = GraphicsView::Mode::RegionSelection;
