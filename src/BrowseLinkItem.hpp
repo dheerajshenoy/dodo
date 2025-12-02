@@ -1,5 +1,7 @@
 #pragma once
 
+// This class represents a clickable link area in the document view
+
 #include <QApplication>
 #include <QBrush>
 #include <QCursor>
