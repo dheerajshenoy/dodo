@@ -141,6 +141,7 @@ public:
     void CopyRegionAsImage(const QRectF &area) noexcept;
     void SaveRegionAsImage(const QRectF &area) noexcept;
     void CopyTextFromRegion(const QRectF &area) noexcept;
+    void SetInitialMode(GraphicsView::Mode mode) noexcept;
 
     inline QDateTime lastModified() const noexcept
     {

@@ -1986,3 +1986,9 @@ DocumentView::OpenRegionInExternalViewer(const QRectF &area) noexcept
     OpenImageInExternalViewer(img);
     qDebug() << "Opened region in external viewer";
 }
+
+void
+DocumentView::SetInitialMode(GraphicsView::Mode mode) noexcept
+{
+    m_gview->setMode(mode);
+}

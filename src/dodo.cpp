@@ -427,9 +427,36 @@ dodo::initConfig() noexcept
             QApplication::primaryScreen()->name(), 1.0f);
     }
 
-    m_config.behavior.cache_pages = rendering["cache_pages"].value_or(10);
-
     auto behavior = toml["behavior"];
+    if (behavior["initial_mode"])
+    {
+        const std::string mode_str
+            = behavior["initial_mode"].value_or("text_select");
+        qDebug() << "Initial mode from config:"
+                 << QString::fromStdString(mode_str);
+
+        // "region_select" -> GraphicsView::Mode::RegionSelection
+        // "text_select" -> GraphicsView::Mode::TextSelection
+        // "text_highlight" -> GraphicsView::Mode::TextHighlight
+        // "annot_rect" -> GraphicsView::Mode::AnnotRect
+        // "annot_select" -> GraphicsView::Mode::AnnotSelect
+        GraphicsView::Mode initial_mode;
+        if (mode_str == "region_select")
+            initial_mode = GraphicsView::Mode::RegionSelection;
+        else if (mode_str == "text_select")
+            initial_mode = GraphicsView::Mode::TextSelection;
+        else if (mode_str == "text_highlight")
+            initial_mode = GraphicsView::Mode::TextHighlight;
+        else if (mode_str == "annot_rect")
+            initial_mode = GraphicsView::Mode::AnnotRect;
+        else if (mode_str == "annot_select")
+            initial_mode = GraphicsView::Mode::AnnotSelect;
+        else
+            initial_mode = GraphicsView::Mode::TextSelection;
+        m_config.behavior.initial_mode = initial_mode;
+    }
+
+    m_config.behavior.cache_pages = behavior["cache_pages"].value_or(10);
     m_config.behavior.remember_last_visited
         = behavior["remember_last_visited"].value_or(true);
     m_config.behavior.open_last_visited
@@ -852,7 +879,8 @@ dodo::editLastPages() noexcept
         QMessageBox::information(
             this, "Edit Last Pages",
             "Couldn't find the database of last pages. Maybe "
-            "`remember_last_visited` option is turned off in the config file");
+            "`remember_last_visited` option is turned off in the config "
+            "file");
         return;
     }
 
@@ -1181,6 +1209,7 @@ dodo::OpenFile(QString filePath) noexcept
     DocumentView *docwidget
         = new DocumentView(filePath, m_config, m_tab_widget);
 
+    docwidget->SetInitialMode(m_config.behavior.initial_mode);
     docwidget->setDPR(m_dpr);
     initTabConnections(docwidget);
     int index = m_tab_widget->addTab(docwidget, filePath);
@@ -1397,21 +1426,6 @@ dodo::initConnections() noexcept
                  << m_dpr;
     });
 
-    QScreen *primary = QGuiApplication::primaryScreen();
-    if (std::holds_alternative<QMap<QString, float>>(m_config.rendering.dpr))
-
-    {
-        m_dpr = m_screen_dpr_map.value(primary->name(), 1.0f);
-    }
-    else if (std::holds_alternative<float>(m_config.rendering.dpr))
-    {
-        m_dpr = std::get<float>(m_config.rendering.dpr);
-    }
-    else
-    {
-        m_dpr = 1.0f;
-    }
-
     connect(m_tab_widget, &QTabWidget::tabCloseRequested, this,
             [this](const int index)
     {
@@ -1427,8 +1441,8 @@ dodo::initConnections() noexcept
             {
                 m_path_tab_map.remove(doc->fileName());
 
-                // Set the outline to nullptr if the closed tab was the current
-                // one
+                // Set the outline to nullptr if the closed tab was the
+                // current one
                 if (m_doc == doc)
                     m_outline_widget->setOutline(nullptr);
                 doc->CloseFile();

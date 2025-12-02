@@ -57,7 +57,7 @@ struct Config
         int page_history_limit{5};
         int num_recent_files{10};
         int startpage_override{-1};
-        GraphicsView::Mode initial_selection_mode{
+        GraphicsView::Mode initial_mode{
             GraphicsView::Mode::RegionSelection};
         QString synctex_editor_command{QString()};
     };
