@@ -22,3 +22,10 @@
 - [ ] Fix popup z value issue
 - [ ] Easy reference paper search
 - [ ] Highlight already selected text
+- [ ] Equation OCR to LaTeX
+- [ ] Reference previewer
+- [ ] Peek equation dependencies
+- [ ] Table exporter to CSV/Excel/Numpy
+- [ ] Semantic search
+- [ ] Incorporate AI model
+- [ ] Search inside math equations
