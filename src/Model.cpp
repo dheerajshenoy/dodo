@@ -32,6 +32,7 @@ extern "C"
 #include <mupdf/pdf/xref.h>
 #include <synctex/synctex_parser.h>
 }
+#include "commands/DeleteAnnotationsCommand.hpp"
 #include "commands/RectAnnotationCommand.hpp"
 #include "commands/TextHighlightAnnotationCommand.hpp"
 
@@ -1194,9 +1195,8 @@ Model::annotHighlightSelection(const QPointF &selectionStart,
 void
 Model::annotDeleteRequested(int index) noexcept
 {
-    pdf_annot *annot = get_annot_by_index(index);
-    if (annot)
-        pdf_delete_annot(m_ctx, m_pdfpage, annot);
+    // Use deleteAnnots which has undo/redo support
+    deleteAnnots(QSet<int>({index}));
 }
 
 QSet<int>
@@ -1295,12 +1295,13 @@ Model::selectAllText(const QPointF &start, const QPointF &end) noexcept
 void
 Model::deleteAnnots(const QSet<int> &indexes) noexcept
 {
-    QList<pdf_annot *> annots = get_annots_by_indexes(indexes);
-    for (pdf_annot *annot : annots)
-    {
-        if (annot)
-            pdf_delete_annot(m_ctx, m_pdfpage, annot);
-    }
+    if (!m_pdfpage || indexes.isEmpty())
+        return;
+
+    // Create and push the delete command onto the undo stack
+    DeleteAnnotationsCommand *cmd =
+        new DeleteAnnotationsCommand(this, m_pageno, indexes);
+    m_undoStack->push(cmd);
 }
 
 void

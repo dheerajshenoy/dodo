@@ -16,6 +16,7 @@
 - [ ] Undo/Redo operations
   - [X] Rect Annotation
   - [X] Text Highlight Annotation
+  - [X] Delete Annotation
   - [ ] Popup Annotation
 - [ ] Fix unsaved changes being asked multiple times 
 - [ ] Synctex highlight line
