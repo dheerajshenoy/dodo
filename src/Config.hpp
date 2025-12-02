@@ -39,9 +39,7 @@ struct Config
     {
         float dpi{300};
 
-        // dpr can be of type scalar (float) or map of screen to dpr
-        // QMap<QScreen*, float>
-        std::variant<float, QMap<QScreen *, float>> dpr{1.0f};
+        std::variant<float, QMap<QString, float>> dpr{};
 
         float inv_dpr{1.0f};
         bool icc_color_profile{true};

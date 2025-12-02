@@ -296,7 +296,7 @@ dodo::initDefaults() noexcept
 
     m_config.rendering.dpi = 300.0f;
     m_config.rendering.dpr
-        = m_screen_dpr_map.value(QApplication::primaryScreen(), 1.0f);
+        = m_screen_dpr_map.value(QApplication::primaryScreen()->name(), 1.0f);
     m_config.behavior.cache_pages = 10;
 
     m_config.behavior.remember_last_visited = true;
@@ -391,8 +391,7 @@ dodo::initConfig() noexcept
     m_config.ui.colors["annot_rect"]
         = colors["annot_rect"].value_or("#55FF0000");
 
-    auto rendering         = toml["rendering"];
-    m_config.rendering.dpi = rendering["dpi"].value_or(300.0f);
+    auto rendering = toml["rendering"];
 
     // If DPR is specified in config, use that (can be scalar or map)
     if (rendering["dpr"])
@@ -414,31 +413,18 @@ dodo::initConfig() noexcept
                 {
                     if (screen->name() == screen_str)
                     {
-                        m_screen_dpr_map[screen] = dpr_value;
+                        m_screen_dpr_map[screen->name()] = dpr_value;
                         break;
                     }
                 }
             }
-            m_config.rendering.dpr
-                = m_screen_dpr_map.value(QApplication::primaryScreen(), 1.0f);
+            m_config.rendering.dpr = m_screen_dpr_map;
         }
     }
     else
     {
-        m_config.rendering.dpr
-            = m_screen_dpr_map.value(QApplication::primaryScreen(), 1.0f);
-    }
-
-    if (std::holds_alternative<float>(m_config.rendering.dpr))
-        qDebug() << std::get<float>(m_config.rendering.dpr);
-    else
-    {
-        QMap<QScreen *, float> dpr_map
-            = std::get<QMap<QScreen *, float>>(m_config.rendering.dpr);
-        for (auto it = dpr_map.begin(); it != dpr_map.end(); ++it)
-        {
-            qDebug() << it.key()->name() << ": " << it.value();
-        }
+        m_config.rendering.dpr = m_screen_dpr_map.value(
+            QApplication::primaryScreen()->name(), 1.0f);
     }
 
     m_config.behavior.cache_pages = rendering["cache_pages"].value_or(10);
@@ -1205,6 +1191,9 @@ dodo::OpenFile(QString filePath) noexcept
 
     m_path_tab_map[filePath] = docwidget;
 
+    if (m_config.ui.outline_shown)
+        m_outline_widget->setVisible(m_config.ui.outline_shown);
+
     // TODO: Auto file reload
     // if (m_config.auto_reload)
     // {
@@ -1377,37 +1366,51 @@ dodo::initConnections() noexcept
     QList<QScreen *> outputs = QGuiApplication::screens();
     connect(m_tab_widget, &QTabWidget::currentChanged, this,
             &dodo::handleCurrentTabChanged);
-    m_dpr = m_tab_widget->window()->devicePixelRatioF();
-
-    if (std::holds_alternative<float>(m_config.rendering.dpr))
-        m_dpr = std::get<float>(m_config.rendering.dpr);
-    else
-    {
-        QMap<QScreen *, float> dpr_map
-            = std::get<QMap<QScreen *, float>>(m_config.rendering.dpr);
-        for (QScreen *screen : outputs)
-            if (dpr_map.contains(screen))
-                m_screen_dpr_map[screen] = dpr_map[screen];
-        m_dpr = m_screen_dpr_map.value(QApplication::primaryScreen(), 1.0f);
-    }
 
     QWindow *win = window()->windowHandle();
 
-    // TODO: Check for multiple screen support
     connect(win, &QWindow::screenChanged, this, [&](QScreen *screen)
     {
-        if (std::holds_alternative<QMap<QScreen *, float>>(
+        if (std::holds_alternative<QMap<QString, float>>(
                 m_config.rendering.dpr))
         {
-            m_dpr = m_screen_dpr_map.value(screen, 1.0f);
+            m_dpr = m_screen_dpr_map.value(screen->name(), 1.0f);
+            qDebug() << "DPR map has entries for screens:";
+            for (auto it = m_screen_dpr_map.begin();
+                 it != m_screen_dpr_map.end(); ++it)
+            {
+                qDebug() << "Screen:" << it.key() << "DPR:" << it.value();
+            }
+
             if (m_doc)
                 m_doc->setDPR(m_dpr);
         }
-        else
+        else if (std::holds_alternative<float>(m_config.rendering.dpr))
         {
             m_dpr = std::get<float>(m_config.rendering.dpr);
         }
+        else
+        {
+            m_dpr = 1.0f;
+        }
+        qDebug() << "Screen changed to " << screen->name() << " with DPR "
+                 << m_dpr;
     });
+
+    QScreen *primary = QGuiApplication::primaryScreen();
+    if (std::holds_alternative<QMap<QString, float>>(m_config.rendering.dpr))
+
+    {
+        m_dpr = m_screen_dpr_map.value(primary->name(), 1.0f);
+    }
+    else if (std::holds_alternative<float>(m_config.rendering.dpr))
+    {
+        m_dpr = std::get<float>(m_config.rendering.dpr);
+    }
+    else
+    {
+        m_dpr = 1.0f;
+    }
 
     connect(m_tab_widget, &QTabWidget::tabCloseRequested, this,
             [this](const int index)
