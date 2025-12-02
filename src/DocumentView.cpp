@@ -1647,8 +1647,10 @@ DocumentView::populateContextMenu(QMenu *menu) noexcept
     {
         case GraphicsView::Mode::TextSelection:
         {
-            if (m_selection_present)
+            if (m_selection_present) {
                 addAction("Copy Text", &DocumentView::YankSelection);
+                addAction("Highlight Text", &DocumentView::TextHighlightCurrentSelection);
+            }
         }
         break;
 
@@ -1774,6 +1776,7 @@ DocumentView::TextHighlightCurrentSelection() noexcept
 
     m_model->annotHighlightSelection(m_gview->selectionStart(),
                                      m_gview->selectionEnd());
+    m_selection_present = false;
     renderPage(m_pageno, true);
 }
 
