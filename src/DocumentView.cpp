@@ -689,7 +689,7 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
     CacheKey key{pageno, m_rotation, m_model->zoom()};
     emit pageNumberChanged(pageno + 1);
 
-    if (!refresh)
+    if (m_config.behavior.cache_pages && !refresh)
     {
         if (auto *cached = m_cache.object(key))
         {
@@ -701,15 +701,21 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
             m_link_items = cached->links;
             renderLinks(m_link_items);
             renderAnnotations(cached->annot_highlights);
+
             return true;
         }
     }
+
+    emit pageNumberChanged(pageno + 1);
 
     QPixmap pix                          = m_model->renderPage(pageno);
     m_link_items                         = m_model->getLinks();
     QList<Annotation *> annot_highlights = m_model->getAnnotations();
 
-    m_cache.insert(key, new CacheValue(pix, m_link_items, annot_highlights));
+    if (m_config.behavior.cache_pages > 0)
+        m_cache.insert(key,
+                       new CacheValue(pix, m_link_items, annot_highlights));
+
     renderPixmap(pix);
     renderLinks(m_link_items);
     renderAnnotations(annot_highlights);
