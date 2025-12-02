@@ -13,6 +13,7 @@
 - [X] Custom bg and fg colors
 - [X] Open containing folder option
 - [X] Popup Annotation
+- [X] Fix unsaved changes being asked multiple times 
 - [ ] Undo/Redo operations
   - [X] Rect Annotation
   - [X] Text Highlight Annotation
