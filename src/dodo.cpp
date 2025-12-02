@@ -1304,7 +1304,7 @@ dodo::ShowOutline() noexcept
         m_outline_widget->show();
         m_actionToggleOutline->setChecked(true);
     }
-    qDebug() << "Outline shown: " << m_outline_widget->isVisible();
+
 }
 
 void
@@ -1407,13 +1407,6 @@ dodo::initConnections() noexcept
                 m_config.rendering.dpr))
         {
             m_dpr = m_screen_dpr_map.value(screen->name(), 1.0f);
-            qDebug() << "DPR map has entries for screens:";
-            for (auto it = m_screen_dpr_map.begin();
-                 it != m_screen_dpr_map.end(); ++it)
-            {
-                qDebug() << "Screen:" << it.key() << "DPR:" << it.value();
-            }
-
             if (m_doc)
                 m_doc->setDPR(m_dpr);
         }
@@ -1425,8 +1418,6 @@ dodo::initConnections() noexcept
         {
             m_dpr = 1.0f;
         }
-        qDebug() << "Screen changed to " << screen->name() << " with DPR "
-                 << m_dpr;
     });
 
     connect(m_tab_widget, &QTabWidget::tabCloseRequested, this,
@@ -1937,7 +1928,7 @@ dodo::LoadSession(QString sessionName) noexcept
     }
     else
     {
-        qDebug() << "Could not open session file!";
+
         QMessageBox::critical(this, "Open Session",
                               "Could not open session: " + sessionName);
     }
