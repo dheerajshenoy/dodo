@@ -9,10 +9,12 @@
 - [X] Image operations (copy, save as, open externally)
 - [X] Custom bg and fg colors
 - [X] Open containing folder option
+- [X] Popup Annotation
 - [ ] Undo/Redo operations
 - [ ] Synctex highlight line
 - [ ] Telescope like search with preview
-- [ ] Popup Annotation
 - [ ] Popup Annotation edit support
 - [ ] Reload document on request
 - [ ] Printing support
+- [ ] Fix popup z value issue
+- [ ] Easy reference paper search
