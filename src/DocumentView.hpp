@@ -8,6 +8,8 @@
 #include "HighlightItem.hpp"
 #include "JumpMarker.hpp"
 #include "LinkHint.hpp"
+#include <QPropertyAnimation>
+#include <QTimer>
 #include "Model.hpp"
 #include "OutlineWidget.hpp"
 #include "PropertiesWidget.hpp"
@@ -302,6 +304,8 @@ private:
     QSet<int> m_selected_annots;
     QList<HistoryLocation> m_page_history_list;
     JumpMarker *m_jump_marker{nullptr};
+    QPropertyAnimation *m_jump_marker_animation{nullptr};
+    QTimer *m_jump_marker_timer{nullptr};
     FitMode m_fit_mode, m_initial_fit{FitMode::None};
     QScrollBar *m_vscrollbar{nullptr};
     QScrollBar *m_hscrollbar{nullptr};

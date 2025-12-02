@@ -869,9 +869,9 @@ Model::convertToMuPdfRect(const QRectF &qtRect) noexcept
 void
 Model::followLink(const LinkInfo &info) noexcept
 {
-    QString link_str         = info.uri;
-    std::string link_std_str = link_str.toStdString();
-    const char *link_uri     = link_std_str.c_str();
+    const QString link_str         = info.uri;
+    const std::string link_std_str = link_str.toStdString();
+    const char *link_uri           = link_std_str.c_str();
 
     if (info.uri.startsWith("#"))
     {
@@ -881,7 +881,7 @@ Model::followLink(const LinkInfo &info) noexcept
             fz_location loc = fz_resolve_link(m_ctx, m_doc, link_uri, &xp, &yp);
             emit jumpToLocationRequested(
                 loc.page,
-                (BrowseLinkItem::Location){.x = xp, .y = yp, .zoom = 1});
+                (BrowseLinkItem::Location){.x = xp, .y = yp, .zoom = 1.0f});
         }
         else
         {
@@ -1299,8 +1299,8 @@ Model::deleteAnnots(const QSet<int> &indexes) noexcept
         return;
 
     // Create and push the delete command onto the undo stack
-    DeleteAnnotationsCommand *cmd =
-        new DeleteAnnotationsCommand(this, m_pageno, indexes);
+    DeleteAnnotationsCommand *cmd
+        = new DeleteAnnotationsCommand(this, m_pageno, indexes);
     m_undoStack->push(cmd);
 }
 

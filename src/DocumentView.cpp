@@ -1588,16 +1588,25 @@ DocumentView::TextSelectionMode() noexcept
 void
 DocumentView::fadeJumpMarker(JumpMarker *marker) noexcept
 {
-    auto *animation = new QPropertyAnimation(marker, "opacity");
-    animation->setDuration(500); // 0.5 seconds fade
-    animation->setStartValue(1.0);
-    animation->setEndValue(0.0);
-    animation->start(QAbstractAnimation::DeleteWhenStopped);
+    // Stop any existing animation
+    if (m_jump_marker_animation)
+    {
+        m_jump_marker_animation->stop();
+        m_jump_marker_animation->deleteLater();
+        m_jump_marker_animation = nullptr;
+    }
 
-    connect(animation, &QPropertyAnimation::finished, [marker]()
+    m_jump_marker_animation = new QPropertyAnimation(marker, "opacity");
+    m_jump_marker_animation->setDuration(500); // 0.5 seconds fade
+    m_jump_marker_animation->setStartValue(1.0);
+    m_jump_marker_animation->setEndValue(0.0);
+    m_jump_marker_animation->start(QAbstractAnimation::DeleteWhenStopped);
+
+    connect(m_jump_marker_animation, &QPropertyAnimation::finished, [this, marker]()
     {
         marker->hide();
         marker->setOpacity(1.0);
+        m_jump_marker_animation = nullptr;
     });
 }
 
@@ -1820,17 +1829,40 @@ DocumentView::synctexJumpRequested(const QPointF &loc) noexcept
 void
 DocumentView::showJumpMarker(const QPointF &p) noexcept
 {
+    // Stop any pending fade timer
+    if (m_jump_marker_timer)
+    {
+        m_jump_marker_timer->stop();
+        m_jump_marker_timer->deleteLater();
+        m_jump_marker_timer = nullptr;
+    }
+
+    // Stop any running animation and reset opacity
+    if (m_jump_marker_animation)
+    {
+        m_jump_marker_animation->stop();
+        m_jump_marker_animation->deleteLater();
+        m_jump_marker_animation = nullptr;
+    }
+
+    m_jump_marker->setOpacity(1.0);
     m_jump_marker->setRect(QRectF(p.x(), p.y(), 10, 10));
     m_jump_marker->show();
-    QTimer::singleShot(1000, [this]() { fadeJumpMarker(m_jump_marker); });
+
+    // Create a new timer for the fade delay
+    m_jump_marker_timer = new QTimer(this);
+    m_jump_marker_timer->setSingleShot(true);
+    connect(m_jump_marker_timer, &QTimer::timeout, [this]() {
+        fadeJumpMarker(m_jump_marker);
+        m_jump_marker_timer = nullptr;
+    });
+    m_jump_marker_timer->start(1000);
 }
 
 void
 DocumentView::showJumpMarker(const fz_point &p) noexcept
 {
-    m_jump_marker->setRect(QRectF(p.x, p.y, 10, 10));
-    m_jump_marker->show();
-    QTimer::singleShot(1000, [this]() { fadeJumpMarker(m_jump_marker); });
+    showJumpMarker(QPointF(p.x, p.y));
 }
 
 void
