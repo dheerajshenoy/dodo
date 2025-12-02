@@ -19,7 +19,6 @@
   - [X] Text Highlight Annotation
   - [X] Delete Annotation
   - [ ] Popup Annotation
-- [ ] Fix unsaved changes being asked multiple times 
 - [ ] Synctex highlight line
 - [ ] Telescope like search with preview
 - [ ] Popup Annotation edit support

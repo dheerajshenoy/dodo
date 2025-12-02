@@ -4,7 +4,8 @@
 // document using the MuPDF library. It supports undo and redo functionality by
 // inheriting from QUndoCommand. The command stores the necessary information to
 // create and remove the annotation, including the page number, quad points,
-// color, and object numbers.
+// color, and object numbers. Each quad creates a separate annotation to avoid
+// visual issues with multi-line highlights.
 
 #include "../Model.hpp"
 
@@ -27,7 +28,7 @@ public:
 
     void undo() override
     {
-        if (!m_model || m_objNum < 0)
+        if (!m_model || m_objNums.isEmpty())
             return;
 
         fz_context *ctx   = m_model->context();
@@ -44,18 +45,23 @@ public:
             if (!page)
                 fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-            // Find and delete the annotation by object number
-            pdf_annot *annot = pdf_first_annot(ctx, page);
-            while (annot)
+            // Delete all annotations that were created by this command
+            // We need to delete them one at a time, re-finding each by objNum
+            // since the list changes after each deletion
+            for (int objNum : m_objNums)
             {
-                pdf_obj *obj = pdf_annot_obj(ctx, annot);
-                if (pdf_to_num(ctx, obj) == m_objNum)
+                pdf_annot *annot = pdf_first_annot(ctx, page);
+                while (annot)
                 {
-                    pdf_delete_annot(ctx, page, annot);
-                    pdf_update_page(ctx, page);
-                    break;
+                    pdf_obj *obj = pdf_annot_obj(ctx, annot);
+                    if (pdf_to_num(ctx, obj) == objNum)
+                    {
+                        pdf_delete_annot(ctx, page, annot);
+                        pdf_update_page(ctx, page);
+                        break;
+                    }
+                    annot = pdf_next_annot(ctx, annot);
                 }
-                annot = pdf_next_annot(ctx, annot);
             }
 
             // Drop the page we loaded (not the Model's internal page)
@@ -82,6 +88,8 @@ public:
         if (!pdf)
             return;
 
+        m_objNums.clear();
+
         fz_try(ctx)
         {
             // Load the specific page for this annotation
@@ -89,12 +97,26 @@ public:
             if (!page)
                 fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-            // Create a single highlight annotation with all quad points
-            pdf_annot *annot = pdf_create_annot(ctx, page, PDF_ANNOT_HIGHLIGHT);
-            if (!annot)
+            // Create a separate highlight annotation for each quad
+            // This looks better visually for multi-line selections
+            for (const fz_quad &quad : m_quads)
             {
-                fz_drop_page(ctx, (fz_page *)page);
-                fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to create annotation");
+                pdf_annot *annot =
+                    pdf_create_annot(ctx, page, PDF_ANNOT_HIGHLIGHT);
+                if (!annot)
+                    continue;
+
+                fz_quad q = quad;
+                pdf_set_annot_quad_points(ctx, annot, 1, &q);
+                pdf_set_annot_color(ctx, annot, 3, m_color);
+                pdf_set_annot_opacity(ctx, annot, m_color[3]);
+                pdf_update_annot(ctx, annot);
+
+                // Store the object number for later undo
+                pdf_obj *obj = pdf_annot_obj(ctx, annot);
+                m_objNums.append(pdf_to_num(ctx, obj));
+
+                pdf_drop_annot(ctx, annot);
             }
 
             // Drop the page we loaded (not the Model's internal page)
@@ -114,5 +136,5 @@ private:
     int m_pageno;
     QVector<fz_quad> m_quads;
     float m_color[4];
-    int m_objNum = -1;
+    QVector<int> m_objNums;
 };
