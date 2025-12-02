@@ -1647,9 +1647,11 @@ DocumentView::populateContextMenu(QMenu *menu) noexcept
     {
         case GraphicsView::Mode::TextSelection:
         {
-            if (m_selection_present) {
+            if (m_selection_present)
+            {
                 addAction("Copy Text", &DocumentView::YankSelection);
-                addAction("Highlight Text", &DocumentView::TextHighlightCurrentSelection);
+                addAction("Highlight Text",
+                          &DocumentView::TextHighlightCurrentSelection);
             }
         }
         break;
