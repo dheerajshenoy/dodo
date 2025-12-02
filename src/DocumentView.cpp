@@ -326,9 +326,9 @@ DocumentView::scrollToXY(float x, float y) noexcept
 }
 
 void
-DocumentView::CloseFile() noexcept
+DocumentView::CloseFile(bool skipUnsavedCheck) noexcept
 {
-    if (m_model->hasUnsavedChanges())
+    if (!skipUnsavedCheck && m_model->hasUnsavedChanges())
     {
         auto action = QMessageBox::question(
             this, "Unsaved changes detected",
@@ -1121,35 +1121,10 @@ DocumentView::GoBackHistory() noexcept
 void
 DocumentView::closeEvent(QCloseEvent *e)
 {
-    if (!m_model)
-        e->accept();
-
-    if (m_model->hasUnsavedChanges())
-    {
-        auto reply = QMessageBox::question(
-            this, "Unsaved Changes",
-            "There are unsaved changes in this document. Do you want to quit ?",
-            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-            QMessageBox::Save);
-
-        switch (reply)
-        {
-            case QMessageBox::Save:
-                SaveFile();
-                break;
-
-            case QMessageBox::Discard:
-                break;
-
-            case QMessageBox::Cancel:
-                e->ignore();
-                return;
-
-            default:
-                break;
-        }
-    }
-
+    // Unsaved changes are handled by:
+    // - dodo::closeEvent() when closing the main window
+    // - CloseFile() when closing a tab via the tab close button
+    // So we just accept the close event here
     e->accept();
 }
 

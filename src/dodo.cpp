@@ -31,7 +31,6 @@ dodo::~dodo() noexcept
     m_last_pages_db.close();
 }
 
-
 // On-demand construction of `dodo` (for use with argparse)
 void
 dodo::construct() noexcept
@@ -1296,7 +1295,6 @@ dodo::ShowOutline() noexcept
         m_outline_widget->show();
         m_actionToggleOutline->setChecked(true);
     }
-
 }
 
 void
@@ -1393,8 +1391,8 @@ dodo::initConnections() noexcept
 
     QWindow *win = window()->windowHandle();
 
-    m_dpr = m_screen_dpr_map.value(
-        QGuiApplication::primaryScreen()->name(), 1.0f);
+    m_dpr = m_screen_dpr_map.value(QGuiApplication::primaryScreen()->name(),
+                                   1.0f);
 
     connect(win, &QWindow::screenChanged, this, [&](QScreen *screen)
     {
@@ -1408,7 +1406,6 @@ dodo::initConnections() noexcept
         else if (std::holds_alternative<float>(m_config.rendering.dpr))
         {
             m_dpr = std::get<float>(m_config.rendering.dpr);
-
         }
         qDebug() << "DPR set to fixed value:" << m_dpr;
     });
@@ -1509,6 +1506,8 @@ dodo::handleCurrentTabChanged(int index) noexcept
 void
 dodo::closeEvent(QCloseEvent *e)
 {
+    // First pass: handle all unsaved changes dialogs and mark documents as
+    // handled
     for (int i = 0; i < m_tab_widget->count(); i++)
     {
         DocumentView *doc
@@ -1543,8 +1542,6 @@ dodo::closeEvent(QCloseEvent *e)
                     }
                 }
             }
-
-            doc->CloseFile();
         }
     }
     e->accept();
@@ -2195,9 +2192,8 @@ dodo::Redo() noexcept
 void
 dodo::initActionMap() noexcept
 {
-    m_actionMap = {
-        {"setdpr",
-         [this](const QStringList &args)
+    m_actionMap = {{"setdpr",
+                    [this](const QStringList &args)
     {
         if (args.isEmpty())
             return;
@@ -2208,8 +2204,8 @@ dodo::initActionMap() noexcept
         else
             m_message_bar->showMessage("Invalid DPR");
     }},
-        {"tabgoto",
-         [this](const QStringList &args)
+                   {"tabgoto",
+                    [this](const QStringList &args)
     {
         if (args.isEmpty())
             return;
@@ -2220,326 +2216,380 @@ dodo::initActionMap() noexcept
         else
             m_message_bar->showMessage("Invalid tab index");
     }},
-        {"open_containing_folder",
-         [this](const QStringList &args)
+                   {"open_containing_folder",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         OpenContainingFolder();
     }},
-        {"tabnext",
-         [this](const QStringList &args)
+                   {"tab_next",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         NextTab();
     }},
-        {"tabprev",
-         [this](const QStringList &args)
+                   {"tab_prev",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         PrevTab();
     }},
-        {"tabclose",
-         [this](const QStringList &args)
+                   {"tab_close",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         CloseTab();
     }},
-        {"reload",
-         [this](const QStringList &args)
+                   {"reload",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         reloadDocument();
     }},
-        {"command",
-         [this](const QStringList &args)
+                   {"command",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         invokeCommand();
     }},
-        {"undo",
-         [this](const QStringList &args)
+                   {"undo",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         Undo();
     }},
-        {"redo",
-         [this](const QStringList &args)
+                   {"redo",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         Redo();
     }},
-        {"text_highlight_current_selection",
-         [this](const QStringList &args)
+                   {"text_highlight_current_selection",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         TextHighlightCurrentSelection();
     }},
-        {"toggle_tabs",
-         [this](const QStringList &args)
+                   {"toggle_tabs",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ToggleTabBar();
     }},
-        {"keybindings",
-         [this](const QStringList &args)
+                   {"keybindings",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ShowKeybindings();
     }},
-        {"yank_all",
-         [this](const QStringList &args)
+                   {"yank_all",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         YankAll();
     }},
-        {"save",
-         [this](const QStringList &args)
+                   {"save",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         SaveFile();
     }},
-        {"save_as",
-         [this](const QStringList &args)
+                   {"save_as",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         SaveAsFile();
     }},
-        {"yank",
-         [this](const QStringList &args)
+                   {"yank",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         YankSelection();
     }},
-        {"cancel_selection",
-         [this](const QStringList &args)
+                   {"cancel_selection",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ClearTextSelection();
     }},
-        {"about",
-         [this](const QStringList &args)
+                   {"about",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ShowAbout();
     }},
-        {"link_hint_visit",
-         [this](const QStringList &args)
+                   {"link_hint_visit",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         VisitLinkKB();
     }},
-        {"link_hint_copy",
-         [this](const QStringList &args)
+                   {"link_hint_copy",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         CopyLinkKB();
     }},
-        {"outline",
-         [this](const QStringList &args)
+                   {"outline",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ShowOutline();
     }},
-        {"rotate_clock",
-         [this](const QStringList &args)
+                   {"rotate_clock",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         RotateClock();
     }},
-        {"rotate_anticlock",
-         [this](const QStringList &args)
+                   {"rotate_anticlock",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         RotateAnticlock();
     }},
-        {"prev_location",
-         [this](const QStringList &args)
+                   {"prev_location",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         GoBackHistory();
     }},
-        {"scroll_down",
-         [this](const QStringList &args)
+                   {"scroll_down",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ScrollDown();
     }},
-        {"scroll_up",
-         [this](const QStringList &args)
+                   {"scroll_up",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ScrollUp();
     }},
-        {"scroll_left",
-         [this](const QStringList &args)
+                   {"scroll_left",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ScrollLeft();
     }},
-        {"scroll_right",
-         [this](const QStringList &args)
+                   {"scroll_right",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ScrollRight();
     }},
-        {"invert_color",
-         [this](const QStringList &args)
+                   {"invert_color",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         InvertColor();
     }},
-        {"search",
-         [this](const QStringList &args)
+                   {"search",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         invokeSearch();
     }},
-        {"search_next",
-         [this](const QStringList &args)
+                   {"search_next",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         NextHit();
     }},
-        {"search_prev",
-         [this](const QStringList &args)
+                   {"search_prev",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         PrevHit();
     }},
-        {"next_page",
-         [this](const QStringList &args)
+                   {"next_page",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         NextPage();
     }},
-        {"prev_page",
-         [this](const QStringList &args)
+                   {"prev_page",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         PrevPage();
     }},
-        {"goto_page",
-         [this](const QStringList &args)
+                   {"goto_page",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         GotoPage();
     }},
-        {"first_page",
-         [this](const QStringList &args)
+                   {"first_page",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         FirstPage();
     }},
-        {"last_page",
-         [this](const QStringList &args)
+                   {"last_page",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         LastPage();
     }},
-        {"zoom_in",
-         [this](const QStringList &args)
+                   {"zoom_in",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ZoomIn();
     }},
-        {"zoom_out",
-         [this](const QStringList &args)
+                   {"zoom_out",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ZoomOut();
     }},
-        {"zoom_reset",
-         [this](const QStringList &args)
+                   {"zoom_reset",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ZoomReset();
     }},
-        {"annot_edit_mode",
-         [this](const QStringList &args)
+                   {"annot_edit_mode",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ToggleAnnotSelect();
     }},
-        {"text_highlight_mode",
-         [this](const QStringList &args)
+                   {"text_highlight_mode",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ToggleTextHighlight();
     }},
-        {"region_select_mode",
-         [this](const QStringList &args)
+                   {"region_select_mode",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
+        qDebug() << "DD";
         ToggleRegionSelect();
     }},
-        {"annot_rect_mode",
-         [this](const QStringList &args)
+                   {"annot_rect_mode",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ToggleRectAnnotation();
     }},
-        {"fullscreen",
-         [this](const QStringList &args)
+                   {"fullscreen",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ToggleFullscreen();
     }},
-        {"file_properties",
-         [this](const QStringList &args)
+                   {"file_properties",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         FileProperties();
     }},
-        {"open_file",
-         [this](const QStringList &args)
+                   {"open_file",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         OpenFile();
     }},
-        {"close_file",
-         [this](const QStringList &args)
+                   {"close_file",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         CloseFile();
     }},
-        {"fit_width",
-         [this](const QStringList &args)
+                   {"fit_width",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         FitWidth();
     }},
-        {"fit_height",
-         [this](const QStringList &args)
+                   {"fit_height",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         FitHeight();
     }},
-        {"fit_window",
-         [this](const QStringList &args)
+                   {"fit_window",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         FitWindow();
     }},
-        {"auto_resize",
-         [this](const QStringList &args)
+                   {"auto_resize",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ToggleAutoResize();
     }},
-        {"toggle_menubar",
-         [this](const QStringList &args)
+                   {"toggle_menubar",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         ToggleMenubar();
     }},
-        {"toggle_panel",
-         [this](const QStringList &args)
+                   {"toggle_panel",
+                    [this](const QStringList &args)
     {
         Q_UNUSED(args);
         TogglePanel();
     }},
-
-    };
+                   // Add tab1, tab2, ... tab9 commands for going to specific
+                   // tabs using lambda capture to capture the tab number
+                   {"tab1",
+                    [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        GotoTab(1);
+    }},
+                   {"tab2",
+                    [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        GotoTab(2);
+    }},
+                   {"tab3",
+                    [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        GotoTab(3);
+    }},
+                   {"tab4",
+                    [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        GotoTab(4);
+    }},
+                   {"tab5",
+                    [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        GotoTab(5);
+    }},
+                   {"tab6",
+                    [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        GotoTab(6);
+    }},
+                   {"tab7",
+                    [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        GotoTab(7);
+    }},
+                   {"tab8",
+                    [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        GotoTab(8);
+    }},
+                   {"tab9", [this](const QStringList &args)
+    {
+        Q_UNUSED(args);
+        GotoTab(9);
+    }}};
 }
 
 // Trims the recent files DB (if it exists) to `num_recent_files` number of

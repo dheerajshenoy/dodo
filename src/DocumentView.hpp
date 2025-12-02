@@ -92,7 +92,7 @@ public:
     }
 
     void setDPR(qreal dpr) noexcept;
-    void CloseFile() noexcept;
+    void CloseFile(bool skipUnsavedCheck = false) noexcept;
     void FileProperties() noexcept;
     bool FirstPage() noexcept;
     bool LastPage() noexcept;
