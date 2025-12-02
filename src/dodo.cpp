@@ -2179,13 +2179,7 @@ void
 dodo::Undo() noexcept
 {
     if (m_doc && m_doc->model())
-    {
-        if (m_doc->model()->undoStack()->canUndo())
-        {
-            m_doc->model()->undoStack()->undo();
-            // TODO: Fix this function!!
-        }
-    }
+        m_doc->model()->undoStack()->undo();
 }
 
 // Redo operation
