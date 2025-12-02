@@ -18,3 +18,6 @@
 - [ ] Printing support
 - [ ] Fix popup z value issue
 - [ ] Easy reference paper search
+- [ ] Highlight already selected text
+- [X] Fix copy text popup when no text is selected
+- [ ] Wonky selection handling

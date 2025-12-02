@@ -30,6 +30,9 @@ dodo::~dodo() noexcept
     m_last_pages_db.close();
 }
 
+
+
+
 // On-demand construction of `dodo` (for use with argparse)
 void
 dodo::construct() noexcept

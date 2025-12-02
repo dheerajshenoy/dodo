@@ -193,8 +193,11 @@ DocumentView::initConnections() noexcept
     connect(m_gview, &GraphicsView::textSelectionRequested, m_model,
             [&](const QPointF &start, const QPointF &end)
     {
-        m_model->highlightTextSelection(start, end);
-        m_selection_present = true;
+        if (start != end)
+        {
+            m_model->highlightTextSelection(start, end);
+            m_selection_present = true;
+        }
     });
 
     connect(m_gview, &GraphicsView::textHighlightRequested, m_model,
@@ -1633,9 +1636,11 @@ DocumentView::populateContextMenu(QMenu *menu) noexcept
     switch (m_gview->mode())
     {
         case GraphicsView::Mode::TextSelection:
+        {
             if (m_selection_present)
                 addAction("Copy Text", &DocumentView::YankSelection);
-            break;
+        }
+        break;
 
         case GraphicsView::Mode::AnnotSelect:
         {
