@@ -5,6 +5,8 @@
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
 #include "StartupWidget.hpp"
+#include "llm/ChatWidget.hpp"
+#include "llm/LLMService.hpp"
 #include "toml.hpp"
 
 #include <QColorDialog>
@@ -213,6 +215,16 @@ dodo::initMenubar() noexcept
         this, &dodo::ToggleAnnotSelect);
     m_actionAnnotEdit->setCheckable(true);
     selectionActionGroup->addAction(m_actionAnnotEdit);
+
+    toolsMenu->addSeparator();
+
+    // AI Chat
+    toolsMenu->addAction(
+        QString("AI Chat\t%1").arg(m_config.shortcuts["ai_chat"]),
+        this, &dodo::ToggleChatPanel);
+    toolsMenu->addAction(
+        QString("Ask AI About Selection\t%1").arg(m_config.shortcuts["ai_ask_selection"]),
+        this, &dodo::AskAIAboutSelection);
 
     // --- Navigation Menu ---
     m_navMenu = m_menuBar->addMenu("&Navigation");
@@ -478,6 +490,28 @@ dodo::initConfig() noexcept
     m_config.behavior.num_recent_files
         = behavior["num_recent_files"].value_or(10);
 
+    // LLM Configuration
+    auto llm = toml["llm"];
+    m_config.llm.provider = QString::fromStdString(
+        llm["provider"].value_or("copilot"));
+    m_config.llm.model = QString::fromStdString(
+        llm["model"].value_or("gpt-4o"));
+    m_config.llm.system_prompt = QString::fromStdString(
+        llm["system_prompt"].value_or(
+            "You are a helpful assistant analyzing PDF documents. Be concise and accurate."));
+    
+    // GitHub token: first try config file, then environment variable
+    QString github_token = QString::fromStdString(
+        llm["github_token"].value_or(""));
+    if (github_token.isEmpty())
+    {
+        // Try environment variable
+        const char *env_token = std::getenv("GITHUB_TOKEN");
+        if (env_token)
+            github_token = QString::fromUtf8(env_token);
+    }
+    m_config.llm.github_token = github_token;
+
     // if (m_config.auto_reload)
     // {
     //     // TODO:
@@ -558,6 +592,8 @@ dodo::initKeybinds() noexcept
         {"-", [this]() { ZoomOut(); }},
         {"<", [this]() { RotateAnticlock(); }},
         {">", [this]() { RotateClock(); }},
+        {"Ctrl+Shift+a", [this]() { ToggleChatPanel(); }},
+        {"Ctrl+Shift+q", [this]() { AskAIAboutSelection(); }},
     };
 
     for (const auto &[key, func] : shortcuts)
@@ -585,6 +621,15 @@ dodo::initGui() noexcept
 
     m_outline_widget = new OutlineWidget(this);
     m_outline_widget->setVisible(m_config.ui.outline_shown);
+
+    // LLM/AI Chat
+    m_llm_service = new LLMService(this);
+    m_llm_service->setActiveProvider(m_config.llm.provider);
+    m_llm_service->setApiKey("copilot", m_config.llm.github_token);
+    m_llm_service->setModel(m_config.llm.model);
+    m_llm_service->setSystemPrompt(m_config.llm.system_prompt);
+    m_chat_widget = new ChatWidget(m_llm_service, this);
+    m_chat_widget->setVisible(false);
 
     connect(m_panel, &Panel::modeColorChangeRequested, this,
             [&](GraphicsView::Mode mode)
@@ -617,15 +662,18 @@ dodo::initGui() noexcept
         QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
         splitter->addWidget(m_outline_widget);
         splitter->addWidget(m_tab_widget);
+        splitter->addWidget(m_chat_widget);
         splitter->setStretchFactor(0, 0);
         splitter->setStretchFactor(1, 1);
+        splitter->setStretchFactor(2, 0);
         splitter->setFrameShape(QFrame::NoFrame);
         splitter->setFrameShadow(QFrame::Plain);
         splitter->setHandleWidth(1);
         splitter->setContentsMargins(0, 0, 0, 0);
         splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
         splitter->setSizes({m_config.ui.outline_panel_width,
-                            this->width() - m_config.ui.outline_panel_width});
+                            this->width() - m_config.ui.outline_panel_width - 350,
+                            350});
         m_layout->addWidget(splitter, 1);
     }
     else
@@ -634,6 +682,9 @@ dodo::initGui() noexcept
         // Make the outline a popup panel
         m_outline_widget->setWindowFlags(Qt::Dialog);
         m_outline_widget->setWindowModality(Qt::NonModal);
+        // Make the chat widget a popup panel
+        m_chat_widget->setWindowFlags(Qt::Dialog);
+        m_chat_widget->setWindowModality(Qt::NonModal);
     }
 
     m_layout->addWidget(m_command_bar);
@@ -718,6 +769,47 @@ dodo::TogglePanel() noexcept
     bool shown = !m_panel->isHidden();
     m_panel->setHidden(shown);
     m_actionTogglePanel->setChecked(!shown);
+}
+
+// Toggles the AI Chat panel
+void
+dodo::ToggleChatPanel() noexcept
+{
+    bool shown = !m_chat_widget->isHidden();
+    m_chat_widget->setHidden(shown);
+
+    // Update document view for context manager when showing
+    if (!shown && m_doc)
+    {
+        m_chat_widget->setDocumentView(m_doc);
+    }
+}
+
+// Ask AI about the current text selection
+void
+dodo::AskAIAboutSelection() noexcept
+{
+    if (!m_doc || !m_doc->model()->hasSelection())
+    {
+        m_message_bar->showMessage("No text selected", 3000);
+        return;
+    }
+
+    QString selectedText = m_doc->model()->getSelectedText();
+    if (selectedText.isEmpty())
+    {
+        m_message_bar->showMessage("No text selected", 3000);
+        return;
+    }
+
+    // Show chat panel if hidden
+    if (m_chat_widget->isHidden())
+        m_chat_widget->setVisible(true);
+
+    // Set document view for context manager and selected text
+    m_chat_widget->setDocumentView(m_doc);
+    m_chat_widget->setSelectedText(selectedText);
+    m_chat_widget->askAboutSelection();
 }
 
 // Toggles the menubar
@@ -1511,6 +1603,12 @@ dodo::handleCurrentTabChanged(int index) noexcept
 
     m_outline_widget->setOutline(m_doc ? m_doc->model()->getOutline()
                                        : nullptr);
+
+    // Update chat widget's context manager with new document
+    if (m_doc && !m_chat_widget->isHidden())
+    {
+        m_chat_widget->setDocumentView(m_doc);
+    }
 
     this->setWindowTitle(m_doc->windowTitle());
 }

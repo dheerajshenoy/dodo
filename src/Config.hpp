@@ -63,7 +63,16 @@ struct Config
         QString synctex_editor_command{QString()};
     };
 
+    struct llm
+    {
+        QString provider{"copilot"};
+        QString github_token{};  // GitHub Personal Access Token
+        QString model{"gpt-4o"};
+        QString system_prompt{"You are a helpful assistant analyzing PDF documents. Be concise and accurate."};
+    };
+
     ui ui{};
     rendering rendering{};
     behavior behavior{};
+    llm llm{};
 };

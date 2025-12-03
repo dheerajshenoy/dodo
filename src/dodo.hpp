@@ -11,6 +11,9 @@
 #include "StartupWidget.hpp"
 #include "TabWidget.hpp"
 #include "argparse.hpp"
+#include "llm/LLMService.hpp"
+
+class ChatWidget;
 
 #include <QActionGroup>
 #include <QApplication>
@@ -109,6 +112,8 @@ private:
     void YankAll() noexcept;
     void YankSelection() noexcept;
     void ClearTextSelection() noexcept;
+    void ToggleChatPanel() noexcept;
+    void AskAIAboutSelection() noexcept;
     void VisitLinkKB() noexcept;
     void CopyLinkKB() noexcept;
     void RotateClock() noexcept;
@@ -229,4 +234,8 @@ private:
     QMap<QString, DocumentView *> m_path_tab_map;
     CommandBar *m_command_bar;
     MessageBar *m_message_bar;
+
+    // LLM/AI Chat
+    LLMService *m_llm_service{nullptr};
+    ChatWidget *m_chat_widget{nullptr};
 };

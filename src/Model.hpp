@@ -247,6 +247,9 @@ public:
     QString getSelectedText() noexcept;
     void highlightSelectedText() noexcept;
 
+    // Extract text from a specific page (0-indexed)
+    QString getPageText(int pageNo) noexcept;
+
     void highlightHelper(const QPointF &selectionStart,
                          const QPointF &selectionEnd, fz_point &a,
                          fz_point &b) noexcept;

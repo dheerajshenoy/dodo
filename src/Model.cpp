@@ -1378,6 +1378,66 @@ Model::selectAllText(const QPointF &start, const QPointF &end) noexcept
     return text;
 }
 
+// Extract text from a specific page (0-indexed)
+QString
+Model::getPageText(int pageNo) noexcept
+{
+    QString text;
+
+    if (!m_ctx || !m_doc)
+        return text;
+
+    int totalPages = numPages();
+    if (pageNo < 0 || pageNo >= totalPages)
+        return text;
+
+    fz_page *page{nullptr};
+    fz_stext_page *textPage{nullptr};
+    char *pageText{nullptr};
+
+    fz_try(m_ctx)
+    {
+        // Load the specific page
+        page = fz_load_page(m_ctx, m_doc, pageNo);
+        if (!page)
+        {
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+        }
+
+        // Create text page for text extraction
+        textPage = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        if (!textPage)
+        {
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to create text page");
+        }
+
+        // Get the page bounds
+        fz_rect bounds = fz_bound_page(m_ctx, page);
+
+        // Extract all text from the page
+        pageText = fz_copy_rectangle(m_ctx, textPage, bounds, 0);
+        if (pageText)
+        {
+            text = QString::fromUtf8(pageText);
+        }
+    }
+    fz_always(m_ctx)
+    {
+        if (pageText)
+            fz_free(m_ctx, pageText);
+        if (textPage)
+            fz_drop_stext_page(m_ctx, textPage);
+        if (page)
+            fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Failed to extract text from page" << pageNo;
+    }
+
+    return text;
+}
+
 void
 Model::deleteAnnots(const QSet<int> &indexes) noexcept
 {
