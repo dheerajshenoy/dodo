@@ -692,6 +692,8 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
     // Cache only if m_config.behavior.cache_pages > 0
     CacheKey key{pageno, m_rotation, m_model->zoom()};
 
+    emit pageNumberChanged(pageno + 1);
+
     if (m_config.behavior.cache_pages && !refresh)
     {
         if (auto *cached = m_cache.object(key))
@@ -712,8 +714,6 @@ DocumentView::renderPage(int pageno, bool refresh) noexcept
             return true;
         }
     }
-
-    emit pageNumberChanged(pageno + 1);
 
     QPixmap pix                          = m_model->renderPage(pageno);
     m_link_items                         = m_model->getLinks();
@@ -1280,13 +1280,15 @@ DocumentView::LinkKB() noexcept
 void
 DocumentView::GotoPage(int pageno) noexcept
 {
-    if (pageno == -1)
+    if (pageno < 0 || pageno > m_total_pages)
     {
         pageno = QInputDialog::getInt(
             this, "Goto Page",
-            QString("Enter page number ({} to {})").arg(0, m_total_pages), 0, 1,
-            m_total_pages);
+            QString("Enter enter valid page number range (1 to %1)")
+                .arg(m_total_pages),
+            0, 1, m_total_pages);
     }
+    this->setFocus();
     gotoPage(pageno - 1, false);
 }
 
@@ -1386,13 +1388,7 @@ DocumentView::initSynctex() noexcept
     m_synctex_scanner
         = synctex_scanner_new_with_output_file(CSTR(m_filename), nullptr, 1);
     if (!m_synctex_scanner)
-    {
-#ifdef NDEBUG
-#else
-        qDebug() << "Unable to open SyncTeX scanner";
-#endif
         return;
-    }
 }
 
 void

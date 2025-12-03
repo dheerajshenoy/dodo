@@ -36,6 +36,7 @@ signals:
     void modeChangeRequested();
     void fitModeChangeRequested();
     void modeColorChangeRequested(GraphicsView::Mode);
+    void pageChangeRequested(int pageno);
 
 private:
     void initGui() noexcept;
@@ -43,9 +44,9 @@ private:
     ElidableLabel *m_filename_label = new ElidableLabel();
     QPushButton *m_mode_label       = new QPushButton();
     CircleLabel *m_mode_color_label = new CircleLabel();
-    QLabel *m_pageno_label          = new QLabel();
+    QLineEdit *m_pageno_box         = new QLineEdit();
     QLabel *m_totalpage_label       = new QLabel();
-    QLabel *m_pageno_separator      = new QLabel("/");
+    QLabel *m_pageno_separator      = new QLabel(" of ");
     QLabel *m_search_count_label    = new QLabel();
     QLabel *m_search_index_label    = new QLabel();
     QLabel *m_search_label          = new QLabel("Search: ");

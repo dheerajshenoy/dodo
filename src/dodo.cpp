@@ -13,6 +13,7 @@
 #include <QSplitter>
 #include <QStackedLayout>
 #include <QStyleHints>
+#include <qguiapplication.h>
 #include <qnamespace.h>
 #include <qstackedlayout.h>
 #include <variant>
@@ -603,6 +604,8 @@ dodo::initGui() noexcept
             m_panel->setHighlightColor(color);
         }
     });
+
+    connect(m_panel, &Panel::pageChangeRequested, this, &dodo::gotoPage);
 
     widget->setLayout(m_layout);
 
@@ -1408,7 +1411,6 @@ dodo::initConnections() noexcept
         {
             m_dpr = std::get<float>(m_config.rendering.dpr);
         }
-        qDebug() << "DPR set to fixed value:" << m_dpr;
     });
 
     connect(m_tab_widget, &QTabWidget::tabCloseRequested, this,
@@ -2146,7 +2148,6 @@ dodo::processCommand(const QString &cmd) noexcept
             = trimmed.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
         if (parts.isEmpty())
             return;
-
         QString command = parts[0];
 
         if (m_actionMap.contains(command))

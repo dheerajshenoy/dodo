@@ -10,20 +10,33 @@ Panel::Panel(QWidget *parent) : QWidget(parent)
     initGui();
     connect(m_mode_color_label, &CircleLabel::clicked,
             [&]() { emit modeColorChangeRequested(m_current_mode); });
+    connect(m_pageno_box, &QLineEdit::returnPressed, [&]()
+    {
+        bool ok;
+        int pageno = m_pageno_box->text().toInt(&ok);
+        if (ok) {
+            clearFocus();
+            emit pageChangeRequested(pageno);
+        }
+        else
+            QMessageBox::warning(
+                this, "Invalid Page Number", "Please enter a valid page number");
+    });
 }
 
 void
 Panel::initGui() noexcept
 {
-    setLayout(m_layout);
 
     setContentsMargins(0, 0, 0, 0);
     m_layout->setContentsMargins(0, 0, 0, 0);
+    setLayout(m_layout);
+
     auto *leftLayout = new QHBoxLayout;
     leftLayout->addWidget(m_filename_label);
 
     auto *centerLayout = new QHBoxLayout;
-    centerLayout->addWidget(m_pageno_label);
+    centerLayout->addWidget(m_pageno_box);
     centerLayout->addWidget(m_pageno_separator);
     centerLayout->addWidget(m_totalpage_label);
 
@@ -73,7 +86,10 @@ Panel::setFileName(const QString &name) noexcept
 void
 Panel::setPageNo(int pageno) noexcept
 {
-    m_pageno_label->setText(QString::number(pageno));
+    m_pageno_box->setText(QString::number(pageno));
+    m_pageno_box->setMaximumWidth(
+        m_pageno_box->fontMetrics().horizontalAdvance(QString::number(9999))
+        + 10);
 }
 
 void
@@ -142,7 +158,7 @@ Panel::setHighlightColor(const QColor &color) noexcept
 void
 Panel::hidePageInfo(bool state) noexcept
 {
-    m_pageno_label->setVisible(!state);
+    m_pageno_box->setVisible(!state);
     m_pageno_separator->setVisible(!state);
     m_totalpage_label->setVisible(!state);
     m_mode_label->setVisible(!state);
