@@ -1071,10 +1071,29 @@ DocumentView::Search(const QString &term) noexcept
 void
 DocumentView::NextHit()
 {
-    if (m_search_hit_page == -1)
+    if (m_searchRectMap.isEmpty())
         return;
 
-    QList<int> pages   = m_searchRectMap.keys();
+    QList<int> pages = m_searchRectMap.keys();
+
+    // If user navigated away from the last search hit page, recalculate position
+    if (m_pageno != m_search_hit_page)
+    {
+        // Find the first page with matches >= current page
+        for (int i = 0; i < pages.size(); ++i)
+        {
+            if (pages[i] >= m_pageno && !m_searchRectMap[pages[i]].isEmpty())
+            {
+                jumpToHit(pages[i], 0);
+                return;
+            }
+        }
+        // No matches on or after current page, wrap to first match
+        if (!m_searchRectMap[pages[0]].isEmpty())
+            jumpToHit(pages[0], 0);
+        return;
+    }
+
     int currentPageIdx = pages.indexOf(m_search_hit_page);
 
     // Try next hit on current page
@@ -1095,10 +1114,31 @@ DocumentView::NextHit()
 void
 DocumentView::PrevHit()
 {
-    if (m_search_hit_page == -1)
+    if (m_searchRectMap.isEmpty())
         return;
 
-    QList<int> pages   = m_searchRectMap.keys();
+    QList<int> pages = m_searchRectMap.keys();
+
+    // If user navigated away from the last search hit page, recalculate position
+    if (m_pageno != m_search_hit_page)
+    {
+        // Find the last page with matches <= current page
+        for (int i = pages.size() - 1; i >= 0; --i)
+        {
+            if (pages[i] <= m_pageno && !m_searchRectMap[pages[i]].isEmpty())
+            {
+                int lastHitIndex = m_searchRectMap[pages[i]].size() - 1;
+                jumpToHit(pages[i], lastHitIndex);
+                return;
+            }
+        }
+        // No matches on or before current page, wrap to last match
+        int lastPage     = pages[pages.size() - 1];
+        int lastHitIndex = m_searchRectMap[lastPage].size() - 1;
+        jumpToHit(lastPage, lastHitIndex);
+        return;
+    }
+
     int currentPageIdx = pages.indexOf(m_search_hit_page);
 
     // Try previous hit on current page

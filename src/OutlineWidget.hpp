@@ -128,7 +128,7 @@ public:
                 text, QRegularExpression::CaseInsensitiveOption));
         });
 
-        m_tree->setItemDelegateForColumn(1, new RightAlignDelegate(this));
+        // m_tree->setItemDelegateForColumn(1, new RightAlignDelegate(this));
         m_tree->setAnimated(true);
         m_tree->setModel(proxy);
         m_tree->setFrameShape(QFrame::NoFrame);
