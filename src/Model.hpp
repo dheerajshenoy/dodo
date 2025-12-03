@@ -237,6 +237,16 @@ public:
     void selectWord(const QPointF &loc) noexcept;
     void selectLine(const QPointF &loc) noexcept;
     void selectParagraph(const QPointF &loc) noexcept;
+
+    inline bool hasSelection() const noexcept
+    {
+        return m_has_selection;
+    }
+
+    void clearSelection() noexcept;
+    QString getSelectedText() noexcept;
+    void highlightSelectedText() noexcept;
+
     void highlightHelper(const QPointF &selectionStart,
                          const QPointF &selectionEnd, fz_point &a,
                          fz_point &b) noexcept;
@@ -308,4 +318,9 @@ private:
     float m_page_height{0.0f};
     QUndoStack *m_undoStack;
     fz_outline *m_outline{nullptr};
+
+    // Selection bounds stored as fz_point for efficiency (no conversion needed)
+    fz_point m_sel_start{0, 0};
+    fz_point m_sel_end{0, 0};
+    bool m_has_selection{false};
 };

@@ -1097,13 +1097,18 @@ Model::highlightTextSelection(const QPointF &selectionStart,
     {
         fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_CHARS);
         count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, 1000);
+
+        // Store snapped selection bounds for later use
+        m_sel_start = a;
+        m_sel_end = b;
+        m_has_selection = (count > 0);
     }
     fz_catch(m_ctx)
     {
         qWarning() << "Selection failed";
+        m_has_selection = false;
         return;
     }
-
     QBrush brush(m_selection_color);
 
     for (int i = 0; i < count; ++i)
@@ -1123,6 +1128,85 @@ Model::highlightTextSelection(const QPointF &selectionStart,
         item->setFlag(QGraphicsItem::ItemIsSelectable, false);
         item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
     }
+}
+
+void
+Model::clearSelection() noexcept
+{
+    for (QGraphicsItem *object : m_scene->items())
+        if (object->data(0).toString() == "selection")
+            m_scene->removeItem(object);
+
+    m_has_selection = false;
+    m_sel_start = {0, 0};
+    m_sel_end = {0, 0};
+}
+
+QString
+Model::getSelectedText() noexcept
+{
+    if (!m_has_selection || !m_text_page)
+        return QString();
+
+    QString text;
+    char *selected{nullptr};
+
+    fz_try(m_ctx)
+    {
+        selected = fz_copy_selection(m_ctx, m_text_page, m_sel_start, m_sel_end, 0);
+        text = QString::fromUtf8(selected);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Get selected text failed";
+    }
+
+    if (selected)
+        fz_free(m_ctx, selected);
+
+    return text;
+}
+
+void
+Model::highlightSelectedText() noexcept
+{
+    if (!m_has_selection || !m_text_page || !m_pdfdoc)
+        return;
+
+    static fz_quad hits[1000];
+    int count = 0;
+
+    fz_try(m_ctx)
+    {
+        count = fz_highlight_selection(m_ctx, m_text_page, m_sel_start, m_sel_end, hits, 1000);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Highlight selected text failed";
+        clearSelection();
+        return;
+    }
+
+    if (count <= 0)
+    {
+        clearSelection();
+        return;
+    }
+
+    // Collect quads for the command
+    QVector<fz_quad> quads;
+    quads.reserve(count);
+    for (int i = 0; i < count; ++i)
+    {
+        quads.append(hits[i]);
+    }
+
+    // Create and push the command onto the undo stack for undo/redo support
+    TextHighlightAnnotationCommand *cmd = new TextHighlightAnnotationCommand(
+        this, m_pageno, quads, m_highlight_color);
+    m_undoStack->push(cmd);
+
+    clearSelection();
 }
 
 QString
@@ -1600,10 +1684,7 @@ Model::doubleClickTextSelection(const QPointF &loc) noexcept
     if (!m_text_page)
         return;
 
-    // Clear existing selections
-    for (QGraphicsItem *object : m_scene->items())
-        if (object->data(0).toString() == "selection")
-            m_scene->removeItem(object);
+    clearSelection();
 
     // Map click location to PDF coordinates
     fz_point pt = mapToPdf(loc);
@@ -1618,11 +1699,15 @@ Model::doubleClickTextSelection(const QPointF &loc) noexcept
         fz_snap_selection(m_ctx, m_text_page, &wordStart, &wordEnd,
                           FZ_SELECT_WORDS);
 
-
         // Get the quads for highlighting
         static fz_quad hits[1000];
         int count = fz_highlight_selection(m_ctx, m_text_page, wordStart,
                                            wordEnd, hits, 1000);
+
+        // Store snapped selection bounds
+        m_sel_start = wordStart;
+        m_sel_end = wordEnd;
+        m_has_selection = (count > 0);
 
         QBrush brush(m_selection_color);
 
@@ -1646,6 +1731,7 @@ Model::doubleClickTextSelection(const QPointF &loc) noexcept
     fz_catch(m_ctx)
     {
         qWarning() << "Double-click word selection failed";
+        m_has_selection = false;
     }
 }
 
@@ -1655,10 +1741,7 @@ Model::tripleClickTextSelection(const QPointF &loc) noexcept
     if (!m_text_page)
         return;
 
-    // Clear existing selections
-    for (QGraphicsItem *object : m_scene->items())
-        if (object->data(0).toString() == "selection")
-            m_scene->removeItem(object);
+    clearSelection();
 
     fz_point pt = mapToPdf(loc);
     fz_point lineStart = pt;
@@ -1670,6 +1753,11 @@ Model::tripleClickTextSelection(const QPointF &loc) noexcept
 
         static fz_quad hits[1000];
         int count = fz_highlight_selection(m_ctx, m_text_page, lineStart, lineEnd, hits, 1000);
+
+        // Store snapped selection bounds
+        m_sel_start = lineStart;
+        m_sel_end = lineEnd;
+        m_has_selection = (count > 0);
 
         QBrush brush(m_selection_color);
 
@@ -1691,6 +1779,7 @@ Model::tripleClickTextSelection(const QPointF &loc) noexcept
     fz_catch(m_ctx)
     {
         qWarning() << "Triple-click line selection failed";
+        m_has_selection = false;
     }
 }
 
@@ -1700,10 +1789,7 @@ Model::quadrupleClickTextSelection(const QPointF &loc) noexcept
     if (!m_text_page)
         return;
 
-    // Clear existing selections
-    for (QGraphicsItem *object : m_scene->items())
-        if (object->data(0).toString() == "selection")
-            m_scene->removeItem(object);
+    clearSelection();
 
     fz_point pt = mapToPdf(loc);
 
@@ -1725,6 +1811,11 @@ Model::quadrupleClickTextSelection(const QPointF &loc) noexcept
 
                 static fz_quad hits[1000];
                 int count = fz_highlight_selection(m_ctx, m_text_page, blockStart, blockEnd, hits, 1000);
+
+                // Store snapped selection bounds
+                m_sel_start = blockStart;
+                m_sel_end = blockEnd;
+                m_has_selection = (count > 0);
 
                 QBrush brush(m_selection_color);
 
@@ -1749,5 +1840,6 @@ Model::quadrupleClickTextSelection(const QPointF &loc) noexcept
     fz_catch(m_ctx)
     {
         qWarning() << "Quadruple-click paragraph selection failed";
+        m_has_selection = false;
     }
 }

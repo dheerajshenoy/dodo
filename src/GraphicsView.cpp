@@ -82,10 +82,12 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     {
         QPointF currentPos = event->pos();
 
-        // Check if this click is close to the last click and within time threshold
+        // Check if this click is close to the last click and within time
+        // threshold
         bool isMultiClick = m_clickTimer.isValid()
-            && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL
-            && QLineF(currentPos, m_lastClickPos).length() < CLICK_DISTANCE_THRESHOLD;
+                            && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL
+                            && QLineF(currentPos, m_lastClickPos).length()
+                                   < CLICK_DISTANCE_THRESHOLD;
 
         if (isMultiClick)
         {

@@ -126,9 +126,25 @@ DocumentView::initConnections() noexcept
     connect(m_gview, &GraphicsView::populateContextMenuRequested, this,
             &DocumentView::populateContextMenu);
     connect(m_model, &Model::documentSaved, this, [&]() { setDirty(false); });
-    connect(m_gview, &GraphicsView::doubleClickRequested, m_model, &Model::doubleClickTextSelection);
-    connect(m_gview, &GraphicsView::tripleClickRequested, m_model, &Model::tripleClickTextSelection);
-    connect(m_gview, &GraphicsView::quadrupleClickRequested, m_model, &Model::quadrupleClickTextSelection);
+    connect(m_gview, &GraphicsView::doubleClickRequested, this,
+            [&](QPointF loc)
+    {
+        ClearTextSelection();
+        m_model->doubleClickTextSelection(loc);
+    });
+    // triple and quadruple
+    connect(m_gview, &GraphicsView::tripleClickRequested, this,
+            [&](QPointF loc)
+    {
+        ClearTextSelection();
+        m_model->tripleClickTextSelection(loc);
+    });
+    connect(m_gview, &GraphicsView::quadrupleClickRequested, this,
+            [&](QPointF loc)
+    {
+        ClearTextSelection();
+        m_model->quadrupleClickTextSelection(loc);
+    });
 
     connect(m_gview, &GraphicsView::rightClickRequested, this,
             [&](QPointF scenePos)
@@ -196,13 +212,12 @@ DocumentView::initConnections() noexcept
     connect(m_gview, &GraphicsView::synctexJumpRequested, this,
             &DocumentView::synctexJumpRequested);
 
-    connect(m_gview, &GraphicsView::textSelectionRequested, m_model,
+    connect(m_gview, &GraphicsView::textSelectionRequested, this,
             [&](const QPointF &start, const QPointF &end)
     {
         if (start != end)
         {
             m_model->highlightTextSelection(start, end);
-            m_selection_present = true;
         }
     });
 
@@ -304,16 +319,10 @@ DocumentView::selectAnnots() noexcept
 void
 DocumentView::ClearTextSelection() noexcept
 {
-    // TODO: Optimize checking flag
-    // if (!m_selection_present)
-    //     return;
+    if (!m_model->hasSelection())
+        return;
 
-    for (auto &object : m_gscene->items())
-    {
-        if (object->data(0).toString() == "selection")
-            m_gscene->removeItem(object);
-    }
-    m_selection_present = false;
+    m_model->clearSelection();
 }
 
 void
@@ -375,7 +384,7 @@ DocumentView::CloseFile(bool skipUnsavedCheck) noexcept
         clearIndexHighlights();
     }
 
-    if (m_selection_present)
+    if (m_model->hasSelection())
         ClearTextSelection();
 
     if (m_annot_selection_present)
@@ -599,7 +608,7 @@ DocumentView::gotoPage(int pageno, bool refresh) noexcept
     if (m_annot_selection_present)
         clearAnnotSelection();
 
-    if (m_selection_present)
+    if (m_model->hasSelection())
         ClearTextSelection();
 
     return gotoPageInternal(pageno, refresh);
@@ -822,7 +831,7 @@ DocumentView::zoomHelper() noexcept
         highlightSingleHit();
         highlightHitsInPage();
     }
-    if (m_selection_present)
+    if (m_model->hasSelection())
         ClearTextSelection();
     m_gview->setSceneRect(m_pix_item->boundingRect());
     m_vscrollbar->setValue(m_vscrollbar->value());
@@ -1456,11 +1465,10 @@ DocumentView::mapToPdf(QPointF loc) noexcept
 void
 DocumentView::YankSelection() noexcept
 {
-    if (!m_model->valid())
+    if (!m_model->valid() || !m_model->hasSelection())
         return;
 
-    emit clipboardContentChanged(m_model->getSelectionText(
-        m_gview->selectionStart(), m_gview->selectionEnd()));
+    emit clipboardContentChanged(m_model->getSelectedText());
     ClearTextSelection();
 }
 
@@ -1578,7 +1586,7 @@ DocumentView::TextSelectionMode() noexcept
     if (m_annot_selection_present)
         clearAnnotSelection();
 
-    if (m_selection_present)
+    if (m_model->hasSelection())
         ClearTextSelection();
 
     m_gview->setMode(GraphicsView::Mode::TextSelection);
@@ -1635,7 +1643,7 @@ DocumentView::populateContextMenu(QMenu *menu) noexcept
     {
         case GraphicsView::Mode::TextSelection:
         {
-            if (m_selection_present)
+            if (m_model->hasSelection())
             {
                 addAction("Copy Text", &DocumentView::YankSelection);
                 addAction("Highlight Text",
@@ -1761,12 +1769,11 @@ DocumentView::mouseWheelScrollRequested(int delta) noexcept
 void
 DocumentView::TextHighlightCurrentSelection() noexcept
 {
-    if (!m_selection_present)
+    if (!m_model->hasSelection())
         return;
 
-    m_model->annotHighlightSelection(m_gview->selectionStart(),
-                                     m_gview->selectionEnd());
-    m_selection_present = false;
+    m_model->highlightSelectedText();
+    setDirty(true);
     renderPage(m_pageno, true);
 }
 

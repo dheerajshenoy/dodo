@@ -1,4 +1,5 @@
 # TODO
+- [X] Double, triple and quadruple click to select word, line and paragraph respectively
 - [X] Jump marker fading early fix
 - [X] Multi-monitor user defined scaling support
 - [X] Fix copy text popup when no text is selected
@@ -35,4 +36,3 @@
 - [ ] Semantic search
 - [ ] Incorporate AI model
 - [ ] Search inside math equations
-- [X] Double, triple and quadruple click to select word, line and paragraph respectively
