@@ -2,6 +2,8 @@
 
 #include "GraphicsView.hpp"
 
+#include <mupdf/pdf/page.h>
+#include <qmessagebox.h>
 #include <qnamespace.h>
 #include <qsizepolicy.h>
 

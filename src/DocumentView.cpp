@@ -1598,7 +1598,8 @@ DocumentView::fadeJumpMarker(JumpMarker *marker) noexcept
     m_jump_marker_animation->setEndValue(0.0);
     m_jump_marker_animation->start(QAbstractAnimation::DeleteWhenStopped);
 
-    connect(m_jump_marker_animation, &QPropertyAnimation::finished, [this, marker]()
+    connect(m_jump_marker_animation, &QPropertyAnimation::finished,
+            [this, marker]()
     {
         marker->hide();
         marker->setOpacity(1.0);
@@ -1848,7 +1849,8 @@ DocumentView::showJumpMarker(const QPointF &p) noexcept
     // Create a new timer for the fade delay
     m_jump_marker_timer = new QTimer(this);
     m_jump_marker_timer->setSingleShot(true);
-    connect(m_jump_marker_timer, &QTimer::timeout, [this]() {
+    connect(m_jump_marker_timer, &QTimer::timeout, [this]()
+    {
         fadeJumpMarker(m_jump_marker);
         m_jump_marker_timer = nullptr;
     });
