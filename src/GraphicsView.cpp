@@ -453,12 +453,22 @@ GraphicsView::wheelEvent(QWheelEvent *e)
 void
 GraphicsView::contextMenuEvent(QContextMenuEvent *e)
 {
+    QGraphicsItem *item = scene()->itemAt(mapToScene(e->pos()), transform());
+
+    // Check if item is a selection highlight (should not handle context menu)
+    bool isSelectionItem = item && item->data(0).toString() == "selection";
+
+    // Let BrowseLinkItem (and other interactive items) handle their own context menu
+    // Skip selection items, pixmap, and proxy widgets - they don't have context menus
+    if (item && item != m_pixmapItem && !isSelectionItem
+        && item->type() != QGraphicsProxyWidget::Type)
+    {
+        QGraphicsView::contextMenuEvent(e);
+        return;
+    }
 
     if (m_mode == Mode::AnnotSelect)
     {
-        QGraphicsItem *item
-            = scene()->itemAt(mapToScene(e->pos()), transform());
-
         if (!item || item == m_pixmapItem)
         {
             QMenu menu(this);
