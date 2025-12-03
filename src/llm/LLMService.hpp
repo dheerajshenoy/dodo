@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ActionHandler.hpp"
 #include "CopilotProvider.hpp"
 #include "LLMProvider.hpp"
 
@@ -17,6 +18,7 @@ class LLMService : public QObject
 public:
     explicit LLMService(QObject *parent = nullptr)
         : QObject(parent)
+        , m_actionHandler(new ActionHandler(this))
     {
         // Register available providers
         registerProvider(std::make_unique<CopilotProvider>(this));
@@ -87,6 +89,23 @@ public:
         return m_activeProvider && m_activeProvider->isLoading();
     }
 
+    // Action handler
+    ActionHandler *actionHandler() const
+    {
+        return m_actionHandler;
+    }
+
+    // Enable/disable actions
+    void setActionsEnabled(bool enabled)
+    {
+        m_actionsEnabled = enabled;
+    }
+
+    bool actionsEnabled() const
+    {
+        return m_actionsEnabled;
+    }
+
     // Conversation management
     void setSystemPrompt(const QString &prompt)
     {
@@ -128,23 +147,31 @@ public:
         // Build message list
         QList<ChatMessage> messages;
 
-        // Add system prompt if set
+        // Build system content
+        QString systemContent;
+        
         if (!m_systemPrompt.isEmpty())
         {
-            QString systemContent = m_systemPrompt;
-            if (!context.isEmpty())
-                systemContent += "\n\n--- Document Context ---\n" + context;
-
-            messages.append({ChatMessage::Role::System, systemContent});
+            systemContent = m_systemPrompt;
         }
-        else if (!context.isEmpty())
+        else
         {
-            messages.append(
-                {ChatMessage::Role::System,
-                 "You are a helpful assistant. The user is reading a PDF "
-                 "document. Here is the relevant context:\n\n" +
-                     context});
+            systemContent = "You are a helpful assistant. The user is reading a PDF document.";
         }
+
+        // Add action instructions if enabled
+        if (m_actionsEnabled && m_actionHandler->isReady())
+        {
+            systemContent += "\n\n" + m_actionHandler->getActionsPrompt();
+        }
+
+        // Add document context
+        if (!context.isEmpty())
+        {
+            systemContent += "\n\n--- Document Context ---\n" + context;
+        }
+
+        messages.append({ChatMessage::Role::System, systemContent});
 
         // Add conversation history
         messages.append(m_conversationHistory);
@@ -172,12 +199,15 @@ signals:
     void errorOccurred(const QString &error);
     void loadingChanged(bool isLoading);
     void conversationCleared();
+    void actionExecuted(const ActionHandler::ActionResult &result);
 
 private:
     QMap<QString, LLMProvider *> m_providers;
     LLMProvider *m_activeProvider{nullptr};
+    ActionHandler *m_actionHandler{nullptr};
     QString m_systemPrompt;
     QList<ChatMessage> m_conversationHistory;
+    bool m_actionsEnabled{true};
 
     void registerProvider(std::unique_ptr<LLMProvider> provider)
     {
@@ -191,6 +221,17 @@ private:
                     // Add assistant response to history
                     m_conversationHistory.append(
                         {ChatMessage::Role::Assistant, response});
+
+                    // Process any actions in the response
+                    if (m_actionsEnabled && m_actionHandler->isReady())
+                    {
+                        auto results = m_actionHandler->parseAndExecuteActions(response);
+                        for (const auto &result : results)
+                        {
+                            emit actionExecuted(result);
+                        }
+                    }
+
                     emit responseReceived(response);
                 });
 

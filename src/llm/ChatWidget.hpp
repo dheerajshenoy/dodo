@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ActionHandler.hpp"
 #include "ContextManager.hpp"
 #include "LLMService.hpp"
 
@@ -149,6 +150,20 @@ public:
                        "4. Copy the token from the code sample\n\n"
                        "Note: You need a GitHub Copilot subscription for access.", false);
         }
+
+        // Show example prompts
+        addMessage("💡 **Example questions you can ask:**\n\n"
+                   "**Navigation:**\n"
+                   "• \"Take me to equation 3.2\"\n"
+                   "• \"Show me figure 5\"\n"
+                   "• \"Go to the section about methodology\"\n"
+                   "• \"Find where they discuss neural networks\"\n\n"
+                   "**Understanding:**\n"
+                   "• \"Explain this equation\"\n"
+                   "• \"Summarize this page\"\n"
+                   "• \"What are the key findings?\"\n"
+                   "• \"What does this term mean?\"\n\n"
+                   "The AI can navigate the document for you automatically!", false);
     }
 
     // Get the context manager for external configuration
@@ -169,6 +184,7 @@ public:
     void setDocumentView(DocumentView *docView)
     {
         m_contextManager->setDocumentView(docView);
+        m_service->actionHandler()->setDocumentView(docView);
         updateContextInfo();
     }
     
@@ -216,6 +232,27 @@ public slots:
     void explainConcepts()
     {
         sendMessage("What are the key concepts and terms explained in this section?");
+    }
+
+    void findEquationPrompt()
+    {
+        m_inputEdit->setPlainText("Take me to equation ");
+        m_inputEdit->setFocus();
+        m_inputEdit->moveCursor(QTextCursor::End);
+    }
+
+    void findFigurePrompt()
+    {
+        m_inputEdit->setPlainText("Show me figure ");
+        m_inputEdit->setFocus();
+        m_inputEdit->moveCursor(QTextCursor::End);
+    }
+
+    void findSectionPrompt()
+    {
+        m_inputEdit->setPlainText("Go to the section about ");
+        m_inputEdit->setFocus();
+        m_inputEdit->moveCursor(QTextCursor::End);
     }
 
 private slots:
@@ -383,6 +420,36 @@ private slots:
         m_toggleContextSettingsButton->setText(visible ? "▼ Context Settings" : "▲ Context Settings");
     }
 
+    void onEnableActionsChanged(bool checked)
+    {
+        m_service->setActionsEnabled(checked);
+    }
+
+    void onActionExecuted(const ActionHandler::ActionResult &result)
+    {
+        // Show action result as a system message
+        QString statusIcon = result.success ? "✓" : "✗";
+        QString message = QString("<i>%1 Action: %2</i>")
+                              .arg(statusIcon)
+                              .arg(result.message.toHtmlEscaped());
+        
+        auto *actionLabel = new QLabel(message, this);
+        actionLabel->setWordWrap(true);
+        actionLabel->setStyleSheet(
+            result.success 
+                ? "color: #10b981; font-size: 11px; padding: 4px 8px; background-color: rgba(16, 185, 129, 0.1); border-radius: 4px;"
+                : "color: #ef4444; font-size: 11px; padding: 4px 8px; background-color: rgba(239, 68, 68, 0.1); border-radius: 4px;");
+        m_messagesLayout->addWidget(actionLabel);
+        scrollToBottom();
+    }
+
+    void onNavigationRequested(int pageNo, const QString &reason)
+    {
+        Q_UNUSED(pageNo);
+        m_statusLabel->setText(reason);
+        m_statusLabel->setStyleSheet("color: #10b981;");
+    }
+
 private:
     LLMService *m_service;
     ContextManager *m_contextManager;
@@ -409,12 +476,16 @@ private:
     QCheckBox *m_includeMetadataCheckBox{nullptr};
     QCheckBox *m_includeOutlineCheckBox{nullptr};
     QCheckBox *m_autoUpdateCheckBox{nullptr};
+    QCheckBox *m_enableActionsCheckBox{nullptr};
     QLabel *m_contextInfoLabel{nullptr};
 
     // Quick action buttons
     QPushButton *m_summarizePageButton{nullptr};
     QPushButton *m_summarizeDocButton{nullptr};
     QPushButton *m_explainButton{nullptr};
+    QPushButton *m_findEquationButton{nullptr};
+    QPushButton *m_findFigureButton{nullptr};
+    QPushButton *m_findSectionButton{nullptr};
 
     void setupUi()
     {
@@ -581,15 +652,24 @@ private:
         m_autoUpdateCheckBox->setToolTip("Automatically update context when navigating pages");
         settingsLayout->addWidget(m_autoUpdateCheckBox);
 
+        m_enableActionsCheckBox = new QCheckBox("Enable AI actions (navigation, search)", m_contextSettingsWidget);
+        m_enableActionsCheckBox->setChecked(true);
+        m_enableActionsCheckBox->setToolTip("Allow AI to navigate to pages, find equations, figures, etc.");
+        settingsLayout->addWidget(m_enableActionsCheckBox);
+
         mainLayout->addWidget(m_contextSettingsWidget);
     }
 
     void setupQuickActionsUi(QVBoxLayout *mainLayout)
     {
         auto *quickActionsWidget = new QWidget(this);
-        auto *quickActionsLayout = new QHBoxLayout(quickActionsWidget);
+        auto *quickActionsLayout = new QVBoxLayout(quickActionsWidget);
         quickActionsLayout->setContentsMargins(8, 4, 8, 4);
         quickActionsLayout->setSpacing(4);
+
+        // First row: summarize and explain
+        auto *row1 = new QHBoxLayout();
+        row1->setSpacing(4);
 
         m_summarizePageButton = new QPushButton("Summarize Page", quickActionsWidget);
         m_summarizePageButton->setToolTip("Get a summary of the current page");
@@ -603,10 +683,34 @@ private:
         m_explainButton->setToolTip("Explain key concepts on this page");
         m_explainButton->setMaximumHeight(28);
 
-        quickActionsLayout->addWidget(m_summarizePageButton);
-        quickActionsLayout->addWidget(m_summarizeDocButton);
-        quickActionsLayout->addWidget(m_explainButton);
-        quickActionsLayout->addStretch();
+        row1->addWidget(m_summarizePageButton);
+        row1->addWidget(m_summarizeDocButton);
+        row1->addWidget(m_explainButton);
+        row1->addStretch();
+
+        // Second row: navigation actions
+        auto *row2 = new QHBoxLayout();
+        row2->setSpacing(4);
+
+        m_findEquationButton = new QPushButton("Find Equation", quickActionsWidget);
+        m_findEquationButton->setToolTip("Navigate to a specific equation");
+        m_findEquationButton->setMaximumHeight(28);
+
+        m_findFigureButton = new QPushButton("Find Figure", quickActionsWidget);
+        m_findFigureButton->setToolTip("Navigate to a specific figure");
+        m_findFigureButton->setMaximumHeight(28);
+
+        m_findSectionButton = new QPushButton("Go To Section", quickActionsWidget);
+        m_findSectionButton->setToolTip("Navigate to a section by name");
+        m_findSectionButton->setMaximumHeight(28);
+
+        row2->addWidget(m_findEquationButton);
+        row2->addWidget(m_findFigureButton);
+        row2->addWidget(m_findSectionButton);
+        row2->addStretch();
+
+        quickActionsLayout->addLayout(row1);
+        quickActionsLayout->addLayout(row2);
 
         mainLayout->addWidget(quickActionsWidget);
     }
@@ -648,6 +752,8 @@ private:
                 this, &ChatWidget::onIncludeOutlineChanged);
         connect(m_autoUpdateCheckBox, &QCheckBox::toggled,
                 this, &ChatWidget::onAutoUpdateChanged);
+        connect(m_enableActionsCheckBox, &QCheckBox::toggled,
+                this, &ChatWidget::onEnableActionsChanged);
 
         // Context manager signals
         connect(m_contextManager, &ContextManager::contextUpdated,
@@ -660,6 +766,18 @@ private:
                 this, &ChatWidget::summarizeDocument);
         connect(m_explainButton, &QPushButton::clicked,
                 this, &ChatWidget::explainConcepts);
+        connect(m_findEquationButton, &QPushButton::clicked,
+                this, &ChatWidget::findEquationPrompt);
+        connect(m_findFigureButton, &QPushButton::clicked,
+                this, &ChatWidget::findFigurePrompt);
+        connect(m_findSectionButton, &QPushButton::clicked,
+                this, &ChatWidget::findSectionPrompt);
+
+        // Action handler signals
+        connect(m_service->actionHandler(), &ActionHandler::actionExecuted,
+                this, &ChatWidget::onActionExecuted);
+        connect(m_service->actionHandler(), &ActionHandler::navigationRequested,
+                this, &ChatWidget::onNavigationRequested);
     }
 
     void updateConfigurationState()
@@ -670,6 +788,9 @@ private:
         m_summarizePageButton->setEnabled(configured);
         m_summarizeDocButton->setEnabled(configured);
         m_explainButton->setEnabled(configured);
+        m_findEquationButton->setEnabled(configured);
+        m_findFigureButton->setEnabled(configured);
+        m_findSectionButton->setEnabled(configured);
 
         if (!configured)
         {

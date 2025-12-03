@@ -61,6 +61,7 @@ add_executable(${PROJECT_NAME}
 				src/llm/ChatWidget.hpp
 				src/llm/ContextManager.hpp
 				src/llm/ContextManager.cpp
+				src/llm/ActionHandler.hpp
 )
 
 qt_add_resources(RESOURCES resources.qrc)
