@@ -71,6 +71,7 @@ dodo::initMenubar() noexcept
         QString("Open Containing Folder\t%1")
             .arg(m_config.shortcuts["open_containing_folder"]),
         this, &dodo::OpenContainingFolder);
+    m_actionOpenContainingFolder->setEnabled(false);
 
     m_actionSaveFile = fileMenu->addAction(
         QString("Save File\t%1").arg(m_config.shortcuts["save"]), this,
@@ -665,6 +666,7 @@ dodo::updateUiEnabledState() noexcept
 {
     const bool hasOpenedFile = m_doc ? true : false;
 
+    m_actionOpenContainingFolder->setEnabled(hasOpenedFile);
     m_actionZoomIn->setEnabled(hasOpenedFile);
     m_actionZoomOut->setEnabled(hasOpenedFile);
     m_actionGotoPage->setEnabled(hasOpenedFile);
@@ -1174,6 +1176,7 @@ dodo::OpenFile(DocumentView *view) noexcept
     return false;
 }
 
+// Opens a file given the file path
 bool
 dodo::OpenFile(QString filePath) noexcept
 {
