@@ -449,13 +449,6 @@ GraphicsView::wheelEvent(QWheelEvent *e)
 }
 
 void
-GraphicsView::mouseDoubleClickEvent(QMouseEvent *event)
-{
-    // Let mousePressEvent handle all click counting
-    mousePressEvent(event);
-}
-
-void
 GraphicsView::contextMenuEvent(QContextMenuEvent *e)
 {
 
