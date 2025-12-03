@@ -99,6 +99,8 @@ dodo::initMenubar() noexcept
         QString("Undo\t%1").arg(m_config.shortcuts["undo"]), this, &dodo::Undo);
     m_actionRedo = editMenu->addAction(
         QString("Redo\t%1").arg(m_config.shortcuts["redo"]), this, &dodo::Redo);
+    m_actionUndo->setEnabled(false);
+    m_actionRedo->setEnabled(false);
     editMenu->addAction(
         QString("Last Pages\t%1").arg(m_config.shortcuts["edit_last_pages"]),
         this, &dodo::editLastPages);
@@ -187,13 +189,11 @@ dodo::initMenubar() noexcept
     m_actionRegionSelect = toolsMenu->addAction(
         QString("Region Selection"), this, &dodo::RegionSelectionMode);
     m_actionRegionSelect->setCheckable(true);
-    m_actionRegionSelect->setChecked(true);
     selectionActionGroup->addAction(m_actionRegionSelect);
 
     m_actionTextSelect = toolsMenu->addAction(QString("Text Selection"), this,
                                               &dodo::TextSelectionMode);
     m_actionTextSelect->setCheckable(true);
-    m_actionTextSelect->setChecked(true);
     selectionActionGroup->addAction(m_actionTextSelect);
 
     m_actionTextHighlight = toolsMenu->addAction(
@@ -682,8 +682,6 @@ dodo::updateUiEnabledState() noexcept
     m_actionSaveFile->setEnabled(hasOpenedFile);
     m_actionSaveAsFile->setEnabled(hasOpenedFile);
     m_actionPrevLocation->setEnabled(hasOpenedFile);
-    m_actionUndo->setEnabled(hasOpenedFile);
-    m_actionRedo->setEnabled(hasOpenedFile);
 }
 
 // Helper function to construct `QShortcut` Qt shortcut
@@ -1498,12 +1496,12 @@ dodo::handleCurrentTabChanged(int index) noexcept
     }
 
     if (widget->property("tabRole") == "empty")
-	{
-		m_doc = nullptr;
-		updateActionsAndStuffForSystemTabs();
-		this->setWindowTitle("Welcome");
-		return;
-	}
+    {
+        m_doc = nullptr;
+        updateActionsAndStuffForSystemTabs();
+        this->setWindowTitle("Welcome");
+        return;
+    }
 
     m_doc = qobject_cast<DocumentView *>(widget);
 
@@ -1720,6 +1718,19 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
 {
     connect(docwidget, &DocumentView::panelNameChanged, this,
             [this](const QString &name) { m_panel->setFileName(name); });
+
+    // Connect undo stack signals to update undo/redo menu actions
+    QUndoStack *undoStack = docwidget->model()->undoStack();
+    connect(undoStack, &QUndoStack::canUndoChanged, this,
+            [this, docwidget](bool canUndo) {
+                if (m_doc == docwidget)
+                    m_actionUndo->setEnabled(canUndo);
+            });
+    connect(undoStack, &QUndoStack::canRedoChanged, this,
+            [this, docwidget](bool canRedo) {
+                if (m_doc == docwidget)
+                    m_actionRedo->setEnabled(canRedo);
+            });
 
     connect(m_panel, &Panel::modeChangeRequested, docwidget,
             &DocumentView::nextSelectionMode);
@@ -2185,7 +2196,11 @@ void
 dodo::Undo() noexcept
 {
     if (m_doc && m_doc->model())
-        m_doc->model()->undoStack()->undo();
+    {
+        auto undoStack = m_doc->model()->undoStack();
+        if (undoStack->canUndo())
+            undoStack->undo();
+    }
 }
 
 // Redo operation
@@ -2193,7 +2208,11 @@ void
 dodo::Redo() noexcept
 {
     if (m_doc && m_doc->model())
-        m_doc->model()->undoStack()->redo();
+    {
+        auto redoStack = m_doc->model()->undoStack();
+        if (redoStack->canRedo())
+            redoStack->redo();
+    }
 }
 
 // Initialize the actions with corresponding functions
