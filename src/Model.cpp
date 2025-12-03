@@ -1099,8 +1099,8 @@ Model::highlightTextSelection(const QPointF &selectionStart,
         count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, 1000);
 
         // Store snapped selection bounds for later use
-        m_sel_start = a;
-        m_sel_end = b;
+        m_sel_start     = a;
+        m_sel_end       = b;
         m_has_selection = (count > 0);
     }
     fz_catch(m_ctx)
@@ -1138,8 +1138,8 @@ Model::clearSelection() noexcept
             m_scene->removeItem(object);
 
     m_has_selection = false;
-    m_sel_start = {0, 0};
-    m_sel_end = {0, 0};
+    m_sel_start     = {0, 0};
+    m_sel_end       = {0, 0};
 }
 
 QString
@@ -1153,7 +1153,8 @@ Model::getSelectedText() noexcept
 
     fz_try(m_ctx)
     {
-        selected = fz_copy_selection(m_ctx, m_text_page, m_sel_start, m_sel_end, 0);
+        selected
+            = fz_copy_selection(m_ctx, m_text_page, m_sel_start, m_sel_end, 0);
         text = QString::fromUtf8(selected);
     }
     fz_catch(m_ctx)
@@ -1178,7 +1179,8 @@ Model::highlightSelectedText() noexcept
 
     fz_try(m_ctx)
     {
-        count = fz_highlight_selection(m_ctx, m_text_page, m_sel_start, m_sel_end, hits, 1000);
+        count = fz_highlight_selection(m_ctx, m_text_page, m_sel_start,
+                                       m_sel_end, hits, 1000);
     }
     fz_catch(m_ctx)
     {
@@ -1705,8 +1707,8 @@ Model::doubleClickTextSelection(const QPointF &loc) noexcept
                                            wordEnd, hits, 1000);
 
         // Store snapped selection bounds
-        m_sel_start = wordStart;
-        m_sel_end = wordEnd;
+        m_sel_start     = wordStart;
+        m_sel_end       = wordEnd;
         m_has_selection = (count > 0);
 
         QBrush brush(m_selection_color);
@@ -1743,20 +1745,22 @@ Model::tripleClickTextSelection(const QPointF &loc) noexcept
 
     clearSelection();
 
-    fz_point pt = mapToPdf(loc);
+    fz_point pt        = mapToPdf(loc);
     fz_point lineStart = pt;
-    fz_point lineEnd = pt;
+    fz_point lineEnd   = pt;
 
     fz_try(m_ctx)
     {
-        fz_snap_selection(m_ctx, m_text_page, &lineStart, &lineEnd, FZ_SELECT_LINES);
+        fz_snap_selection(m_ctx, m_text_page, &lineStart, &lineEnd,
+                          FZ_SELECT_LINES);
 
         static fz_quad hits[1000];
-        int count = fz_highlight_selection(m_ctx, m_text_page, lineStart, lineEnd, hits, 1000);
+        int count = fz_highlight_selection(m_ctx, m_text_page, lineStart,
+                                           lineEnd, hits, 1000);
 
         // Store snapped selection bounds
-        m_sel_start = lineStart;
-        m_sel_end = lineEnd;
+        m_sel_start     = lineStart;
+        m_sel_end       = lineEnd;
         m_has_selection = (count > 0);
 
         QBrush brush(m_selection_color);
@@ -1771,7 +1775,8 @@ Model::tripleClickTextSelection(const QPointF &loc) noexcept
                  << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
                  << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
 
-            QGraphicsPolygonItem *item = m_scene->addPolygon(poly, Qt::NoPen, brush);
+            QGraphicsPolygonItem *item
+                = m_scene->addPolygon(poly, Qt::NoPen, brush);
             item->setData(0, "selection");
             item->setFlag(QGraphicsItem::ItemIsSelectable, false);
         }
@@ -1796,25 +1801,28 @@ Model::quadrupleClickTextSelection(const QPointF &loc) noexcept
     fz_try(m_ctx)
     {
         // Find the block (paragraph) containing this point
-        for (fz_stext_block *block = m_text_page->first_block; block; block = block->next)
+        for (fz_stext_block *block = m_text_page->first_block; block;
+             block                 = block->next)
         {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
                 continue;
 
             // Check if point is within this block's bounding box
-            if (pt.x >= block->bbox.x0 && pt.x <= block->bbox.x1 &&
-                pt.y >= block->bbox.y0 && pt.y <= block->bbox.y1)
+            if (pt.x >= block->bbox.x0 && pt.x <= block->bbox.x1
+                && pt.y >= block->bbox.y0 && pt.y <= block->bbox.y1)
             {
-                // Select entire block by using first and last character positions
+                // Select entire block by using first and last character
+                // positions
                 fz_point blockStart = {block->bbox.x0, block->bbox.y0};
-                fz_point blockEnd = {block->bbox.x1, block->bbox.y1};
+                fz_point blockEnd   = {block->bbox.x1, block->bbox.y1};
 
                 static fz_quad hits[1000];
-                int count = fz_highlight_selection(m_ctx, m_text_page, blockStart, blockEnd, hits, 1000);
+                int count = fz_highlight_selection(
+                    m_ctx, m_text_page, blockStart, blockEnd, hits, 1000);
 
                 // Store snapped selection bounds
-                m_sel_start = blockStart;
-                m_sel_end = blockEnd;
+                m_sel_start     = blockStart;
+                m_sel_end       = blockEnd;
                 m_has_selection = (count > 0);
 
                 QBrush brush(m_selection_color);
@@ -1829,7 +1837,8 @@ Model::quadrupleClickTextSelection(const QPointF &loc) noexcept
                          << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
                          << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
 
-                    QGraphicsPolygonItem *item = m_scene->addPolygon(poly, Qt::NoPen, brush);
+                    QGraphicsPolygonItem *item
+                        = m_scene->addPolygon(poly, Qt::NoPen, brush);
                     item->setData(0, "selection");
                     item->setFlag(QGraphicsItem::ItemIsSelectable, false);
                 }

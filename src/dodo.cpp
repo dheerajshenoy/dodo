@@ -816,7 +816,7 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
     {
     }
 
-    if (m_config.ui.startup_tab && m_tab_widget->count() == 0)
+    if (m_tab_widget->count() == 0 && m_config.ui.startup_tab)
         showStartupWidget();
     m_config.behavior.startpage_override = -1;
 }
@@ -1494,6 +1494,14 @@ dodo::handleCurrentTabChanged(int index) noexcept
         return;
     }
 
+    if (widget->property("tabRole") == "empty")
+	{
+		m_doc = nullptr;
+		updateActionsAndStuffForSystemTabs();
+		this->setWindowTitle("Welcome");
+		return;
+	}
+
     m_doc = qobject_cast<DocumentView *>(widget);
 
     updateMenuActions();
@@ -2095,6 +2103,7 @@ dodo::showStartupWidget() noexcept
     m_panel->setFileName("Startup");
 }
 
+// Update actions and stuff for system tabs
 void
 dodo::updateActionsAndStuffForSystemTabs() noexcept
 {
