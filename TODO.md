@@ -1,4 +1,5 @@
 # TODO
+- [X] Reload document on request
 - [X] Double, triple and quadruple click to select word, line and paragraph respectively
 - [X] Highlight already selected text
 - [X] Jump marker fading early fix
@@ -25,7 +26,6 @@
 - [ ] Synctex highlight line
 - [ ] Telescope like search with preview
 - [ ] Popup Annotation edit support
-- [ ] Reload document on request
 - [ ] Printing support
 - [ ] Fix popup z value issue
 - [ ] Easy reference paper search

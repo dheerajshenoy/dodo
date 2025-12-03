@@ -105,6 +105,7 @@ Control default modes and UI behavior:
 | `auto_reload`            | `bool`   | `true`                                   | Reload the document if file changes externally.                                                    |
 | `recent_files`           | `bool`   | `true`                                   | Keep a list of recently opened files.                                                              |
 | `num_recent_files`       | `int`    | `25`                                     | Maximum number of recent files (negative value for unlimited).                                     |
+| `undo_limit`             | `int`    | `25`                                     | Maximum number of undo operations to keep in history.                                              |
 
 ---
 
@@ -172,11 +173,14 @@ Customize keybindings in the `[keybindings]` section. Below is a complete list o
 | `text_highlight_mode`              | `Alt+1`          | Switch to text highlight mode.           |
 | `annot_rect_mode`                  | `Alt+2`          | Switch to rectangle annotation mode.     |
 | `annot_edit_mode`                  | `Alt+3`          | Switch to annotation edit/select mode.   |
+| `region_select_mode`               | `1`              | Switch to region select mode.            |
 | `cancel_selection`                 | `escape`         | Cancel current selection.                |
 | `yank`                             | `y`              | Copy selected text to clipboard.         |
 | `select_all`                       | `Ctrl+A`         | Select all text/annotations.             |
 | `delete`                           | `d`              | Delete selected annotation.              |
 | `list_text_highlights`             | `]`              | List all text highlights.                |
+| `undo`                             | `u`              | Undo last annotation operation.          |
+| `redo`                             | `Ctrl+R`         | Redo last undone operation.              |
 
 ### View & UI Toggles
 
@@ -187,6 +191,22 @@ Customize keybindings in the `[keybindings]` section. Below is a complete list o
 | `toggle_menubar` | `Ctrl+Shift+M`   | Toggle menu bar.         |
 | `toggle_panel`   | `Ctrl+Shift+B`   | Toggle side panel.       |
 | `toggle_tabs`    | `Ctrl+Shift+T`   | Toggle tabs visibility.  |
+
+### Tabs
+
+| Action     | Default Shortcut | Description              |
+| ---------- | ---------------- | ------------------------ |
+| `tab_next` | `Ctrl+.`         | Go to next tab.          |
+| `tab_prev` | `Ctrl+,`         | Go to previous tab.      |
+| `tab1`     | `Alt+1`          | Go to tab 1.             |
+| `tab2`     | `Alt+2`          | Go to tab 2.             |
+| `tab3`     | `Alt+3`          | Go to tab 3.             |
+| `tab4`     | `Alt+4`          | Go to tab 4.             |
+| `tab5`     | `Alt+5`          | Go to tab 5.             |
+| `tab6`     | `Alt+6`          | Go to tab 6.             |
+| `tab7`     | `Alt+7`          | Go to tab 7.             |
+| `tab8`     | `Alt+8`          | Go to tab 8.             |
+| `tab9`     | `Alt+9`          | Go to tab 9.             |
 
 ### Rotation
 

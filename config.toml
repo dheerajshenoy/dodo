@@ -55,6 +55,7 @@ synctex_editor_command = "kitty -e nvim --remote-silent +%l %f"
 auto_reload = true # reload document on file change
 recent_files = true # save recent files
 num_recent_files = 25 # number of recent files (if negative, makes it unlimited)
+undo_limit = 25 # Maximum number of undo operations to keep in history
 # page_nav_with_mouse = true # scrolling to the top/bottom goes to the prev/next page
 # session_files_dir = auto
 # save_session = true # open the last session on startup

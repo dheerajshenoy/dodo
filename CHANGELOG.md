@@ -1,5 +1,27 @@
 # dodo
 
+## 0.3.1
+
+### Features
+
+- Undo/Redo support for annotations
+    - Rect annotations
+    - Text highlight annotations
+    - Delete annotations
+- Multi-click text selection (double, triple, quadruple click for word, line, paragraph)
+- Page rotation (clockwise and counter-clockwise)
+- Editable page number in panel (click to edit and navigate)
+- Tab navigation keybindings (tab_next, tab_prev, tab1-tab9)
+- Config options:
+    - Behavior
+        - `undo_limit` - Maximum number of undo operations to keep
+
+### Bug Fixes
+
+- Jump marker fading animation fix
+- Fix unsaved changes being asked multiple times
+- Centralized unsaved handling
+
 ## 0.3.0
 
 ### Features

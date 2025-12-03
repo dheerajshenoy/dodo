@@ -15,14 +15,11 @@ configure, and troubleshoot.
 - [Keybindings](#keybindings)
 - [Commands](#commands)
 - [Search](#search)
+- [Text Selection](#text-selection)
 - [Annotations](#annotations)
+- [Page Rotation](#page-rotation)
+- [Tab Navigation](#tab-navigation)
 - [SyncTeX Integration](#synctex-integration)
-- [Configuration](#configuration)
-- [Keybindings](#keybindings)
-- [Theming](#theming)
-- [Troubleshooting](#troubleshooting)
-- [FAQ](#faq)
-- [Getting Help](#getting-help)
 
     ---
 
@@ -48,21 +45,24 @@ Show command line help.
 | Shortcut       | Action            |
 |----------------|-------------------|
 | Ctrl+Shift+m   | toggle_menubar    |
-| b              | invert_color      |
+| Ctrl+Shift+b   | toggle_panel      |
+| Ctrl+Shift+t   | toggle_tabs       |
+| i              | invert_color      |
 | f              | link_hint_visit   |
+| Shift+f        | link_hint_copy    |
 | Ctrl+s         | save              |
-| Alt+1          | text_highlight    |
-| Alt+2          | annot_rect        |
-| Alt+3          | annot_edit        |
+| 1              | region_select_mode |
+| 2              | annot_rect_mode   |
+| 3              | annot_edit_mode   |
 | t              | outline           |
 | /              | search            |
 | n              | search_next       |
 | Shift+n        | search_prev       |
-| +              | zoom_in           |
+| =              | zoom_in           |
 | -              | zoom_out          |
 | 0              | zoom_reset        |
 | Ctrl+o         | prev_location     |
-| o              | open              |
+| o              | open_file         |
 | h              | scroll_left       |
 | j              | scroll_down       |
 | k              | scroll_up         |
@@ -71,14 +71,28 @@ Show command line help.
 | Shift+k        | prev_page         |
 | g,g            | first_page        |
 | Shift+g        | last_page         |
+| b              | goto_page         |
+| u              | undo              |
+| Ctrl+r         | redo              |
+| y              | yank              |
+| d              | delete            |
+| >              | rotate_clock      |
+| <              | rotate_anticlock  |
+| Ctrl+.         | tab_next          |
+| Ctrl+,         | tab_prev          |
+| Alt+1 - Alt+9  | tab1 - tab9       |
+| :              | command           |
+| Escape         | cancel_selection  |
+| F11            | fullscreen        |
+| F12            | about             |
 
 ## Commands
 
 List of valid commands in dodo:
 
 - `about`
-- `annot_edit`
-- `annot_rect`
+- `annot_edit_mode`
+- `annot_rect_mode`
 - `auto_resize`
 - `cancel_selection`
 - `close_file`
@@ -96,11 +110,13 @@ List of valid commands in dodo:
 - `link_hint_copy`
 - `link_hint_visit`
 - `next_page`
+- `open_containing_folder`
 - `open_file`
 - `outline`
 - `prev_location`
 - `prev_page`
 - `redo`
+- `region_select_mode`
 - `reload`
 - `rotate_anticlock`
 - `rotate_clock`
@@ -114,12 +130,13 @@ List of valid commands in dodo:
 - `search_next`
 - `search_prev`
 - `setdpr`
-- `tabclose`
+- `tab_close`
+- `tab_next`
+- `tab_prev`
+- `tab1` - `tab9`
 - `tabgoto`
-- `tabnext`
-- `tabprev`
-- `text_highlight`
 - `text_highlight_current_selection`
+- `text_highlight_mode`
 - `toggle_menubar`
 - `toggle_panel`
 - `toggle_tabs`
@@ -142,9 +159,32 @@ List of valid commands in dodo:
 
 * To cancel the current search and clear all the search matches, **search for an empty string**.
 
-# Annotations
+## Text Selection
 
-* Select the annotations tool from `Tools`
+* **Single click**: Place cursor / clear selection
+* **Double click**: Select word
+* **Triple click**: Select line
+* **Quadruple click**: Select paragraph
+
+## Annotations
+
+* Select the annotations tool from `Tools` or use keybindings:
+    * `Alt+1` (or `1`): Region select mode
+    * `Alt+2` (or `2`): Rectangle annotation mode
+    * `Alt+3` (or `3`): Annotation edit/select mode
+* Annotations support undo/redo operations (`u` for undo, `Ctrl+R` for redo)
+
+## Page Rotation
+
+* Use `>` to rotate clockwise
+* Use `<` to rotate counter-clockwise
+
+## Tab Navigation
+
+* `Ctrl+.` (Ctrl+Period): Next tab
+* `Ctrl+,` (Ctrl+Comma): Previous tab
+* `Alt+1` through `Alt+9`: Go to specific tab
+* Use `:tabgoto <number>` command to go to a specific tab
 
 # SyncTeX Integration
 

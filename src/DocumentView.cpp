@@ -126,15 +126,13 @@ DocumentView::initConnections() noexcept
     connect(m_gview, &GraphicsView::populateContextMenuRequested, this,
             &DocumentView::populateContextMenu);
     connect(m_model, &Model::documentSaved, this, [&]() { setDirty(false); });
-    connect(m_gview, &GraphicsView::doubleClickRequested, this,
-            [&](QPointF loc)
+    connect(m_gview, &GraphicsView::doubleClickRequested, this, [&](QPointF loc)
     {
         ClearTextSelection();
         m_model->doubleClickTextSelection(loc);
     });
     // triple and quadruple
-    connect(m_gview, &GraphicsView::tripleClickRequested, this,
-            [&](QPointF loc)
+    connect(m_gview, &GraphicsView::tripleClickRequested, this, [&](QPointF loc)
     {
         ClearTextSelection();
         m_model->tripleClickTextSelection(loc);
@@ -216,9 +214,7 @@ DocumentView::initConnections() noexcept
             [&](const QPointF &start, const QPointF &end)
     {
         if (start != end)
-        {
             m_model->highlightTextSelection(start, end);
-        }
     });
 
     connect(m_gview, &GraphicsView::textHighlightRequested, m_model,

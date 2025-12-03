@@ -15,7 +15,7 @@ streamlined interface and robust functionality with minimal resource usage.
 > Dodo is currently in alpha and may experience crashes or instability.
 
 > [!NOTE]
-> dodo version is v0.3.0
+> dodo version is v0.3.1
 
 ## Table of Contents
 
@@ -44,9 +44,16 @@ streamlined interface and robust functionality with minimal resource usage.
 - Faster search
 - Visited file location saving
 - Link awareness
-- Save annotations (highlights only for now)
-- Text highlight
+- Save annotations (highlights and rectangles)
+- Text highlight with undo/redo support
+- Rectangle annotations with undo/redo support
+- Undo/Redo for annotations (highlight, rect, delete)
+- Multi-click text selection (double, triple, quadruple click for word, line, paragraph)
+- Page rotation (clockwise and counter-clockwise)
+- Editable page number in panel
 - Jump Marker (to help locate where link takes you to)
+- Region select mode (copy text, copy as image, save as image, open externally)
+- Open containing folder
 - Wayland support
 
 ## Dependencies
