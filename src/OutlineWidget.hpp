@@ -94,6 +94,7 @@ public:
     {
         QVBoxLayout *layout = new QVBoxLayout(this);
         searchEdit->setPlaceholderText("Search Outline");
+        searchEdit->setFocusPolicy(Qt::ClickFocus);
         layout->addWidget(searchEdit);
         setContentsMargins(0, 0, 0, 0);
         layout->setContentsMargins(0, 0, 0, 0);

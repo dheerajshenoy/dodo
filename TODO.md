@@ -35,3 +35,4 @@
 - [ ] Semantic search
 - [ ] Incorporate AI model
 - [ ] Search inside math equations
+- [X] Double, triple and quadruple click to select word, line and paragraph respectively

@@ -126,6 +126,9 @@ DocumentView::initConnections() noexcept
     connect(m_gview, &GraphicsView::populateContextMenuRequested, this,
             &DocumentView::populateContextMenu);
     connect(m_model, &Model::documentSaved, this, [&]() { setDirty(false); });
+    connect(m_gview, &GraphicsView::doubleClickRequested, m_model, &Model::doubleClickTextSelection);
+    connect(m_gview, &GraphicsView::tripleClickRequested, m_model, &Model::tripleClickTextSelection);
+    connect(m_gview, &GraphicsView::quadrupleClickRequested, m_model, &Model::quadrupleClickTextSelection);
 
     connect(m_gview, &GraphicsView::rightClickRequested, this,
             [&](QPointF scenePos)
@@ -301,8 +304,9 @@ DocumentView::selectAnnots() noexcept
 void
 DocumentView::ClearTextSelection() noexcept
 {
-    if (!m_selection_present)
-        return;
+    // TODO: Optimize checking flag
+    // if (!m_selection_present)
+    //     return;
 
     for (auto &object : m_gscene->items())
     {

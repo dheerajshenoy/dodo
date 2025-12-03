@@ -1593,3 +1593,161 @@ Model::CopyPixmapToClipboard(fz_pixmap *pixmap) noexcept
 
     fz_drop_pixmap(m_ctx, pixmap);
 }
+
+void
+Model::doubleClickTextSelection(const QPointF &loc) noexcept
+{
+    if (!m_text_page)
+        return;
+
+    // Clear existing selections
+    for (QGraphicsItem *object : m_scene->items())
+        if (object->data(0).toString() == "selection")
+            m_scene->removeItem(object);
+
+    // Map click location to PDF coordinates
+    fz_point pt = mapToPdf(loc);
+
+    // Find the word at this location
+    fz_point wordStart = pt;
+    fz_point wordEnd   = pt;
+
+    fz_try(m_ctx)
+    {
+        // Use FZ_SELECT_WORDS to snap selection to word boundaries
+        fz_snap_selection(m_ctx, m_text_page, &wordStart, &wordEnd,
+                          FZ_SELECT_WORDS);
+
+
+        // Get the quads for highlighting
+        static fz_quad hits[1000];
+        int count = fz_highlight_selection(m_ctx, m_text_page, wordStart,
+                                           wordEnd, hits, 1000);
+
+        QBrush brush(m_selection_color);
+
+        for (int i = 0; i < count; ++i)
+        {
+            QPolygonF poly;
+            fz_quad q = fz_transform_quad(hits[i], m_transform);
+
+            poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr)
+                 << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
+                 << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
+                 << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
+
+            QGraphicsPolygonItem *item
+                = m_scene->addPolygon(poly, Qt::NoPen, brush);
+            item->setData(0, "selection");
+            item->setFlag(QGraphicsItem::ItemIsSelectable, false);
+            item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
+        }
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Double-click word selection failed";
+    }
+}
+
+void
+Model::tripleClickTextSelection(const QPointF &loc) noexcept
+{
+    if (!m_text_page)
+        return;
+
+    // Clear existing selections
+    for (QGraphicsItem *object : m_scene->items())
+        if (object->data(0).toString() == "selection")
+            m_scene->removeItem(object);
+
+    fz_point pt = mapToPdf(loc);
+    fz_point lineStart = pt;
+    fz_point lineEnd = pt;
+
+    fz_try(m_ctx)
+    {
+        fz_snap_selection(m_ctx, m_text_page, &lineStart, &lineEnd, FZ_SELECT_LINES);
+
+        static fz_quad hits[1000];
+        int count = fz_highlight_selection(m_ctx, m_text_page, lineStart, lineEnd, hits, 1000);
+
+        QBrush brush(m_selection_color);
+
+        for (int i = 0; i < count; ++i)
+        {
+            QPolygonF poly;
+            fz_quad q = fz_transform_quad(hits[i], m_transform);
+
+            poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr)
+                 << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
+                 << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
+                 << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
+
+            QGraphicsPolygonItem *item = m_scene->addPolygon(poly, Qt::NoPen, brush);
+            item->setData(0, "selection");
+            item->setFlag(QGraphicsItem::ItemIsSelectable, false);
+        }
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Triple-click line selection failed";
+    }
+}
+
+void
+Model::quadrupleClickTextSelection(const QPointF &loc) noexcept
+{
+    if (!m_text_page)
+        return;
+
+    // Clear existing selections
+    for (QGraphicsItem *object : m_scene->items())
+        if (object->data(0).toString() == "selection")
+            m_scene->removeItem(object);
+
+    fz_point pt = mapToPdf(loc);
+
+    fz_try(m_ctx)
+    {
+        // Find the block (paragraph) containing this point
+        for (fz_stext_block *block = m_text_page->first_block; block; block = block->next)
+        {
+            if (block->type != FZ_STEXT_BLOCK_TEXT)
+                continue;
+
+            // Check if point is within this block's bounding box
+            if (pt.x >= block->bbox.x0 && pt.x <= block->bbox.x1 &&
+                pt.y >= block->bbox.y0 && pt.y <= block->bbox.y1)
+            {
+                // Select entire block by using first and last character positions
+                fz_point blockStart = {block->bbox.x0, block->bbox.y0};
+                fz_point blockEnd = {block->bbox.x1, block->bbox.y1};
+
+                static fz_quad hits[1000];
+                int count = fz_highlight_selection(m_ctx, m_text_page, blockStart, blockEnd, hits, 1000);
+
+                QBrush brush(m_selection_color);
+
+                for (int i = 0; i < count; ++i)
+                {
+                    QPolygonF poly;
+                    fz_quad q = fz_transform_quad(hits[i], m_transform);
+
+                    poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr)
+                         << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
+                         << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
+                         << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
+
+                    QGraphicsPolygonItem *item = m_scene->addPolygon(poly, Qt::NoPen, brush);
+                    item->setData(0, "selection");
+                    item->setFlag(QGraphicsItem::ItemIsSelectable, false);
+                }
+                break;
+            }
+        }
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Quadruple-click paragraph selection failed";
+    }
+}

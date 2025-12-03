@@ -1,6 +1,8 @@
 #include "GraphicsView.hpp"
 
 #include <QGraphicsProxyWidget>
+#include <QLineF>
+#include <numbers>
 #include <qgraphicssceneevent.h>
 #include <qgraphicsview.h>
 #include <qmenu.h>
@@ -75,6 +77,55 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         return;
     }
 
+    // Multi-click detection for left button
+    if (event->button() == Qt::LeftButton)
+    {
+        QPointF currentPos = event->pos();
+
+        // Check if this click is close to the last click and within time threshold
+        bool isMultiClick = m_clickTimer.isValid()
+            && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL
+            && QLineF(currentPos, m_lastClickPos).length() < CLICK_DISTANCE_THRESHOLD;
+
+        if (isMultiClick)
+        {
+            m_clickCount++;
+            if (m_clickCount > 4)
+                m_clickCount = 1; // Reset after quadruple click
+        }
+        else
+        {
+            m_clickCount = 1;
+        }
+
+        m_lastClickPos = currentPos;
+        m_clickTimer.restart();
+
+        QPointF scenePos = mapToScene(event->pos());
+
+        // Handle multi-clicks
+        if (m_clickCount == 1)
+        {
+            // Single click clears any existing text selection
+            emit textSelectionDeletionRequested();
+        }
+        else if (m_clickCount == 2)
+        {
+            emit doubleClickRequested(scenePos);
+            return;
+        }
+        else if (m_clickCount == 3)
+        {
+            emit tripleClickRequested(scenePos);
+            return;
+        }
+        else if (m_clickCount == 4)
+        {
+            emit quadrupleClickRequested(scenePos);
+            return;
+        }
+    }
+
     switch (m_mode)
     {
         case Mode::RegionSelection:
@@ -145,6 +196,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                     m_selection_start = m_mousePressPos;
                     emit textSelectionDeletionRequested();
                 }
+                emit textSelectionDeletionRequested();
             }
         }
         break;
@@ -394,6 +446,13 @@ GraphicsView::wheelEvent(QWheelEvent *e)
         }
     }
     QGraphicsView::wheelEvent(e);
+}
+
+void
+GraphicsView::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    // Let mousePressEvent handle all click counting
+    mousePressEvent(event);
 }
 
 void

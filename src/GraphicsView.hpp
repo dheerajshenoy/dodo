@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QCursor>
+#include <QElapsedTimer>
 #include <QGraphicsRectItem>
 #include <QGraphicsView>
 #include <QGuiApplication>
@@ -96,6 +97,9 @@ signals:
     void populateContextMenuRequested(QMenu *menu);
     void scrollRequested(int direction);
     void rightClickRequested(QPointF scenePos);
+    void doubleClickRequested(QPointF scenePos);
+    void tripleClickRequested(QPointF scenePos);
+    void quadrupleClickRequested(QPointF scenePos);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -116,4 +120,11 @@ private:
     QGraphicsPixmapItem *m_pixmapItem{nullptr};
     QRubberBand *m_rubberBand{nullptr};
     int m_drag_threshold{50};
+
+    // Multi-click tracking
+    int m_clickCount{0};
+    QElapsedTimer m_clickTimer;
+    QPointF m_lastClickPos;
+    static constexpr int MULTI_CLICK_INTERVAL = 400; // ms
+    static constexpr double CLICK_DISTANCE_THRESHOLD = 5.0; // pixels
 };

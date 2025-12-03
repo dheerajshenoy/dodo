@@ -236,11 +236,15 @@ public:
 
     void selectWord(const QPointF &loc) noexcept;
     void selectLine(const QPointF &loc) noexcept;
+    void selectParagraph(const QPointF &loc) noexcept;
     void highlightHelper(const QPointF &selectionStart,
                          const QPointF &selectionEnd, fz_point &a,
                          fz_point &b) noexcept;
     void highlightTextSelection(const QPointF &selectionStart,
                                 const QPointF &selectionEnd) noexcept;
+    void doubleClickTextSelection(const QPointF &loc) noexcept;
+    void tripleClickTextSelection(const QPointF &loc) noexcept;
+    void quadrupleClickTextSelection(const QPointF &loc) noexcept;
     void highlightQuad(fz_quad quad) noexcept;
     QString getSelectionText(const QPointF &selectionStart,
                              const QPointF &selectionEnd) noexcept;
