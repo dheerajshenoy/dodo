@@ -38,6 +38,7 @@ Panel::initGui() noexcept
     leftLayout->addWidget(m_filename_label);
 
     auto *centerLayout = new QHBoxLayout;
+    m_pageno_box->setFocusPolicy(Qt::ClickFocus);
     centerLayout->addWidget(m_pageno_box);
     centerLayout->addWidget(m_pageno_separator);
     centerLayout->addWidget(m_totalpage_label);
