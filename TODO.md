@@ -1,5 +1,6 @@
 # TODO
 - [X] Double, triple and quadruple click to select word, line and paragraph respectively
+- [X] Highlight already selected text
 - [X] Jump marker fading early fix
 - [X] Multi-monitor user defined scaling support
 - [X] Fix copy text popup when no text is selected
@@ -28,11 +29,10 @@
 - [ ] Printing support
 - [ ] Fix popup z value issue
 - [ ] Easy reference paper search
-- [ ] Highlight already selected text
-- [ ] Equation OCR to LaTeX
 - [ ] Reference previewer
 - [ ] Peek equation dependencies
-- [ ] Table exporter to CSV/Excel/Numpy
-- [ ] Semantic search
-- [ ] Incorporate AI model
+- [ ] AI features
+	- [ ] Equation OCR to LaTeX
+	- [ ] Table exporter to CSV/Excel/Numpy
+	- [ ] Semantic search
 - [ ] Search inside math equations
