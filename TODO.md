@@ -1,4 +1,5 @@
 # TODO
+- [X] Encrypt PDF with password
 - [X] Reload document on request
 - [X] Double, triple and quadruple click to select word, line and paragraph respectively
 - [X] Highlight already selected text
@@ -36,4 +37,4 @@
 	- [ ] Table exporter to CSV/Excel/Numpy
 	- [ ] Semantic search
 - [ ] Search inside math equations
-- [ ] Encrypt PDF with password
+- [ ] Set marks and jump to marks
