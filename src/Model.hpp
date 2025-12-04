@@ -38,6 +38,18 @@ public:
 
     QList<QImage> getImagesFromPage(int pageno) noexcept;
 
+    struct EncryptInfo
+    {
+        bool can_print;
+        bool can_copy;
+        bool can_annotate;
+        bool can_fill_forms;
+        bool can_modify;
+        bool can_extract;
+        // const char *owner_password;
+        QString user_password;
+    };
+
     // Used for hit-testing images on a page
     struct ImageHitTestDevice
     {
@@ -67,6 +79,8 @@ public:
     void SavePixmap(fz_pixmap *pixmap, const QString &filename) noexcept;
     void CopyPixmapToClipboard(fz_pixmap *pixmap) noexcept;
 
+    bool encrypt(const Model::EncryptInfo &) noexcept;
+    bool decrypt() noexcept;
     QString getMimeData(const QString &filepath) noexcept;
     bool authenticate(const QString &pwd) noexcept;
     bool passwordRequired() noexcept;
@@ -311,9 +325,8 @@ private:
     fz_matrix m_transform;
     std::string m_password; // Used when reloading document
 
-    float m_height, m_width, m_rotation{0.0f}, m_zoom_factor{1.0f},
-        m_dpr{1.0f}, m_inv_dpr{1.0f}, m_highlight_color[4],
-        m_annot_rect_color[4];
+    float m_height, m_width, m_rotation{0.0f}, m_zoom_factor{1.0f}, m_dpr{1.0f},
+        m_inv_dpr{1.0f}, m_highlight_color[4], m_annot_rect_color[4];
     QColor m_selection_color;
     float m_page_height{0.0f};
     QUndoStack *m_undoStack;

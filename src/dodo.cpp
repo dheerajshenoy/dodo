@@ -183,36 +183,46 @@ dodo::initMenubar() noexcept
 
     QMenu *toolsMenu = m_menuBar->addMenu("Tools");
 
-    QActionGroup *selectionActionGroup = new QActionGroup(this);
-    selectionActionGroup->setExclusive(true);
+    m_modeMenu = toolsMenu->addMenu("Mode");
 
-    m_actionRegionSelect = toolsMenu->addAction(
+    QActionGroup *modeActionGroup = new QActionGroup(this);
+    modeActionGroup->setExclusive(true);
+
+    m_actionRegionSelect = m_modeMenu->addAction(
         QString("Region Selection"), this, &dodo::RegionSelectionMode);
     m_actionRegionSelect->setCheckable(true);
-    selectionActionGroup->addAction(m_actionRegionSelect);
+    modeActionGroup->addAction(m_actionRegionSelect);
 
-    m_actionTextSelect = toolsMenu->addAction(QString("Text Selection"), this,
-                                              &dodo::TextSelectionMode);
+    m_actionTextSelect = m_modeMenu->addAction(QString("Text Selection"), this,
+                                               &dodo::TextSelectionMode);
     m_actionTextSelect->setCheckable(true);
-    selectionActionGroup->addAction(m_actionTextSelect);
+    modeActionGroup->addAction(m_actionTextSelect);
 
-    m_actionTextHighlight = toolsMenu->addAction(
+    m_actionTextHighlight = m_modeMenu->addAction(
         QString("Text Highlight\t%1").arg(m_config.shortcuts["text_highlight"]),
         this, &dodo::ToggleTextHighlight);
     m_actionTextHighlight->setCheckable(true);
-    selectionActionGroup->addAction(m_actionTextHighlight);
+    modeActionGroup->addAction(m_actionTextHighlight);
 
-    m_actionAnnotRect = toolsMenu->addAction(
+    m_actionAnnotRect = m_modeMenu->addAction(
         QString("Annotate Rectangle\t%1").arg(m_config.shortcuts["annot_rect"]),
         this, &dodo::ToggleRectAnnotation);
     m_actionAnnotRect->setCheckable(true);
-    selectionActionGroup->addAction(m_actionAnnotRect);
+    modeActionGroup->addAction(m_actionAnnotRect);
 
-    m_actionAnnotEdit = toolsMenu->addAction(
+    m_actionAnnotEdit = m_modeMenu->addAction(
         QString("Edit Annotations\t%1").arg(m_config.shortcuts["annot_edit"]),
         this, &dodo::ToggleAnnotSelect);
     m_actionAnnotEdit->setCheckable(true);
-    selectionActionGroup->addAction(m_actionAnnotEdit);
+    modeActionGroup->addAction(m_actionAnnotEdit);
+
+    m_actionEncrypt = toolsMenu->addAction(
+        QString("Encrypt Document\t%1").arg(m_config.shortcuts["encrypt"]),
+        this, &dodo::EncryptDocument);
+
+    m_actionDecrypt = toolsMenu->addAction(
+        QString("Decrypt Document\t%1").arg(m_config.shortcuts["decrypt"]),
+        this, &dodo::DecryptDocument);
 
     // --- Navigation Menu ---
     m_navMenu = m_menuBar->addMenu("&Navigation");
@@ -286,16 +296,25 @@ dodo::initDefaults() noexcept
     m_config.ui.window_title_format    = QStringLiteral("%1 - dodo");
     m_config.ui.link_hint_size         = 16.0f;
 
-    m_config.ui.colors[QStringLiteral("search_index")] = QStringLiteral("#3daee944");
-    m_config.ui.colors[QStringLiteral("search_match")] = QStringLiteral("#55FF8844");
-    m_config.ui.colors[QStringLiteral("accent")]       = QStringLiteral("#FF500044");
-    m_config.ui.colors[QStringLiteral("background")]   = QStringLiteral("#00000000");
-    m_config.ui.colors[QStringLiteral("link_hint_fg")] = QStringLiteral("#000000");
-    m_config.ui.colors[QStringLiteral("link_hint_bg")] = QStringLiteral("#FFFF00");
-    m_config.ui.colors[QStringLiteral("highlight")]    = QStringLiteral("#55FFFF00");
-    m_config.ui.colors[QStringLiteral("selection")]    = QStringLiteral("#55000055");
-    m_config.ui.colors[QStringLiteral("jump_marker")]  = QStringLiteral("#FFFF0000");
-    m_config.ui.colors[QStringLiteral("annot_rect")]   = QStringLiteral("#55FF0000");
+    m_config.ui.colors[QStringLiteral("search_index")]
+        = QStringLiteral("#3daee944");
+    m_config.ui.colors[QStringLiteral("search_match")]
+        = QStringLiteral("#55FF8844");
+    m_config.ui.colors[QStringLiteral("accent")] = QStringLiteral("#FF500044");
+    m_config.ui.colors[QStringLiteral("background")]
+        = QStringLiteral("#00000000");
+    m_config.ui.colors[QStringLiteral("link_hint_fg")]
+        = QStringLiteral("#000000");
+    m_config.ui.colors[QStringLiteral("link_hint_bg")]
+        = QStringLiteral("#FFFF00");
+    m_config.ui.colors[QStringLiteral("highlight")]
+        = QStringLiteral("#55FFFF00");
+    m_config.ui.colors[QStringLiteral("selection")]
+        = QStringLiteral("#55000055");
+    m_config.ui.colors[QStringLiteral("jump_marker")]
+        = QStringLiteral("#FFFF0000");
+    m_config.ui.colors[QStringLiteral("annot_rect")]
+        = QStringLiteral("#55FF0000");
 
     m_config.rendering.dpi = 300.0f;
     m_config.rendering.dpr
@@ -502,35 +521,40 @@ dodo::initConfig() noexcept
 void
 dodo::initKeybinds() noexcept
 {
-    m_config.shortcuts[QStringLiteral("undo")]            = QStringLiteral("u");
-    m_config.shortcuts[QStringLiteral("redo")]            = QStringLiteral("Ctrl+r");
-    m_config.shortcuts[QStringLiteral("toggle_menubar")]  = QStringLiteral("Ctrl+Shift+m");
+    m_config.shortcuts[QStringLiteral("undo")] = QStringLiteral("u");
+    m_config.shortcuts[QStringLiteral("redo")] = QStringLiteral("Ctrl+r");
+    m_config.shortcuts[QStringLiteral("toggle_menubar")]
+        = QStringLiteral("Ctrl+Shift+m");
     m_config.shortcuts[QStringLiteral("invert_color")]    = QStringLiteral("b");
     m_config.shortcuts[QStringLiteral("link_hint_visit")] = QStringLiteral("f");
-    m_config.shortcuts[QStringLiteral("save")]            = QStringLiteral("Ctrl+s");
-    m_config.shortcuts[QStringLiteral("text_highlight")]  = QStringLiteral("Alt+1");
-    m_config.shortcuts[QStringLiteral("annot_rect")]      = QStringLiteral("Alt+2");
-    m_config.shortcuts[QStringLiteral("annot_edit")]      = QStringLiteral("Alt+3");
-    m_config.shortcuts[QStringLiteral("outline")]         = QStringLiteral("t");
-    m_config.shortcuts[QStringLiteral("search")]          = QStringLiteral("/");
-    m_config.shortcuts[QStringLiteral("search_next")]     = QStringLiteral("n");
-    m_config.shortcuts[QStringLiteral("search_prev")]     = QStringLiteral("Shift+n");
-    m_config.shortcuts[QStringLiteral("zoom_in")]         = QStringLiteral("+");
-    m_config.shortcuts[QStringLiteral("zoom_out")]        = QStringLiteral("-");
-    m_config.shortcuts[QStringLiteral("zoom_reset")]      = QStringLiteral("0");
-    m_config.shortcuts[QStringLiteral("prev_location")]   = QStringLiteral("Ctrl+o");
-    m_config.shortcuts[QStringLiteral("open")]            = QStringLiteral("o");
-    m_config.shortcuts[QStringLiteral("scroll_left")]     = QStringLiteral("h");
-    m_config.shortcuts[QStringLiteral("scroll_down")]     = QStringLiteral("j");
-    m_config.shortcuts[QStringLiteral("scroll_up")]       = QStringLiteral("k");
-    m_config.shortcuts[QStringLiteral("scroll_right")]    = QStringLiteral("l");
-    m_config.shortcuts[QStringLiteral("next_page")]       = QStringLiteral("Shift+j");
-    m_config.shortcuts[QStringLiteral("prev_page")]       = QStringLiteral("Shift+k");
-    m_config.shortcuts[QStringLiteral("first_page")]      = QStringLiteral("g,g");
-    m_config.shortcuts[QStringLiteral("last_page")]       = QStringLiteral("Shift+g");
+    m_config.shortcuts[QStringLiteral("save")] = QStringLiteral("Ctrl+s");
+    m_config.shortcuts[QStringLiteral("text_highlight")]
+        = QStringLiteral("Alt+1");
+    m_config.shortcuts[QStringLiteral("annot_rect")]  = QStringLiteral("Alt+2");
+    m_config.shortcuts[QStringLiteral("annot_edit")]  = QStringLiteral("Alt+3");
+    m_config.shortcuts[QStringLiteral("outline")]     = QStringLiteral("t");
+    m_config.shortcuts[QStringLiteral("search")]      = QStringLiteral("/");
+    m_config.shortcuts[QStringLiteral("search_next")] = QStringLiteral("n");
+    m_config.shortcuts[QStringLiteral("search_prev")]
+        = QStringLiteral("Shift+n");
+    m_config.shortcuts[QStringLiteral("zoom_in")]    = QStringLiteral("+");
+    m_config.shortcuts[QStringLiteral("zoom_out")]   = QStringLiteral("-");
+    m_config.shortcuts[QStringLiteral("zoom_reset")] = QStringLiteral("0");
+    m_config.shortcuts[QStringLiteral("prev_location")]
+        = QStringLiteral("Ctrl+o");
+    m_config.shortcuts[QStringLiteral("open")]         = QStringLiteral("o");
+    m_config.shortcuts[QStringLiteral("scroll_left")]  = QStringLiteral("h");
+    m_config.shortcuts[QStringLiteral("scroll_down")]  = QStringLiteral("j");
+    m_config.shortcuts[QStringLiteral("scroll_up")]    = QStringLiteral("k");
+    m_config.shortcuts[QStringLiteral("scroll_right")] = QStringLiteral("l");
+    m_config.shortcuts[QStringLiteral("next_page")] = QStringLiteral("Shift+j");
+    m_config.shortcuts[QStringLiteral("prev_page")] = QStringLiteral("Shift+k");
+    m_config.shortcuts[QStringLiteral("first_page")] = QStringLiteral("g,g");
+    m_config.shortcuts[QStringLiteral("last_page")] = QStringLiteral("Shift+g");
 
     // Helper lambda to create and connect shortcuts
-    auto addShortcut = [this](const char *key, auto &&func) {
+    auto addShortcut = [this](const char *key, auto &&func)
+    {
         auto *sc = new QShortcut(QKeySequence(QLatin1String(key)), this);
         connect(sc, &QShortcut::activated, std::forward<decltype(func)>(func));
     };
@@ -775,7 +799,8 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
             argparser.get<std::string>("--synctex-forward"));
 
         // Format: file.pdf#file.tex:line
-        static const QRegularExpression re(QStringLiteral(R"(^(.*)#(.*):(\d+):(\d+)$)"));
+        static const QRegularExpression re(
+            QStringLiteral(R"(^(.*)#(.*):(\d+):(\d+)$)"));
         QRegularExpressionMatch match = re.match(arg);
 
         static const QString homeDir = QString::fromLocal8Bit(qgetenv("HOME"));
@@ -1135,6 +1160,7 @@ dodo::RegionSelectionMode() noexcept
     // TODO: Implement `RegionSelectionMode`
 }
 
+// Opens multiple files given a list of file paths
 void
 dodo::OpenFiles(const std::vector<std::string> &files) noexcept
 {
@@ -1143,6 +1169,7 @@ dodo::OpenFiles(const std::vector<std::string> &files) noexcept
         OpenFile(QString::fromStdString(s));
 }
 
+// Opens multiple files given a list of file paths
 void
 dodo::OpenFiles(const QStringList &files) noexcept
 {
@@ -1150,6 +1177,7 @@ dodo::OpenFiles(const QStringList &files) noexcept
         OpenFile(file);
 }
 
+// Opens a file given the DocumentView pointer
 bool
 dodo::OpenFile(DocumentView *view) noexcept
 {
@@ -1199,7 +1227,7 @@ dodo::OpenFile(QString filePath) noexcept
     }
 
     static const QString homeDir = QString::fromLocal8Bit(qgetenv("HOME"));
-    filePath = filePath.replace(QLatin1Char('~'), homeDir);
+    filePath                     = filePath.replace(QLatin1Char('~'), homeDir);
 
     if (!QFile::exists(filePath))
     {
@@ -1210,6 +1238,15 @@ dodo::OpenFile(QString filePath) noexcept
 
     DocumentView *docwidget
         = new DocumentView(filePath, m_config, m_tab_widget);
+
+    if (!docwidget->fileOpenedSuccessfully())
+    {
+        docwidget->deleteLater();
+        delete docwidget;
+        QMessageBox::warning(this, "Open File",
+                             QString("Failed to open %1").arg(filePath));
+        return false;
+    }
 
     docwidget->setDPR(m_dpr);
     initTabConnections(docwidget);
@@ -1241,6 +1278,7 @@ dodo::FileProperties() noexcept
         m_doc->FileProperties();
 }
 
+// Saves the current file
 void
 dodo::SaveFile() noexcept
 {
@@ -1248,6 +1286,7 @@ dodo::SaveFile() noexcept
         m_doc->SaveFile();
 }
 
+// Saves the current file as a new file
 void
 dodo::SaveAsFile() noexcept
 {
@@ -1255,12 +1294,14 @@ dodo::SaveAsFile() noexcept
         m_doc->SaveAsFile();
 }
 
+// Closes the current file
 void
 dodo::CloseFile() noexcept
 {
     m_tab_widget->tabCloseRequested(m_tab_widget->currentIndex());
 }
 
+// Fit the document to the width of the window
 void
 dodo::FitWidth() noexcept
 {
@@ -1268,6 +1309,7 @@ dodo::FitWidth() noexcept
         m_doc->FitWidth();
 }
 
+// Fit the document to the height of the window
 void
 dodo::FitHeight() noexcept
 {
@@ -1275,6 +1317,7 @@ dodo::FitHeight() noexcept
         m_doc->FitHeight();
 }
 
+// Fit the document to the window
 void
 dodo::FitWindow() noexcept
 {
@@ -1282,6 +1325,7 @@ dodo::FitWindow() noexcept
         m_doc->FitWindow();
 }
 
+// Toggle auto-resize mode
 void
 dodo::ToggleAutoResize() noexcept
 {
@@ -1289,6 +1333,7 @@ dodo::ToggleAutoResize() noexcept
         m_doc->ToggleAutoResize();
 }
 
+// Show or hide the outline panel
 void
 dodo::ShowOutline() noexcept
 {
@@ -1304,6 +1349,7 @@ dodo::ShowOutline() noexcept
     }
 }
 
+// Invert colors of the document
 void
 dodo::InvertColor() noexcept
 {
@@ -1314,6 +1360,7 @@ dodo::InvertColor() noexcept
     }
 }
 
+// Toggle text highlight mode
 void
 dodo::ToggleTextHighlight() noexcept
 {
@@ -1321,6 +1368,7 @@ dodo::ToggleTextHighlight() noexcept
         m_doc->ToggleTextHighlight();
 }
 
+// Toggle rectangle annotation mode
 void
 dodo::ToggleRectAnnotation() noexcept
 {
@@ -1328,6 +1376,7 @@ dodo::ToggleRectAnnotation() noexcept
         m_doc->ToggleRectAnnotation();
 }
 
+// Toggle annotation select mode
 void
 dodo::ToggleAnnotSelect() noexcept
 {
@@ -1335,6 +1384,7 @@ dodo::ToggleAnnotSelect() noexcept
         m_doc->ToggleAnnotSelect();
 }
 
+// Toggle region select mode
 void
 dodo::ToggleRegionSelect() noexcept
 {
@@ -1342,6 +1392,7 @@ dodo::ToggleRegionSelect() noexcept
         m_doc->ToggleRegionSelect();
 }
 
+// Go to the first page
 void
 dodo::FirstPage() noexcept
 {
@@ -1349,6 +1400,7 @@ dodo::FirstPage() noexcept
         m_doc->FirstPage();
 }
 
+// Go to the previous page
 void
 dodo::PrevPage() noexcept
 {
@@ -1356,6 +1408,7 @@ dodo::PrevPage() noexcept
         m_doc->PrevPage();
 }
 
+// Go to the next page
 void
 dodo::NextPage() noexcept
 {
@@ -1363,6 +1416,7 @@ dodo::NextPage() noexcept
         m_doc->NextPage();
 }
 
+// Go to the last page
 void
 dodo::LastPage() noexcept
 {
@@ -1372,6 +1426,7 @@ dodo::LastPage() noexcept
     updatePageNavigationActions();
 }
 
+// Go back in the page history
 void
 dodo::GoBackHistory() noexcept
 {
@@ -1467,6 +1522,7 @@ dodo::initConnections() noexcept
             &dodo::gotoPage);
 }
 
+// Handle when the file name is changed
 void
 dodo::handleFileNameChanged(const QString &name) noexcept
 {
@@ -1474,6 +1530,7 @@ dodo::handleFileNameChanged(const QString &name) noexcept
     this->setWindowTitle(name);
 }
 
+// Handle when the current tab is changed
 void
 dodo::handleCurrentTabChanged(int index) noexcept
 {
@@ -1517,6 +1574,7 @@ dodo::handleCurrentTabChanged(int index) noexcept
     this->setWindowTitle(m_doc->windowTitle());
 }
 
+// Handle the close event to check for unsaved changes
 void
 dodo::closeEvent(QCloseEvent *e)
 {
@@ -1572,6 +1630,8 @@ dodo::ToggleTabBar() noexcept
         bar->show();
 }
 
+// Event filter to capture key events for link hints mode and
+// other events
 bool
 dodo::eventFilter(QObject *object, QEvent *event)
 {
@@ -1580,64 +1640,64 @@ dodo::eventFilter(QObject *object, QEvent *event)
     {
         switch (type)
         {
-        case QEvent::KeyPress:
-        {
-            QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-            switch (keyEvent->key())
+            case QEvent::KeyPress:
             {
-            case Qt::Key_Escape:
-                m_currentHintInput.clear();
-                m_doc->clearKBHintsOverlay();
-                m_link_hint_map.clear();
-                m_link_hint_mode = false;
-                return true;
-            case Qt::Key_Backspace:
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-                m_currentHintInput.removeLast();
-#else
-                if (!m_currentHintInput.isEmpty())
-                    m_currentHintInput.chop(1);
-#endif
-                return true;
-            default:
-                break;
-            }
-
-            m_currentHintInput += keyEvent->text();
-            int num = m_currentHintInput.toInt();
-            auto it = m_link_hint_map.find(num);
-            if (it != m_link_hint_map.end())
-            {
-                const Model::LinkInfo &info = it.value();
-
-                switch (m_link_hint_current_mode)
+                QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+                switch (keyEvent->key())
                 {
-                    case LinkHintMode::None:
-                        break;
-
-                    case LinkHintMode::Visit:
-                        m_doc->model()->followLink(info);
-                        break;
-
-                    case LinkHintMode::Copy:
-                        m_clipboard->setText(info.uri);
+                    case Qt::Key_Escape:
+                        m_currentHintInput.clear();
+                        m_doc->clearKBHintsOverlay();
+                        m_link_hint_map.clear();
+                        m_link_hint_mode = false;
+                        return true;
+                    case Qt::Key_Backspace:
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+                        m_currentHintInput.removeLast();
+#else
+                        if (!m_currentHintInput.isEmpty())
+                            m_currentHintInput.chop(1);
+#endif
+                        return true;
+                    default:
                         break;
                 }
 
-                m_currentHintInput.clear();
-                m_link_hint_map.clear();
-                m_doc->clearKBHintsOverlay();
-                m_link_hint_mode = false;
+                m_currentHintInput += keyEvent->text();
+                int num = m_currentHintInput.toInt();
+                auto it = m_link_hint_map.find(num);
+                if (it != m_link_hint_map.end())
+                {
+                    const Model::LinkInfo &info = it.value();
+
+                    switch (m_link_hint_current_mode)
+                    {
+                        case LinkHintMode::None:
+                            break;
+
+                        case LinkHintMode::Visit:
+                            m_doc->model()->followLink(info);
+                            break;
+
+                        case LinkHintMode::Copy:
+                            m_clipboard->setText(info.uri);
+                            break;
+                    }
+
+                    m_currentHintInput.clear();
+                    m_link_hint_map.clear();
+                    m_doc->clearKBHintsOverlay();
+                    m_link_hint_mode = false;
+                    return true;
+                }
+                keyEvent->accept();
                 return true;
             }
-            keyEvent->accept();
-            return true;
-        }
-        case QEvent::ShortcutOverride:
-            event->accept();
-            return true;
-        default:
-            break;
+            case QEvent::ShortcutOverride:
+                event->accept();
+                return true;
+            default:
+                break;
         }
     }
     else
@@ -1727,15 +1787,17 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
     // Connect undo stack signals to update undo/redo menu actions
     QUndoStack *undoStack = docwidget->model()->undoStack();
     connect(undoStack, &QUndoStack::canUndoChanged, this,
-            [this, docwidget](bool canUndo) {
-                if (m_doc == docwidget)
-                    m_actionUndo->setEnabled(canUndo);
-            });
+            [this, docwidget](bool canUndo)
+    {
+        if (m_doc == docwidget)
+            m_actionUndo->setEnabled(canUndo);
+    });
     connect(undoStack, &QUndoStack::canRedoChanged, this,
-            [this, docwidget](bool canRedo) {
-                if (m_doc == docwidget)
-                    m_actionRedo->setEnabled(canRedo);
-            });
+            [this, docwidget](bool canRedo)
+    {
+        if (m_doc == docwidget)
+            m_actionRedo->setEnabled(canRedo);
+    });
 
     connect(m_panel, &Panel::modeChangeRequested, docwidget,
             &DocumentView::nextSelectionMode);
@@ -1807,6 +1869,7 @@ dodo::insertFileToDB(const QString &fname, int pageno) noexcept
     }
 }
 
+// Update the menu actions based on the current document state
 void
 dodo::updateMenuActions() noexcept
 {
@@ -1944,8 +2007,9 @@ dodo::LoadSession(QString sessionName) noexcept
     else
     {
 
-        QMessageBox::critical(this, "Open Session",
-                              QStringLiteral("Could not open session: %1").arg(sessionName));
+        QMessageBox::critical(
+            this, "Open Session",
+            QStringLiteral("Could not open session: %1").arg(sessionName));
     }
 }
 
@@ -2035,8 +2099,9 @@ dodo::SaveSession(QString sessionName) noexcept
     bool result = file.open(QIODevice::WriteOnly);
     if (!result)
     {
-        QMessageBox::critical(this, "Save Session",
-                      QStringLiteral("Could not save session: %1").arg(m_session_name));
+        QMessageBox::critical(
+            this, "Save Session",
+            QStringLiteral("Could not save session: %1").arg(m_session_name));
         return;
     }
     QJsonDocument doc(sessionArray);
@@ -2223,9 +2288,10 @@ dodo::Redo() noexcept
 // Initialize the actions with corresponding functions
 // to call
 // Helper macro for actions that don't use arguments
-#define ACTION_NO_ARGS(name, func) \
+#define ACTION_NO_ARGS(name, func)                                             \
     {QStringLiteral(name), [this](const QStringList &) { func(); }}
 
+// Initialize the action map
 void
 dodo::initActionMap() noexcept
 {
@@ -2233,45 +2299,47 @@ dodo::initActionMap() noexcept
         // Actions with arguments
         {QStringLiteral("setdpr"),
          [this](const QStringList &args)
-         {
-             if (args.isEmpty())
-                 return;
-             bool ok;
-             float dpr = args.at(0).toFloat(&ok);
-             if (ok)
-                 setDPR(dpr);
-             else
-                 m_message_bar->showMessage(QStringLiteral("Invalid DPR"));
-         }},
+    {
+        if (args.isEmpty())
+            return;
+        bool ok;
+        float dpr = args.at(0).toFloat(&ok);
+        if (ok)
+            setDPR(dpr);
+        else
+            m_message_bar->showMessage(QStringLiteral("Invalid DPR"));
+    }},
         {QStringLiteral("tabgoto"),
          [this](const QStringList &args)
-         {
-             if (args.isEmpty())
-                 return;
-             bool ok;
-             int index = args.at(0).toInt(&ok);
-             if (ok)
-                 GotoTab(index);
-             else
-                 m_message_bar->showMessage(QStringLiteral("Invalid tab index"));
-         }},
+    {
+        if (args.isEmpty())
+            return;
+        bool ok;
+        int index = args.at(0).toInt(&ok);
+        if (ok)
+            GotoTab(index);
+        else
+            m_message_bar->showMessage(QStringLiteral("Invalid tab index"));
+    }},
         {QStringLiteral("region_select_mode"),
          [this](const QStringList &)
-         {
-             qDebug() << "DD";
-             ToggleRegionSelect();
-         }},
+    {
+        qDebug() << "DD";
+        ToggleRegionSelect();
+    }},
 
         // Actions without arguments
         ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
         ACTION_NO_ARGS("tab_next", NextTab),
+        ACTION_NO_ARGS("encrypt", EncryptDocument),
         ACTION_NO_ARGS("tab_prev", PrevTab),
         ACTION_NO_ARGS("tab_close", CloseTab),
         ACTION_NO_ARGS("reload", reloadDocument),
         ACTION_NO_ARGS("command", invokeCommand),
         ACTION_NO_ARGS("undo", Undo),
         ACTION_NO_ARGS("redo", Redo),
-        ACTION_NO_ARGS("text_highlight_current_selection", TextHighlightCurrentSelection),
+        ACTION_NO_ARGS("text_highlight_current_selection",
+                       TextHighlightCurrentSelection),
         ACTION_NO_ARGS("toggle_tabs", ToggleTabBar),
         ACTION_NO_ARGS("keybindings", ShowKeybindings),
         ACTION_NO_ARGS("yank_all", YankAll),
@@ -2400,6 +2468,7 @@ dodo::LastTab() noexcept
     }
 }
 
+// Go to the next tab
 void
 dodo::NextTab() noexcept
 {
@@ -2411,6 +2480,7 @@ dodo::NextTab() noexcept
     }
 }
 
+// Go to the previous tab
 void
 dodo::PrevTab() noexcept
 {
@@ -2470,6 +2540,7 @@ dodo::updatePageNavigationActions() noexcept
     m_actionLastPage->setEnabled(page >= 0 && page < count - 1);
 }
 
+// Open the containing folder of the current document
 void
 dodo::OpenContainingFolder() noexcept
 {
@@ -2477,5 +2548,62 @@ dodo::OpenContainingFolder() noexcept
     {
         QString filepath = m_doc->fileName();
         QDesktopServices::openUrl(QUrl(QFileInfo(filepath).absolutePath()));
+    }
+}
+
+// Encrypt the current document
+void
+dodo::EncryptDocument() noexcept
+{
+    if (m_doc)
+    {
+        Model::EncryptInfo encryptInfo;
+        bool ok;
+        QString password = QInputDialog::getText(
+            this, "Encrypt Document", "Enter password:", QLineEdit::Password,
+            QString(), &ok);
+        if (!ok || password.isEmpty())
+            return;
+        encryptInfo.user_password = password;
+        if (m_doc->model()->encrypt(encryptInfo))
+            m_message_bar->showMessage("Document encrypted successfully");
+        else
+            m_message_bar->showMessage("Failed to encrypt document");
+    }
+}
+
+void
+dodo::DecryptDocument() noexcept
+{
+    if (m_doc)
+    {
+        if (m_doc->model()->passwordRequired())
+        {
+            bool ok;
+            QString pwd = QInputDialog::getText(
+                this, "Decrypt Document",
+                "Enter password:", QLineEdit::Password, QString(), &ok);
+            if (!ok || pwd.isEmpty())
+                return;
+            if (m_doc->model()->authenticate(pwd))
+            {
+                // Password correct, proceed to decryption
+                if (m_doc->model()->decrypt())
+                    m_message_bar->showMessage(
+                        "Document decrypted successfully");
+                else
+                    m_message_bar->showMessage("Failed to decrypt document");
+            }
+            else
+            {
+                QMessageBox::critical(this, "Password",
+                                      "Password is incorrect");
+                return;
+            }
+        }
+        else
+        {
+            m_message_bar->showMessage("Document is not encrypted");
+        }
     }
 }

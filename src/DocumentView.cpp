@@ -92,7 +92,7 @@ DocumentView::DocumentView(const QString &fileName, const Config &config,
             Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
     initConnections();
-    openFile(fileName);
+    m_file_opened_successfully = openFile(fileName);
 
 #ifdef NDEBUG
 #else
@@ -423,7 +423,7 @@ DocumentView::clearPixmapItems() noexcept
 
 /* Function for opening the file using the model.
    For internal usage only */
-void
+bool
 DocumentView::openFile(const QString &fileName) noexcept
 {
     if (m_model->valid())
@@ -439,19 +439,19 @@ DocumentView::openFile(const QString &fileName) noexcept
     if (!QFile::exists(m_filename))
     {
         qCritical() << "File does not exist: " << m_filename;
-        return;
+        return false;
     }
 
     if (!m_model->openFile(m_filename))
     {
         QMessageBox::critical(this, "Error opening document",
                               "Unable to open document for some reason");
-        return;
+        return false;
     }
 
     if (m_model->passwordRequired())
         if (!askForPassword())
-            return;
+            return false;
 
     m_pageno      = -1;
     m_total_pages = m_model->numPages();
@@ -466,7 +466,7 @@ DocumentView::openFile(const QString &fileName) noexcept
     if (m_pageno != -1)
     {
         gotoPage(m_pageno);
-        return;
+        return true;
     }
 
     int targetPage = 0;
@@ -512,6 +512,7 @@ DocumentView::openFile(const QString &fileName) noexcept
     setWindowTitle(title);
     m_last_modified_time = QFileInfo(m_filename).lastModified();
     emit fileNameChanged(m_basename);
+    return true;
 }
 
 bool
@@ -1076,7 +1077,8 @@ DocumentView::NextHit()
 
     QList<int> pages = m_searchRectMap.keys();
 
-    // If user navigated away from the last search hit page, recalculate position
+    // If user navigated away from the last search hit page, recalculate
+    // position
     if (m_pageno != m_search_hit_page)
     {
         // Find the first page with matches >= current page
@@ -1119,7 +1121,8 @@ DocumentView::PrevHit()
 
     QList<int> pages = m_searchRectMap.keys();
 
-    // If user navigated away from the last search hit page, recalculate position
+    // If user navigated away from the last search hit page, recalculate
+    // position
     if (m_pageno != m_search_hit_page)
     {
         // Find the last page with matches <= current page

@@ -8,8 +8,6 @@
 #include "HighlightItem.hpp"
 #include "JumpMarker.hpp"
 #include "LinkHint.hpp"
-#include <QPropertyAnimation>
-#include <QTimer>
 #include "Model.hpp"
 #include "OutlineWidget.hpp"
 #include "PropertiesWidget.hpp"
@@ -18,7 +16,9 @@
 #include <QFileSystemWatcher>
 #include <QInputDialog>
 #include <QMessageBox>
+#include <QPropertyAnimation>
 #include <QScrollBar>
+#include <QTimer>
 #include <QWidget>
 #include <QWindow>
 #include <qboxlayout.h>
@@ -87,6 +87,11 @@ public:
         float x, y, zoom;
         int pageno;
     };
+
+    inline bool fileOpenedSuccessfully() const noexcept
+    {
+        return m_file_opened_successfully;
+    }
 
     inline bool autoResize() const noexcept
     {
@@ -238,7 +243,7 @@ private:
     void synctexLocateInPdf(const QString &texFile, int line,
                             int column) noexcept;
     void initConnections() noexcept;
-    void openFile(const QString &fileName) noexcept;
+    bool openFile(const QString &fileName) noexcept;
     bool gotoPage(int pageno, bool refresh = true) noexcept;
     bool gotoPageInternal(int pageno, bool refresh = true) noexcept;
     void search(const QString &term) noexcept;
@@ -296,8 +301,8 @@ private:
         m_page_history_limit{5};
     float m_default_zoom{0.0}, m_zoom_by{1.25};
     bool m_suppressHistory{false}, m_highlights_present{false},
-        m_annot_selection_present{false},
-        m_dirty{false}, m_page_nav_with_mouse{true}, m_jump_marker_shown{true},
+        m_annot_selection_present{false}, m_dirty{false},
+        m_page_nav_with_mouse{true}, m_jump_marker_shown{true},
         m_auto_resize{false};
     float m_dpr{1.0f}, m_inv_dpr{1.0f};
     QString m_last_search_term;
@@ -314,6 +319,7 @@ private:
     QList<BrowseLinkItem *> m_link_items{};
     fz_pixmap *m_hit_pixmap{nullptr}; // For image hit testing
     GraphicsView::Mode m_default_mode{GraphicsView::Mode::RegionSelection};
+    bool m_file_opened_successfully{false};
 
     int m_scroll_accumulator{0};
     QElapsedTimer m_scroll_cooldown;

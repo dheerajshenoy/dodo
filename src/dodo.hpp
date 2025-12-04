@@ -68,6 +68,8 @@ private:
     }
 
     // Interactive functions
+    void EncryptDocument() noexcept;
+    void DecryptDocument() noexcept;
     void Undo() noexcept;
     void Redo() noexcept;
     void ShowAbout() noexcept;
@@ -163,6 +165,9 @@ private:
     QMenu *m_editMenu{nullptr};
     QMenu *m_navMenu{nullptr};
 
+    QAction *m_actionEncrypt{nullptr};
+    QAction *m_actionDecrypt{nullptr};
+    QMenu *m_modeMenu{nullptr};
     QAction *m_actionUndo{nullptr};
     QAction *m_actionRedo{nullptr};
     QAction *m_actionToggleTabBar{nullptr};

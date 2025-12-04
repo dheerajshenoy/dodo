@@ -36,3 +36,4 @@
 	- [ ] Table exporter to CSV/Excel/Numpy
 	- [ ] Semantic search
 - [ ] Search inside math equations
+- [ ] Encrypt PDF with password

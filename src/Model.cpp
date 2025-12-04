@@ -12,6 +12,7 @@
 #include <QGraphicsScene>
 #include <QImage>
 #include <mupdf/fitz/image.h>
+#include <mupdf/pdf/crypt.h>
 #include <qbytearrayview.h>
 #include <qnamespace.h>
 extern "C"
@@ -76,14 +77,14 @@ static const QString SELECTION_DATA = QStringLiteral("selection");
 fz_quad
 union_quad(const fz_quad &a, const fz_quad &b)
 {
-    float min_x = min8(a.ul.x, a.ur.x, a.ll.x, a.lr.x,
-                       b.ul.x, b.ur.x, b.ll.x, b.lr.x);
-    float min_y = min8(a.ul.y, a.ur.y, a.ll.y, a.lr.y,
-                       b.ul.y, b.ur.y, b.ll.y, b.lr.y);
-    float max_x = max8(a.ul.x, a.ur.x, a.ll.x, a.lr.x,
-                       b.ul.x, b.ur.x, b.ll.x, b.lr.x);
-    float max_y = max8(a.ul.y, a.ur.y, a.ll.y, a.lr.y,
-                       b.ul.y, b.ur.y, b.ll.y, b.lr.y);
+    float min_x
+        = min8(a.ul.x, a.ur.x, a.ll.x, a.lr.x, b.ul.x, b.ur.x, b.ll.x, b.lr.x);
+    float min_y
+        = min8(a.ul.y, a.ur.y, a.ll.y, a.lr.y, b.ul.y, b.ur.y, b.ll.y, b.lr.y);
+    float max_x
+        = max8(a.ul.x, a.ur.x, a.ll.x, a.lr.x, b.ul.x, b.ur.x, b.ll.x, b.lr.x);
+    float max_y
+        = max8(a.ul.y, a.ur.y, a.ll.y, a.lr.y, b.ul.y, b.ur.y, b.ll.y, b.lr.y);
 
     fz_quad result;
 
@@ -435,9 +436,9 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
 
     // Pre-compute the comparison term once
     const QString termToCheck = caseSensitive ? term : term.toLower();
-    const int termLen = term.length();
+    const int termLen         = term.length();
     const QChar termFirstChar = termToCheck.at(0);
-    const bool singleChar = (termLen == 1);
+    const bool singleChar     = (termLen == 1);
 
     fz_try(m_ctx)
     {
@@ -454,7 +455,7 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
                  line                = line->next)
             {
                 QString currentWord;
-                currentWord.reserve(64);  // Pre-allocate for typical word length
+                currentWord.reserve(64); // Pre-allocate for typical word length
                 fz_quad currentQuad = {{}, {}, {}, {}};
 
                 for (fz_stext_char *ch = line->first_char; ch; ch = ch->next)
@@ -463,7 +464,8 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
                         continue;
 
                     const QChar qch(ch->c);
-                    const QChar qchCompare = caseSensitive ? qch : qch.toLower();
+                    const QChar qchCompare
+                        = caseSensitive ? qch : qch.toLower();
 
                     if (singleChar)
                     {
@@ -562,7 +564,8 @@ Model::getAnnotations() noexcept
 
         // Count annotations for reserve (optional optimization)
         int annotCount = 0;
-        for (pdf_annot *a = pdf_first_annot(m_ctx, m_pdfpage); a; a = pdf_next_annot(m_ctx, a))
+        for (pdf_annot *a = pdf_first_annot(m_ctx, m_pdfpage); a;
+             a            = pdf_next_annot(m_ctx, a))
             ++annotCount;
         annots.reserve(annotCount);
 
@@ -658,7 +661,7 @@ Model::get_annots_by_indexes(const QSet<int> &indexes) noexcept
         return result;
 
     result.reserve(indexes.size());
-    
+
     // Find the maximum index to avoid unnecessary iterations
     const int maxIndex = *std::max_element(indexes.begin(), indexes.end());
 
@@ -965,7 +968,7 @@ QList<QPair<QString, QString>>
 Model::extractPDFProperties() noexcept
 {
     QList<QPair<QString, QString>> props;
-    props.reserve(16);  // Typical number of PDF properties
+    props.reserve(16); // Typical number of PDF properties
 
     if (!m_ctx || !m_doc)
         return props;
@@ -1041,12 +1044,12 @@ Model::apply_night_mode(fz_pixmap *pixmap) noexcept
     const int w = fz_pixmap_width(m_ctx, pixmap);
     const int h = fz_pixmap_height(m_ctx, pixmap);
     const int stride = fz_pixmap_stride(m_ctx, pixmap);
-    
+
     // Check colorspace once outside the loop
     const bool hasColorspace = fz_pixmap_colorspace(m_ctx, pixmap) != nullptr;
     if (!hasColorspace)
         return;
-    
+
     const int colorChannels = n - 1; // Skip alpha channel
 
     for (int y = 0; y < h; ++y)
@@ -1133,7 +1136,8 @@ Model::highlightTextSelection(const QPointF &selectionStart,
     fz_try(m_ctx)
     {
         fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_CHARS);
-        count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, MAX_HITS);
+        count
+            = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, MAX_HITS);
 
         // Store snapped selection bounds for later use
         m_sel_start     = a;
@@ -1146,7 +1150,7 @@ Model::highlightTextSelection(const QPointF &selectionStart,
         m_has_selection = false;
         return;
     }
-    
+
     const QBrush brush(m_selection_color);
 
     for (int i = 0; i < count; ++i)
@@ -1271,7 +1275,7 @@ Model::getSelectionText(const QPointF &selectionStart,
     }
 
     if (selected)
-        fz_free(m_ctx, selected);  // Fix: use fz_free instead of delete[]
+        fz_free(m_ctx, selected); // Fix: use fz_free instead of delete[]
     return text;
 }
 
@@ -1293,7 +1297,8 @@ Model::annotHighlightSelection(const QPointF &selectionStart,
     fz_try(m_ctx)
     {
         // fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
-        count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, MAX_HITS);
+        count
+            = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, MAX_HITS);
     }
     fz_catch(m_ctx)
     {
@@ -1414,7 +1419,7 @@ Model::selectAllText(const QPointF &start, const QPointF &end) noexcept
     }
 
     if (selected)
-        fz_free(m_ctx, selected);  // Fix: use fz_free instead of delete[]
+        fz_free(m_ctx, selected); // Fix: use fz_free instead of delete[]
     return text;
 }
 
@@ -1836,4 +1841,59 @@ Model::quadrupleClickTextSelection(const QPointF &loc) noexcept
         qWarning() << "Quadruple-click paragraph selection failed";
         m_has_selection = false;
     }
+}
+
+// Encrypt the PDF file with the given password
+bool
+Model::encrypt(const Model::EncryptInfo &info) noexcept
+{
+    // Use MuPDF to encrypt the PDF
+    fz_try(m_ctx)
+    {
+        pdf_write_options opts = m_write_opts;
+        opts.do_encrypt        = PDF_ENCRYPT_AES_256;
+        // Set user password (required to open the document)
+        QByteArray userPwdBytes = info.user_password.toUtf8();
+        strncpy(opts.upwd_utf8, userPwdBytes.constData(),
+                sizeof(opts.upwd_utf8) - 1);
+
+        // Set owner password (required for full access/editing)
+        // QByteArray ownerPwdBytes = password.toUtf8();
+        strncpy(opts.opwd_utf8, userPwdBytes.constData(),
+                sizeof(opts.opwd_utf8) - 1);
+        // Set permissions
+        // if (info.can_annotate)
+        // TODO: make permissions configurable
+        opts.permissions = PDF_PERM_PRINT | PDF_PERM_COPY | PDF_PERM_ANNOTATE
+                           | PDF_PERM_FORM | PDF_PERM_MODIFY | PDF_PERM_ASSEMBLE
+                           | PDF_PERM_PRINT_HQ;
+
+        pdf_save_document(m_ctx, m_pdfdoc, CSTR(m_filename), &opts);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Cannot encrypt file: " << fz_caught_message(m_ctx);
+        return false;
+    }
+    return true;
+}
+
+// Decrypt the PDF file with the given password
+bool
+Model::decrypt() noexcept
+{
+    // Use MuPDF to decrypt the PDF
+    fz_try(m_ctx)
+    {
+        pdf_write_options opts = m_write_opts;
+        opts.do_encrypt        = PDF_ENCRYPT_NONE;
+
+        pdf_save_document(m_ctx, m_pdfdoc, CSTR(m_filename), &opts);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Cannot decrypt file: " << fz_caught_message(m_ctx);
+        return false;
+    }
+    return true;
 }
