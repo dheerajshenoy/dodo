@@ -53,17 +53,37 @@ imageCleanupHandler(void *data)
     }
 }
 
+// Helper to find min of 8 floats without initializer_list overhead
+static inline float
+min8(float a, float b, float c, float d, float e, float f, float g, float h)
+{
+    float m1 = std::min(std::min(a, b), std::min(c, d));
+    float m2 = std::min(std::min(e, f), std::min(g, h));
+    return std::min(m1, m2);
+}
+
+static inline float
+max8(float a, float b, float c, float d, float e, float f, float g, float h)
+{
+    float m1 = std::max(std::max(a, b), std::max(c, d));
+    float m2 = std::max(std::max(e, f), std::max(g, h));
+    return std::max(m1, m2);
+}
+
+// Selection item identifier constant
+static const QString SELECTION_DATA = QStringLiteral("selection");
+
 fz_quad
 union_quad(const fz_quad &a, const fz_quad &b)
 {
-    float min_x = std::min(
-        {a.ul.x, a.ur.x, a.ll.x, a.lr.x, b.ul.x, b.ur.x, b.ll.x, b.lr.x});
-    float min_y = std::min(
-        {a.ul.y, a.ur.y, a.ll.y, a.lr.y, b.ul.y, b.ur.y, b.ll.y, b.lr.y});
-    float max_x = std::max(
-        {a.ul.x, a.ur.x, a.ll.x, a.lr.x, b.ul.x, b.ur.x, b.ll.x, b.lr.x});
-    float max_y = std::max(
-        {a.ul.y, a.ur.y, a.ll.y, a.lr.y, b.ul.y, b.ur.y, b.ll.y, b.lr.y});
+    float min_x = min8(a.ul.x, a.ur.x, a.ll.x, a.lr.x,
+                       b.ul.x, b.ur.x, b.ll.x, b.lr.x);
+    float min_y = min8(a.ul.y, a.ur.y, a.ll.y, a.lr.y,
+                       b.ul.y, b.ur.y, b.ll.y, b.lr.y);
+    float max_x = max8(a.ul.x, a.ur.x, a.ll.x, a.lr.x,
+                       b.ul.x, b.ur.x, b.ll.x, b.lr.x);
+    float max_y = max8(a.ul.y, a.ur.y, a.ll.y, a.lr.y,
+                       b.ul.y, b.ur.y, b.ll.y, b.lr.y);
 
     fz_quad result;
 
@@ -410,8 +430,14 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
 {
     QList<SearchResult> results;
 
-    if (!m_ctx)
-        return {};
+    if (!m_ctx || term.isEmpty())
+        return results;
+
+    // Pre-compute the comparison term once
+    const QString termToCheck = caseSensitive ? term : term.toLower();
+    const int termLen = term.length();
+    const QChar termFirstChar = termToCheck.at(0);
+    const bool singleChar = (termLen == 1);
 
     fz_try(m_ctx)
     {
@@ -428,6 +454,7 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
                  line                = line->next)
             {
                 QString currentWord;
+                currentWord.reserve(64);  // Pre-allocate for typical word length
                 fz_quad currentQuad = {{}, {}, {}, {}};
 
                 for (fz_stext_char *ch = line->first_char; ch; ch = ch->next)
@@ -435,13 +462,12 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
                     if (!ch->c)
                         continue;
 
-                    QChar qch = QChar(ch->c);
+                    const QChar qch(ch->c);
+                    const QChar qchCompare = caseSensitive ? qch : qch.toLower();
 
-                    if (term.length() == 1)
+                    if (singleChar)
                     {
-                        if ((caseSensitive && qch == term[0])
-                            || (!caseSensitive
-                                && qch.toLower() == term[0].toLower()))
+                        if (qchCompare == termFirstChar)
                         {
                             results.append({pageno, ch->quad, m_match_count++});
                         }
@@ -452,13 +478,7 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
                     {
                         if (!currentWord.isEmpty())
                         {
-                            QString wordToCheck = caseSensitive
-                                                      ? currentWord
-                                                      : currentWord.toLower();
-                            QString termToCheck
-                                = caseSensitive ? term : term.toLower();
-
-                            if (wordToCheck == termToCheck)
+                            if (currentWord == termToCheck)
                             {
                                 results.append(
                                     {pageno, currentQuad, m_match_count++});
@@ -472,22 +492,16 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
                     {
                         if (currentWord.isEmpty())
                         {
-                            currentWord = qch;
+                            currentWord = qchCompare;
                             currentQuad = ch->quad;
                         }
                         else
                         {
-                            currentWord += qch;
+                            currentWord += qchCompare;
                             currentQuad = union_quad(currentQuad, ch->quad);
                         }
 
-                        QString wordToCheck = caseSensitive
-                                                  ? currentWord
-                                                  : currentWord.toLower();
-                        QString termToCheck
-                            = caseSensitive ? term : term.toLower();
-
-                        if (wordToCheck == termToCheck)
+                        if (currentWord == termToCheck)
                         {
                             results.append(
                                 {pageno, currentQuad, m_match_count++});
@@ -499,10 +513,7 @@ Model::searchHelper(int pageno, const QString &term, bool caseSensitive)
 
                 if (!currentWord.isEmpty())
                 {
-                    QString wordToCheck
-                        = caseSensitive ? currentWord : currentWord.toLower();
-                    QString termToCheck = caseSensitive ? term : term.toLower();
-                    if (wordToCheck == termToCheck)
+                    if (currentWord == termToCheck)
                         results.append({pageno, currentQuad, m_match_count++});
                 }
             }
@@ -548,6 +559,12 @@ Model::getAnnotations() noexcept
 
         if (!m_pdfpage)
             return annots;
+
+        // Count annotations for reserve (optional optimization)
+        int annotCount = 0;
+        for (pdf_annot *a = pdf_first_annot(m_ctx, m_pdfpage); a; a = pdf_next_annot(m_ctx, a))
+            ++annotCount;
+        annots.reserve(annotCount);
 
         pdf_annot *annot = pdf_first_annot(m_ctx, m_pdfpage);
         int n;
@@ -640,9 +657,14 @@ Model::get_annots_by_indexes(const QSet<int> &indexes) noexcept
     if (!m_pdfpage || indexes.isEmpty())
         return result;
 
+    result.reserve(indexes.size());
+    
+    // Find the maximum index to avoid unnecessary iterations
+    const int maxIndex = *std::max_element(indexes.begin(), indexes.end());
+
     pdf_annot *annot = pdf_first_annot(m_ctx, m_pdfpage);
     int i            = 0;
-    while (annot)
+    while (annot && i <= maxIndex)
     {
         if (indexes.contains(i))
             result.append(annot);
@@ -663,6 +685,12 @@ Model::getLinks() noexcept
         fz_link *head = fz_load_links(m_ctx, m_page);
         if (!head)
             return items;
+
+        // Count links for reserve
+        int linkCount = 0;
+        for (fz_link *l = head; l; l = l->next)
+            ++linkCount;
+        items.reserve(linkCount);
 
         fz_link *link = head;
 
@@ -937,6 +965,7 @@ QList<QPair<QString, QString>>
 Model::extractPDFProperties() noexcept
 {
     QList<QPair<QString, QString>> props;
+    props.reserve(16);  // Typical number of PDF properties
 
     if (!m_ctx || !m_doc)
         return props;
@@ -1012,6 +1041,13 @@ Model::apply_night_mode(fz_pixmap *pixmap) noexcept
     const int w = fz_pixmap_width(m_ctx, pixmap);
     const int h = fz_pixmap_height(m_ctx, pixmap);
     const int stride = fz_pixmap_stride(m_ctx, pixmap);
+    
+    // Check colorspace once outside the loop
+    const bool hasColorspace = fz_pixmap_colorspace(m_ctx, pixmap) != nullptr;
+    if (!hasColorspace)
+        return;
+    
+    const int colorChannels = n - 1; // Skip alpha channel
 
     for (int y = 0; y < h; ++y)
     {
@@ -1021,15 +1057,12 @@ Model::apply_night_mode(fz_pixmap *pixmap) noexcept
         {
             unsigned char *px = row + x * n;
 
-            // Skip alpha channel
-            for (int c = 0; c < n - 1; ++c)
+            // Invert color channels (skip alpha)
+            // Pure white (255) becomes 0 (black)
+            // Pure black (0) becomes 255 (white)
+            for (int c = 0; c < colorChannels; ++c)
             {
-                // Soft inversion: shift colors toward darker tones
-                // Pure white (255) becomes 0 (black)
-                // Pure black (0) becomes 255 (white)
-                // Midtones become dimmed
-                if (fz_pixmap_colorspace(m_ctx, pixmap) != nullptr && c < n - 1)
-                    px[c] = 255 - px[c];
+                px[c] = 255 - px[c];
             }
         }
     }
@@ -1058,11 +1091,12 @@ Model::highlightHelper(const QPointF &selectionStart,
 void
 Model::highlightQuad(fz_quad quad) noexcept
 {
-    for (QGraphicsItem *object : m_scene->items())
-        if (object->data(0).toString() == "selection")
+    const QList<QGraphicsItem *> items = m_scene->items();
+    for (QGraphicsItem *object : items)
+        if (object->data(0).toString() == SELECTION_DATA)
             m_scene->removeItem(object);
 
-    QBrush brush(m_selection_color);
+    const QBrush brush(m_selection_color);
 
     fz_quad q = fz_transform_quad(quad, m_transform);
 
@@ -1073,7 +1107,7 @@ Model::highlightQuad(fz_quad quad) noexcept
          << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
 
     QGraphicsPolygonItem *item = m_scene->addPolygon(poly, Qt::NoPen, brush);
-    item->setData(0, "selection");
+    item->setData(0, SELECTION_DATA);
     item->setFlag(QGraphicsItem::ItemIsSelectable, false);
     item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
 }
@@ -1082,21 +1116,24 @@ void
 Model::highlightTextSelection(const QPointF &selectionStart,
                               const QPointF &selectionEnd) noexcept
 {
-    for (QGraphicsItem *object : m_scene->items())
-        if (object->data(0).toString() == "selection")
+    // Clear existing selection items
+    const QList<QGraphicsItem *> items = m_scene->items();
+    for (QGraphicsItem *object : items)
+        if (object->data(0).toString() == SELECTION_DATA)
             m_scene->removeItem(object);
 
     fz_point a, b;
 
     highlightHelper(selectionStart, selectionEnd, a, b);
 
-    static fz_quad hits[1000];
+    constexpr int MAX_HITS = 1000;
+    fz_quad hits[MAX_HITS];
     int count = 0;
 
     fz_try(m_ctx)
     {
         fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_CHARS);
-        count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, 1000);
+        count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, MAX_HITS);
 
         // Store snapped selection bounds for later use
         m_sel_start     = a;
@@ -1109,14 +1146,14 @@ Model::highlightTextSelection(const QPointF &selectionStart,
         m_has_selection = false;
         return;
     }
-    QBrush brush(m_selection_color);
+    
+    const QBrush brush(m_selection_color);
 
     for (int i = 0; i < count; ++i)
     {
-        QPolygonF poly;
-        // Convert fz_transform (m_transform) to QTransform
-        fz_quad q = fz_transform_quad(hits[i], m_transform);
+        const fz_quad q = fz_transform_quad(hits[i], m_transform);
 
+        QPolygonF poly;
         poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr)
              << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
              << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
@@ -1124,7 +1161,7 @@ Model::highlightTextSelection(const QPointF &selectionStart,
 
         QGraphicsPolygonItem *item
             = m_scene->addPolygon(poly, Qt::NoPen, brush);
-        item->setData(0, "selection");
+        item->setData(0, SELECTION_DATA);
         item->setFlag(QGraphicsItem::ItemIsSelectable, false);
         item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
     }
@@ -1133,8 +1170,9 @@ Model::highlightTextSelection(const QPointF &selectionStart,
 void
 Model::clearSelection() noexcept
 {
-    for (QGraphicsItem *object : m_scene->items())
-        if (object->data(0).toString() == "selection")
+    const QList<QGraphicsItem *> items = m_scene->items();
+    for (QGraphicsItem *object : items)
+        if (object->data(0).toString() == SELECTION_DATA)
             m_scene->removeItem(object);
 
     m_has_selection = false;
@@ -1174,13 +1212,14 @@ Model::highlightSelectedText() noexcept
     if (!m_has_selection || !m_text_page || !m_pdfdoc)
         return;
 
-    static fz_quad hits[1000];
+    constexpr int MAX_HITS = 1000;
+    fz_quad hits[MAX_HITS];
     int count = 0;
 
     fz_try(m_ctx)
     {
         count = fz_highlight_selection(m_ctx, m_text_page, m_sel_start,
-                                       m_sel_end, hits, 1000);
+                                       m_sel_end, hits, MAX_HITS);
     }
     fz_catch(m_ctx)
     {
@@ -1232,7 +1271,7 @@ Model::getSelectionText(const QPointF &selectionStart,
     }
 
     if (selected)
-        delete[] selected;
+        fz_free(m_ctx, selected);  // Fix: use fz_free instead of delete[]
     return text;
 }
 
@@ -1247,13 +1286,14 @@ Model::annotHighlightSelection(const QPointF &selectionStart,
     fz_point a, b;
     highlightHelper(selectionStart, selectionEnd, a, b);
 
-    static fz_quad hits[1000];
+    constexpr int MAX_HITS = 1000;
+    fz_quad hits[MAX_HITS];
     int count = 0;
 
     fz_try(m_ctx)
     {
         // fz_snap_selection(m_ctx, m_text_page, &a, &b, FZ_SELECT_WORDS);
-        count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, 1000);
+        count = fz_highlight_selection(m_ctx, m_text_page, a, b, hits, MAX_HITS);
     }
     fz_catch(m_ctx)
     {
@@ -1374,7 +1414,7 @@ Model::selectAllText(const QPointF &start, const QPointF &end) noexcept
     }
 
     if (selected)
-        delete[] selected;
+        fz_free(m_ctx, selected);  // Fix: use fz_free instead of delete[]
     return text;
 }
 
@@ -1390,120 +1430,62 @@ Model::deleteAnnots(const QSet<int> &indexes) noexcept
     m_undoStack->push(cmd);
 }
 
+// Helper function to apply color to a single annotation
+static void
+applyColorToAnnot(fz_context *ctx, pdf_annot *annot, const float *pdf_color,
+                  float alpha) noexcept
+{
+    const enum pdf_annot_type type = pdf_annot_type(ctx, annot);
+
+    switch (type)
+    {
+        case PDF_ANNOT_TEXT:
+        case PDF_ANNOT_LINK:
+        case PDF_ANNOT_FREE_TEXT:
+        case PDF_ANNOT_LINE:
+        case PDF_ANNOT_SQUARE:
+            pdf_set_annot_interior_color(ctx, annot, 3, pdf_color);
+            break;
+
+        case PDF_ANNOT_CIRCLE:
+        case PDF_ANNOT_POLYGON:
+        case PDF_ANNOT_POLY_LINE:
+        case PDF_ANNOT_HIGHLIGHT:
+            pdf_set_annot_color(ctx, annot, 3, pdf_color);
+            break;
+
+        default:
+            // Other annotation types don't support color changes
+            break;
+    }
+    pdf_set_annot_opacity(ctx, annot, alpha);
+    pdf_update_annot(ctx, annot);
+}
+
 void
 Model::annotChangeColorForIndexes(const QSet<int> &indexes,
                                   const QColor &color) noexcept
 {
-    float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
-    float alpha        = color.alphaF();
+    const float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
+    const float alpha        = color.alphaF();
 
     for (int index : indexes)
     {
         pdf_annot *annot = get_annot_by_index(index);
         if (annot)
-        {
-            enum pdf_annot_type type = pdf_annot_type(m_ctx, annot);
-
-            switch (type)
-            {
-
-                case PDF_ANNOT_TEXT:
-                case PDF_ANNOT_LINK:
-                case PDF_ANNOT_FREE_TEXT:
-                case PDF_ANNOT_LINE:
-                case PDF_ANNOT_SQUARE:
-                    pdf_set_annot_interior_color(m_ctx, annot, 3, pdf_color);
-                    break;
-
-                case PDF_ANNOT_CIRCLE:
-                case PDF_ANNOT_POLYGON:
-                case PDF_ANNOT_POLY_LINE:
-                case PDF_ANNOT_HIGHLIGHT:
-                    pdf_set_annot_color(m_ctx, annot, 3, pdf_color);
-                    break;
-
-                case PDF_ANNOT_UNDERLINE:
-                case PDF_ANNOT_SQUIGGLY:
-                case PDF_ANNOT_STRIKE_OUT:
-                case PDF_ANNOT_REDACT:
-                case PDF_ANNOT_STAMP:
-                case PDF_ANNOT_CARET:
-                case PDF_ANNOT_INK:
-                case PDF_ANNOT_POPUP:
-                case PDF_ANNOT_FILE_ATTACHMENT:
-                case PDF_ANNOT_SOUND:
-                case PDF_ANNOT_MOVIE:
-                case PDF_ANNOT_RICH_MEDIA:
-                case PDF_ANNOT_WIDGET:
-                case PDF_ANNOT_SCREEN:
-                case PDF_ANNOT_PRINTER_MARK:
-                case PDF_ANNOT_TRAP_NET:
-                case PDF_ANNOT_WATERMARK:
-                case PDF_ANNOT_3D:
-                case PDF_ANNOT_PROJECTION:
-                case PDF_ANNOT_UNKNOWN:
-                    break;
-            }
-            pdf_set_annot_opacity(m_ctx, annot, alpha);
-            pdf_update_annot(m_ctx, annot);
-        }
+            applyColorToAnnot(m_ctx, annot, pdf_color, alpha);
     }
 }
 
 void
 Model::annotChangeColorForIndex(const int index, const QColor &color) noexcept
 {
-    float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
-    float alpha        = color.alphaF();
+    const float pdf_color[3] = {color.redF(), color.greenF(), color.blueF()};
+    const float alpha        = color.alphaF();
 
     pdf_annot *annot = get_annot_by_index(index);
     if (annot)
-    {
-        enum pdf_annot_type type = pdf_annot_type(m_ctx, annot);
-
-        switch (type)
-        {
-
-            case PDF_ANNOT_TEXT:
-            case PDF_ANNOT_LINK:
-            case PDF_ANNOT_FREE_TEXT:
-            case PDF_ANNOT_LINE:
-            case PDF_ANNOT_SQUARE:
-                pdf_set_annot_interior_color(m_ctx, annot, 3, pdf_color);
-                break;
-
-            case PDF_ANNOT_CIRCLE:
-            case PDF_ANNOT_POLYGON:
-            case PDF_ANNOT_POLY_LINE:
-            case PDF_ANNOT_HIGHLIGHT:
-                pdf_set_annot_color(m_ctx, annot, 3, pdf_color);
-                break;
-
-            case PDF_ANNOT_UNDERLINE:
-            case PDF_ANNOT_SQUIGGLY:
-            case PDF_ANNOT_STRIKE_OUT:
-            case PDF_ANNOT_REDACT:
-            case PDF_ANNOT_STAMP:
-            case PDF_ANNOT_CARET:
-            case PDF_ANNOT_INK:
-            case PDF_ANNOT_POPUP:
-            case PDF_ANNOT_FILE_ATTACHMENT:
-            case PDF_ANNOT_SOUND:
-            case PDF_ANNOT_MOVIE:
-            case PDF_ANNOT_RICH_MEDIA:
-            case PDF_ANNOT_WIDGET:
-            case PDF_ANNOT_SCREEN:
-            case PDF_ANNOT_PRINTER_MARK:
-            case PDF_ANNOT_TRAP_NET:
-            case PDF_ANNOT_WATERMARK:
-            case PDF_ANNOT_3D:
-            case PDF_ANNOT_PROJECTION:
-            case PDF_ANNOT_UNKNOWN:
-                break;
-        }
-        pdf_set_annot_opacity(m_ctx, annot, alpha);
-        pdf_update_annot(m_ctx, annot);
-    }
+        applyColorToAnnot(m_ctx, annot, pdf_color, alpha);
 }
 
 bool
@@ -1702,22 +1684,23 @@ Model::doubleClickTextSelection(const QPointF &loc) noexcept
                           FZ_SELECT_WORDS);
 
         // Get the quads for highlighting
-        static fz_quad hits[1000];
+        constexpr int MAX_HITS = 1000;
+        fz_quad hits[MAX_HITS];
         int count = fz_highlight_selection(m_ctx, m_text_page, wordStart,
-                                           wordEnd, hits, 1000);
+                                           wordEnd, hits, MAX_HITS);
 
         // Store snapped selection bounds
         m_sel_start     = wordStart;
         m_sel_end       = wordEnd;
         m_has_selection = (count > 0);
 
-        QBrush brush(m_selection_color);
+        const QBrush brush(m_selection_color);
 
         for (int i = 0; i < count; ++i)
         {
-            QPolygonF poly;
-            fz_quad q = fz_transform_quad(hits[i], m_transform);
+            const fz_quad q = fz_transform_quad(hits[i], m_transform);
 
+            QPolygonF poly;
             poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr)
                  << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
                  << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
@@ -1725,7 +1708,7 @@ Model::doubleClickTextSelection(const QPointF &loc) noexcept
 
             QGraphicsPolygonItem *item
                 = m_scene->addPolygon(poly, Qt::NoPen, brush);
-            item->setData(0, "selection");
+            item->setData(0, SELECTION_DATA);
             item->setFlag(QGraphicsItem::ItemIsSelectable, false);
             item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
         }
@@ -1754,22 +1737,23 @@ Model::tripleClickTextSelection(const QPointF &loc) noexcept
         fz_snap_selection(m_ctx, m_text_page, &lineStart, &lineEnd,
                           FZ_SELECT_LINES);
 
-        static fz_quad hits[1000];
+        constexpr int MAX_HITS = 1000;
+        fz_quad hits[MAX_HITS];
         int count = fz_highlight_selection(m_ctx, m_text_page, lineStart,
-                                           lineEnd, hits, 1000);
+                                           lineEnd, hits, MAX_HITS);
 
         // Store snapped selection bounds
         m_sel_start     = lineStart;
         m_sel_end       = lineEnd;
         m_has_selection = (count > 0);
 
-        QBrush brush(m_selection_color);
+        const QBrush brush(m_selection_color);
 
         for (int i = 0; i < count; ++i)
         {
-            QPolygonF poly;
-            fz_quad q = fz_transform_quad(hits[i], m_transform);
+            const fz_quad q = fz_transform_quad(hits[i], m_transform);
 
+            QPolygonF poly;
             poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr)
                  << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
                  << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
@@ -1777,7 +1761,7 @@ Model::tripleClickTextSelection(const QPointF &loc) noexcept
 
             QGraphicsPolygonItem *item
                 = m_scene->addPolygon(poly, Qt::NoPen, brush);
-            item->setData(0, "selection");
+            item->setData(0, SELECTION_DATA);
             item->setFlag(QGraphicsItem::ItemIsSelectable, false);
         }
     }
@@ -1816,22 +1800,23 @@ Model::quadrupleClickTextSelection(const QPointF &loc) noexcept
                 fz_point blockStart = {block->bbox.x0, block->bbox.y0};
                 fz_point blockEnd   = {block->bbox.x1, block->bbox.y1};
 
-                static fz_quad hits[1000];
+                constexpr int MAX_HITS = 1000;
+                fz_quad hits[MAX_HITS];
                 int count = fz_highlight_selection(
-                    m_ctx, m_text_page, blockStart, blockEnd, hits, 1000);
+                    m_ctx, m_text_page, blockStart, blockEnd, hits, MAX_HITS);
 
                 // Store snapped selection bounds
                 m_sel_start     = blockStart;
                 m_sel_end       = blockEnd;
                 m_has_selection = (count > 0);
 
-                QBrush brush(m_selection_color);
+                const QBrush brush(m_selection_color);
 
                 for (int i = 0; i < count; ++i)
                 {
-                    QPolygonF poly;
-                    fz_quad q = fz_transform_quad(hits[i], m_transform);
+                    const fz_quad q = fz_transform_quad(hits[i], m_transform);
 
+                    QPolygonF poly;
                     poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr)
                          << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
                          << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
@@ -1839,7 +1824,7 @@ Model::quadrupleClickTextSelection(const QPointF &loc) noexcept
 
                     QGraphicsPolygonItem *item
                         = m_scene->addPolygon(poly, Qt::NoPen, brush);
-                    item->setData(0, "selection");
+                    item->setData(0, SELECTION_DATA);
                     item->setFlag(QGraphicsItem::ItemIsSelectable, false);
                 }
                 break;
