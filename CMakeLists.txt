@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
-project(dodo VERSION 0.3.0)
+project(dodo VERSION 0.3.1)
 
 if (NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
@@ -23,37 +23,37 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 find_package(Qt6 COMPONENTS Gui Widgets Core Sql Svg SvgWidgets REQUIRED)
 
 add_executable(${PROJECT_NAME}
-				src/main.cpp
-				src/dodo.cpp
-				src/Panel.cpp
-				src/Model.cpp
-				src/PropertiesWidget.cpp
-				src/AboutDialog.cpp
-				src/GraphicsView.cpp
-				src/GraphicsScene.cpp
-				src/DocumentView.cpp
-				src/StartupWidget.cpp
-				src/CommandBar.cpp
-				src/MessageBar.cpp
-				src/HighlightsDialog.cpp
-				src/Annotation.cpp
-				src/EditLastPagesWidget.cpp
+    src/main.cpp
+    src/dodo.cpp
+    src/Panel.cpp
+    src/Model.cpp
+    src/PropertiesWidget.cpp
+    src/AboutDialog.cpp
+    src/GraphicsView.cpp
+    src/GraphicsScene.cpp
+    src/DocumentView.cpp
+    src/StartupWidget.cpp
+    src/CommandBar.cpp
+    src/MessageBar.cpp
+    src/HighlightsDialog.cpp
+    src/Annotation.cpp
+    src/EditLastPagesWidget.cpp
 
-				src/BrowseLinkItem.hpp
-				src/OutlineWidget.hpp
-				src/OutlineModel.hpp
-				src/ElidableLabel.hpp
-				src/HighlightItem.hpp
-				src/EditLastPagesWidget.hpp
-				src/LinkHint.hpp
-				src/JumpMarker.hpp
-				src/CircleLabel.hpp
-				src/TabWidget.hpp
-				src/commands/RectAnnotationCommand.hpp
-				src/commands/TextHighlightAnnotationCommand.hpp
-				src/commands/DeleteAnnotationsCommand.hpp
-				src/PopupAnnotation.hpp
-				src/PlaceholderWidget.hpp
+    src/BrowseLinkItem.hpp
+    src/OutlineWidget.hpp
+    src/OutlineModel.hpp
+    src/ElidableLabel.hpp
+    src/HighlightItem.hpp
+    src/EditLastPagesWidget.hpp
+    src/LinkHint.hpp
+    src/JumpMarker.hpp
+    src/CircleLabel.hpp
+    src/TabWidget.hpp
+    src/commands/RectAnnotationCommand.hpp
+    src/commands/TextHighlightAnnotationCommand.hpp
+    src/commands/DeleteAnnotationsCommand.hpp
+    src/PopupAnnotation.hpp
+    src/PlaceholderWidget.hpp
 )
 
 qt_add_resources(RESOURCES resources.qrc)
@@ -61,12 +61,12 @@ qt_add_resources(RESOURCES resources.qrc)
 target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 
 target_link_libraries(
-				${PROJECT_NAME} Qt6::Widgets Qt6::Core Qt6::Sql Qt6::SvgWidgets
-				${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
-				${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
-				${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-threads.a
-				${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-pkcs7.a
-				synctex)
+    ${PROJECT_NAME} Qt6::Widgets Qt6::Core Qt6::Sql Qt6::SvgWidgets
+    ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
+    ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
+    ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-threads.a
+    ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-pkcs7.a
+    synctex)
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 
