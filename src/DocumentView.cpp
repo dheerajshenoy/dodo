@@ -6,16 +6,20 @@
 
 #include <QClipboard>
 #include <algorithm>
-#include <mupdf/fitz/context.h>
-#include <mupdf/fitz/image.h>
-#include <mupdf/fitz/output.h>
-#include <mupdf/fitz/write-pixmap.h>
 #include <qcolordialog.h>
 #include <qcontainerinfo.h>
 #include <qgraphicsitem.h>
 #include <qnamespace.h>
 #include <qstandardpaths.h>
 #include <qthread.h>
+
+extern "C"
+{
+#include <mupdf/fitz/context.h>
+#include <mupdf/fitz/image.h>
+#include <mupdf/fitz/output.h>
+#include <mupdf/fitz/write-pixmap.h>
+}
 
 #ifdef NDEBUG
 #else
