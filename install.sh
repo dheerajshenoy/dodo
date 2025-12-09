@@ -1,70 +1,84 @@
 #!/bin/sh
-
 set -e
 
-PREFIX="${1:-/usr/}"
-
-echo "Installing dodo with install prefix: $PREFIX"
-
-# === Configuration ===
-MUPDF_VERSION="1.26.11"
+# ============================================================
+# Config
+# ============================================================
+PREFIX="${1:-/usr/local}"
+MUPDF_VERSION="1.26.12"
 MUPDF_URL="https://mupdf.com/downloads/archive/mupdf-${MUPDF_VERSION}-source.tar.gz"
-MUPDF_DIR="extern/mupdf"
+EXTERN_DIR="extern"
+MUPDF_TARBALL="${EXTERN_DIR}/mupdf-${MUPDF_VERSION}-source.tar.gz"
+MUPDF_SRC_DIR="${EXTERN_DIR}/mupdf"
 
-download_mupdf () {
-    mkdir -p extern
-    cd extern
+echo "Installing dodo with prefix: $PREFIX"
 
-    # Check if wget is installed
-    if ! command -v wget >/dev/null 2>&1; then
-        echo "Error: wget is not installed. Please install it and rerun the script."
-        exit 1
+# ============================================================
+# Functions
+# ============================================================
+
+download_mupdf() {
+    mkdir -p "$EXTERN_DIR"
+
+    if [ ! -f "$MUPDF_TARBALL" ]; then
+        echo "Downloading MuPDF $MUPDF_VERSION ..."
+        wget -O "$MUPDF_TARBALL" "$MUPDF_URL"
+    else
+        echo "MuPDF source already downloaded."
     fi
-
-    echo "Downloading MuPDF ${MUPDF_VERSION}..."
-    wget -c "$MUPDF_URL"
-    cd ..
 }
 
-build_mupdf () {
-    cd extern
+extract_mupdf() {
+    echo "Extracting MuPDF..."
 
-    if [ -d "$MUPDF_DIR" ]; then
-        echo "Extracting MuPDF..."
-        tar -xf "mupdf-${MUPDF_VERSION}-source.tar.gz"
-        mv "mupdf-${MUPDF_VERSION}-source" mupdf
-    else
-        tar -xf "mupdf-${MUPDF_VERSION}-source.tar.gz"
-        mv "mupdf-${MUPDF_VERSION}-source" mupdf
-    fi
+    rm -rf "$MUPDF_SRC_DIR"
+    tar -xf "$MUPDF_TARBALL" -C "$EXTERN_DIR"
+    mv "${EXTERN_DIR}/mupdf-${MUPDF_VERSION}-source" "$MUPDF_SRC_DIR"
+}
 
-    cd mupdf
-
-    # === Step 5: Build ===
+build_mupdf() {
     echo "Building MuPDF..."
-    make -j$(nproc) HAVE_X11=no HAVE_GLUT=no prefix="$PREFIX" build=release
+    cd "$MUPDF_SRC_DIR"
 
+    make -j"$(nproc)" \
+    HAVE_X11=no \
+    HAVE_GLUT=no \
+    build=release \
+    prefix="$PREFIX"
+
+    cd - >/dev/null
     echo "MuPDF built successfully."
-    cd ../..
 }
 
 build_dodo() {
-    echo "Building Dodo"
+    echo "Building dodo..."
 
-    mkdir -p build
+    rm -rf build
+    mkdir build
     cd build
 
-    cmake .. -G Ninja -DCMAKE_INSTALL_PREFIX="$PREFIX" -DCMAKE_BUILD_TYPE=Release
+    cmake .. \
+    -G Ninja \
+    -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+    -DCMAKE_BUILD_TYPE=Release
+
     ninja
 
     if [ -w "$PREFIX" ] || [ -w "$(dirname "$PREFIX")" ]; then
         ninja install
     else
-        echo "Installing to $PREFIX requires elevated permissions."
+        echo "Installing to $PREFIX requires sudo."
         sudo ninja install
     fi
+
+    cd - >/dev/null
+    echo "dodo installed successfully."
 }
 
+# ============================================================
+# Workflow
+# ============================================================
 download_mupdf
+extract_mupdf
 build_mupdf
 build_dodo
