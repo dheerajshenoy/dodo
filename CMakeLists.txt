@@ -68,6 +68,10 @@ qt_add_resources(RESOURCES resources.qrc)
 
 target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}/extern/mupdf/include
+)
+
 target_link_libraries(
 				${PROJECT_NAME} Qt6::Widgets Qt6::Core Qt6::Sql Qt6::SvgWidgets Qt6::Network
 				${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
