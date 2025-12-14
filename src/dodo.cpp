@@ -216,6 +216,27 @@ dodo::initMenubar() noexcept
     m_actionAnnotEdit->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotEdit);
 
+    switch (m_config.behavior.initial_mode)
+    {
+        case GraphicsView::Mode::RegionSelection:
+            m_actionRegionSelect->setChecked(true);
+            break;
+        case GraphicsView::Mode::TextSelection:
+            m_actionTextSelect->setChecked(true);
+            break;
+        case GraphicsView::Mode::TextHighlight:
+            m_actionTextHighlight->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotSelect:
+            m_actionAnnotEdit->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotRect:
+            m_actionAnnotRect->setChecked(true);
+            break;
+        default:
+            break;
+    }
+
     m_actionEncrypt = toolsMenu->addAction(
         QString("Encrypt Document\t%1").arg(m_config.shortcuts["encrypt"]),
         this, &dodo::EncryptDocument);
@@ -1930,6 +1951,7 @@ dodo::updateMenuActions() noexcept
         m_actionAnnotRect->setChecked(false);
         m_actionUndo->setEnabled(false);
         m_actionRedo->setEnabled(false);
+        m_modeMenu->setEnabled(false);
     }
 }
 
@@ -2606,4 +2628,84 @@ dodo::DecryptDocument() noexcept
             m_message_bar->showMessage("Document is not encrypted");
         }
     }
+}
+
+// Update selection mode actions (QAction) in QMenu based on current selection
+// mode
+void
+dodo::updateSelectionModeActions() noexcept
+{
+    if (!m_doc)
+        return;
+
+    switch (m_doc->selectionMode())
+    {
+        case GraphicsView::Mode::RegionSelection:
+            m_actionRegionSelect->setChecked(true);
+            break;
+        case GraphicsView::Mode::TextSelection:
+            m_actionTextSelect->setChecked(true);
+            break;
+        case GraphicsView::Mode::TextHighlight:
+            m_actionTextHighlight->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotSelect:
+            m_actionAnnotEdit->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotRect:
+            m_actionAnnotRect->setChecked(true);
+            break;
+        default:
+            break;
+    }
+}
+
+void
+dodo::updateGUIFromConfig() noexcept
+{
+    m_tab_widget->setTabsClosable(m_config.ui.tabs_closable);
+    m_tab_widget->setMovable(m_config.ui.tabs_movable);
+
+    if (m_config.ui.tab_bar_position == "top")
+        m_tab_widget->setTabPosition(QTabWidget::North);
+    else if (m_config.ui.tab_bar_position == "bottom")
+        m_tab_widget->setTabPosition(QTabWidget::South);
+    else if (m_config.ui.tab_bar_position == "left")
+        m_tab_widget->setTabPosition(QTabWidget::West);
+    else if (m_config.ui.tab_bar_position == "right")
+        m_tab_widget->setTabPosition(QTabWidget::East);
+
+    m_outline_widget->setVisible(m_config.ui.outline_shown);
+    if (m_config.ui.outline_as_side_panel)
+    {
+        QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
+        splitter->addWidget(m_outline_widget);
+        splitter->addWidget(m_tab_widget);
+        splitter->setStretchFactor(0, 0);
+        splitter->setStretchFactor(1, 1);
+        splitter->setFrameShape(QFrame::NoFrame);
+        splitter->setFrameShadow(QFrame::Plain);
+        splitter->setHandleWidth(1);
+        splitter->setContentsMargins(0, 0, 0, 0);
+        splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+        splitter->setSizes({m_config.ui.outline_panel_width,
+                            this->width() - m_config.ui.outline_panel_width});
+        m_layout->addWidget(splitter, 1);
+    }
+    else
+    {
+        m_layout->addWidget(m_tab_widget, 1);
+        // Make the outline a popup panel
+        m_outline_widget->setWindowFlags(Qt::Dialog);
+        m_outline_widget->setWindowModality(Qt::NonModal);
+    }
+
+    m_layout->addWidget(m_command_bar);
+    m_layout->addWidget(m_message_bar);
+    m_layout->addWidget(m_panel);
+
+    m_tab_widget->setTabBarAutoHide(m_config.ui.auto_hide_tabs);
+    m_panel->setVisible(m_config.ui.panel_shown);
+    m_menuBar->setVisible(m_config.ui.menubar_shown);
+    m_tab_widget->tabBar()->setVisible(m_config.ui.tabs_shown);
 }

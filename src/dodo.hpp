@@ -153,6 +153,7 @@ private:
     void invokeCommand() noexcept;
     void invokeSearch() noexcept;
     void updatePageNavigationActions() noexcept;
+    void updateSelectionModeActions() noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};
