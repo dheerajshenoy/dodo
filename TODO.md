@@ -39,3 +39,4 @@
 - [ ] Search inside math equations
 - [ ] Set marks and jump to marks
 - [ ] Touchpad gestures
+- [ ] Underline annotation
