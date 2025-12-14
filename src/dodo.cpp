@@ -1940,6 +1940,7 @@ dodo::updateMenuActions() noexcept
             default:
                 break;
         }
+        updateSelectionModeActions();
     }
     else
     {
