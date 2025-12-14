@@ -589,7 +589,6 @@ dodo::initKeybinds() noexcept
         connect(sc, &QShortcut::activated, std::forward<decltype(func)>(func));
     };
 
-    addShortcut(":", [this]() { invokeCommand(); });
     addShortcut("Ctrl+Shift+m", [this]() { ToggleMenubar(); });
     addShortcut("i", [this]() { InvertColor(); });
     addShortcut("b", [this]() { GotoPage(); });
@@ -599,7 +598,6 @@ dodo::initKeybinds() noexcept
     addShortcut("Alt+2", [this]() { ToggleRectAnnotation(); });
     addShortcut("Alt+3", [this]() { ToggleAnnotSelect(); });
     addShortcut("t", [this]() { ShowOutline(); });
-    addShortcut("/", [this]() { invokeSearch(); });
     addShortcut("n", [this]() { NextHit(); });
     addShortcut("Shift+n", [this]() { PrevHit(); });
     addShortcut("Ctrl+o", [this]() { GoBackHistory(); });
@@ -629,9 +627,6 @@ dodo::initGui() noexcept
     m_panel = new Panel(this);
     m_panel->hidePageInfo(true);
     m_panel->setMode(GraphicsView::Mode::TextSelection);
-
-    m_command_bar = new CommandBar(this);
-    m_command_bar->setVisible(false);
 
     m_message_bar = new MessageBar(this);
     m_message_bar->setVisible(false);
@@ -692,15 +687,6 @@ dodo::initGui() noexcept
         m_outline_widget->setWindowFlags(Qt::Dialog);
         m_outline_widget->setWindowModality(Qt::NonModal);
     }
-
-    // Remove padding and shit
-    // m_tab_widget->tabBar()->setContentsMargins(0, 0, 0, 0);
-    // m_layout->setSpacing(0);
-    // m_layout->setContentsMargins(0, 0, 0, 0);
-    // m_command_bar->setContentsMargins(0, 0, 0, 0);
-    // m_panel->layout()->setContentsMargins(5, 1, 5, 1);
-    // m_panel->setContentsMargins(0, 0, 0, 0);
-    // this->setContentsMargins(0, 0, 0, 0);
 }
 
 // Updates the UI elements checking if valid
@@ -1537,9 +1523,6 @@ dodo::initConnections() noexcept
         }
     });
 
-    connect(m_command_bar, &CommandBar::processCommand, this,
-            &dodo::processCommand);
-
     connect(m_actionInvertColor, &QAction::triggered, [&]() { InvertColor(); });
 
     connect(m_navMenu, &QMenu::aboutToShow, this,
@@ -2204,71 +2187,6 @@ dodo::updateActionsAndStuffForSystemTabs() noexcept
     m_panel->setFileName("Startup");
 }
 
-// Invokes the `CommandBar` with command mode
-void
-dodo::invokeCommand() noexcept
-{
-    m_command_bar->setVisible(true);
-    m_command_bar->clear();
-    m_command_bar->insert(":");
-    m_command_bar->setFocus();
-}
-
-// Invokes the `CommandBar` with search mode
-void
-dodo::invokeSearch() noexcept
-{
-    m_command_bar->setVisible(true);
-    m_command_bar->clear();
-    m_command_bar->insert("/");
-    m_command_bar->setFocus();
-}
-
-// Process the command sent by `CommandBar`
-void
-dodo::processCommand(const QString &cmd) noexcept
-{
-    if (cmd.isEmpty())
-        return;
-
-    const QString trimmed = cmd.mid(1).trimmed();
-
-    if (cmd.startsWith(QLatin1Char(':')))
-    {
-        // If number, goto page
-        bool ok;
-        int pageno = trimmed.toInt(&ok);
-
-        if (ok)
-        {
-            gotoPage(pageno);
-            return;
-        }
-
-        static const QRegularExpression whitespaceRe(QStringLiteral("\\s+"));
-        QStringList parts = trimmed.split(whitespaceRe, Qt::SkipEmptyParts);
-        if (parts.isEmpty())
-            return;
-        const QString &command = parts.at(0);
-
-        auto it = m_actionMap.find(command);
-        if (it != m_actionMap.end())
-        {
-            QStringList args = parts.mid(1);
-            it.value()(args);
-        }
-        else
-        {
-            m_message_bar->showMessage(
-                QStringLiteral("%1 command doesn't exist").arg(command));
-        }
-    }
-    else if (cmd.startsWith(QLatin1Char('/')))
-    {
-        Search(trimmed);
-    }
-}
-
 // Undo operation
 void
 dodo::Undo() noexcept
@@ -2343,7 +2261,6 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("tab_prev", PrevTab),
         ACTION_NO_ARGS("tab_close", CloseTab),
         ACTION_NO_ARGS("reload", reloadDocument),
-        ACTION_NO_ARGS("command", invokeCommand),
         ACTION_NO_ARGS("undo", Undo),
         ACTION_NO_ARGS("redo", Redo),
         ACTION_NO_ARGS("text_highlight_current_selection",
@@ -2367,7 +2284,6 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("scroll_left", ScrollLeft),
         ACTION_NO_ARGS("scroll_right", ScrollRight),
         ACTION_NO_ARGS("invert_color", InvertColor),
-        ACTION_NO_ARGS("search", invokeSearch),
         ACTION_NO_ARGS("search_next", NextHit),
         ACTION_NO_ARGS("search_prev", PrevHit),
         ACTION_NO_ARGS("next_page", NextPage),
@@ -2664,7 +2580,6 @@ dodo::updateGUIFromConfig() noexcept
 
     m_outline_widget->setVisible(m_config.ui.outline_shown);
 
-    m_layout->addWidget(m_command_bar);
     m_layout->addWidget(m_message_bar);
     m_layout->addWidget(m_panel);
 

@@ -33,7 +33,6 @@ add_executable(${PROJECT_NAME}
     src/GraphicsScene.cpp
     src/DocumentView.cpp
     src/StartupWidget.cpp
-    src/CommandBar.cpp
     src/MessageBar.cpp
     src/HighlightsDialog.cpp
     src/Annotation.cpp

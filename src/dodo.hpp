@@ -1,6 +1,5 @@
 #pragma once
 
-#include "CommandBar.hpp"
 #include "Config.hpp"
 #include "DocumentView.hpp"
 #include "MessageBar.hpp"
@@ -151,9 +150,6 @@ private:
     void onFileReloadTimer() noexcept;
     void showStartupWidget() noexcept;
     void updateActionsAndStuffForSystemTabs() noexcept;
-    void processCommand(const QString &cmd) noexcept;
-    void invokeCommand() noexcept;
-    void invokeSearch() noexcept;
     void updatePageNavigationActions() noexcept;
     void updateSelectionModeActions() noexcept;
     void updateGUIFromConfig() noexcept;
@@ -237,6 +233,5 @@ private:
     QFileSystemWatcher *m_config_watcher{nullptr};
     QTimer m_debounceTimer;
     QMap<QString, DocumentView *> m_path_tab_map;
-    CommandBar *m_command_bar;
     MessageBar *m_message_bar;
 };
