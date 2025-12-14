@@ -725,6 +725,7 @@ dodo::updateUiEnabledState() noexcept
     m_actionSaveFile->setEnabled(hasOpenedFile);
     m_actionSaveAsFile->setEnabled(hasOpenedFile);
     m_actionPrevLocation->setEnabled(hasOpenedFile);
+    updateSelectionModeActions();
 }
 
 // Helper function to construct `QShortcut` Qt shortcut
