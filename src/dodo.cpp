@@ -1237,6 +1237,8 @@ dodo::OpenFile(const QString &filePath) noexcept
         {
             OpenFiles(files);
             return true;
+        } else {
+            return OpenFile(files.first());
         }
     }
 
