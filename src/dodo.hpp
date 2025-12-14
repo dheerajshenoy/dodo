@@ -101,7 +101,7 @@ private:
     void OpenContainingFolder() noexcept;
     void OpenFiles(const std::vector<std::string> &files) noexcept;
     void OpenFiles(const QList<QString> &files) noexcept;
-    bool OpenFile(QString filename = QString()) noexcept;
+    bool OpenFile(const QString &filename = QString()) noexcept;
     bool OpenFile(DocumentView *view) noexcept;
     void PrevPage() noexcept;
     void FirstPage() noexcept;

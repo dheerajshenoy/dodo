@@ -669,6 +669,30 @@ dodo::initGui() noexcept
     m_menuBar = this->menuBar(); // initialize here so that the config
                                  // visibility works
 
+    if (m_config.ui.outline_as_side_panel)
+    {
+        QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
+        splitter->addWidget(m_outline_widget);
+        splitter->addWidget(m_tab_widget);
+        splitter->setStretchFactor(0, 0);
+        splitter->setStretchFactor(1, 1);
+        splitter->setFrameShape(QFrame::NoFrame);
+        splitter->setFrameShadow(QFrame::Plain);
+        splitter->setHandleWidth(1);
+        splitter->setContentsMargins(0, 0, 0, 0);
+        splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+        splitter->setSizes({m_config.ui.outline_panel_width,
+                            this->width() - m_config.ui.outline_panel_width});
+        m_layout->addWidget(splitter, 1);
+    }
+    else
+    {
+        m_layout->addWidget(m_tab_widget, 1);
+        // Make the outline a popup panel
+        m_outline_widget->setWindowFlags(Qt::Dialog);
+        m_outline_widget->setWindowModality(Qt::NonModal);
+    }
+
     // Remove padding and shit
     // m_tab_widget->tabBar()->setContentsMargins(0, 0, 0, 0);
     // m_layout->setSpacing(0);
@@ -2639,29 +2663,6 @@ dodo::updateGUIFromConfig() noexcept
         m_tab_widget->setTabPosition(QTabWidget::East);
 
     m_outline_widget->setVisible(m_config.ui.outline_shown);
-    if (m_config.ui.outline_as_side_panel)
-    {
-        QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
-        splitter->addWidget(m_outline_widget);
-        splitter->addWidget(m_tab_widget);
-        splitter->setStretchFactor(0, 0);
-        splitter->setStretchFactor(1, 1);
-        splitter->setFrameShape(QFrame::NoFrame);
-        splitter->setFrameShadow(QFrame::Plain);
-        splitter->setHandleWidth(1);
-        splitter->setContentsMargins(0, 0, 0, 0);
-        splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-        splitter->setSizes({m_config.ui.outline_panel_width,
-                            this->width() - m_config.ui.outline_panel_width});
-        m_layout->addWidget(splitter, 1);
-    }
-    else
-    {
-        m_layout->addWidget(m_tab_widget, 1);
-        // Make the outline a popup panel
-        m_outline_widget->setWindowFlags(Qt::Dialog);
-        m_outline_widget->setWindowModality(Qt::NonModal);
-    }
 
     m_layout->addWidget(m_command_bar);
     m_layout->addWidget(m_message_bar);
