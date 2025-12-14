@@ -11,11 +11,8 @@ annotation handling (highlights and rects), and advanced features like SyncTeX i
 Whether you're reading academic papers, technical manuals, or everyday documents, this reader offers a
 streamlined interface and robust functionality with minimal resource usage.
 
-> [!WARNING]
-> Dodo is currently in alpha and may experience crashes or instability.
-
 > [!NOTE]
-> dodo version is v0.3.1
+> dodo version is v0.4.0
 
 ## Table of Contents
 
@@ -36,24 +33,26 @@ streamlined interface and robust functionality with minimal resource usage.
 ## Features
 
 - Fast rendering with MuPDF backend
-- **SyncTeX** support
+- Auto reloading on file changes
+- **SyncTeX** support (reverse search and goto reference from LaTeX editors)
+- Session management (restore tabs and opened files on next launch)
+- Table of Contents panel
+- Recent files list
+- Keyboard shortcuts for all major actions (customizable)
+- Mouse gestures for navigation (customizable)
+- Dark mode support
+- Smooth scrolling
 - Caching and pre-fetching pages for faster page rendering
-- Vim-like keybindings
 - Configured using TOML language
 - Tabs support
 - Faster search
-- Visited file location saving
+- File history management
 - Link awareness
-- Save annotations (highlights and rectangles)
-- Text highlight with undo/redo support
-- Rectangle annotations with undo/redo support
-- Undo/Redo for annotations (highlight, rect, delete)
+- Annotation support (popup, highlight, rectangle)
+- Undo/Redo 
 - Multi-click text selection (double, triple, quadruple click for word, line, paragraph)
-- Page rotation (clockwise and counter-clockwise)
-- Editable page number in panel
 - Jump Marker (to help locate where link takes you to)
 - Region select mode (copy text, copy as image, save as image, open externally)
-- Open containing folder
 - Wayland support
 
 ## Dependencies
