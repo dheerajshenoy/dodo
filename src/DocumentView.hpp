@@ -327,5 +327,6 @@ private:
     const int kScrollCooldownMs{300}; // Prevent rapid-fire page turns
     const int kPageThreshold{300};
     QList<TextHighlight> m_highlight_text_list{}; // Holds the text of all
-                                                  // highlight annotations
+    // highlight annotations
+    bool m_focus_mode{false};
 };

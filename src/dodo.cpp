@@ -2366,6 +2366,7 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("auto_resize", ToggleAutoResize),
         ACTION_NO_ARGS("toggle_menubar", ToggleMenubar),
         ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
+        ACTION_NO_ARGS("toggle_focus_mode", ToggleFocusMode),
 
         // Tab navigation shortcuts
         {QStringLiteral("tab1"), [this](const QStringList &) { GotoTab(1); }},
@@ -2669,4 +2670,41 @@ dodo::updateGUIFromConfig() noexcept
     m_panel->setVisible(m_config.ui.panel_shown);
     m_menuBar->setVisible(m_config.ui.menubar_shown);
     m_tab_widget->tabBar()->setVisible(m_config.ui.tabs_shown);
+}
+
+void
+dodo::ToggleFocusMode() noexcept
+{
+    if (!m_doc)
+        return;
+
+    setFocusMode(!m_focus_mode);
+}
+
+void
+dodo::setFocusMode(bool enable) noexcept
+{
+    m_focus_mode = enable;
+
+    if (m_focus_mode)
+    {
+        m_menuBar->setVisible(false);
+        m_panel->setVisible(false);
+        m_tab_widget->tabBar()->setVisible(false);
+    }
+    else
+    {
+        m_menuBar->setVisible(m_config.ui.menubar_shown);
+        m_panel->setVisible(m_config.ui.panel_shown);
+        updateTabbarVisibility();
+    }
+}
+
+void
+dodo::updateTabbarVisibility() noexcept
+{
+    // Let tab widget manage visibility itself based on auto-hide property
+    m_tab_widget->tabBar()->setVisible(true); // initially show
+    if (m_tab_widget->tabBarAutoHide() && m_tab_widget->count() < 2)
+        m_tab_widget->tabBar()->setVisible(false);
 }

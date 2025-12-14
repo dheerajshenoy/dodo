@@ -75,6 +75,7 @@ private:
     void ShowAbout() noexcept;
     void TextHighlightCurrentSelection() noexcept;
     void ShowKeybindings() noexcept;
+    void ToggleFocusMode() noexcept;
     void ToggleMenubar() noexcept;
     void ToggleTabBar() noexcept;
     void TogglePanel() noexcept;
@@ -134,6 +135,7 @@ private:
     void CloseTab(int tabno = -1) noexcept;
     void NextTab() noexcept;
     void PrevTab() noexcept;
+    void setFocusMode(bool state) noexcept;
 
     // private helpers
     void handleFileNameChanged(const QString &name) noexcept;
@@ -155,6 +157,7 @@ private:
     void updatePageNavigationActions() noexcept;
     void updateSelectionModeActions() noexcept;
     void updateGUIFromConfig() noexcept;
+    void updateTabbarVisibility() noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};
@@ -217,7 +220,7 @@ private:
     QMap<QString, float> m_screen_dpr_map; // DPR per screen
     QString m_config_file_path;
     QString m_currentHintInput;
-    bool m_link_hint_mode{false};
+    bool m_link_hint_mode{false}, m_focus_mode{false};
     StartupWidget *m_startup_widget{nullptr};
     LinkHintMode m_link_hint_current_mode{LinkHintMode::None};
     QMap<int, Model::LinkInfo> m_link_hint_map;
