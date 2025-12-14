@@ -134,7 +134,6 @@ private:
     void CloseTab(int tabno = -1) noexcept;
     void NextTab() noexcept;
     void PrevTab() noexcept;
-    void someFunction();
 
     // private helpers
     void handleFileNameChanged(const QString &name) noexcept;
