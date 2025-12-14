@@ -140,6 +140,7 @@ public:
     void YankAll() noexcept;
     void PrevHit();
     void NextHit();
+    void GotoHit(int index);
     void ClearTextSelection() noexcept;
     void OpenImageInExternalViewer(const QImage &img) noexcept;
     void OpenRegionInExternalViewer(const QRectF &area) noexcept;

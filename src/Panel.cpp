@@ -16,13 +16,14 @@ Panel::Panel(QWidget *parent) : QWidget(parent)
     {
         bool ok;
         int pageno = m_pageno_box->text().toInt(&ok);
-        if (ok) {
+        if (ok)
+        {
             clearFocus();
             emit pageChangeRequested(pageno);
         }
         else
-            QMessageBox::warning(
-                this, "Invalid Page Number", "Please enter a valid page number");
+            QMessageBox::warning(this, "Invalid Page Number",
+                                 "Please enter a valid page number");
     });
 }
 
@@ -46,9 +47,6 @@ Panel::initGui() noexcept
     auto *rightLayout = new QHBoxLayout;
     rightLayout->addWidget(m_mode_color_label);
     rightLayout->addWidget(m_mode_label);
-    rightLayout->addWidget(m_search_label);
-    rightLayout->addWidget(m_search_index_label);
-    rightLayout->addWidget(m_search_count_label);
 
     m_layout->addLayout(leftLayout, 0, 0, Qt::AlignLeft);
     m_layout->addLayout(centerLayout, 0, 1, Qt::AlignCenter);
@@ -61,8 +59,6 @@ Panel::initGui() noexcept
 
     connect(m_mode_label, &QPushButton::clicked,
             [&]() { emit modeChangeRequested(); });
-
-    this->setSearchMode(false);
 }
 
 void
@@ -93,32 +89,6 @@ Panel::setPageNo(int pageno) noexcept
     m_pageno_box->setMaximumWidth(
         m_pageno_box->fontMetrics().horizontalAdvance(QString::number(9999))
         + 10);
-}
-
-void
-Panel::setSearchCount(int count) noexcept
-{
-    m_search_count_label->setText(QString::number(count));
-}
-
-void
-Panel::setSearchIndex(int index) noexcept
-{
-    m_search_index_label->setText(QString::number(index));
-}
-
-void
-Panel::setSearchMode(bool state) noexcept
-{
-    if (!state)
-    {
-        m_search_index_label->setText("");
-        m_search_count_label->setText("");
-    }
-    m_search_label->setVisible(state);
-    m_search_index_label->setVisible(state);
-    m_search_count_label->setVisible(state);
-    m_search_mode = state;
 }
 
 void

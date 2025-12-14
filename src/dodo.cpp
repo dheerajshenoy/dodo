@@ -4,6 +4,7 @@
 #include "DocumentView.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
+#include "SearchBar.hpp"
 #include "StartupWidget.hpp"
 #include "toml.hpp"
 
@@ -630,6 +631,9 @@ dodo::initGui() noexcept
     m_panel->hidePageInfo(true);
     m_panel->setMode(GraphicsView::Mode::TextSelection);
 
+    m_search_bar = new SearchBar(this);
+    m_search_bar->setVisible(false);
+
     m_message_bar = new MessageBar(this);
     m_message_bar->setVisible(false);
 
@@ -658,7 +662,6 @@ dodo::initGui() noexcept
     connect(m_panel, &Panel::pageChangeRequested, this, &dodo::gotoPage);
 
     widget->setLayout(m_layout);
-
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
     this->setCentralWidget(widget);
@@ -778,13 +781,13 @@ dodo::ShowAbout() noexcept
 void
 dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 {
-    if (argparser["--version"] == true)
+    if (argparser.is_used("version"))
     {
         qInfo() << "dodo version: " << __DODO_VERSION;
         exit(0);
     }
 
-    if (argparser.is_used("--config"))
+    if (argparser.is_used("config"))
     {
         m_config_file_path
             = QString::fromStdString(argparser.get<std::string>("--config"));
@@ -792,17 +795,17 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 
     this->construct();
 
-    if (argparser.is_used("--session"))
+    if (argparser.is_used("session"))
     {
         QString sessionName
             = QString::fromStdString(argparser.get<std::string>("--session"));
         LoadSession(sessionName);
     }
 
-    if (argparser.is_used("--page"))
+    if (argparser.is_used("page"))
         m_config.behavior.startpage_override = argparser.get<int>("--page");
 
-    if (argparser.is_used("--synctex-forward"))
+    if (argparser.is_used("synctex-forward"))
     {
         m_config.behavior.startpage_override = -1; // do not override the page
 
@@ -837,7 +840,7 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
         }
     }
 
-    try
+    if (argparser.is_used("files"))
     {
         auto files = argparser.get<std::vector<std::string>>("files");
         if (!files.empty())
@@ -848,9 +851,6 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 
         if (m_config.behavior.open_last_visited)
             openLastVisitedFile();
-    }
-    catch (...)
-    {
     }
 
     if (m_tab_widget->count() == 0 && m_config.ui.startup_tab)
@@ -1039,6 +1039,13 @@ dodo::NextHit() noexcept
 {
     if (m_doc)
         m_doc->NextHit();
+}
+
+void
+dodo::GotoHit(int index) noexcept
+{
+    if (m_doc)
+        m_doc->GotoHit(index);
 }
 
 // Goes to the previous search hit
@@ -1493,6 +1500,12 @@ dodo::initConnections() noexcept
         }
     });
 
+    connect(m_search_bar, &SearchBar::searchRequested, this, &dodo::Search);
+    connect(m_search_bar, &SearchBar::searchIndexChangeRequested, this,
+            &dodo::GotoHit);
+    connect(m_search_bar, &SearchBar::nextHitRequested, this, &dodo::NextHit);
+    connect(m_search_bar, &SearchBar::prevHitRequested, this, &dodo::PrevHit);
+
     connect(m_tab_widget, &QTabWidget::tabCloseRequested, this,
             [this](const int index)
     {
@@ -1830,14 +1843,14 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::pageNumberChanged, m_panel,
             &Panel::setPageNo);
 
-    connect(docwidget, &DocumentView::searchCountChanged, m_panel,
-            &Panel::setSearchCount);
+    connect(docwidget, &DocumentView::searchCountChanged, m_search_bar,
+            &SearchBar::setSearchCount);
 
-    connect(docwidget, &DocumentView::searchModeChanged, m_panel,
-            &Panel::setSearchMode);
+    // connect(docwidget, &DocumentView::searchModeChanged, m_panel,
+    //         &SearchBar::setSearchMode);
 
-    connect(docwidget, &DocumentView::searchIndexChanged, m_panel,
-            &Panel::setSearchIndex);
+    connect(docwidget, &DocumentView::searchIndexChanged, m_search_bar,
+            &SearchBar::setSearchIndex);
 
     connect(docwidget, &DocumentView::totalPageCountChanged, m_panel,
             &Panel::setTotalPageCount);
@@ -1953,7 +1966,6 @@ dodo::updatePanel() noexcept
         m_panel->hidePageInfo(true);
         m_panel->setFileName("");
         m_panel->setHighlightColor("");
-        // m_panel->setMode();
     }
 }
 
@@ -2317,6 +2329,7 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("toggle_menubar", ToggleMenubar),
         ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
         ACTION_NO_ARGS("toggle_focus_mode", ToggleFocusMode),
+        ACTION_NO_ARGS("search", ToggleSearchBar),
 
         // Tab navigation shortcuts
         {QStringLiteral("tab1"), [this](const QStringList &) { GotoTab(1); }},
@@ -2589,6 +2602,7 @@ dodo::updateGUIFromConfig() noexcept
 
     m_outline_widget->setVisible(m_config.ui.outline_shown);
 
+    m_layout->addWidget(m_search_bar);
     m_layout->addWidget(m_message_bar);
     m_layout->addWidget(m_panel);
 
@@ -2633,4 +2647,12 @@ dodo::updateTabbarVisibility() noexcept
     m_tab_widget->tabBar()->setVisible(true); // initially show
     if (m_tab_widget->tabBarAutoHide() && m_tab_widget->count() < 2)
         m_tab_widget->tabBar()->setVisible(false);
+}
+
+void
+dodo::ToggleSearchBar() noexcept
+{
+    if (!m_doc)
+        return;
+    m_search_bar->setVisible(!m_search_bar->isVisible());
 }

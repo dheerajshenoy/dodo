@@ -1119,6 +1119,28 @@ DocumentView::NextHit()
 }
 
 void
+DocumentView::GotoHit(int index)
+{
+    if (m_searchRectMap.isEmpty())
+        return;
+
+    QList<int> pages = m_searchRectMap.keys();
+    int totalHits    = 0;
+
+    for (int page : pages)
+    {
+        int pageHitCount = m_searchRectMap[page].size();
+        if (index < totalHits + pageHitCount)
+        {
+            int hitIndexInPage = index - totalHits;
+            jumpToHit(page, hitIndexInPage);
+            return;
+        }
+        totalHits += pageHitCount;
+    }
+}
+
+void
 DocumentView::PrevHit()
 {
     if (m_searchRectMap.isEmpty())

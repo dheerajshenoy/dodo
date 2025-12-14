@@ -21,15 +21,8 @@ public:
     void setTotalPageCount(int total) noexcept;
     void setFileName(const QString &name) noexcept;
     void setPageNo(int pageno) noexcept;
-    void setSearchCount(int count) noexcept;
-    void setSearchIndex(int index) noexcept;
     void setFitMode(DocumentView::FitMode mode) noexcept;
     void setMode(GraphicsView::Mode) noexcept;
-    inline bool searchMode() noexcept
-    {
-        return m_search_mode;
-    }
-    void setSearchMode(bool state) noexcept;
     void setHighlightColor(const QColor &color) noexcept;
 
 signals:
@@ -47,10 +40,6 @@ private:
     QLineEdit *m_pageno_box         = new QLineEdit();
     QLabel *m_totalpage_label       = new QLabel();
     QLabel *m_pageno_separator      = new QLabel(" of ");
-    QLabel *m_search_count_label    = new QLabel();
-    QLabel *m_search_index_label    = new QLabel();
-    QLabel *m_search_label          = new QLabel("Search: ");
     QGridLayout *m_layout           = new QGridLayout();
-    bool m_search_mode{false};
     GraphicsView::Mode m_current_mode;
 };

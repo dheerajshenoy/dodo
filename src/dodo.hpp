@@ -6,6 +6,7 @@
 #include "OutlineWidget.hpp"
 #include "Panel.hpp"
 #include "PropertiesWidget.hpp"
+#include "SearchBar.hpp"
 #include "ShortcutsWidget.hpp"
 #include "StartupWidget.hpp"
 #include "TabWidget.hpp"
@@ -74,6 +75,7 @@ private:
     void ShowAbout() noexcept;
     void TextHighlightCurrentSelection() noexcept;
     void ShowKeybindings() noexcept;
+    void ToggleSearchBar() noexcept;
     void ToggleFocusMode() noexcept;
     void ToggleMenubar() noexcept;
     void ToggleTabBar() noexcept;
@@ -121,6 +123,7 @@ private:
     void ScrollRight() noexcept;
     void Search(const QString &term) noexcept;
     void NextHit() noexcept;
+    void GotoHit(int index) noexcept;
     void PrevHit() noexcept;
     void ZoomReset() noexcept;
     void GotoPage() noexcept;
@@ -234,4 +237,5 @@ private:
     QTimer m_debounceTimer;
     QMap<QString, DocumentView *> m_path_tab_map;
     MessageBar *m_message_bar;
+    SearchBar *m_search_bar;
 };
