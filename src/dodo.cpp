@@ -150,28 +150,29 @@ dodo::initMenubar() noexcept
         m_config.ui.auto_resize); // default on or off
 
     viewMenu->addSeparator();
+    m_toggleMenu = viewMenu->addMenu("Show/Hide");
 
-    m_actionToggleOutline = viewMenu->addAction(
+    m_actionToggleOutline = m_toggleMenu->addAction(
         QString("Outline\t%1").arg(m_config.shortcuts["outline"]), this,
         &dodo::ShowOutline);
     m_actionToggleOutline->setCheckable(true);
     m_actionToggleOutline->setChecked(!m_outline_widget->isHidden());
 
-    m_actionToggleMenubar = viewMenu->addAction(
+    m_actionToggleMenubar = m_toggleMenu->addAction(
         QString("Menubar\t%1").arg(m_config.shortcuts["toggle_menubar"]), this,
         &dodo::ToggleMenubar);
     m_actionToggleMenubar->setCheckable(true);
     m_actionToggleMenubar->setChecked(!m_menuBar->isHidden());
 
-    m_actionToggleTabBar = viewMenu->addAction(
+    m_actionToggleTabBar = m_toggleMenu->addAction(
         QString("Tabs\t%1").arg(m_config.shortcuts["toggle_tabs"]), this,
         &dodo::ToggleTabBar);
     m_actionToggleTabBar->setCheckable(true);
     m_actionToggleTabBar->setChecked(!m_tab_widget->tabBar()->isHidden());
 
-    m_actionTogglePanel = viewMenu->addAction(
-        QString("Panel\t%1").arg(m_config.shortcuts["toggle_panel"]), this,
-        &dodo::TogglePanel);
+    m_actionTogglePanel = m_toggleMenu->addAction(
+        QString("Statusbar\t%1").arg(m_config.shortcuts["toggle_statusbar"]),
+        this, &dodo::TogglePanel);
     m_actionTogglePanel->setCheckable(true);
     m_actionTogglePanel->setChecked(!m_panel->isHidden());
 
@@ -2407,6 +2408,7 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("auto_resize", ToggleAutoResize),
         ACTION_NO_ARGS("toggle_menubar", ToggleMenubar),
         ACTION_NO_ARGS("toggle_panel", TogglePanel),
+        ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
 
         // Tab navigation shortcuts
         {QStringLiteral("tab1"), [this](const QStringList &) { GotoTab(1); }},
