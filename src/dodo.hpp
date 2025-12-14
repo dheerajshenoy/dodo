@@ -234,7 +234,7 @@ private:
     QClipboard *m_clipboard = QGuiApplication::clipboard();
     QSqlDatabase m_last_pages_db;
     QString m_session_name;
-    // QFileSystemWatcher *m_config_watcher{nullptr};
+    QFileSystemWatcher *m_config_watcher{nullptr};
     QTimer m_debounceTimer;
     QMap<QString, DocumentView *> m_path_tab_map;
     CommandBar *m_command_bar;

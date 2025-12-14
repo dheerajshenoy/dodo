@@ -1472,8 +1472,8 @@ dodo::TextHighlightCurrentSelection() noexcept
 void
 dodo::initConnections() noexcept
 {
-    // connect(m_config_watcher, &QFileSystemWatcher::fileChanged, this,
-    //         &dodo::updateGUIFromConfig);
+    connect(m_config_watcher, &QFileSystemWatcher::fileChanged, this,
+            &dodo::updateGUIFromConfig);
     QList<QScreen *> outputs = QGuiApplication::screens();
     connect(m_tab_widget, &QTabWidget::currentChanged, this,
             &dodo::handleCurrentTabChanged);
