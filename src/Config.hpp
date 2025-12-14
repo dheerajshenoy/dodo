@@ -33,6 +33,10 @@ struct Config
         bool full_filepath_in_panel{false};
         QString initial_fit{"none"};
         bool page_nav_with_mouse{false};
+        bool tabs_closable{true};
+        bool tabs_movable{true};
+        QString tab_elide_mode{"right"};
+        QString tab_bar_position{"top"};
     };
 
     struct rendering
@@ -50,7 +54,8 @@ struct Config
     {
         int undo_limit{25};
         int cache_pages{10};
-        // bool auto_reload{true};
+        bool auto_reload{true};
+        bool config_auto_reload{true};
         bool invert_mode{false};
         bool open_last_visited{false};
         bool remember_last_visited{true};
