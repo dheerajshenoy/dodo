@@ -36,9 +36,13 @@ dodo::~dodo() noexcept
 void
 dodo::construct() noexcept
 {
+    m_tab_widget     = new TabWidget();
+    // m_config_watcher = new QFileSystemWatcher(this);
+
     initActionMap();
     initConfig();
     initGui();
+    updateGUIFromConfig();
     if (m_load_default_keybinding)
         initKeybinds();
     initMenubar();
@@ -241,16 +245,18 @@ dodo::initMenubar() noexcept
     m_actionEncrypt = toolsMenu->addAction(
         QString("Encrypt Document\t%1").arg(m_config.shortcuts["encrypt"]),
         this, &dodo::EncryptDocument);
+    m_actionEncrypt->setEnabled(false);
 
     m_actionDecrypt = toolsMenu->addAction(
         QString("Decrypt Document\t%1").arg(m_config.shortcuts["decrypt"]),
         this, &dodo::DecryptDocument);
+    m_actionDecrypt->setEnabled(false);
 
     // --- Navigation Menu ---
     m_navMenu = m_menuBar->addMenu("&Navigation");
 
     m_navMenu->addAction(
-        QString("StartPage").arg(m_config.shortcuts["startpage"]), this,
+        QString("StartPage\t%1").arg(m_config.shortcuts["startpage"]), this,
         &dodo::showStartupWidget);
 
     m_actionGotoPage = m_navMenu->addAction(
@@ -362,6 +368,9 @@ dodo::initConfig() noexcept
     if (m_config_file_path.isEmpty())
         m_config_file_path = m_config_dir.filePath("config.toml");
 
+    // if (!m_config_watcher->files().contains(m_config_file_path))
+    //     m_config_watcher->addPath(m_config_file_path);
+
     m_session_dir = QDir(m_config_dir.filePath("sessions"));
 
     if (!QFile::exists(m_config_file_path))
@@ -388,12 +397,16 @@ dodo::initConfig() noexcept
 
     auto ui = toml["ui"];
 
-    m_config.ui.startup_tab    = ui["startup_tab"].value_or(true);
-    m_config.ui.auto_hide_tabs = ui["auto_hide_tabs"].value_or(false);
-    m_config.ui.panel_shown    = ui["panel"].value_or(true);
-    m_config.ui.outline_shown  = ui["outline"].value_or(false);
-    m_config.ui.menubar_shown  = ui["menubar"].value_or(true);
-    m_config.ui.tabs_shown     = ui["tabs"].value_or(true);
+    m_config.ui.startup_tab      = ui["startup_tab"].value_or(true);
+    m_config.ui.auto_hide_tabs   = ui["auto_hide_tabs"].value_or(false);
+    m_config.ui.panel_shown      = ui["panel"].value_or(true);
+    m_config.ui.outline_shown    = ui["outline"].value_or(false);
+    m_config.ui.menubar_shown    = ui["menubar"].value_or(true);
+    m_config.ui.tabs_shown       = ui["tabs"].value_or(true);
+    m_config.ui.tabs_closable    = ui["tabs_closable"].value_or(true);
+    m_config.ui.tabs_movable     = ui["tabs_movable"].value_or(true);
+    m_config.ui.tab_elide_mode   = ui["tab_elide_mode"].value_or("right");
+    m_config.ui.tab_bar_position = ui["tab_bar_position"].value_or("top");
 
     if (ui["fullscreen"].value_or(false))
         this->showFullScreen();
@@ -513,16 +526,11 @@ dodo::initConfig() noexcept
     m_config.behavior.invert_mode = behavior["invert_mode"].value_or(false);
     m_config.rendering.icc_color_profile
         = behavior["icc_color_profile"].value_or(true);
-    m_config.ui.initial_fit = behavior["initial_fit"].value_or("width");
-    // m_config.auto_reload       = behavior["auto_reload"].value_or(true);
+    m_config.ui.initial_fit        = behavior["initial_fit"].value_or("width");
+    m_config.behavior.auto_reload  = behavior["auto_reload"].value_or(true);
     m_config.behavior.recent_files = behavior["recent_files"].value_or(true);
     m_config.behavior.num_recent_files
         = behavior["num_recent_files"].value_or(10);
-
-    // if (m_config.auto_reload)
-    // {
-    //     // TODO:
-    // }
 
     if (toml.contains("keybindings"))
     {
@@ -616,6 +624,7 @@ void
 dodo::initGui() noexcept
 {
     QWidget *widget = new QWidget();
+
     // Panel
     m_panel = new Panel(this);
     m_panel->hidePageInfo(true);
@@ -628,7 +637,6 @@ dodo::initGui() noexcept
     m_message_bar->setVisible(false);
 
     m_outline_widget = new OutlineWidget(this);
-    m_outline_widget->setVisible(m_config.ui.outline_shown);
 
     connect(m_panel, &Panel::modeColorChangeRequested, this,
             [&](GraphicsView::Mode mode)
@@ -656,42 +664,10 @@ dodo::initGui() noexcept
 
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
-    if (m_config.ui.outline_as_side_panel)
-    {
-        QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
-        splitter->addWidget(m_outline_widget);
-        splitter->addWidget(m_tab_widget);
-        splitter->setStretchFactor(0, 0);
-        splitter->setStretchFactor(1, 1);
-        splitter->setFrameShape(QFrame::NoFrame);
-        splitter->setFrameShadow(QFrame::Plain);
-        splitter->setHandleWidth(1);
-        splitter->setContentsMargins(0, 0, 0, 0);
-        splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-        splitter->setSizes({m_config.ui.outline_panel_width,
-                            this->width() - m_config.ui.outline_panel_width});
-        m_layout->addWidget(splitter, 1);
-    }
-    else
-    {
-        m_layout->addWidget(m_tab_widget, 1);
-        // Make the outline a popup panel
-        m_outline_widget->setWindowFlags(Qt::Dialog);
-        m_outline_widget->setWindowModality(Qt::NonModal);
-    }
-
-    m_layout->addWidget(m_command_bar);
-    m_layout->addWidget(m_message_bar);
-    m_layout->addWidget(m_panel);
     this->setCentralWidget(widget);
 
     m_menuBar = this->menuBar(); // initialize here so that the config
                                  // visibility works
-
-    m_tab_widget->setTabBarAutoHide(m_config.ui.auto_hide_tabs);
-    m_panel->setVisible(m_config.ui.panel_shown);
-    m_menuBar->setVisible(m_config.ui.menubar_shown);
-    m_tab_widget->tabBar()->setVisible(m_config.ui.tabs_shown);
 
     // Remove padding and shit
     // m_tab_widget->tabBar()->setContentsMargins(0, 0, 0, 0);
@@ -726,6 +702,8 @@ dodo::updateUiEnabledState() noexcept
     m_actionSaveFile->setEnabled(hasOpenedFile);
     m_actionSaveAsFile->setEnabled(hasOpenedFile);
     m_actionPrevLocation->setEnabled(hasOpenedFile);
+    m_actionEncrypt->setEnabled(hasOpenedFile);
+    m_actionDecrypt->setEnabled(hasOpenedFile);
     updateSelectionModeActions();
 }
 
@@ -1469,7 +1447,8 @@ dodo::TextHighlightCurrentSelection() noexcept
 void
 dodo::initConnections() noexcept
 {
-
+    // connect(m_config_watcher, &QFileSystemWatcher::fileChanged, this,
+    //         &dodo::updateGUIFromConfig);
     QList<QScreen *> outputs = QGuiApplication::screens();
     connect(m_tab_widget, &QTabWidget::currentChanged, this,
             &dodo::handleCurrentTabChanged);
@@ -1920,27 +1899,6 @@ dodo::updateMenuActions() noexcept
         m_actionTextHighlight->setChecked(false);
         m_actionAnnotEdit->setChecked(false);
         m_actionAnnotRect->setChecked(false);
-
-        switch (m_doc->selectionMode())
-        {
-            case GraphicsView::Mode::RegionSelection:
-                m_actionRegionSelect->setChecked(true);
-                break;
-            case GraphicsView::Mode::TextSelection:
-                m_actionTextSelect->setChecked(true);
-                break;
-            case GraphicsView::Mode::TextHighlight:
-                m_actionTextHighlight->setChecked(true);
-                break;
-            case GraphicsView::Mode::AnnotSelect:
-                m_actionAnnotEdit->setChecked(true);
-                break;
-            case GraphicsView::Mode::AnnotRect:
-                m_actionAnnotRect->setChecked(true);
-                break;
-            default:
-                break;
-        }
         updateSelectionModeActions();
     }
     else
@@ -2407,7 +2365,6 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("fit_window", FitWindow),
         ACTION_NO_ARGS("auto_resize", ToggleAutoResize),
         ACTION_NO_ARGS("toggle_menubar", ToggleMenubar),
-        ACTION_NO_ARGS("toggle_panel", TogglePanel),
         ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
 
         // Tab navigation shortcuts
