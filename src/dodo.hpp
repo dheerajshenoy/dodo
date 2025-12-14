@@ -226,7 +226,7 @@ private:
     QMap<int, Model::LinkInfo> m_link_hint_map;
     DocumentView *m_doc{nullptr};
     TabWidget *m_tab_widget{nullptr};
-    QVBoxLayout *m_layout   = new QVBoxLayout();
+    QVBoxLayout *m_layout = new QVBoxLayout();
     OutlineWidget *m_owidget{nullptr};
     PropertiesWidget *m_propsWidget{nullptr};
     QMap<QString, std::function<void(const QStringList &args)>> m_actionMap;
