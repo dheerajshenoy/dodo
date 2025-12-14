@@ -36,7 +36,7 @@ dodo::~dodo() noexcept
 void
 dodo::construct() noexcept
 {
-    m_tab_widget     = new TabWidget();
+    m_tab_widget = new TabWidget();
     // m_config_watcher = new QFileSystemWatcher(this);
 
     initActionMap();

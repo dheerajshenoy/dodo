@@ -20,6 +20,7 @@ public:
         setAcceptDrops(false);
         setStyleSheet("border: 0");
         tabBar()->setDrawBase(false);
+        setTabPosition(QTabWidget::TabPosition::North);
     }
 
     int addTab(QWidget *page, const QString &title)
@@ -46,8 +47,11 @@ protected:
                                "You can also drag and drop a PDF file here.";
 
             // Setup logo font - load from resources
-            int fontId = QFontDatabase::addApplicationFont(":/resources/fonts/victor.ttf");
-            QString fontFamily = QFontDatabase::applicationFontFamilies(fontId).value(0, QString());
+            int fontId = QFontDatabase::addApplicationFont(
+                ":/resources/fonts/victor.ttf");
+            QString fontFamily
+                = QFontDatabase::applicationFontFamilies(fontId).value(
+                    0, QString());
             QFont logoFont;
             if (!fontFamily.isEmpty())
                 logoFont.setFamily(fontFamily);
