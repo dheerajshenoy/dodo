@@ -1233,6 +1233,17 @@ dodo::OpenFile(const QString &filePath) noexcept
         }
     }
 
+    // Handle relative paths and home "~" expansion with this variable
+    QString fp                    = filePath;
+    static const QString &homeDir = QString::fromLocal8Bit(qgetenv("HOME"));
+    if (filePath.startsWith("~"))
+        fp = fp.replace(QLatin1Char('~'), homeDir);
+
+    if (QFileInfo(fp).isRelative())
+        fp = QDir::current().absoluteFilePath(filePath);
+
+    qDebug() << "Opening file:" << fp;
+
     // Switch to already opened filepath, if it's open.
     auto it = m_path_tab_map.find(filePath);
     if (it != m_path_tab_map.end())
@@ -1244,11 +1255,6 @@ dodo::OpenFile(const QString &filePath) noexcept
             return true;
         }
     }
-
-    static const QString &homeDir = QString::fromLocal8Bit(qgetenv("HOME"));
-    QString fp                    = filePath;
-    if (filePath.startsWith("~"))
-        fp = fp.replace(QLatin1Char('~'), homeDir);
 
     if (!QFile::exists(fp))
     {
