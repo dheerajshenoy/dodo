@@ -1,5 +1,10 @@
 # dodo
 
+## 0.4.0
+
+- Implement document reloading on external changes
+- Remove command bar
+
 ## 0.3.1
 
 ### Features
