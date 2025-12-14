@@ -239,11 +239,11 @@ Model::openFile(const QString &fileName)
 }
 
 // Reloads the document
-void
+bool
 Model::reloadDocument() noexcept
 {
     if (!m_doc)
-        return;
+        return false;
 
     fz_drop_stext_page(m_ctx, m_text_page);
     fz_drop_page(m_ctx, m_page);
@@ -254,7 +254,7 @@ Model::reloadDocument() noexcept
     {
         m_doc = fz_open_document(m_ctx, CSTR(m_filename));
         if (!m_doc)
-            return;
+            return false;
 
         if (passwordRequired())
             fz_authenticate_password(m_ctx, m_doc, m_password.c_str());
@@ -266,11 +266,15 @@ Model::reloadDocument() noexcept
     }
     fz_catch(m_ctx)
     {
-        qWarning() << "Exception when opening the document";
+        qWarning() << "Exception when opening the document"
+                   << fz_caught_message(m_ctx);
         m_doc       = nullptr;
         m_page      = nullptr;
         m_text_page = nullptr;
+        return false;
     }
+
+    return m_doc != nullptr;
 }
 
 void
@@ -841,9 +845,13 @@ Model::save() noexcept
         {
             pdf_save_document(m_ctx, m_pdfdoc, CSTR(m_filename), &m_write_opts);
             reloadDocument();
+            emit documentSaved();
         }
         else
+        {
             qWarning() << "No PDF document opened!";
+            return false;
+        }
     }
     fz_catch(m_ctx)
     {
@@ -851,7 +859,6 @@ Model::save() noexcept
         return false;
     }
 
-    emit documentSaved();
     return true;
 }
 

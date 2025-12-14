@@ -36,8 +36,8 @@ dodo::~dodo() noexcept
 void
 dodo::construct() noexcept
 {
-    m_tab_widget = new TabWidget();
-    // m_config_watcher = new QFileSystemWatcher(this);
+    m_tab_widget     = new TabWidget();
+    m_config_watcher = new QFileSystemWatcher(this);
 
     initActionMap();
     initConfig();
@@ -526,8 +526,10 @@ dodo::initConfig() noexcept
     m_config.behavior.invert_mode = behavior["invert_mode"].value_or(false);
     m_config.rendering.icc_color_profile
         = behavior["icc_color_profile"].value_or(true);
-    m_config.ui.initial_fit        = behavior["initial_fit"].value_or("width");
-    m_config.behavior.auto_reload  = behavior["auto_reload"].value_or(true);
+    m_config.ui.initial_fit       = behavior["initial_fit"].value_or("width");
+    m_config.behavior.auto_reload = behavior["auto_reload"].value_or(true);
+    m_config.behavior.config_auto_reload
+        = behavior["config_auto_reload"].value_or(true);
     m_config.behavior.recent_files = behavior["recent_files"].value_or(true);
     m_config.behavior.num_recent_files
         = behavior["num_recent_files"].value_or(10);
@@ -1256,6 +1258,7 @@ dodo::OpenFile(const QString &filePath) noexcept
     }
 
     DocumentView *docwidget = new DocumentView(fp, m_config, m_tab_widget);
+    docwidget->setAutoReload(m_config.behavior.auto_reload);
 
     if (!docwidget->fileOpenedSuccessfully())
     {

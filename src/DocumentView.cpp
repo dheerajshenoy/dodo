@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <qcolordialog.h>
 #include <qcontainerinfo.h>
+#include <qfilesystemwatcher.h>
 #include <qgraphicsitem.h>
 #include <qnamespace.h>
 #include <qstandardpaths.h>
@@ -2067,4 +2068,81 @@ DocumentView::OpenRegionInExternalViewer(const QRectF &area) noexcept
     QImage img = m_pix_item->pixmap().copy(area.toRect()).toImage();
     OpenImageInExternalViewer(img);
     qDebug() << "Opened region in external viewer";
+}
+
+void
+DocumentView::setAutoReload(bool state) noexcept
+{
+    m_auto_reload = state;
+    if (m_auto_reload)
+    {
+        if (!m_file_watcher)
+            m_file_watcher = new QFileSystemWatcher(this);
+
+        if (!m_file_watcher->files().contains(m_filepath))
+            m_file_watcher->addPath(m_filepath);
+
+        connect(m_file_watcher, &QFileSystemWatcher::fileChanged, this,
+                &DocumentView::onFileReloadRequested, Qt::UniqueConnection);
+    }
+    else
+    {
+        if (m_file_watcher)
+        {
+            m_file_watcher->removePath(m_filepath);
+            m_file_watcher->deleteLater();
+            m_file_watcher = nullptr;
+        }
+    }
+}
+
+bool
+DocumentView::waitUntilReadableAsync() noexcept
+{
+    QFileInfo a(m_filepath);
+    if (!a.exists() || a.size() == 0)
+        return false;
+
+    QThread::msleep(80);
+
+    QFileInfo b(m_filepath);
+    return b.exists() && a.size() == b.size();
+}
+
+void
+DocumentView::onFileReloadRequested(const QString &path) noexcept
+{
+    if (path != m_filepath)
+        return;
+
+    tryReloadLater(0);
+}
+void
+DocumentView::tryReloadLater(int attempt) noexcept
+{
+    if (attempt > 15) // ~15 * 100ms = 1.5s
+        return;       // give up
+
+    if (waitUntilReadableAsync())
+    {
+        if (!m_model->reloadDocument())
+        {
+            QMessageBox::warning(this, "Auto-reload failed",
+                                 "Could not reload the document.");
+            return;
+        }
+        else
+        {
+            renderPage(m_pageno);
+        }
+
+        // IMPORTANT: file may have been removed and replaced → watcher loses it
+        if (m_file_watcher && !m_file_watcher->files().contains(m_filepath))
+            m_file_watcher->addPath(m_filepath);
+
+        return;
+    }
+
+    QTimer::singleShot(100, this,
+                       [this, attempt]() { tryReloadLater(attempt + 1); });
 }

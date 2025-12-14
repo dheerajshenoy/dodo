@@ -23,6 +23,7 @@
 #include <QWindow>
 #include <qboxlayout.h>
 #include <qfilesystemwatcher.h>
+#include <qvariant.h>
 
 extern "C"
 {
@@ -217,6 +218,8 @@ public:
         emit selectionModeChanged(nextMode);
     }
 
+    void setAutoReload(bool state) noexcept;
+
 signals:
     void pageNumberChanged(int pageno);
     void searchCountChanged(int count);
@@ -284,6 +287,11 @@ private:
     void showJumpMarker(const QPointF &p) noexcept;
     void showJumpMarker(const fz_point &p) noexcept;
 
+    void reloadDocument() noexcept;
+    bool waitUntilReadableAsync() noexcept;
+    void tryReloadLater(int attempt) noexcept;
+    void onFileReloadRequested(const QString &path) noexcept;
+
     PropertiesWidget *m_propsWidget{nullptr};
     OutlineWidget *m_owidget{nullptr};
     QCache<CacheKey, CacheValue> m_cache;
@@ -328,5 +336,6 @@ private:
     const int kPageThreshold{300};
     QList<TextHighlight> m_highlight_text_list{}; // Holds the text of all
     // highlight annotations
-    bool m_focus_mode{false};
+    QFileSystemWatcher *m_file_watcher{nullptr};
+    bool m_focus_mode{false}, m_auto_reload{false};
 };

@@ -279,7 +279,7 @@ public:
                                   const QColor &color) noexcept;
     fz_point mapToPdf(QPointF loc) noexcept;
     bool isBreak(int c) noexcept;
-    void reloadDocument() noexcept;
+    bool reloadDocument() noexcept;
 
 signals:
     void pageRenderRequested(int pageno, bool cache);
