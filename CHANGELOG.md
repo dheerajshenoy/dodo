@@ -4,6 +4,7 @@
 
 - Implement document reloading on external changes
 - Remove command bar
+- Implement clean search bar UI
 
 ## 0.3.1
 

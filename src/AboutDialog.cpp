@@ -78,7 +78,6 @@ AboutDialog::setAppInfo(const QString &version,
     infoLabel->setText(
         QString("%1<br>Build Type: %2<br>Version: %3<br>Project homepage: %4")
             .arg(description, __DODO_BUILD_TYPE, version, link));
-
 }
 
 QWidget *
