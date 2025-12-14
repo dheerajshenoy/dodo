@@ -154,6 +154,7 @@ private:
     void invokeSearch() noexcept;
     void updatePageNavigationActions() noexcept;
     void updateSelectionModeActions() noexcept;
+    void updateGUIFromConfig() noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};
@@ -164,6 +165,7 @@ private:
     QMenu *m_recentFilesMenu{nullptr};
     QMenu *m_editMenu{nullptr};
     QMenu *m_navMenu{nullptr};
+    QMenu *m_toggleMenu{nullptr};
 
     QAction *m_actionEncrypt{nullptr};
     QAction *m_actionDecrypt{nullptr};
@@ -220,7 +222,7 @@ private:
     LinkHintMode m_link_hint_current_mode{LinkHintMode::None};
     QMap<int, Model::LinkInfo> m_link_hint_map;
     DocumentView *m_doc{nullptr};
-    TabWidget *m_tab_widget = new TabWidget();
+    TabWidget *m_tab_widget{nullptr};
     QVBoxLayout *m_layout   = new QVBoxLayout();
     OutlineWidget *m_owidget{nullptr};
     PropertiesWidget *m_propsWidget{nullptr};
@@ -229,7 +231,7 @@ private:
     QClipboard *m_clipboard = QGuiApplication::clipboard();
     QSqlDatabase m_last_pages_db;
     QString m_session_name;
-    QFileSystemWatcher *m_fs_watcher{nullptr};
+    // QFileSystemWatcher *m_config_watcher{nullptr};
     QTimer m_debounceTimer;
     QMap<QString, DocumentView *> m_path_tab_map;
     CommandBar *m_command_bar;
