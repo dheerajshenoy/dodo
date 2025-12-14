@@ -368,9 +368,9 @@ DocumentView::CloseFile(bool skipUnsavedCheck) noexcept
         }
     }
 
-    if (m_config.behavior.remember_last_visited && !m_filename.isEmpty()
+    if (m_config.behavior.remember_last_visited && !m_filepath.isEmpty()
         && m_pageno >= 0)
-        emit insertToDBRequested(m_filename, m_pageno + 1);
+        emit insertToDBRequested(m_filepath, m_pageno + 1);
 
     m_cache.clear();
 
@@ -390,7 +390,7 @@ DocumentView::CloseFile(bool skipUnsavedCheck) noexcept
     if (m_annot_selection_present)
         clearAnnotSelection();
 
-    m_filename.clear();
+    m_filepath.clear();
     emit fileNameChanged(QString());
 
     if (m_owidget)
@@ -433,20 +433,20 @@ DocumentView::openFile(const QString &fileName) noexcept
     if (m_model->valid())
         CloseFile();
 
-    m_filename = fileName;
+    m_filepath = fileName;
 
-    if (m_filename.contains("~"))
-        m_filename.replace(0, 1, getenv("HOME"));
+    if (m_filepath.contains("~"))
+        m_filepath.replace(0, 1, getenv("HOME"));
 
     clearPixmapItems();
 
-    if (!QFile::exists(m_filename))
+    if (!QFile::exists(m_filepath))
     {
-        qCritical() << "File does not exist: " << m_filename;
+        qCritical() << "File does not exist: " << m_filepath;
         return false;
     }
 
-    if (!m_model->openFile(m_filename))
+    if (!m_model->openFile(m_filepath))
     {
         QMessageBox::critical(this, "Error opening document",
                               "Unable to open document for some reason");
@@ -462,7 +462,7 @@ DocumentView::openFile(const QString &fileName) noexcept
     emit totalPageCountChanged(m_total_pages);
     emit searchModeChanged(false);
 
-    m_basename = QFileInfo(m_filename).fileName();
+    m_basename = QFileInfo(m_filepath).fileName();
 
     if (m_start_page_override >= 0)
         m_pageno = m_start_page_override;
@@ -514,7 +514,7 @@ DocumentView::openFile(const QString &fileName) noexcept
     QString title = m_config.ui.window_title_format;
     title         = title.replace("%1", m_basename);
     setWindowTitle(title);
-    m_last_modified_time = QFileInfo(m_filename).lastModified();
+    m_last_modified_time = QFileInfo(m_filepath).lastModified();
     emit fileNameChanged(m_basename);
     return true;
 }
@@ -685,7 +685,7 @@ DocumentView::renderLinks(const QList<BrowseLinkItem *> &links) noexcept
             if (link.startsWith("#"))
             {
                 auto equal_pos = link.indexOf("=");
-                emit clipboardContentChanged(m_filename + "#"
+                emit clipboardContentChanged(m_filepath + "#"
                                              + link.mid(equal_pos + 1));
             }
             else
@@ -1442,7 +1442,7 @@ void
 DocumentView::initSynctex() noexcept
 {
     m_synctex_scanner
-        = synctex_scanner_new_with_output_file(CSTR(m_filename), nullptr, 1);
+        = synctex_scanner_new_with_output_file(CSTR(m_filepath), nullptr, 1);
     if (!m_synctex_scanner)
         return;
 }
@@ -1601,7 +1601,7 @@ DocumentView::setDirty(bool state) noexcept
     m_dirty = state;
 
     QString title     = m_config.ui.window_title_format;
-    QString panelName = m_filename;
+    QString panelName = m_filepath;
 
     if (m_dirty)
     {

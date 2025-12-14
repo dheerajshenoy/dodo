@@ -171,7 +171,7 @@ public:
 
     inline QString fileName() const noexcept
     {
-        return m_filename;
+        return m_filepath;
     }
 
     inline int pageNo() const noexcept
@@ -288,7 +288,7 @@ private:
     OutlineWidget *m_owidget{nullptr};
     QCache<CacheKey, CacheValue> m_cache;
     QMap<int, QList<Model::SearchResult>> m_searchRectMap{};
-    QString m_filename, m_basename;
+    QString m_filepath, m_basename;
     Model *m_model{nullptr};
     Config m_config;
     QVBoxLayout *m_layout{new QVBoxLayout};
