@@ -1205,14 +1205,20 @@ dodo::OpenFile(DocumentView *view) noexcept
 
 // Opens a file given the file path
 bool
-dodo::OpenFile(QString filePath) noexcept
+dodo::OpenFile(const QString &filePath) noexcept
 {
     if (filePath.isEmpty())
     {
-        filePath = QFileDialog::getOpenFileName(
+        QStringList files;
+        files = QFileDialog::getOpenFileNames(
             this, "Open File", "", "PDF Files (*.pdf);; All Files (*)");
-        if (filePath.isEmpty())
+        if (files.empty())
             return false;
+        else if (files.size() > 1)
+        {
+            OpenFiles(files);
+            return true;
+        }
     }
 
     // Switch to already opened filepath, if it's open.
@@ -1227,31 +1233,32 @@ dodo::OpenFile(QString filePath) noexcept
         }
     }
 
-    static const QString homeDir = QString::fromLocal8Bit(qgetenv("HOME"));
-    filePath                     = filePath.replace(QLatin1Char('~'), homeDir);
+    static const QString &homeDir = QString::fromLocal8Bit(qgetenv("HOME"));
+    QString fp                    = filePath;
+    if (filePath.startsWith("~"))
+        fp = fp.replace(QLatin1Char('~'), homeDir);
 
-    if (!QFile::exists(filePath))
+    if (!QFile::exists(fp))
     {
         QMessageBox::warning(this, "Open File",
-                             QString("Unable to find %1").arg(filePath));
+                             QString("Unable to find %1").arg(fp));
         return false;
     }
 
-    DocumentView *docwidget
-        = new DocumentView(filePath, m_config, m_tab_widget);
+    DocumentView *docwidget = new DocumentView(fp, m_config, m_tab_widget);
 
     if (!docwidget->fileOpenedSuccessfully())
     {
         docwidget->deleteLater();
         delete docwidget;
         QMessageBox::warning(this, "Open File",
-                             QString("Failed to open %1").arg(filePath));
+                             QString("Failed to open %1").arg(fp));
         return false;
     }
 
     docwidget->setDPR(m_dpr);
     initTabConnections(docwidget);
-    int index = m_tab_widget->addTab(docwidget, filePath);
+    int index = m_tab_widget->addTab(docwidget, fp);
     m_tab_widget->setCurrentIndex(index);
 
     m_outline_widget->setOutline(m_doc ? m_doc->model()->getOutline()
@@ -1261,12 +1268,6 @@ dodo::OpenFile(QString filePath) noexcept
 
     if (m_config.ui.outline_shown)
         m_outline_widget->setVisible(m_config.ui.outline_shown);
-
-    // TODO: Auto file reload
-    // if (m_config.auto_reload)
-    // {
-    //     m_fs_watcher->addPath(filePath);
-    // }
     return true;
 }
 
