@@ -205,7 +205,8 @@ dodo::initMenubar() noexcept
     modeActionGroup->addAction(m_actionTextSelect);
 
     m_actionTextHighlight = m_modeMenu->addAction(
-        QString("Text Highlight\t%1").arg(m_config.shortcuts["text_highlight_mode"]),
+        QString("Text Highlight\t%1")
+            .arg(m_config.shortcuts["text_highlight_mode"]),
         this, &dodo::ToggleTextHighlight);
     m_actionTextHighlight->setCheckable(true);
     modeActionGroup->addAction(m_actionTextHighlight);
@@ -563,11 +564,11 @@ dodo::initKeybinds() noexcept
     m_config.shortcuts[QStringLiteral("save")] = QStringLiteral("Ctrl+s");
     m_config.shortcuts[QStringLiteral("text_highlight_mode")]
         = QStringLiteral("1");
-    m_config.shortcuts[QStringLiteral("annot_rect_mode")]  = QStringLiteral("2");
-    m_config.shortcuts[QStringLiteral("annot_edit_mode")]  = QStringLiteral("3");
-    m_config.shortcuts[QStringLiteral("outline")]     = QStringLiteral("t");
-    m_config.shortcuts[QStringLiteral("search")]      = QStringLiteral("/");
-    m_config.shortcuts[QStringLiteral("search_next")] = QStringLiteral("n");
+    m_config.shortcuts[QStringLiteral("annot_rect_mode")] = QStringLiteral("2");
+    m_config.shortcuts[QStringLiteral("annot_edit_mode")] = QStringLiteral("3");
+    m_config.shortcuts[QStringLiteral("outline")]         = QStringLiteral("t");
+    m_config.shortcuts[QStringLiteral("search")]          = QStringLiteral("/");
+    m_config.shortcuts[QStringLiteral("search_next")]     = QStringLiteral("n");
     m_config.shortcuts[QStringLiteral("search_prev")]
         = QStringLiteral("Shift+n");
     m_config.shortcuts[QStringLiteral("zoom_in")]    = QStringLiteral("+");
@@ -1237,7 +1238,9 @@ dodo::OpenFile(const QString &filePath) noexcept
         {
             OpenFiles(files);
             return true;
-        } else {
+        }
+        else
+        {
             return OpenFile(files.first());
         }
     }
@@ -1991,13 +1994,30 @@ dodo::LoadSession(QString sessionName) noexcept
             existingSessions, 0, true, &ok);
     }
 
-    sessionName = sessionName + ".dodo";
+    sessionName = sessionName + ".json";
 
     QFile file(m_session_dir.filePath(sessionName));
+
     if (file.open(QIODevice::ReadOnly))
     {
-        QJsonDocument doc       = QJsonDocument::fromJson(file.readAll());
+        QJsonParseError err;
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
+
+        if (err.error != QJsonParseError::NoError)
+        {
+            qDebug() << "JSON parse error:" << err.errorString();
+            return;
+        }
+
+        if (!doc.isArray())
+        {
+            qDebug() << "Session file root is not an array";
+            return;
+        }
+
         QJsonArray sessionArray = doc.array();
+
+        qDebug() << "Session array size:" << sessionArray;
 
         for (const QJsonValue &value : sessionArray)
         {
@@ -2010,6 +2030,7 @@ dodo::LoadSession(QString sessionName) noexcept
 
             DocumentView *view
                 = new DocumentView(filePath, m_config, m_tab_widget);
+            qDebug() << filePath;
             view->GotoPage(page);
             view->Zoom(zoom);
             view->Fit(static_cast<DocumentView::FitMode>(fitMode));
@@ -2045,7 +2066,7 @@ dodo::getSessionFiles() noexcept
     }
 
     for (const QString &file : m_session_dir.entryList(
-             QStringList() << "*.dodo", QDir::Files | QDir::NoSymLinks))
+             QStringList() << "*.json", QDir::Files | QDir::NoSymLinks))
         sessions << QFileInfo(file).completeBaseName();
 
     return sessions;
@@ -2109,7 +2130,7 @@ dodo::SaveSession(QString sessionName) noexcept
         sessionArray.append(entry);
     }
 
-    QFile file(m_session_dir.filePath(m_session_name + ".dodo"));
+    QFile file(m_session_dir.filePath(m_session_name + ".json"));
     bool result = file.open(QIODevice::WriteOnly);
     if (!result)
     {
@@ -2120,7 +2141,6 @@ dodo::SaveSession(QString sessionName) noexcept
     }
     QJsonDocument doc(sessionArray);
     file.write(doc.toJson());
-    file.write("\n\n// vim:ft=json");
     file.close();
 
     m_session_name = sessionName;
@@ -2143,7 +2163,7 @@ dodo::SaveAsSession(const QString &sessionPath) noexcept
 
     QString selectedPath = QFileDialog::getSaveFileName(
         this, "Save As Session", m_session_dir.absolutePath(),
-        "dodo session files (*.dodo); All Files (*.*)");
+        "dodo session files (*.json); All Files (*.*)");
 
     if (selectedPath.isEmpty())
         return;
@@ -2163,7 +2183,7 @@ dodo::SaveAsSession(const QString &sessionPath) noexcept
 
     // Save the session
     QString currentSessionPath
-        = m_session_dir.filePath(m_session_name + ".dodo");
+        = m_session_dir.filePath(m_session_name + ".json");
     if (!QFile::copy(currentSessionPath, selectedPath))
     {
         QMessageBox::critical(this, "Save As Session",
