@@ -11,14 +11,19 @@ menubar = false # show/hide menubar
 window_title = "{} - dodo" # '{}' will be replaced with the base name of the opened file
 jump_marker = true # show/hide markers at the location of the destination after jump
 selection_drag_threshold = 100
-tabs = true # show/hide tabs
-auto_hide_tabs = true # hide tabs when there is only one file
-startup_tab = true # show/hide startup tab
+startup_tab = false # show/hide startup tab
 link_hint_size = 0.25 # size of link hints (px)
-outline = true # show/hide outline panel
+outline = false # show/hide outline panel
 outline_as_side_panel = true # outline whether to show in popup or side panel
 outline_panel_position = "left" # outline panel position ("left" or "right")
 outline_panel_width = 300 # outline panel width (if outline_in_panel is true)
+
+tabs = true # show/hide tabs
+auto_hide_tabs = true # hide tabs when there is only one file
+tabs_closable = true # show/hide close button on tabs
+tabs_movable = true # allow/disallow moving tabs
+tab_elide_mode = "middle" # ("none", "start", "middle", "end")
+tab_bar_position = "bottom" # ("top", "bottom", "left", "right")
 
 # Format is #AARRGGBB (ARGB format)
 [colors]
@@ -91,8 +96,6 @@ zoom_reset = "0"
 zoom_in = "="
 zoom_out = "-"
 
-text_highlight_current_selection = "1"
-
 tab1 = "Alt+1"
 tab2 = "Alt+2"
 tab3 = "Alt+3"
@@ -106,6 +109,7 @@ tab9 = "Alt+9"
 tab_next = "Ctrl+Period"
 tab_prev = "Ctrl+Comma"
 
+text_highlight_mode = "4"
 region_select_mode = "1"
 annot_rect_mode = "2"
 annot_edit_mode = "3"
@@ -130,7 +134,6 @@ yank = "y"
 about = "F12"
 save = "Ctrl+S"
 select_all = "Ctrl+A"
-command = ":"
 
 rotate_clock = ">"
 rotate_anticlock = "<"
@@ -138,3 +141,6 @@ rotate_anticlock = "<"
 list_text_highlights = "]"
 undo = "u"
 redo = "Ctrl+R"
+
+toggle_focus_mode = "Ctrl+Space"
+
