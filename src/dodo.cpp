@@ -2017,12 +2017,12 @@ dodo::LoadSession(QString sessionName) noexcept
 
         for (const QJsonValue &value : sessionArray)
         {
-            QJsonObject entry = value.toObject();
-            QString filePath  = entry["file_path"].toString();
-            int page          = entry["current_page"].toInt();
-            double zoom       = entry["zoom"].toDouble();
-            int fitMode       = entry["fit_mode"].toInt();
-            bool invert       = entry["invert_color"].toBool();
+            const QJsonObject entry = value.toObject();
+            const QString filePath  = entry["file_path"].toString();
+            const int page          = entry["current_page"].toInt();
+            const double zoom       = entry["zoom"].toDouble();
+            const int fitMode       = entry["fit_mode"].toInt();
+            const bool invert       = entry["invert_color"].toBool();
 
             DocumentView *view
                 = new DocumentView(filePath, m_config, m_tab_widget);
