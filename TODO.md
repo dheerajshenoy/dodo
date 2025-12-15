@@ -40,3 +40,5 @@
 - [ ] Set marks and jump to marks
 - [ ] Touchpad gestures
 - [ ] Underline annotation
+- [ ] Two page side-by-side view mode
+- [ ] Two selected page view mode
