@@ -205,7 +205,7 @@ dodo::initMenubar() noexcept
     modeActionGroup->addAction(m_actionTextSelect);
 
     m_actionTextHighlight = m_modeMenu->addAction(
-        QString("Text Highlight\t%1").arg(m_config.shortcuts["text_highlight"]),
+        QString("Text Highlight\t%1").arg(m_config.shortcuts["text_highlight_mode"]),
         this, &dodo::ToggleTextHighlight);
     m_actionTextHighlight->setCheckable(true);
     modeActionGroup->addAction(m_actionTextHighlight);
@@ -493,15 +493,15 @@ dodo::initConfig() noexcept
             = behavior["initial_mode"].value_or("text_select");
 
         GraphicsView::Mode initial_mode;
-        if (mode_str == "region_select")
+        if (mode_str == "region_select_mode")
             initial_mode = GraphicsView::Mode::RegionSelection;
-        else if (mode_str == "text_select")
+        else if (mode_str == "text_select_mode")
             initial_mode = GraphicsView::Mode::TextSelection;
-        else if (mode_str == "text_highlight")
+        else if (mode_str == "text_highlight_mode")
             initial_mode = GraphicsView::Mode::TextHighlight;
-        else if (mode_str == "annot_rect")
+        else if (mode_str == "annot_rect_mode")
             initial_mode = GraphicsView::Mode::AnnotRect;
-        else if (mode_str == "annot_select")
+        else if (mode_str == "annot_select_mode")
             initial_mode = GraphicsView::Mode::AnnotSelect;
         else
             initial_mode = GraphicsView::Mode::TextSelection;
@@ -561,10 +561,10 @@ dodo::initKeybinds() noexcept
     m_config.shortcuts[QStringLiteral("invert_color")]    = QStringLiteral("b");
     m_config.shortcuts[QStringLiteral("link_hint_visit")] = QStringLiteral("f");
     m_config.shortcuts[QStringLiteral("save")] = QStringLiteral("Ctrl+s");
-    m_config.shortcuts[QStringLiteral("text_highlight")]
-        = QStringLiteral("Alt+1");
-    m_config.shortcuts[QStringLiteral("annot_rect")]  = QStringLiteral("Alt+2");
-    m_config.shortcuts[QStringLiteral("annot_edit")]  = QStringLiteral("Alt+3");
+    m_config.shortcuts[QStringLiteral("text_highlight_mode")]
+        = QStringLiteral("1");
+    m_config.shortcuts[QStringLiteral("annot_rect_mode")]  = QStringLiteral("2");
+    m_config.shortcuts[QStringLiteral("annot_edit_mode")]  = QStringLiteral("3");
     m_config.shortcuts[QStringLiteral("outline")]     = QStringLiteral("t");
     m_config.shortcuts[QStringLiteral("search")]      = QStringLiteral("/");
     m_config.shortcuts[QStringLiteral("search_next")] = QStringLiteral("n");
@@ -2317,6 +2317,7 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("zoom_in", ZoomIn),
         ACTION_NO_ARGS("zoom_out", ZoomOut),
         ACTION_NO_ARGS("zoom_reset", ZoomReset),
+        ACTION_NO_ARGS("region_select_mode", ToggleRegionSelect),
         ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
         ACTION_NO_ARGS("text_highlight_mode", ToggleTextHighlight),
         ACTION_NO_ARGS("annot_rect_mode", ToggleRectAnnotation),
