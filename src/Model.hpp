@@ -234,6 +234,11 @@ public:
         m_invert_color_mode = !m_invert_color_mode;
     }
 
+    inline void setInvertColor(bool state) noexcept
+    {
+        m_invert_color_mode = state;
+    }
+
     inline float width() noexcept
     {
         return m_width;
