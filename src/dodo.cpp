@@ -2026,11 +2026,11 @@ dodo::LoadSession(QString sessionName) noexcept
 
             DocumentView *view
                 = new DocumentView(filePath, m_config, m_tab_widget);
+            if (invert)
+                view->model()->setInvertColor(true);
             view->GotoPage(page);
             view->Zoom(zoom);
             view->Fit(static_cast<DocumentView::FitMode>(fitMode));
-            if (invert)
-                view->InvertColor();
             OpenFile(view);
         }
     }
