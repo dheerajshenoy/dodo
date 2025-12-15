@@ -49,7 +49,7 @@ streamlined interface and robust functionality with minimal resource usage.
 - File history management
 - Link awareness
 - Annotation support (popup, highlight, rectangle)
-- Undo/Redo 
+- Undo/Redo
 - Multi-click text selection (double, triple, quadruple click for word, line, paragraph)
 - Jump Marker (to help locate where link takes you to)
 - Region select mode (copy text, copy as image, save as image, open externally)
@@ -68,15 +68,15 @@ streamlined interface and robust functionality with minimal resource usage.
 > [!NOTE]
 > There are two branches in dodo.
 >
-> 1. `main (default)`
-> 2. `untabbed`
+> 1. `main (default)` - This branch has all the stable features. (recommended)
+> 2. `AI` - This branch has AI based features like summarization, text extraction etc. (not as updated as main branch)
 >
-> `untabbed` is dodo without tab support and many other features present in the main branch like session management etc.
-> No further updates will be pushed to the untabbed branch. If you don't want tabs, go for `untabbed` branch else stick with
-> the default branch.
-
 > [!NOTE]
 > The `install.sh` script installs latest version of MuPDF library required for dodo
+
+> [!WARNING]
+> Sometimes the latest MuPDF version may have compatibility issues with dodo. For now, you have to go into the `install.sh` script
+> and change the version to a latest one that is known to work with dodo.
 
 ### Arch Linux
 
