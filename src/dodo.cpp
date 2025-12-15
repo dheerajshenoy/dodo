@@ -1254,8 +1254,6 @@ dodo::OpenFile(const QString &filePath) noexcept
     if (QFileInfo(fp).isRelative())
         fp = QDir::current().absoluteFilePath(filePath);
 
-    qDebug() << "Opening file:" << fp;
-
     // Switch to already opened filepath, if it's open.
     auto it = m_path_tab_map.find(filePath);
     if (it != m_path_tab_map.end())
@@ -2017,8 +2015,6 @@ dodo::LoadSession(QString sessionName) noexcept
 
         QJsonArray sessionArray = doc.array();
 
-        qDebug() << "Session array size:" << sessionArray;
-
         for (const QJsonValue &value : sessionArray)
         {
             QJsonObject entry = value.toObject();
@@ -2030,7 +2026,6 @@ dodo::LoadSession(QString sessionName) noexcept
 
             DocumentView *view
                 = new DocumentView(filePath, m_config, m_tab_widget);
-            qDebug() << filePath;
             view->GotoPage(page);
             view->Zoom(zoom);
             view->Fit(static_cast<DocumentView::FitMode>(fitMode));
@@ -2293,7 +2288,6 @@ dodo::initActionMap() noexcept
         {QStringLiteral("region_select_mode"),
          [this](const QStringList &)
     {
-        qDebug() << "DD";
         ToggleRegionSelect();
     }},
 
