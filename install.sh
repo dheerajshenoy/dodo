@@ -5,7 +5,7 @@ set -e
 # Config
 # ============================================================
 PREFIX="${1:-/usr/local}"
-MUPDF_VERSION="1.26.12"
+MUPDF_VERSION="1.27.0"
 MUPDF_URL="https://mupdf.com/downloads/archive/mupdf-${MUPDF_VERSION}-source.tar.gz"
 EXTERN_DIR="extern"
 MUPDF_TARBALL="${EXTERN_DIR}/mupdf-${MUPDF_VERSION}-source.tar.gz"
