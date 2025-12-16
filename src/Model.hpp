@@ -12,8 +12,11 @@
 #include <QThreadPool>
 #include <QUndoStack>
 #include <QtConcurrent/QtConcurrent>
+extern "C"
+{
 #include <mupdf/fitz.h>
 #include <mupdf/pdf.h>
+}
 
 #define CSTR(x) x.toStdString().c_str()
 

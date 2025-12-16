@@ -4,7 +4,10 @@
 // #include <QMutex>
 // #include <QMutexLocker>
 #include <QRunnable>
+extern "C"
+{
 #include <mupdf/fitz.h>
+}
 
 class RenderTask : public QObject, public QRunnable
 {

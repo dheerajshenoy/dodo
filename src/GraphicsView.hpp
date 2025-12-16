@@ -7,8 +7,13 @@
 #include <QGuiApplication>
 #include <QMouseEvent>
 #include <QRubberBand>
+
+extern "C"
+{
 #include <mupdf/fitz.h>
 #include <mupdf/fitz/pixmap.h>
+}
+
 #include <qevent.h>
 #include <qgraphicssceneevent.h>
 

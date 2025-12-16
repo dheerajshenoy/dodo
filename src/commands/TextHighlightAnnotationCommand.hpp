@@ -11,7 +11,10 @@
 
 #include <QUndoCommand>
 #include <QVector>
+extern "C"
+{
 #include <mupdf/pdf.h>
+}
 
 class TextHighlightAnnotationCommand : public QUndoCommand
 {

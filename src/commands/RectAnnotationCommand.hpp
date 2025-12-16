@@ -4,7 +4,10 @@
 
 #include <QRectF>
 #include <QUndoCommand>
+extern "C"
+{
 #include <mupdf/pdf.h>
+}
 
 class RectAnnotationCommand : public QUndoCommand
 {

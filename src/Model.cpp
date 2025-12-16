@@ -11,8 +11,6 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsScene>
 #include <QImage>
-#include <mupdf/fitz/image.h>
-#include <mupdf/pdf/crypt.h>
 #include <qbytearrayview.h>
 #include <qnamespace.h>
 extern "C"
@@ -28,6 +26,7 @@ extern "C"
 #include <mupdf/fitz/structured-text.h>
 #include <mupdf/fitz/util.h>
 #include <mupdf/pdf/annot.h>
+#include <mupdf/pdf/crypt.h>
 #include <mupdf/pdf/document.h>
 #include <mupdf/pdf/object.h>
 #include <mupdf/pdf/xref.h>

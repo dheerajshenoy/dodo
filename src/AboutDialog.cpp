@@ -3,13 +3,13 @@
 #include <QFormLayout>
 #include <QPainter>
 #include <QTextEdit>
-#include <mupdf/fitz.h>
 #include <qboxlayout.h>
 #include <qfont.h>
 #include <qnamespace.h>
 
 extern "C"
 {
+#include <mupdf/fitz.h>
 #include <synctex/synctex_version.h>
 }
 
