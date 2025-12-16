@@ -640,28 +640,6 @@ dodo::initGui() noexcept
 
     m_outline_widget = new OutlineWidget(this);
 
-    connect(m_panel, &Panel::modeColorChangeRequested, this,
-            [&](GraphicsView::Mode mode)
-    {
-        QColorDialog colorDialog(this);
-        colorDialog.setOption(QColorDialog::ShowAlphaChannel, true);
-        colorDialog.setWindowTitle("Select Color");
-        if (colorDialog.exec() == QDialog::Accepted)
-        {
-            QColor color = colorDialog.selectedColor();
-            auto model   = m_doc->model();
-            if (mode == GraphicsView::Mode::AnnotRect)
-                model->setAnnotRectColor(color);
-            else if (mode == GraphicsView::Mode::TextHighlight)
-                model->setHighlightColor(color);
-            else if (mode == GraphicsView::Mode::TextSelection)
-                model->setSelectionColor(color);
-            m_panel->setHighlightColor(color);
-        }
-    });
-
-    connect(m_panel, &Panel::pageChangeRequested, this, &dodo::gotoPage);
-
     widget->setLayout(m_layout);
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
@@ -1477,6 +1455,30 @@ dodo::TextHighlightCurrentSelection() noexcept
 void
 dodo::initConnections() noexcept
 {
+
+    connect(m_panel, &Panel::modeColorChangeRequested, this,
+            [&](GraphicsView::Mode mode)
+    {
+        // FIXME: Make this a function
+        QColorDialog colorDialog(this);
+        colorDialog.setOption(QColorDialog::ShowAlphaChannel, true);
+        colorDialog.setWindowTitle("Select Color");
+        if (colorDialog.exec() == QDialog::Accepted)
+        {
+            QColor color = colorDialog.selectedColor();
+            auto model   = m_doc->model();
+            if (mode == GraphicsView::Mode::AnnotRect)
+                model->setAnnotRectColor(color);
+            else if (mode == GraphicsView::Mode::TextHighlight)
+                model->setHighlightColor(color);
+            else if (mode == GraphicsView::Mode::TextSelection)
+                model->setSelectionColor(color);
+            m_panel->setHighlightColor(color);
+        }
+    });
+
+    connect(m_panel, &Panel::pageChangeRequested, this, &dodo::gotoPage);
+
     connect(m_config_watcher, &QFileSystemWatcher::fileChanged, this,
             &dodo::updateGUIFromConfig);
     QList<QScreen *> outputs = QGuiApplication::screens();
