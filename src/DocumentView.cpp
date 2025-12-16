@@ -1464,6 +1464,11 @@ DocumentView::fzQuadToQRect(const fz_quad &q) noexcept
 void
 DocumentView::initSynctex() noexcept
 {
+    if (m_synctex_scanner)
+    {
+        synctex_scanner_free(m_synctex_scanner);
+        m_synctex_scanner = nullptr;
+    }
     m_synctex_scanner
         = synctex_scanner_new_with_output_file(CSTR(m_filepath), nullptr, 1);
     if (!m_synctex_scanner)
@@ -2156,6 +2161,7 @@ DocumentView::tryReloadLater(int attempt) noexcept
         else
         {
             renderPage(m_pageno);
+            initSynctex();
         }
 
         // IMPORTANT: file may have been removed and replaced → watcher loses it
