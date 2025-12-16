@@ -46,6 +46,13 @@ build_mupdf() {
     build=release \
     prefix="$PREFIX"
 
+    echo "Installing MuPDF..."
+    if [ -w "$PREFIX" ]; then
+        make install prefix="$PREFIX"
+    else
+        sudo make install prefix="$PREFIX"
+    fi
+
     cd - >/dev/null
     echo "MuPDF built successfully."
 }
