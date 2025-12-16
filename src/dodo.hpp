@@ -105,7 +105,6 @@ private:
     void OpenFiles(const std::vector<std::string> &files) noexcept;
     void OpenFiles(const QList<QString> &files) noexcept;
     bool OpenFile(const QString &filename = QString()) noexcept;
-    bool OpenFile(DocumentView *view) noexcept;
     void PrevPage() noexcept;
     void FirstPage() noexcept;
     void ToggleTextHighlight() noexcept;
@@ -131,7 +130,7 @@ private:
     void GotoPage() noexcept;
     void gotoPage(int pageno) noexcept;
     void LoadSession(QString name = QString()) noexcept;
-    void SaveSession(QString name = QString()) noexcept;
+    void SaveSession() noexcept;
     void SaveAsSession(const QString &name = QString()) noexcept;
     void GotoTab(int tabno) noexcept;
     void LastTab() noexcept;
@@ -159,6 +158,7 @@ private:
     void updateSelectionModeActions() noexcept;
     void updateGUIFromConfig() noexcept;
     void updateTabbarVisibility() noexcept;
+    void setSessionName(const QString &name) noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};
@@ -206,6 +206,10 @@ private:
     QAction *m_actionTextSelect{nullptr};
     QAction *m_actionRegionSelect{nullptr};
     QAction *m_actionAnnotEdit{nullptr};
+    QAction *m_actionSessionLoad{nullptr};
+    QAction *m_actionSessionSave{nullptr};
+    QAction *m_actionSessionSaveAs{nullptr};
+
     OutlineWidget *m_outline_widget{nullptr};
 
     Config m_config;
@@ -221,7 +225,8 @@ private:
     QMap<QString, float> m_screen_dpr_map; // DPR per screen
     QString m_config_file_path;
     QString m_currentHintInput;
-    bool m_link_hint_mode{false}, m_focus_mode{false};
+    bool m_link_hint_mode{false}, m_focus_mode{false},
+        m_load_default_keybinding{true}, m_is_session{false};
     StartupWidget *m_startup_widget{nullptr};
     LinkHintMode m_link_hint_current_mode{LinkHintMode::None};
     QMap<int, Model::LinkInfo> m_link_hint_map;
@@ -231,7 +236,6 @@ private:
     OutlineWidget *m_owidget{nullptr};
     PropertiesWidget *m_propsWidget{nullptr};
     QMap<QString, std::function<void(const QStringList &args)>> m_actionMap;
-    bool m_load_default_keybinding{true};
     QClipboard *m_clipboard = QGuiApplication::clipboard();
     QSqlDatabase m_last_pages_db;
     QString m_session_name;
