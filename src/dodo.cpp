@@ -1961,7 +1961,10 @@ dodo::updatePanel() noexcept
         Model *model = m_doc->model();
         if (!model)
             return;
-        m_panel->setFileName(m_doc->windowTitle());
+        if (m_config.ui.full_filepath_in_panel)
+            m_panel->setFileName(m_doc->filePath());
+        else
+            m_panel->setFileName(m_doc->fileName());
         m_panel->setHighlightColor(model->highlightColor());
         m_panel->setMode(m_doc->selectionMode());
         m_panel->setTotalPageCount(model->numPages());

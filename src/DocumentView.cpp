@@ -28,7 +28,7 @@ extern "C"
 struct rusage usage;
 #endif
 
-DocumentView::DocumentView(const QString &fileName, const Config &config,
+DocumentView::DocumentView(const QString &filePath, const Config &config,
                            QWidget *parent)
     : QWidget(parent), m_config(config)
 {
@@ -97,7 +97,7 @@ DocumentView::DocumentView(const QString &fileName, const Config &config,
             Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
     initConnections();
-    m_file_opened_successfully = openFile(fileName);
+    m_file_opened_successfully = openFile(filePath);
 
 #ifdef NDEBUG
 #else

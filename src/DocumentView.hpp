@@ -37,7 +37,7 @@ class DocumentView : public QWidget
 {
     Q_OBJECT
 public:
-    DocumentView(const QString &fileName, const Config &config,
+    DocumentView(const QString &filePath, const Config &config,
                  QWidget *parent = nullptr);
     ~DocumentView();
 
@@ -172,6 +172,11 @@ public:
     // m_config.window_title_format; }
 
     inline QString fileName() const noexcept
+    {
+        return QFileInfo(m_filepath).fileName();
+    }
+
+    inline const QString &filePath() const noexcept
     {
         return m_filepath;
     }
