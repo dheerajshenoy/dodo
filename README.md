@@ -40,6 +40,9 @@ streamlined interface and robust functionality with minimal resource usage.
 
 ### Jump Marker feature in action
 <img src="./images/jump-marker.gif" alt="dodo jump marker feature" width="800"/>
+
+### Synctex forward search from dodo to tex editor (Zed editor in this case)
+<img src="./images/synctex.gif" alt="dodo synctex forward search feature" width="800"/>
 </p>
 
 ## Features
