@@ -38,6 +38,7 @@ add_executable(${PROJECT_NAME}
     src/Annotation.cpp
     src/EditLastPagesWidget.cpp
     src/SearchBar.cpp
+    src/SaveSessionDialog.cpp
 
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp

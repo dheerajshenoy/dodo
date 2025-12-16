@@ -15,6 +15,7 @@
 #include <QStackedLayout>
 #include <QStyleHints>
 #include <qguiapplication.h>
+#include <qjsonarray.h>
 #include <qnamespace.h>
 #include <qstackedlayout.h>
 #include <variant>
@@ -25,6 +26,32 @@ dodo::dodo() noexcept
     setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
     setAcceptDrops(true);
     installEventFilter(this);
+}
+
+dodo::dodo(const QString &sessionName, const QJsonArray &sessionArray) noexcept
+{
+    setAttribute(Qt::WA_NativeWindow); // This is necessary for DPI updates
+    setAcceptDrops(true);
+    installEventFilter(this);
+    construct();
+    for (const QJsonValue &value : sessionArray)
+    {
+        const QJsonObject entry = value.toObject();
+        const QString filePath  = entry["file_path"].toString();
+        const int page          = entry["current_page"].toInt();
+        const double zoom       = entry["zoom"].toDouble();
+        const int fitMode       = entry["fit_mode"].toInt();
+        const bool invert       = entry["invert_color"].toBool();
+
+        DocumentView *view = new DocumentView(filePath, m_config, m_tab_widget);
+        if (invert)
+            view->model()->setInvertColor(true);
+        view->GotoPage(page);
+        view->Zoom(zoom);
+        view->Fit(static_cast<DocumentView::FitMode>(fitMode));
+        OpenFile(view);
+    }
+    m_panel->setSessionName(sessionName);
 }
 
 // Destructor for `dodo` class
