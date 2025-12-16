@@ -63,6 +63,17 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     const QPointF scenePos = mapToScene(viewPos);
 
     /* --------------------------------------------------
+     * SyncTeX (ABSOLUTE PRIORITY)
+     * -------------------------------------------------- */
+    if (m_mode == Mode::TextSelection && event->button() == Qt::LeftButton
+        && (event->modifiers() & Qt::ShiftModifier))
+    {
+        emit synctexJumpRequested(scenePos);
+        m_ignore_next_release = true;
+        return; // 🔴 do NOT fall through
+    }
+
+    /* --------------------------------------------------
      * Right click handling
      * -------------------------------------------------- */
     if (event->button() == Qt::RightButton)
@@ -83,17 +94,6 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
             QGraphicsView::mousePressEvent(event);
             return;
         }
-    }
-
-    /* --------------------------------------------------
-     * SyncTeX (ABSOLUTE PRIORITY)
-     * -------------------------------------------------- */
-    if (m_mode == Mode::TextSelection && event->button() == Qt::LeftButton
-        && (event->modifiers() & Qt::ShiftModifier))
-    {
-        emit synctexJumpRequested(scenePos);
-        event->accept();
-        return; // 🔴 do NOT fall through
     }
 
     if (event->button() == Qt::LeftButton)
@@ -290,6 +290,12 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
 void
 GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 {
+    if (m_ignore_next_release)
+    {
+        m_ignore_next_release = false;
+        return;
+    }
+
     const QPoint viewPos   = event->pos();
     const QPointF scenePos = mapToScene(viewPos);
 

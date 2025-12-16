@@ -121,6 +121,7 @@ private:
     bool m_selecting{false};
     bool m_dragging{false};
     bool m_page_nav_with_mouse{true};
+    bool m_ignore_next_release{false};
     Mode m_mode{Mode::TextSelection};
     QGraphicsPixmapItem *m_pixmapItem{nullptr};
     QRubberBand *m_rubberBand{nullptr};
