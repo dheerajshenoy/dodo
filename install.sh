@@ -60,7 +60,7 @@ build_mupdf() {
 install_desktop_file() {
     # I have dodo-template.desktop in the repo root, it has a @PREFIX placeholder
     echo "Preparing desktop file..."
-    sed "s|@PREFIX|$PREFIX|g" dodo-template.desktop > dodo.desktop
+    sed "s|@PREFIX|$PREFIX/bin|g" dodo-template.desktop > dodo.desktop
     if [ -w "/usr/share/applications" ]; then
         cp dodo.desktop /usr/share/applications/dodo.desktop
     else
