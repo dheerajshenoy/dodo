@@ -38,6 +38,7 @@ streamlined interface and robust functionality with minimal resource usage.
 <img src="./images/dodo.png" alt="dodo in action" width="800"/>
 <br>
 <img src="./images/jump-marker.gif" alt="dodo jump marker feature" width="800"/>
+<em>Jump Marker feature in action</em>
 </p>
 
 ## Features
