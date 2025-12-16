@@ -7,6 +7,10 @@
 - Fix .desktop file installation
 - Fix skinny statusbar
 - Fix panel file name display (absolute vs relative path)
+- Fix session file overwriting without prompt
+- Fix session path to file
+- Add session button to panel
+- Fix session button label 
 
 ## 0.4.0
 
