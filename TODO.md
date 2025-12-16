@@ -19,6 +19,8 @@
 - [X] Open containing folder option
 - [X] Popup Annotation
 - [X] Fix unsaved changes being asked multiple times
+- [X] Ask overwrite on session save
+- [X] Session exit update page numbers
 - [ ] Undo/Redo operations
   - [X] Rect Annotation
   - [X] Text Highlight Annotation
@@ -42,5 +44,3 @@
 - [ ] Underline annotation
 - [ ] Two page side-by-side view mode
 - [ ] Two selected page view mode
-- [ ] Ask overwrite on session save
-- [ ] Session exit update page numbers

@@ -2099,7 +2099,8 @@ dodo::SaveSession() noexcept
     }
 
     const QStringList &existingSessions = getSessionFiles();
-
+    if (sessionName.empt
+    
     while (true)
     {
         SaveSessionDialog dialog(existingSessions, this);
