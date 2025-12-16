@@ -86,6 +86,7 @@ streamlined interface and robust functionality with minimal resource usage.
 > 1. `main (default)` - This branch has all the stable features. (recommended)
 > 2. `AI` - This branch has AI based features like summarization, text extraction etc. (not as updated as main branch)
 >
+
 > [!NOTE]
 > The `install.sh` script installs latest version of MuPDF library required for dodo
 
