@@ -41,15 +41,19 @@ Panel::initGui() noexcept
     // m_layout->setContentsMargins(0, 0, 0, 0);
     setLayout(m_layout);
 
+    // Left
     auto *leftLayout = new QHBoxLayout;
+    leftLayout->addWidget(m_session_label);
     leftLayout->addWidget(m_filename_label);
 
+    // Center
     auto *centerLayout = new QHBoxLayout;
     m_pageno_box->setFocusPolicy(Qt::ClickFocus);
     centerLayout->addWidget(m_pageno_box);
     centerLayout->addWidget(m_pageno_separator);
     centerLayout->addWidget(m_totalpage_label);
 
+    // Right
     auto *rightLayout = new QHBoxLayout;
     rightLayout->addWidget(m_mode_color_label);
     rightLayout->addWidget(m_mode_label);
@@ -141,4 +145,17 @@ Panel::hidePageInfo(bool state) noexcept
     m_pageno_separator->setVisible(!state);
     m_totalpage_label->setVisible(!state);
     m_mode_label->setVisible(!state);
+}
+
+void
+Panel::setSessionName(const QString &name) noexcept
+{
+    if (name.isEmpty())
+        m_session_label->hide();
+    else
+    {
+        // We are assuming here that the session name is valid and exists
+        m_session_label->show();
+        m_session_label->setText(name);
+    }
 }
