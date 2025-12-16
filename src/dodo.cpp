@@ -626,6 +626,7 @@ void
 dodo::initGui() noexcept
 {
     QWidget *widget = new QWidget();
+    m_layout->setContentsMargins(0, 0, 0, 0);
 
     // Panel
     m_panel = new Panel(this);
