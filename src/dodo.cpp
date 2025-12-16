@@ -729,7 +729,7 @@ dodo::updateUiEnabledState() noexcept
     m_actionToggleOutline->setEnabled(hasOpenedFile);
     m_actionInvertColor->setEnabled(hasOpenedFile);
     m_actionSaveFile->setEnabled(hasOpenedFile);
-    m_actionSaveAsFile->setEnabled(hasOpenedFile);
+    m_actionSaveAsFile->setEnabled(m_is_session);
     m_actionPrevLocation->setEnabled(hasOpenedFile);
     m_actionEncrypt->setEnabled(hasOpenedFile);
     m_actionDecrypt->setEnabled(hasOpenedFile);
@@ -2027,14 +2027,12 @@ dodo::LoadSession(QString sessionName) noexcept
     {
         bool ok;
         sessionName = QInputDialog::getItem(
-            this, "Save Session",
-            "Enter name for session (existing sessions are listed): ",
+            this, "Load Session",
+            "Session to load (existing sessions are listed): ",
             existingSessions, 0, true, &ok);
     }
 
-    sessionName = sessionName + ".json";
-
-    QFile file(m_session_dir.filePath(sessionName));
+    QFile file(m_session_dir.filePath(sessionName + ".json"));
 
     if (file.open(QIODevice::ReadOnly))
     {
@@ -2053,26 +2051,8 @@ dodo::LoadSession(QString sessionName) noexcept
             return;
         }
 
-        QJsonArray sessionArray = doc.array();
-
-        for (const QJsonValue &value : sessionArray)
-        {
-            const QJsonObject entry = value.toObject();
-            const QString filePath  = entry["file_path"].toString();
-            const int page          = entry["current_page"].toInt();
-            const double zoom       = entry["zoom"].toDouble();
-            const int fitMode       = entry["fit_mode"].toInt();
-            const bool invert       = entry["invert_color"].toBool();
-
-            DocumentView *view
-                = new DocumentView(filePath, m_config, m_tab_widget);
-            if (invert)
-                view->model()->setInvertColor(true);
-            view->GotoPage(page);
-            view->Zoom(zoom);
-            view->Fit(static_cast<DocumentView::FitMode>(fitMode));
-            OpenFile(view);
-        }
+        // Create a new dodo window to load the session into
+        dodo *newWindow = new dodo(sessionName, doc.array());
     }
     else
     {
@@ -2109,7 +2089,7 @@ dodo::getSessionFiles() noexcept
 
 // Saves the current session
 void
-dodo::SaveSession(QString sessionName) noexcept
+dodo::SaveSession() noexcept
 {
     if (!m_doc)
     {
@@ -2118,32 +2098,52 @@ dodo::SaveSession(QString sessionName) noexcept
         return;
     }
 
-    if (m_session_name.isEmpty())
+    const QStringList &existingSessions = getSessionFiles();
+
+    while (true)
     {
-        QStringList existingSessions = getSessionFiles();
+        SaveSessionDialog dialog(existingSessions, this);
+
+        if (dialog.exec() != QDialog::Accepted)
+            return;
+
+        const QString &sessionName = dialog.sessionName();
+
         if (sessionName.isEmpty())
         {
-            bool ok;
-            sessionName = QInputDialog::getItem(
-                this, "Save Session",
-                "Enter name for session (existing sessions are listed): ",
-                existingSessions, 0, true, &ok);
-            if (sessionName.isEmpty())
-                return;
+            QMessageBox::information(this, "Save Session",
+                                     "Session name cannot be empty");
+            return;
         }
-        else
+
+        if (m_session_name != sessionName)
         {
+            // Ask for overwrite if session with same name exists
             if (existingSessions.contains(sessionName))
             {
-                QMessageBox::warning(
-                    this, "Save Session",
-                    QString("Session name %1 already exists").arg(sessionName));
-                return;
+                auto choice = QMessageBox::warning(
+                    this, "Overwrite Session",
+                    QString(
+                        "Session named \"%1\" already exists. Do you want to "
+                        "overwrite it?")
+                        .arg(sessionName),
+                    QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+
+                if (choice == QMessageBox::No)
+                    continue;
+                if (choice == QMessageBox::Yes)
+                {
+                    m_session_name = sessionName;
+                    break;
+                }
+            }
+            else
+            {
+                m_session_name = sessionName;
+                break;
             }
         }
     }
-
-    m_session_name = sessionName;
 
     QJsonArray sessionArray;
 
@@ -2155,7 +2155,7 @@ dodo::SaveSession(QString sessionName) noexcept
             continue;
 
         QJsonObject entry;
-        entry["file_path"]    = doc->fileName();
+        entry["file_path"]    = doc->filePath();
         entry["current_page"] = doc->pageNo();
         entry["zoom"]         = doc->zoom();
         entry["invert_color"] = doc->model()->invertColor();
@@ -2177,8 +2177,6 @@ dodo::SaveSession(QString sessionName) noexcept
     QJsonDocument doc(sessionArray);
     file.write(doc.toJson());
     file.close();
-
-    m_session_name = sessionName;
 }
 
 // Saves the current session under new name
@@ -2709,4 +2707,11 @@ dodo::ToggleSearchBar() noexcept
     if (!m_doc)
         return;
     m_search_bar->setVisible(!m_search_bar->isVisible());
+}
+
+void
+dodo::setSessionName(const QString &name) noexcept
+{
+    m_session_name = name;
+    m_panel->setSessionName(name);
 }
