@@ -52,6 +52,7 @@ dodo::dodo(const QString &sessionName, const QJsonArray &sessionArray) noexcept
         view->Fit(static_cast<DocumentView::FitMode>(fitMode));
         OpenFile(view);
     }
+    setSessionName(sessionName);
     m_panel->setSessionName(sessionName);
 }
 
@@ -123,7 +124,7 @@ dodo::initMenubar() noexcept
     m_actionSessionLoad
         = sessionMenu->addAction("Load", this, [&]() { LoadSession(); });
 
-    m_actionSessionSaveAs->setEnabled(m_is_session);
+    m_actionSessionSaveAs->setEnabled(!m_session_name.isEmpty());
 
     m_actionCloseFile = fileMenu->addAction(
         QString("Close File\t%1").arg(m_config.shortcuts["close_file"]), this,
@@ -729,7 +730,7 @@ dodo::updateUiEnabledState() noexcept
     m_actionToggleOutline->setEnabled(hasOpenedFile);
     m_actionInvertColor->setEnabled(hasOpenedFile);
     m_actionSaveFile->setEnabled(hasOpenedFile);
-    m_actionSaveAsFile->setEnabled(m_is_session);
+    m_actionSaveAsFile->setEnabled(hasOpenedFile);
     m_actionPrevLocation->setEnabled(hasOpenedFile);
     m_actionEncrypt->setEnabled(hasOpenedFile);
     m_actionDecrypt->setEnabled(hasOpenedFile);
@@ -1650,6 +1651,10 @@ dodo::handleCurrentTabChanged(int index) noexcept
 void
 dodo::closeEvent(QCloseEvent *e)
 {
+    // Update session file if in session
+    if (!m_session_name.isEmpty())
+        writeSessionToFile(m_session_name);
+
     // First pass: handle all unsaved changes dialogs and mark documents as
     // handled
     for (int i = 0; i < m_tab_widget->count(); i++)
@@ -1658,8 +1663,9 @@ dodo::closeEvent(QCloseEvent *e)
             = qobject_cast<DocumentView *>(m_tab_widget->widget(i));
         if (doc)
         {
+            Model *model = doc->model();
             // Unsaved Changes
-            if (doc->model()->hasUnsavedChanges())
+            if (model->hasUnsavedChanges())
             {
                 int ret = QMessageBox::warning(
                     this, "Unsaved Changes",
@@ -1677,7 +1683,7 @@ dodo::closeEvent(QCloseEvent *e)
                 }
                 else if (ret == QMessageBox::Save)
                 {
-                    if (!doc->model()->save())
+                    if (!model->save())
                     {
                         QMessageBox::critical(this, "Save Failed",
                                               "Could not save the file.");
@@ -2099,8 +2105,7 @@ dodo::SaveSession() noexcept
     }
 
     const QStringList &existingSessions = getSessionFiles();
-    if (sessionName.empt
-    
+
     while (true)
     {
         SaveSessionDialog dialog(existingSessions, this);
@@ -2134,18 +2139,24 @@ dodo::SaveSession() noexcept
                     continue;
                 if (choice == QMessageBox::Yes)
                 {
-                    m_session_name = sessionName;
+                    setSessionName(sessionName);
                     break;
                 }
             }
             else
             {
-                m_session_name = sessionName;
+                setSessionName(sessionName);
                 break;
             }
         }
     }
+    // Save the session now
+    writeSessionToFile(m_session_dir.filePath(m_session_name + ".json"));
+}
 
+void
+dodo::writeSessionToFile(const QString &sessionName) noexcept
+{
     QJsonArray sessionArray;
 
     for (int i = 0; i < m_tab_widget->count(); ++i)
@@ -2157,7 +2168,7 @@ dodo::SaveSession() noexcept
 
         QJsonObject entry;
         entry["file_path"]    = doc->filePath();
-        entry["current_page"] = doc->pageNo();
+        entry["current_page"] = doc->pageNo() + 1;
         entry["zoom"]         = doc->zoom();
         entry["invert_color"] = doc->model()->invertColor();
         entry["rotation"]     = doc->rotation();

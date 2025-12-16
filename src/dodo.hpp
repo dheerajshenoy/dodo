@@ -132,6 +132,7 @@ private:
     void gotoPage(int pageno) noexcept;
     void LoadSession(QString name = QString()) noexcept;
     void SaveSession() noexcept;
+    void writeSessionToFile(const QString &sessionName) noexcept;
     void SaveAsSession(const QString &name = QString()) noexcept;
     void GotoTab(int tabno) noexcept;
     void LastTab() noexcept;
@@ -227,7 +228,7 @@ private:
     QString m_config_file_path;
     QString m_currentHintInput;
     bool m_link_hint_mode{false}, m_focus_mode{false},
-        m_load_default_keybinding{true}, m_is_session{false};
+        m_load_default_keybinding{true};
     StartupWidget *m_startup_widget{nullptr};
     LinkHintMode m_link_hint_current_mode{LinkHintMode::None};
     QMap<int, Model::LinkInfo> m_link_hint_map;
