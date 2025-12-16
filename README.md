@@ -78,6 +78,13 @@ streamlined interface and robust functionality with minimal resource usage.
 > Sometimes the latest MuPDF version may have compatibility issues with dodo. For now, you have to go into the `install.sh` script
 > and change the version to a latest one that is known to work with dodo.
 
+> [!NOTE]
+> By default dodo is installed to `/usr/local/` directory. You can change this by passing a different prefix to the `install.sh` script like so:
+>```bash
+> ./install.sh /your/custom/prefix
+> Example: ./install.sh /usr
+>```
+
 ### Arch Linux
 
 ```bash
