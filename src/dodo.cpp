@@ -115,9 +115,14 @@ dodo::initMenubar() noexcept
 
     QMenu *sessionMenu = fileMenu->addMenu("Session");
 
-    sessionMenu->addAction("Save", this, [&]() { SaveSession(); });
-    sessionMenu->addAction("Save As", this, [&]() { SaveAsSession(); });
-    sessionMenu->addAction("Load", this, [&]() { LoadSession(); });
+    m_actionSessionSave
+        = sessionMenu->addAction("Save", this, [&]() { SaveSession(); });
+    m_actionSessionSaveAs
+        = sessionMenu->addAction("Save As", this, [&]() { SaveAsSession(); });
+    m_actionSessionLoad
+        = sessionMenu->addAction("Load", this, [&]() { LoadSession(); });
+
+    m_actionSessionSaveAs->setEnabled(m_is_session);
 
     m_actionCloseFile = fileMenu->addAction(
         QString("Close File\t%1").arg(m_config.shortcuts["close_file"]), this,
