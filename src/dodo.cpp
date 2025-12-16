@@ -752,7 +752,7 @@ dodo::ShowAbout() noexcept
 {
     AboutDialog *abw = new AboutDialog(this);
     abw->setAppInfo(__DODO_VERSION, "A fast, unintrusive pdf reader");
-    abw->exec();
+    abw->show();
 }
 
 // Reads the arguments passed with `dodo` from the

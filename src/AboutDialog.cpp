@@ -18,7 +18,6 @@ AboutDialog::AboutDialog(QWidget *parent)
       closeButton(new QPushButton("Close"))
 {
     setWindowTitle("About");
-    setModal(true);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint
                    & ~Qt::WindowMaximizeButtonHint);
 
@@ -68,6 +67,7 @@ AboutDialog::AboutDialog(QWidget *parent)
 
     QWidget *softwaresUsed = softwaresUsedSection();
     m_tabWidget->addTab(softwaresUsed, "Libraries Used");
+    setWindowModality(Qt::NonModal);
 }
 
 void
