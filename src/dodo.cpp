@@ -665,6 +665,7 @@ dodo::initGui() noexcept
     m_panel = new Panel(this);
     m_panel->hidePageInfo(true);
     m_panel->setMode(GraphicsView::Mode::TextSelection);
+    m_panel->setSessionName("");
 
     m_search_bar = new SearchBar(this);
     m_search_bar->setVisible(false);
