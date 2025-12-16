@@ -26,7 +26,6 @@ streamlined interface and robust functionality with minimal resource usage.
 - [Usage](#usage)
 - [Configuration](#configuration)
 - [Theming dodo](#theming-dodo)
-- [Spotlight](#spotlight)
 - [TODO](#todo)
 - [Contributing](#contributing)
 - [FAQ](#faq)
@@ -140,18 +139,6 @@ Check out kvantum's install page [here](https://github.com/tsujan/Kvantum/blob/m
 Once installed, you can select a theme you like in the `kvantummanager` app and
 add `QT_STYLE_OVERRIDE=kvantum` env variable. On the next launch, you should have
 the specified theme loaded in dodo.
-
-## Spotlight
-
-Demo video of few of the features of dodo
-
-### Demo of speed
-
-https://github.com/user-attachments/assets/a4c9ae7e-401e-4b02-9ae1-b70ff10079ab
-
-### Jump Marker
-
-https://github.com/user-attachments/assets/0f2c99ec-8b82-4c9b-9f41-e0af971c41aa
 
 ## TODO
 
