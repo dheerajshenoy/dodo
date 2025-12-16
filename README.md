@@ -34,8 +34,10 @@ streamlined interface and robust functionality with minimal resource usage.
 
 <p align="center">
 <img src="./images/home.png" alt="dodo home screen" width="800"/>
+<em>Home screen</em>
 <br>
 <img src="./images/dodo.png" alt="dodo in action" width="800"/>
+<em>File opened + outline panel</em>
 <br>
 <img src="./images/jump-marker.gif" alt="dodo jump marker feature" width="800"/>
 <em>Jump Marker feature in action</em>
