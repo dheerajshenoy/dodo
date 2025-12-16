@@ -69,8 +69,5 @@ target_link_libraries(
     synctex)
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
-
-install(FILES dodo.desktop DESTINATION share/applications)
-
 #Install icons to correct freedesktop - compliant locations
 install(DIRECTORY resources/hicolor DESTINATION share/icons FILES_MATCHING PATTERN "*.png")

@@ -57,6 +57,20 @@ build_mupdf() {
     echo "MuPDF built successfully."
 }
 
+install_desktop_file() {
+    # I have dodo-template.desktop in the repo root, it has a @PREFIX placeholder
+    echo "Preparing desktop file..."
+    sed "s|@PREFIX|$PREFIX|g" dodo-template.desktop > dodo.desktop
+    if [ -w "/usr/share/applications" ]; then
+        cp dodo.desktop /usr/share/applications/dodo.desktop
+    else
+        echo "Installing desktop file requires sudo."
+        sudo cp dodo.desktop /usr/share/applications/dodo.desktop
+    fi
+    rm dodo.desktop
+    echo "Desktop file installed."
+}
+
 build_dodo() {
     echo "Building dodo..."
 
@@ -79,6 +93,8 @@ build_dodo() {
     fi
 
     cd - >/dev/null
+
+
     echo "dodo installed successfully."
 }
 
@@ -89,3 +105,4 @@ download_mupdf
 extract_mupdf
 build_mupdf
 build_dodo
+install_desktop_file

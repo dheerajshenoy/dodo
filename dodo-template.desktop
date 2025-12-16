@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=dodo
+Exec=@PREFIX/dodo %f
+Icon=dodo
+Type=Application
+Categories=Qt;Office;Viewer;Graphics;
+MimeType=application/pdf;application/x-pdf;
+Terminal=false
+StartupNotify=true
+
