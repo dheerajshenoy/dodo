@@ -10,7 +10,7 @@
 - Fix session file overwriting without prompt
 - Fix session path to file
 - Add session button to panel
-- Fix session button label 
+- Fix session button label
 - Fix synctex not working after reloading file
 - Update session files if in session on application exit
 - Fix loading session opening second window on launch
