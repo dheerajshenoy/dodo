@@ -1885,7 +1885,7 @@ DocumentView::synctexJumpRequested(const QPointF &loc) noexcept
 {
     if (m_synctex_scanner)
     {
-        fz_point pt = mapToPdf(loc);
+        const fz_point &pt = mapToPdf(loc);
         if (synctex_edit_query(m_synctex_scanner, m_pageno + 1, pt.x, pt.y) > 0)
         {
             synctex_node_p node;
