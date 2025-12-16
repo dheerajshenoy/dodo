@@ -10,6 +10,12 @@
 Panel::Panel(QWidget *parent) : QWidget(parent)
 {
     initGui();
+    initConnections();
+}
+
+void
+Panel::initConnections() noexcept
+{
     connect(m_mode_color_label, &CircleLabel::clicked,
             [&]() { emit modeColorChangeRequested(m_current_mode); });
     connect(m_pageno_box, &QLineEdit::returnPressed, [&]()
