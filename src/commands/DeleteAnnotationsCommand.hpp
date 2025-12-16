@@ -21,17 +21,16 @@ public:
     // Structure to hold captured annotation data
     struct AnnotationData
     {
-        int objNum = -1;
+        int objNum               = -1;
         enum pdf_annot_type type = PDF_ANNOT_UNKNOWN;
         fz_rect rect;
         float color[4] = {0, 0, 0, 1};
-        QVector<fz_quad> quads;  // For highlight annotations
-        QString contents;        // For text annotations
+        QVector<fz_quad> quads; // For highlight annotations
+        QString contents;       // For text annotations
     };
 
     // Constructor that captures annotations by their indexes before deletion
-    DeleteAnnotationsCommand(Model *model, int pageno,
-                             const QSet<int> &indexes,
+    DeleteAnnotationsCommand(Model *model, int pageno, const QSet<int> &indexes,
                              QUndoCommand *parent = nullptr)
         : QUndoCommand("Delete Annotations", parent), m_model(model),
           m_pageno(pageno)
@@ -70,7 +69,8 @@ public:
                 {
                     case PDF_ANNOT_HIGHLIGHT:
                     {
-                        annot = pdf_create_annot(ctx, page, PDF_ANNOT_HIGHLIGHT);
+                        annot
+                            = pdf_create_annot(ctx, page, PDF_ANNOT_HIGHLIGHT);
                         if (annot && !data.quads.isEmpty())
                         {
                             pdf_set_annot_quad_points(ctx, annot,
@@ -228,8 +228,8 @@ private:
                             data.color[3] = opacity;
 
                             // Capture quad points
-                            int quad_count =
-                                pdf_annot_quad_point_count(ctx, annot);
+                            int quad_count
+                                = pdf_annot_quad_point_count(ctx, annot);
                             data.quads.reserve(quad_count);
                             for (int i = 0; i < quad_count; ++i)
                             {
@@ -241,7 +241,8 @@ private:
 
                         case PDF_ANNOT_SQUARE:
                         {
-                            pdf_annot_interior_color(ctx, annot, &n, data.color);
+                            pdf_annot_interior_color(ctx, annot, &n,
+                                                     data.color);
                             data.color[3] = opacity;
                             data.rect     = pdf_annot_rect(ctx, annot);
                         }
@@ -250,9 +251,10 @@ private:
                         case PDF_ANNOT_TEXT:
                         {
                             pdf_annot_color(ctx, annot, &n, data.color);
-                            data.color[3]        = opacity;
-                            data.rect            = pdf_annot_rect(ctx, annot);
-                            const char *contents = pdf_annot_contents(ctx, annot);
+                            data.color[3] = opacity;
+                            data.rect     = pdf_annot_rect(ctx, annot);
+                            const char *contents
+                                = pdf_annot_contents(ctx, annot);
                             if (contents)
                                 data.contents = QString::fromUtf8(contents);
                         }

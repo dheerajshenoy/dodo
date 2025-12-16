@@ -13,7 +13,8 @@ class RenderTask : public QObject, public QRunnable
 {
     Q_OBJECT
 public:
-    RenderTask(fz_context *ctx, fz_document *doc, fz_colorspace *colorspace, int pageno, fz_matrix transform);
+    RenderTask(fz_context *ctx, fz_document *doc, fz_colorspace *colorspace,
+               int pageno, fz_matrix transform);
     void run() override; // QRunnable
 
 signals:

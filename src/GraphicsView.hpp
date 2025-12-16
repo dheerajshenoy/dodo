@@ -130,6 +130,6 @@ private:
     int m_clickCount{0};
     QElapsedTimer m_clickTimer;
     QPointF m_lastClickPos;
-    static constexpr int MULTI_CLICK_INTERVAL = 400; // ms
+    static constexpr int MULTI_CLICK_INTERVAL        = 400; // ms
     static constexpr double CLICK_DISTANCE_THRESHOLD = 5.0; // pixels
 };

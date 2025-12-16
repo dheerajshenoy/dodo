@@ -2286,10 +2286,7 @@ dodo::initActionMap() noexcept
             m_message_bar->showMessage(QStringLiteral("Invalid tab index"));
     }},
         {QStringLiteral("region_select_mode"),
-         [this](const QStringList &)
-    {
-        ToggleRegionSelect();
-    }},
+         [this](const QStringList &) { ToggleRegionSelect(); }},
 
         // Actions without arguments
         ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),

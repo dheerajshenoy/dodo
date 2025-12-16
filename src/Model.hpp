@@ -340,7 +340,8 @@ private:
     QUndoStack *m_undoStack;
     fz_outline *m_outline{nullptr};
 
-    // Selection bounds stored as fz_point for efficiency (no conversion needed)
+    // Selection bounds stored as fz_point for efficiency (no conversion
+    // needed)
     fz_point m_sel_start{0, 0};
     fz_point m_sel_end{0, 0};
     bool m_has_selection{false};

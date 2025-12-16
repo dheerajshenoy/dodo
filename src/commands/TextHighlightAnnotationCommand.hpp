@@ -104,8 +104,8 @@ public:
             // This looks better visually for multi-line selections
             for (const fz_quad &quad : m_quads)
             {
-                pdf_annot *annot =
-                    pdf_create_annot(ctx, page, PDF_ANNOT_HIGHLIGHT);
+                pdf_annot *annot
+                    = pdf_create_annot(ctx, page, PDF_ANNOT_HIGHLIGHT);
                 if (!annot)
                     continue;
 
