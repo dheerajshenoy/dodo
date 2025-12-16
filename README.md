@@ -16,6 +16,7 @@ streamlined interface and robust functionality with minimal resource usage.
 
 ## Table of Contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Dependencies](#dependencies)
 - [Installation](#installation)
@@ -29,6 +30,14 @@ streamlined interface and robust functionality with minimal resource usage.
 - [TODO](#todo)
 - [Contributing](#contributing)
 - [FAQ](#faq)
+
+## Screenshots
+
+<p align="center">
+<img src="./images/home.png" alt="dodo home screen" width="800"/>
+<br>
+<img src="./images/dodo.png" alt="dodo in action" width="800"/>
+</p>
 
 ## Features
 
