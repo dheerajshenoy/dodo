@@ -46,6 +46,7 @@ protected:
     bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
+    void construct() noexcept;
     void setDPR(float dpr) noexcept;
     void initDB() noexcept;
     void initDefaults() noexcept;
