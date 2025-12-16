@@ -39,7 +39,7 @@ public:
     ~dodo() noexcept;
 
     void readArgsParser(argparse::ArgumentParser &argparser) noexcept;
-    void construct() noexcept;
+    bool OpenFile(DocumentView *view) noexcept;
 
 protected:
     void closeEvent(QCloseEvent *e) override;
