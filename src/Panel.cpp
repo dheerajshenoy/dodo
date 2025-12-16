@@ -32,7 +32,7 @@ Panel::initGui() noexcept
 {
 
     setContentsMargins(0, 0, 0, 0);
-    m_layout->setContentsMargins(0, 0, 0, 0);
+    // m_layout->setContentsMargins(0, 0, 0, 0);
     setLayout(m_layout);
 
     auto *leftLayout = new QHBoxLayout;
