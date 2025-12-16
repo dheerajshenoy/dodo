@@ -35,23 +35,7 @@ dodo::dodo(const QString &sessionName, const QJsonArray &sessionArray) noexcept
     setAcceptDrops(true);
     installEventFilter(this);
     construct();
-    for (const QJsonValue &value : sessionArray)
-    {
-        const QJsonObject entry = value.toObject();
-        const QString filePath  = entry["file_path"].toString();
-        const int page          = entry["current_page"].toInt();
-        const double zoom       = entry["zoom"].toDouble();
-        const int fitMode       = entry["fit_mode"].toInt();
-        const bool invert       = entry["invert_color"].toBool();
-
-        DocumentView *view = new DocumentView(filePath, m_config, m_tab_widget);
-        if (invert)
-            view->model()->setInvertColor(true);
-        view->GotoPage(page);
-        view->Zoom(zoom);
-        view->Fit(static_cast<DocumentView::FitMode>(fitMode));
-        OpenFile(view);
-    }
+    openSessionFromArray(sessionArray);
     setSessionName(sessionName);
     m_panel->setSessionName(sessionName);
 }
@@ -812,7 +796,7 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 
     if (argparser.is_used("session"))
     {
-        QString sessionName
+        const QString &sessionName
             = QString::fromStdString(argparser.get<std::string>("--session"));
         LoadSession(sessionName);
     }
@@ -826,7 +810,7 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 
         // Format: --synctex-forward={pdf}#{src}:{line}:{column}
         // Example: --synctex-forward=test.pdf#main.tex:14
-        QString arg = QString::fromStdString(
+        const QString &arg = QString::fromStdString(
             argparser.get<std::string>("--synctex-forward"));
 
         // Format: file.pdf#file.tex:line
@@ -2057,8 +2041,17 @@ dodo::LoadSession(QString sessionName) noexcept
             return;
         }
 
-        // Create a new dodo window to load the session into
-        dodo *newWindow = new dodo(sessionName, doc.array());
+        // Create a new dodo window to load the session into if there's document
+        // already opened in the current window
+        if (m_tab_widget->count() > 0)
+        {
+            new dodo(sessionName, doc.array());
+        }
+        else
+        {
+            // Open here in this window
+            openSessionFromArray(doc.array());
+        }
     }
     else
     {
@@ -2726,4 +2719,26 @@ dodo::setSessionName(const QString &name) noexcept
 {
     m_session_name = name;
     m_panel->setSessionName(name);
+}
+
+void
+dodo::openSessionFromArray(const QJsonArray &sessionArray) noexcept
+{
+    for (const QJsonValue &value : sessionArray)
+    {
+        const QJsonObject entry = value.toObject();
+        const QString filePath  = entry["file_path"].toString();
+        const int page          = entry["current_page"].toInt();
+        const double zoom       = entry["zoom"].toDouble();
+        const int fitMode       = entry["fit_mode"].toInt();
+        const bool invert       = entry["invert_color"].toBool();
+
+        DocumentView *view = new DocumentView(filePath, m_config, m_tab_widget);
+        if (invert)
+            view->model()->setInvertColor(true);
+        view->GotoPage(page);
+        view->Zoom(zoom);
+        view->Fit(static_cast<DocumentView::FitMode>(fitMode));
+        OpenFile(view);
+    }
 }

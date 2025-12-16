@@ -12,6 +12,8 @@
 - Add session button to panel
 - Fix session button label 
 - Fix synctex not working after reloading file
+- Update session files if in session on application exit
+- Fix loading session opening second window on launch
 
 ## 0.4.0
 
