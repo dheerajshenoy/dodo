@@ -1,12 +1,30 @@
 #!/bin/sh
 set -e
+SKIP_MUPDF_BUILD=0
+PREFIX="/usr/local"
+# ============================================================
+# Arguments
+# ============================================================
+
+for arg in "$@"; do
+    case "$arg" in
+        --skip-mupdf-build)
+            SKIP_MUPDF_BUILD=1
+            ;;
+        *)
+            PREFIX="$arg"
+            ;;
+    esac
+done
 
 # ============================================================
 # Config
 # ============================================================
-PREFIX="${1:-/usr/local}"
+STAGE_DIR="$(pwd)/_stage"
+
 MUPDF_VERSION="1.27.0"
 MUPDF_URL="https://mupdf.com/downloads/archive/mupdf-${MUPDF_VERSION}-source.tar.gz"
+
 EXTERN_DIR="extern"
 MUPDF_TARBALL="${EXTERN_DIR}/mupdf-${MUPDF_VERSION}-source.tar.gz"
 MUPDF_SRC_DIR="${EXTERN_DIR}/mupdf"
@@ -21,7 +39,7 @@ download_mupdf() {
     mkdir -p "$EXTERN_DIR"
 
     if [ ! -f "$MUPDF_TARBALL" ]; then
-        echo "Downloading MuPDF $MUPDF_VERSION ..."
+        echo "Downloading MuPDF $MUPDF_VERSION..."
         wget -O "$MUPDF_TARBALL" "$MUPDF_URL"
     else
         echo "MuPDF source already downloaded."
@@ -30,7 +48,6 @@ download_mupdf() {
 
 extract_mupdf() {
     echo "Extracting MuPDF..."
-
     rm -rf "$MUPDF_SRC_DIR"
     tar -xf "$MUPDF_TARBALL" -C "$EXTERN_DIR"
     mv "${EXTERN_DIR}/mupdf-${MUPDF_VERSION}-source" "$MUPDF_SRC_DIR"
@@ -41,34 +58,15 @@ build_mupdf() {
     cd "$MUPDF_SRC_DIR"
 
     make -j"$(nproc)" \
-    HAVE_X11=no \
-    HAVE_GLUT=no \
-    build=release \
-    prefix="$PREFIX"
+        HAVE_X11=no \
+        HAVE_GLUT=no \
+        build=release \
+        prefix=/usr/local
 
-    echo "Installing MuPDF..."
-    if [ -w "$PREFIX" ]; then
-        make install prefix="$PREFIX"
-    else
-        sudo make install prefix="$PREFIX"
-    fi
+    make install DESTDIR="$STAGE_DIR"
 
     cd - >/dev/null
-    echo "MuPDF built successfully."
-}
-
-install_desktop_file() {
-    # I have dodo-template.desktop in the repo root, it has a @PREFIX placeholder
-    echo "Preparing desktop file..."
-    sed "s|@PREFIX|$PREFIX/bin|g" dodo-template.desktop > dodo.desktop
-    if [ -w "/usr/share/applications" ]; then
-        cp dodo.desktop /usr/share/applications/dodo.desktop
-    else
-        echo "Installing desktop file requires sudo."
-        sudo cp dodo.desktop /usr/share/applications/dodo.desktop
-    fi
-    rm dodo.desktop
-    echo "Desktop file installed."
+    echo "MuPDF built."
 }
 
 build_dodo() {
@@ -79,30 +77,46 @@ build_dodo() {
     cd build
 
     cmake .. \
-    -G Ninja \
-    -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-    -DCMAKE_BUILD_TYPE=Release
+        -G Ninja \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_BUILD_TYPE=Release
 
     ninja
-
-    if [ -w "$PREFIX" ] || [ -w "$(dirname "$PREFIX")" ]; then
-        ninja install
-    else
-        echo "Installing to $PREFIX requires sudo."
-        sudo ninja install
-    fi
+    DESTDIR="$STAGE_DIR" ninja install
 
     cd - >/dev/null
+    echo "dodo built."
+}
 
+install_desktop_file() {
+    echo "Preparing desktop file..."
 
-    echo "dodo installed successfully."
+    sed "s|@PREFIX|$PREFIX/bin|g" dodo-template.desktop > "$STAGE_DIR/usr/local/share/applications/dodo.desktop"
+}
+
+final_install() {
+    echo "Installing files to $PREFIX (requires sudo)..."
+
+    sudo mkdir -p "$PREFIX"
+    sudo cp -a "$STAGE_DIR"/usr/local/* "$PREFIX"/
+
+    echo "Installation complete."
 }
 
 # ============================================================
 # Workflow
 # ============================================================
-download_mupdf
-extract_mupdf
-build_mupdf
+
+rm -rf "$STAGE_DIR"
+mkdir -p "$STAGE_DIR/usr/local/share/applications"
+
+if [ "$SKIP_MUPDF_BUILD" -eq 0 ]; then
+    download_mupdf
+    extract_mupdf
+    build_mupdf
+else
+    echo "Skipping MuPDF build."
+fi
 build_dodo
 install_desktop_file
+final_install
