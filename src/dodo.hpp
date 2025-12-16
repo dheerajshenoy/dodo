@@ -28,7 +28,7 @@
 #include <QTabWidget>
 #include <qstackedlayout.h>
 
-#define __DODO_VERSION "v0.4.0"
+#define __DODO_VERSION "v0.4.1"
 
 class dodo : public QMainWindow
 {

@@ -11,6 +11,7 @@
 - Fix session path to file
 - Add session button to panel
 - Fix session button label 
+- Fix synctex not working after reloading file
 
 ## 0.4.0
 
