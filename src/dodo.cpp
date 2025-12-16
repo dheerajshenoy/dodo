@@ -4,6 +4,7 @@
 #include "DocumentView.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
+#include "SaveSessionDialog.hpp"
 #include "SearchBar.hpp"
 #include "StartupWidget.hpp"
 #include "toml.hpp"
