@@ -5,7 +5,7 @@
 
 [![GitHub License](https://shields.io/badge/LICENSE-AGPL-3)](https://opensource.org/license/agpl-v3)
 
-**Dodo** is a lightweight, high-performance PDF reader designed to provide a smooth and
+**Dodo** is an unintrusive, highly customizable and high-performance PDF reader designed to provide a smooth and
 efficient document viewing experience. Built using MuPDF and Qt, it supports tabs, does fast rendering,
 annotation handling (highlights and rects), and advanced features like SyncTeX integration for LaTeX users.
 Whether you're reading academic papers, technical manuals, or everyday documents, this reader offers a
