@@ -42,3 +42,5 @@
 - [ ] Underline annotation
 - [ ] Two page side-by-side view mode
 - [ ] Two selected page view mode
+- [ ] Ask overwrite on session save
+- [ ] Session exit update page numbers

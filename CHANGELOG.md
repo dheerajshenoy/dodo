@@ -1,5 +1,13 @@
 # dodo
 
+## 0.4.1
+- Remove padding around the document view
+- Fix installation script
+- Fix build issues
+- Fix .desktop file installation
+- Fix skinny statusbar
+- Fix panel file name display (absolute vs relative path)
+
 ## 0.4.0
 
 - Implement document reloading on external changes
