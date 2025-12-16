@@ -59,82 +59,87 @@ GraphicsView::setMode(Mode mode) noexcept
 void
 GraphicsView::mousePressEvent(QMouseEvent *event)
 {
-    // Right click on image to open context menu
+    const QPoint viewPos   = event->pos();
+    const QPointF scenePos = mapToScene(viewPos);
+
+    /* --------------------------------------------------
+     * Right click handling
+     * -------------------------------------------------- */
     if (event->button() == Qt::RightButton)
     {
-        QPointF scenePos = mapToScene(event->pos());
         emit rightClickRequested(scenePos);
         QGraphicsView::mousePressEvent(event);
         return;
     }
 
-    QGraphicsItem *item = itemAt(event->pos());
-    if (item && item->type() == QGraphicsProxyWidget::Type)
+    /* --------------------------------------------------
+     * Proxy widget handling
+     * -------------------------------------------------- */
+    if (QGraphicsItem *item = itemAt(viewPos))
     {
-        QPointF scenePos = mapToScene(event->pos());
-        emit rightClickRequested(scenePos);
-        QGraphicsView::mousePressEvent(event);
-        return;
+        if (item->type() == QGraphicsProxyWidget::Type)
+        {
+            emit rightClickRequested(scenePos);
+            QGraphicsView::mousePressEvent(event);
+            return;
+        }
     }
 
-    // Multi-click detection for left button
+    /* --------------------------------------------------
+     * SyncTeX (ABSOLUTE PRIORITY)
+     * -------------------------------------------------- */
+    if (m_mode == Mode::TextSelection && event->button() == Qt::LeftButton
+        && (event->modifiers() & Qt::ShiftModifier))
+    {
+        emit synctexJumpRequested(scenePos);
+        event->accept();
+        return; // 🔴 do NOT fall through
+    }
+
     if (event->button() == Qt::LeftButton)
     {
-        QPointF currentPos = event->pos();
+        const bool isMultiClick
+            = m_clickTimer.isValid()
+              && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL
+              && QLineF(viewPos, m_lastClickPos).length()
+                     < CLICK_DISTANCE_THRESHOLD;
 
-        // Check if this click is close to the last click and within time
-        // threshold
-        bool isMultiClick = m_clickTimer.isValid()
-                            && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL
-                            && QLineF(currentPos, m_lastClickPos).length()
-                                   < CLICK_DISTANCE_THRESHOLD;
-
-        if (isMultiClick)
-        {
-            m_clickCount++;
-            if (m_clickCount > 4)
-                m_clickCount = 1; // Reset after quadruple click
-        }
-        else
-        {
+        m_clickCount = isMultiClick ? m_clickCount + 1 : 1;
+        if (m_clickCount > 4)
             m_clickCount = 1;
-        }
 
-        m_lastClickPos = currentPos;
+        m_lastClickPos = viewPos;
         m_clickTimer.restart();
 
-        QPointF scenePos = mapToScene(event->pos());
+        emit textSelectionDeletionRequested();
 
-        // Handle multi-clicks
-        if (m_clickCount == 1)
+        switch (m_clickCount)
         {
-            // Single click clears any existing text selection
-            emit textSelectionDeletionRequested();
-        }
-        else if (m_clickCount == 2)
-        {
-            emit doubleClickRequested(scenePos);
-            return;
-        }
-        else if (m_clickCount == 3)
-        {
-            emit tripleClickRequested(scenePos);
-            return;
-        }
-        else if (m_clickCount == 4)
-        {
-            emit quadrupleClickRequested(scenePos);
-            return;
+            case 2:
+                emit doubleClickRequested(scenePos);
+                return;
+            case 3:
+                emit tripleClickRequested(scenePos);
+                return;
+            case 4:
+                emit quadrupleClickRequested(scenePos);
+                return;
+            default:
+                break;
         }
     }
 
+    /* --------------------------------------------------
+     * Mode-specific handling
+     * -------------------------------------------------- */
     switch (m_mode)
     {
         case Mode::RegionSelection:
+        case Mode::AnnotRect:
         {
             if (event->button() == Qt::LeftButton)
             {
-                m_start = event->pos();
+                m_start = viewPos;
                 m_rect  = QRect();
 
                 if (!m_rubberBand)
@@ -145,86 +150,58 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                 m_rubberBand->show();
                 m_selecting = true;
             }
+            break;
         }
-        break;
 
         case Mode::AnnotSelect:
         {
             if (event->button() == Qt::LeftButton)
             {
-                m_start     = event->pos();
+                m_start     = viewPos;
                 m_dragging  = false;
                 m_selecting = true;
             }
+            break;
         }
-
-        case Mode::AnnotRect:
-        {
-            if (event->button() == Qt::LeftButton)
-            {
-                m_start = event->pos();
-                m_rect  = QRect();
-
-                if (!m_rubberBand)
-                    m_rubberBand
-                        = new QRubberBand(QRubberBand::Rectangle, this);
-
-                m_rubberBand->setGeometry(QRect(m_start, QSize()));
-                m_rubberBand->show();
-                m_selecting = true;
-            }
-        }
-        break;
 
         case Mode::TextSelection:
         {
             if (event->button() == Qt::LeftButton)
             {
-                // Synctex stuff
-                if (event->modifiers() & Qt::ShiftModifier)
-                {
-                    emit synctexJumpRequested(mapToScene(event->pos()));
-                    return;
-                }
+                QGuiApplication::setOverrideCursor(Qt::IBeamCursor);
 
-                m_mousePressPos = mapToScene(event->pos());
-                QGuiApplication::setOverrideCursor(
-                    Qt::CursorShape::IBeamCursor);
-                m_selecting = true;
                 if (m_pixmapItem
-                    && m_pixmapItem->sceneBoundingRect().contains(
-                        m_mousePressPos))
+                    && m_pixmapItem->sceneBoundingRect().contains(scenePos))
                 {
-                    m_selection_start = m_mousePressPos;
-                    emit textSelectionDeletionRequested();
+                    m_mousePressPos   = scenePos;
+                    m_selection_start = scenePos;
+                    m_selecting       = true;
                 }
-                emit textSelectionDeletionRequested();
             }
+            break;
         }
-        break;
 
         case Mode::TextHighlight:
         {
             if (event->button() == Qt::LeftButton)
             {
-                QGuiApplication::setOverrideCursor(
-                    Qt::CursorShape::IBeamCursor);
-                m_mousePressPos = event->pos();
-                m_selecting     = true;
-                auto pos        = mapToScene(event->pos());
+                QGuiApplication::setOverrideCursor(Qt::IBeamCursor);
+
                 if (m_pixmapItem
-                    && m_pixmapItem->sceneBoundingRect().contains(pos))
+                    && m_pixmapItem->sceneBoundingRect().contains(scenePos))
                 {
-                    m_selection_start = pos;
-                    emit textSelectionDeletionRequested();
+                    m_mousePressPos   = scenePos;
+                    m_selection_start = scenePos;
+                    m_selecting       = true;
                 }
             }
+            break;
         }
-        break;
 
         default:
             break;
     }
+
     QGraphicsView::mousePressEvent(event);
 }
 
@@ -313,92 +290,103 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
 void
 GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 {
-    // Check if we're releasing over a proxy widget and we didn't start a
-    // selection
-    QGraphicsItem *item = itemAt(event->pos());
-    if (item && item->type() == QGraphicsProxyWidget::Type && !m_selecting)
+    const QPoint viewPos   = event->pos();
+    const QPointF scenePos = mapToScene(viewPos);
+
+    /* --------------------------------------------------
+     * Proxy widget passthrough
+     * -------------------------------------------------- */
+    if (!m_selecting)
     {
-        QGraphicsView::mouseReleaseEvent(event);
-        return;
+        if (QGraphicsItem *item = itemAt(viewPos))
+        {
+            if (item->type() == QGraphicsProxyWidget::Type)
+            {
+                QGraphicsView::mouseReleaseEvent(event);
+                return;
+            }
+        }
     }
 
-    // Check if it was a drag or a click
-    int dist = (event->pos() - m_mousePressPos).manhattanLength();
+    /* --------------------------------------------------
+     * Drag distance
+     * -------------------------------------------------- */
+    const int dist    = (viewPos - m_mousePressPos.toPoint()).manhattanLength();
+    const bool isDrag = dist > m_drag_threshold;
 
+    /* --------------------------------------------------
+     * Mode-specific handling
+     * -------------------------------------------------- */
     switch (m_mode)
     {
         case Mode::RegionSelection:
         {
-            if (event->button() == Qt::LeftButton && dist > m_drag_threshold)
+            if (event->button() == Qt::LeftButton && isDrag)
             {
-                QRectF sceneRect = mapToScene(m_rect).boundingRect();
-
                 if (!m_pixmapItem)
-                    return;
+                    break;
 
-                QRectF clippedRect
+                QRectF sceneRect = mapToScene(m_rect).boundingRect();
+                QRectF clipped
                     = sceneRect.intersected(m_pixmapItem->boundingRect());
-                if (!clippedRect.isEmpty())
-                    emit regionSelectRequested(clippedRect);
-                m_selecting = false;
+
+                if (!clipped.isEmpty())
+                    emit regionSelectRequested(clipped);
             }
+            break;
         }
-        break;
 
         case Mode::TextSelection:
         {
-            if (event->button() == Qt::LeftButton && dist > m_drag_threshold)
+            if (event->button() == Qt::LeftButton && isDrag)
             {
-                m_selection_end = mapToScene(event->pos());
+                m_selection_end = scenePos;
                 emit textSelectionRequested(m_selection_start, m_selection_end);
             }
-            QGuiApplication::restoreOverrideCursor();
-            m_selecting = false;
+            break;
         }
-        break;
 
         case Mode::TextHighlight:
         {
-            if (dist > m_drag_threshold)
+            if (isDrag)
             {
-                m_selection_end = mapToScene(event->pos());
+                m_selection_end = scenePos;
                 emit textHighlightRequested(m_selection_start, m_selection_end);
             }
-            QGuiApplication::restoreOverrideCursor();
-            m_selecting = false;
+
             emit textSelectionDeletionRequested();
+            break;
         }
-        break;
 
         case Mode::AnnotSelect:
         {
-            if (event->button() == Qt::LeftButton)
+            if (event->button() != Qt::LeftButton)
+                break;
+
+            if (!m_dragging)
             {
-                if (!m_dragging)
-                {
-                    // Single click on annotation
-                    emit annotSelectClearRequested();
-                    emit annotSelectRequested(mapToScene(event->pos()));
-                }
-                else
-                {
-                    // Drag selection of annotations
-                    if (m_rubberBand)
-                        m_rubberBand->hide();
-
-                    QRectF sceneRect = mapToScene(m_rect).boundingRect();
-
-                    if (!m_pixmapItem)
-                        return;
-
-                    QRectF clippedRect
-                        = sceneRect.intersected(m_pixmapItem->boundingRect());
-                    if (!clippedRect.isEmpty())
-                        emit annotSelectRequested(clippedRect);
-                }
+                // Single click
+                emit annotSelectClearRequested();
+                emit annotSelectRequested(scenePos);
             }
+            else
+            {
+                // Drag select
+                if (m_rubberBand)
+                    m_rubberBand->hide();
+
+                if (!m_pixmapItem)
+                    break;
+
+                QRectF sceneRect = mapToScene(m_rect).boundingRect();
+                QRectF clipped
+                    = sceneRect.intersected(m_pixmapItem->boundingRect());
+
+                if (!clipped.isEmpty())
+                    emit annotSelectRequested(clipped);
+            }
+            break;
         }
-        break;
 
         case Mode::AnnotRect:
         {
@@ -407,23 +395,30 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
                 if (m_rubberBand)
                     m_rubberBand->hide();
 
-                QRectF sceneRect = mapToScene(m_rect).boundingRect();
                 if (!m_pixmapItem)
-                    return;
+                    break;
 
-                QRectF clippedRect
+                QRectF sceneRect = mapToScene(m_rect).boundingRect();
+                QRectF clipped
                     = sceneRect.intersected(m_pixmapItem->boundingRect());
-                if (!clippedRect.isEmpty())
-                    emit highlightDrawn(clippedRect);
+
+                if (!clipped.isEmpty())
+                    emit highlightDrawn(clipped);
             }
+            break;
         }
-        break;
 
         default:
             break;
     }
 
+    /* --------------------------------------------------
+     * Cleanup (ONCE)
+     * -------------------------------------------------- */
+    m_selecting = false;
+    m_dragging  = false;
     QGuiApplication::restoreOverrideCursor();
+
     QGraphicsView::mouseReleaseEvent(event);
 }
 
@@ -455,11 +450,13 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *e)
 {
     QGraphicsItem *item = scene()->itemAt(mapToScene(e->pos()), transform());
 
-    // Check if item is a selection highlight (should not handle context menu)
+    // Check if item is a selection highlight (should not handle context
+    // menu)
     bool isSelectionItem = item && item->data(0).toString() == "selection";
 
-    // Let BrowseLinkItem (and other interactive items) handle their own context menu
-    // Skip selection items, pixmap, and proxy widgets - they don't have context menus
+    // Let BrowseLinkItem (and other interactive items) handle their own
+    // context menu Skip selection items, pixmap, and proxy widgets -
+    // they don't have context menus
     if (item && item != m_pixmapItem && !isSelectionItem
         && item->type() != QGraphicsProxyWidget::Type)
     {
