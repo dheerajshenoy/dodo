@@ -34,6 +34,8 @@ class dodo : public QMainWindow
 {
 public:
     dodo() noexcept;
+    dodo(const QString &sessionName,
+         const QJsonArray &sessionArray) noexcept; // load from session
     ~dodo() noexcept;
 
     void readArgsParser(argparse::ArgumentParser &argparser) noexcept;
