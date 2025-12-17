@@ -61,7 +61,7 @@ build_mupdf() {
         HAVE_X11=no \
         HAVE_GLUT=no \
         build=release \
-        prefix=/usr/local
+        prefix=$PREFIX
 
     make install DESTDIR="$STAGE_DIR"
 
@@ -78,7 +78,7 @@ build_dodo() {
 
     cmake .. \
         -G Ninja \
-        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_INSTALL_PREFIX=$PREFIX \
         -DCMAKE_BUILD_TYPE=Release
 
     ninja
