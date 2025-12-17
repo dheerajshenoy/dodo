@@ -59,14 +59,17 @@ add_executable(${PROJECT_NAME}
 
 qt_add_resources(RESOURCES resources.qrc)
 
+# Add MuPDF headers
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}/extern/mupdf/include
+)
+
 target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 
 target_link_libraries(
     ${PROJECT_NAME} Qt6::Widgets Qt6::Core Qt6::Sql Qt6::SvgWidgets
     ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
     ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
-    ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-threads.a
-    ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-pkcs7.a
     synctex)
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
