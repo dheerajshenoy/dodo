@@ -104,7 +104,7 @@ streamlined interface and robust functionality with minimal resource usage.
 ### Arch Linux
 
 ```bash
-sudo pacman -Syu qt6-base libsynctex cmake ninja
+sudo pacman -Syu qt6-base qt6-svg libsynctex cmake ninja
 git clone https://github.com/dheerajshenoy/dodo
 cd dodo
 ./install.sh
