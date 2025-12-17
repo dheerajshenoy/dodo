@@ -113,7 +113,7 @@ cd dodo
 ### Debian/Ubuntu
 
 ```bash
-sudo apt update && sudo apt install qt6-base-dev libsynctex-dev cmake ninja-build
+sudo apt update && sudo apt install qt6-base-dev qt6-svg-dev libsynctex-dev cmake ninja-build
 git clone https://github.com/dheerajshenoy/dodo
 cd dodo
 ./install.sh
