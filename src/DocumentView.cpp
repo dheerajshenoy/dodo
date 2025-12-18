@@ -1277,6 +1277,22 @@ DocumentView::ToggleAnnotRect() noexcept
 }
 
 void
+DocumentView::ToggleAnnotPopup() noexcept
+{
+    if (m_gview->mode() == GraphicsView::Mode::AnnotPopup)
+    {
+        m_gview->setMode(m_default_mode);
+        emit selectionModeChanged(m_default_mode);
+    }
+    else
+    {
+        m_gview->setMode(GraphicsView::Mode::AnnotPopup);
+        emit highlightColorChanged(m_config.ui.colors["annot_popup"]);
+        emit selectionModeChanged(GraphicsView::Mode::AnnotPopup);
+    }
+}
+
+void
 DocumentView::ToggleRegionSelect() noexcept
 {
     if (m_gview->mode() == GraphicsView::Mode::RegionSelection)

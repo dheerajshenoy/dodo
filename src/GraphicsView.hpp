@@ -28,6 +28,7 @@ public:
         TextHighlight,
         AnnotSelect,
         AnnotRect,
+        AnnotPopup,
         COUNT
     };
 
