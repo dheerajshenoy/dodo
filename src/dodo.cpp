@@ -621,7 +621,6 @@ dodo::initKeybinds() noexcept
     addShortcut("1", [this]() { ToggleTextHighlight(); });
     addShortcut("2", [this]() { ToggleAnnotRect(); });
     addShortcut("3", [this]() { ToggleAnnotSelect(); });
-    addShortcut("4", [this]() { ToggleAnnotUnderline(); });
     addShortcut("t", [this]() { ShowOutline(); });
     addShortcut("n", [this]() { NextHit(); });
     addShortcut("Shift+n", [this]() { PrevHit(); });
