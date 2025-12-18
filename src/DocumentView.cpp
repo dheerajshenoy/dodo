@@ -1261,7 +1261,7 @@ DocumentView::scrollToNormalizedTop(double ntop) noexcept
 // }
 
 void
-DocumentView::ToggleRectAnnotation() noexcept
+DocumentView::ToggleAnnotRect() noexcept
 {
     if (m_gview->mode() == GraphicsView::Mode::AnnotRect)
     {

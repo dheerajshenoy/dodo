@@ -231,7 +231,7 @@ dodo::initMenubar() noexcept
 
     m_actionAnnotRect = m_modeMenu->addAction(
         QString("Annotate Rectangle\t%1").arg(m_config.shortcuts["annot_rect"]),
-        this, &dodo::ToggleRectAnnotation);
+        this, &dodo::ToggleAnnotRect);
     m_actionAnnotRect->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotRect);
 
@@ -522,6 +522,8 @@ dodo::initConfig() noexcept
             initial_mode = GraphicsView::Mode::AnnotRect;
         else if (mode_str == "annot_select_mode")
             initial_mode = GraphicsView::Mode::AnnotSelect;
+        else if (mode_str == "annot_popup_mode")
+            initial_mode = GraphicsView::Mode::AnnotPopup;
         else
             initial_mode = GraphicsView::Mode::TextSelection;
         m_config.behavior.initial_mode = initial_mode;
@@ -616,9 +618,10 @@ dodo::initKeybinds() noexcept
     addShortcut("b", [this]() { GotoPage(); });
     addShortcut("f", [this]() { VisitLinkKB(); });
     addShortcut("Ctrl+s", [this]() { SaveFile(); });
-    addShortcut("Alt+1", [this]() { ToggleTextHighlight(); });
-    addShortcut("Alt+2", [this]() { ToggleRectAnnotation(); });
-    addShortcut("Alt+3", [this]() { ToggleAnnotSelect(); });
+    addShortcut("1", [this]() { ToggleTextHighlight(); });
+    addShortcut("2", [this]() { ToggleAnnotRect(); });
+    addShortcut("3", [this]() { ToggleAnnotSelect(); });
+    addShortcut("4", [this]() { ToggleAnnotUnderline(); });
     addShortcut("t", [this]() { ShowOutline(); });
     addShortcut("n", [this]() { NextHit(); });
     addShortcut("Shift+n", [this]() { PrevHit(); });
@@ -1399,10 +1402,10 @@ dodo::ToggleTextHighlight() noexcept
 
 // Toggle rectangle annotation mode
 void
-dodo::ToggleRectAnnotation() noexcept
+dodo::ToggleAnnotRect() noexcept
 {
     if (m_doc)
-        m_doc->ToggleRectAnnotation();
+        m_doc->ToggleAnnotRect();
 }
 
 // Toggle annotation select mode
@@ -1411,6 +1414,14 @@ dodo::ToggleAnnotSelect() noexcept
 {
     if (m_doc)
         m_doc->ToggleAnnotSelect();
+}
+
+// Toggle popup annotation mode
+void
+dodo::ToggleAnnotPopup() noexcept
+{
+    if (m_doc)
+        m_doc->ToggleAnnotPopup();
 }
 
 // Toggle region select mode
@@ -1477,25 +1488,7 @@ dodo::initConnections() noexcept
 {
 
     connect(m_panel, &Panel::modeColorChangeRequested, this,
-            [&](GraphicsView::Mode mode)
-    {
-        // FIXME: Make this a function
-        QColorDialog colorDialog(this);
-        colorDialog.setOption(QColorDialog::ShowAlphaChannel, true);
-        colorDialog.setWindowTitle("Select Color");
-        if (colorDialog.exec() == QDialog::Accepted)
-        {
-            QColor color = colorDialog.selectedColor();
-            auto model   = m_doc->model();
-            if (mode == GraphicsView::Mode::AnnotRect)
-                model->setAnnotRectColor(color);
-            else if (mode == GraphicsView::Mode::TextHighlight)
-                model->setHighlightColor(color);
-            else if (mode == GraphicsView::Mode::TextSelection)
-                model->setSelectionColor(color);
-            m_panel->setHighlightColor(color);
-        }
-    });
+            [&](GraphicsView::Mode mode) { modeColorChangeRequested(mode); });
 
     connect(m_panel, &Panel::pageChangeRequested, this, &dodo::gotoPage);
 
@@ -2328,8 +2321,6 @@ dodo::initActionMap() noexcept
         else
             m_message_bar->showMessage(QStringLiteral("Invalid tab index"));
     }},
-        {QStringLiteral("region_select_mode"),
-         [this](const QStringList &) { ToggleRegionSelect(); }},
 
         // Actions without arguments
         ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
@@ -2373,8 +2364,9 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("zoom_reset", ZoomReset),
         ACTION_NO_ARGS("region_select_mode", ToggleRegionSelect),
         ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
+        ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
         ACTION_NO_ARGS("text_highlight_mode", ToggleTextHighlight),
-        ACTION_NO_ARGS("annot_rect_mode", ToggleRectAnnotation),
+        ACTION_NO_ARGS("annot_rect_mode", ToggleAnnotRect),
         ACTION_NO_ARGS("fullscreen", ToggleFullscreen),
         ACTION_NO_ARGS("file_properties", FileProperties),
         ACTION_NO_ARGS("open_file", OpenFile),
@@ -2740,5 +2732,29 @@ dodo::openSessionFromArray(const QJsonArray &sessionArray) noexcept
         view->Zoom(zoom);
         view->Fit(static_cast<DocumentView::FitMode>(fitMode));
         OpenFile(view);
+    }
+}
+
+void
+dodo::modeColorChangeRequested(const GraphicsView::Mode mode) noexcept
+{
+    // FIXME: Make this a function
+    QColorDialog colorDialog(this);
+    colorDialog.setOption(QColorDialog::ShowAlphaChannel, true);
+    colorDialog.setWindowTitle("Select Color");
+    if (colorDialog.exec() == QDialog::Accepted)
+    {
+        QColor color = colorDialog.selectedColor();
+        auto model   = m_doc->model();
+        if (mode == GraphicsView::Mode::AnnotRect)
+            model->setAnnotRectColor(color);
+        else if (mode == GraphicsView::Mode::TextHighlight)
+            model->setHighlightColor(color);
+        else if (mode == GraphicsView::Mode::TextSelection)
+            model->setSelectionColor(color);
+        else if (mode == GraphicsView::Mode::AnnotPopup)
+            model->setPopupColor(color);
+
+        m_panel->setHighlightColor(color);
     }
 }

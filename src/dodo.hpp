@@ -110,8 +110,9 @@ private:
     void FirstPage() noexcept;
     void ToggleTextHighlight() noexcept;
     void ToggleRegionSelect() noexcept;
-    void ToggleRectAnnotation() noexcept;
+    void ToggleAnnotRect() noexcept;
     void ToggleAnnotSelect() noexcept;
+    void ToggleAnnotPopup() noexcept;
     void YankAll() noexcept;
     void YankSelection() noexcept;
     void ClearTextSelection() noexcept;
@@ -162,6 +163,7 @@ private:
     void updateTabbarVisibility() noexcept;
     void setSessionName(const QString &name) noexcept;
     void openSessionFromArray(const QJsonArray &sessionArray) noexcept;
+    void modeColorChangeRequested(const GraphicsView::Mode mode) noexcept;
 
     QDir m_config_dir, m_session_dir;
     float m_default_zoom{0.0f};

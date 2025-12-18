@@ -107,25 +107,47 @@ Panel::setMode(GraphicsView::Mode mode) noexcept
     switch (mode)
     {
         case GraphicsView::Mode::RegionSelection:
+        {
             m_mode_label->setText("Region Selection");
             m_mode_color_label->hide();
-            break;
+        }
+        break;
+
         case GraphicsView::Mode::TextSelection:
+        {
             m_mode_label->setText("Text Selection");
             m_mode_color_label->hide();
-            break;
+        }
+        break;
+
         case GraphicsView::Mode::TextHighlight:
+        {
             m_mode_label->setText("Text Highlight");
             m_mode_color_label->show();
-            break;
+        }
+        break;
+
         case GraphicsView::Mode::AnnotSelect:
+        {
             m_mode_label->setText("Annot Select");
             m_mode_color_label->hide();
-            break;
+        }
+        break;
+
         case GraphicsView::Mode::AnnotRect:
+        {
             m_mode_label->setText("Annot Rect");
             m_mode_color_label->show();
-            break;
+        }
+        break;
+
+        case GraphicsView::Mode::AnnotPopup:
+        {
+            m_mode_label->setText("Annot Popup");
+            m_mode_color_label->show();
+        }
+        break;
+
         default:
             break;
     }

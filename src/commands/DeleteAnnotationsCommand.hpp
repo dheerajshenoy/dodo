@@ -25,6 +25,7 @@ public:
         enum pdf_annot_type type = PDF_ANNOT_UNKNOWN;
         fz_rect rect;
         float color[4] = {0, 0, 0, 1};
+
         QVector<fz_quad> quads; // For highlight annotations
         QString contents;       // For text annotations
     };

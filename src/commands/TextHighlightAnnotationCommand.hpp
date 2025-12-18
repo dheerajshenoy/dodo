@@ -109,8 +109,7 @@ public:
                 if (!annot)
                     continue;
 
-                fz_quad q = quad;
-                pdf_set_annot_quad_points(ctx, annot, 1, &q);
+                pdf_set_annot_quad_points(ctx, annot, 1, &quad);
                 pdf_set_annot_color(ctx, annot, 3, m_color);
                 pdf_set_annot_opacity(ctx, annot, m_color[3]);
                 pdf_update_annot(ctx, annot);

@@ -334,7 +334,8 @@ private:
     std::string m_password; // Used when reloading document
 
     float m_height, m_width, m_rotation{0.0f}, m_zoom_factor{1.0f}, m_dpr{1.0f},
-        m_inv_dpr{1.0f}, m_highlight_color[4], m_annot_rect_color[4];
+        m_inv_dpr{1.0f}, m_highlight_color[4], m_annot_rect_color[4],
+        m_popup_color[4];
     QColor m_selection_color;
     float m_page_height{0.0f};
     QUndoStack *m_undoStack;

@@ -35,15 +35,12 @@ GraphicsView::setMode(Mode mode) noexcept
 
         case Mode::TextSelection:
         case Mode::TextHighlight:
-        {
             emit textSelectionDeletionRequested();
-        }
-        break;
+            break;
 
         case Mode::AnnotRect:
-        {
-        }
-        break;
+            emit annotSelectClearRequested();
+            break;
 
         case Mode::AnnotSelect:
             emit annotSelectClearRequested();

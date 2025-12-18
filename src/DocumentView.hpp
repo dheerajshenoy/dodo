@@ -123,9 +123,10 @@ public:
     void Search(const QString &term) noexcept;
     void GoBackHistory() noexcept;
     // void ShowOutline() noexcept;
-    void ToggleRectAnnotation() noexcept;
+    void ToggleAnnotRect() noexcept;
     void ToggleRegionSelect() noexcept;
     void ToggleAnnotSelect() noexcept;
+    void ToggleAnnotPopup() noexcept;
     void SaveFile() noexcept;
     void SaveAsFile() noexcept;
     QMap<int, Model::LinkInfo> LinkKB() noexcept;
