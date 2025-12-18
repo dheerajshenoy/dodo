@@ -108,7 +108,7 @@ final_install() {
 # ============================================================
 
 rm -rf "$STAGE_DIR"
-mkdir -p "$STAGE_DIR/usr/local/share/applications"
+mkdir -p "$STAGE_DIR/$PREFIX/share/applications"
 
 if [ "$SKIP_MUPDF_BUILD" -eq 0 ]; then
     download_mupdf
