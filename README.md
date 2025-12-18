@@ -101,6 +101,9 @@ streamlined interface and robust functionality with minimal resource usage.
 > Example: ./install.sh /usr
 >```
 
+> [!NOTE]
+> The .deb and .zst packages are not officially supported at the moment, but will be in the future. For now please build from source.
+
 ### Arch Linux
 
 ```bash
