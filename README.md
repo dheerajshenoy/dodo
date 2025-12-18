@@ -73,10 +73,14 @@ streamlined interface and robust functionality with minimal resource usage.
 ## Dependencies
 
 - Qt6
-- mupdf
-- libsynctex \[for reverse searching and goto reference from LaTeX\]
-- cmake (for building)
-- ninja (for building)
+- MuPDF
+- synctex \[for reverse searching and goto reference from LaTeX\]
+- CMake (for building)
+- Ninja (for building)
+
+### Dependency for building MuPDF
+
+- glu
 
 ## Installation
 
@@ -107,7 +111,7 @@ streamlined interface and robust functionality with minimal resource usage.
 ### Arch Linux
 
 ```bash
-sudo pacman -Syu qt6-base qt6-svg libsynctex cmake ninja
+sudo pacman -Syu qt6-base qt6-svg libsynctex cmake ninja glu
 git clone https://github.com/dheerajshenoy/dodo
 cd dodo
 ./install.sh
@@ -116,7 +120,7 @@ cd dodo
 ### Debian/Ubuntu
 
 ```bash
-sudo apt update && sudo apt install qt6-base-dev qt6-svg-dev libsynctex-dev cmake ninja-build
+sudo apt update && sudo apt install qt6-base-dev qt6-svg-dev libsynctex-dev cmake ninja-build freeglut3-dev
 git clone https://github.com/dheerajshenoy/dodo
 cd dodo
 ./install.sh
