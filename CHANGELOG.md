@@ -1,5 +1,9 @@
 # dodo
 
+## 0.4.2
+- Add popup annotation menu item
+- Edit last pages widget disable when no entries exist
+
 ## 0.4.1
 - Remove padding around the document view
 - Fix installation script

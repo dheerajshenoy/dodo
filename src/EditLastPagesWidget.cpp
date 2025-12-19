@@ -40,6 +40,14 @@ EditLastPagesWidget::EditLastPagesWidget(const QSqlDatabase &db,
     btnLayout->addWidget(m_apply_btn);
     btnLayout->addWidget(m_close_btn);
     layout->addLayout(btnLayout);
+
+    if (m_model->rowCount() == 0)
+    {
+        m_autoremove_btn->setDisabled(true);
+        m_revert_changes_btn->setDisabled(true);
+        m_delete_row_btn->setDisabled(true);
+        m_apply_btn->setDisabled(true);
+    }
 }
 
 void
