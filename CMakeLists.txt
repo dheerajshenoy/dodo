@@ -75,4 +75,5 @@ target_link_libraries(
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 #Install icons to correct freedesktop - compliant locations
+
 install(DIRECTORY resources/hicolor DESTINATION share/icons FILES_MATCHING PATTERN "*.png")

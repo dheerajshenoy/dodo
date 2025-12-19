@@ -208,6 +208,7 @@ private:
     QAction *m_actionAbout{nullptr};
     QAction *m_actionTextHighlight{nullptr};
     QAction *m_actionAnnotRect{nullptr};
+    QAction *m_actionAnnotPopup{nullptr};
     QAction *m_actionTextSelect{nullptr};
     QAction *m_actionRegionSelect{nullptr};
     QAction *m_actionAnnotEdit{nullptr};

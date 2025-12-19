@@ -1766,7 +1766,7 @@ void
 DocumentView::annotChangeColor() noexcept
 {
     auto color = QColorDialog::getColor(
-        m_model->highlightColor(), this, "Highlight Color",
+        m_model->highlightAnnotColor(), this, "Highlight Color",
         QColorDialog::ColorDialogOption::ShowAlphaChannel);
     if (color.isValid())
     {
@@ -1793,7 +1793,7 @@ void
 DocumentView::changeAnnotRectColor() noexcept
 {
     auto color = QColorDialog::getColor(
-        m_model->highlightColor(), this, "Annot Rect Color",
+        m_model->highlightAnnotColor(), this, "Annot Rect Color",
         QColorDialog::ColorDialogOption::ShowAlphaChannel);
     if (color.isValid())
     {

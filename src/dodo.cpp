@@ -241,6 +241,12 @@ dodo::initMenubar() noexcept
     m_actionAnnotEdit->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotEdit);
 
+    m_actionAnnotPopup = m_modeMenu->addAction(
+        QString("Annotate Popup\t%1").arg(m_config.shortcuts["annot_popup"]),
+        this, &dodo::ToggleAnnotPopup);
+    m_actionAnnotPopup->setCheckable(true);
+    modeActionGroup->addAction(m_actionAnnotPopup);
+
     switch (m_config.behavior.initial_mode)
     {
         case GraphicsView::Mode::RegionSelection:
@@ -257,6 +263,9 @@ dodo::initMenubar() noexcept
             break;
         case GraphicsView::Mode::AnnotRect:
             m_actionAnnotRect->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotPopup:
+            m_actionAnnotPopup->setChecked(true);
             break;
         default:
             break;
@@ -621,6 +630,8 @@ dodo::initKeybinds() noexcept
     addShortcut("1", [this]() { ToggleTextHighlight(); });
     addShortcut("2", [this]() { ToggleAnnotRect(); });
     addShortcut("3", [this]() { ToggleAnnotSelect(); });
+    addShortcut("4", [this]() { ToggleAnnotPopup(); });
+    addShortcut("/", [this]() { ToggleSearchBar(); });
     addShortcut("t", [this]() { ShowOutline(); });
     addShortcut("n", [this]() { NextHit(); });
     addShortcut("Shift+n", [this]() { PrevHit(); });
@@ -639,6 +650,8 @@ dodo::initKeybinds() noexcept
     addShortcut("-", [this]() { ZoomOut(); });
     addShortcut("<", [this]() { RotateAnticlock(); });
     addShortcut(">", [this]() { RotateClock(); });
+    addShortcut("u", [this]() { Undo(); });
+    addShortcut("Ctrl+r", [this]() { Redo(); });
 }
 
 // Initialize the GUI related Stuff
@@ -1951,6 +1964,7 @@ dodo::updateMenuActions() noexcept
         m_actionTextHighlight->setChecked(false);
         m_actionAnnotEdit->setChecked(false);
         m_actionAnnotRect->setChecked(false);
+        m_actionAnnotPopup->setChecked(false);
         updateSelectionModeActions();
     }
     else
@@ -1962,6 +1976,7 @@ dodo::updateMenuActions() noexcept
         m_actionTextHighlight->setChecked(false);
         m_actionAnnotEdit->setChecked(false);
         m_actionAnnotRect->setChecked(false);
+        m_actionAnnotPopup->setChecked(false);
         m_actionUndo->setEnabled(false);
         m_actionRedo->setEnabled(false);
         m_modeMenu->setEnabled(false);
@@ -1981,7 +1996,7 @@ dodo::updatePanel() noexcept
             m_panel->setFileName(m_doc->filePath());
         else
             m_panel->setFileName(m_doc->fileName());
-        m_panel->setHighlightColor(model->highlightColor());
+        m_panel->setHighlightColor(model->highlightAnnotColor());
         m_panel->setMode(m_doc->selectionMode());
         m_panel->setTotalPageCount(model->numPages());
         m_panel->setPageNo(m_doc->pageNo() + 1);
@@ -2627,6 +2642,9 @@ dodo::updateSelectionModeActions() noexcept
             break;
         case GraphicsView::Mode::AnnotRect:
             m_actionAnnotRect->setChecked(true);
+            break;
+        case GraphicsView::Mode::AnnotPopup:
+            m_actionAnnotPopup->setChecked(true);
             break;
         default:
             break;

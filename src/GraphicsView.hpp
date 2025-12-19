@@ -29,6 +29,7 @@ public:
         AnnotSelect,
         AnnotRect,
         AnnotPopup,
+        AnnotPen,
         COUNT
     };
 

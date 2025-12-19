@@ -168,12 +168,20 @@ public:
         m_selection_color = color;
     }
 
-    inline QColor highlightColor() noexcept
+    inline QColor highlightAnnotColor() noexcept
     {
         return QColor(static_cast<int>(m_highlight_color[0] * 255),
                       static_cast<int>(m_highlight_color[1] * 255),
                       static_cast<int>(m_highlight_color[2] * 255),
                       static_cast<int>(m_highlight_color[3] * 255));
+    }
+
+    inline QColor popupAnnotColor() noexcept
+    {
+        return QColor(static_cast<int>(m_popup_color[0] * 255),
+                      static_cast<int>(m_popup_color[1] * 255),
+                      static_cast<int>(m_popup_color[2] * 255),
+                      static_cast<int>(m_popup_color[3] * 255));
     }
 
     inline void setHighlightColor(const QColor &color) noexcept
@@ -190,6 +198,14 @@ public:
         m_annot_rect_color[1] = color.greenF();
         m_annot_rect_color[2] = color.blueF();
         m_annot_rect_color[3] = color.alphaF();
+    }
+
+    inline void setPopupColor(const QColor &color) noexcept
+    {
+        m_popup_color[0] = color.redF();
+        m_popup_color[1] = color.greenF();
+        m_popup_color[2] = color.blueF();
+        m_popup_color[3] = color.alphaF();
     }
 
     enum class MessageType
