@@ -8,6 +8,9 @@ endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 add_compile_definitions(__DODO_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
 
+# Used to .desktop file generation
+set(PREFIX "${CMAKE_INSTALL_PREFIX}")
+
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -75,5 +78,9 @@ target_link_libraries(
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 #Install icons to correct freedesktop - compliant locations
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dodo-template.desktop.in
+    ${CMAKE_CURRENT_BINARY_DIR}/dodo.desktop @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dodo.desktop DESTINATION share/applications)
 
 install(DIRECTORY resources/hicolor DESTINATION share/icons FILES_MATCHING PATTERN "*.png")

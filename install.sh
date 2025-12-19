@@ -88,12 +88,6 @@ build_dodo() {
     echo "dodo built."
 }
 
-install_desktop_file() {
-    echo "Preparing desktop file..."
-
-    sed "s|@PREFIX|$PREFIX/bin|g" dodo-template.desktop > "$STAGE_DIR/usr/local/share/applications/dodo.desktop"
-}
-
 final_install() {
     echo "Installing files to $PREFIX (requires sudo)..."
 
@@ -118,5 +112,4 @@ else
     echo "Skipping MuPDF build."
 fi
 build_dodo
-install_desktop_file
 final_install
