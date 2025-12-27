@@ -309,7 +309,7 @@ private:
     QVBoxLayout *m_layout{new QVBoxLayout};
     GraphicsView *m_gview{new GraphicsView};
     GraphicsScene *m_gscene{new GraphicsScene};
-    QGraphicsPixmapItem *m_pix_item{new QGraphicsPixmapItem};
+    GraphicsPixmapItem *m_pix_item{nullptr};
     synctex_scanner_p m_synctex_scanner{nullptr};
     int m_pageno{-1}, m_start_page_override{-1}, m_rotation{0},
         m_search_index{-1}, m_total_pages{0}, m_search_hit_page{-1},

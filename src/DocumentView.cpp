@@ -39,6 +39,8 @@ DocumentView::DocumentView(const QString &filePath, const Config &config,
     m_page_history_list.reserve(m_page_history_limit);
     m_gview->setPageNavWithMouse(m_page_nav_with_mouse);
     m_model = new Model(m_gscene, this);
+
+    m_pix_item = new GraphicsPixmapItem();
     m_pix_item->setScale(m_model->zoom());
     m_vscrollbar = m_gview->verticalScrollBar();
     m_hscrollbar = m_gview->horizontalScrollBar();
