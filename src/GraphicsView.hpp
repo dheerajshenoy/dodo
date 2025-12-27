@@ -14,6 +14,8 @@ extern "C"
 #include <mupdf/fitz/pixmap.h>
 }
 
+#include "GraphicsPixmapItem.hpp"
+
 #include <qevent.h>
 #include <qgraphicssceneevent.h>
 
@@ -56,9 +58,9 @@ public:
         return m_rubberBand;
     }
 
-    inline void setPixmapItem(QGraphicsPixmapItem *item) noexcept
+    inline void setPixmapItem(GraphicsPixmapItem *item) noexcept
     {
-        m_pixmapItem = item;
+        m_pixmapItem = static_cast<GraphicsPixmapItem *>(item);
     }
 
     inline QGraphicsPixmapItem *pixmapItem() const noexcept
@@ -125,7 +127,7 @@ private:
     bool m_page_nav_with_mouse{true};
     bool m_ignore_next_release{false};
     Mode m_mode{Mode::TextSelection};
-    QGraphicsPixmapItem *m_pixmapItem{nullptr};
+    GraphicsPixmapItem *m_pixmapItem{nullptr};
     QRubberBand *m_rubberBand{nullptr};
     int m_drag_threshold{50};
 
