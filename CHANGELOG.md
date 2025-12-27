@@ -4,6 +4,7 @@
 - Add popup annotation menu item
 - Edit last pages widget disable when no entries exist
 - Don't render highlight annotations as it's done by MuPDF
+- Merge highlight annotations on overlapping areas
 
 
 ## 0.4.1
