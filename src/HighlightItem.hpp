@@ -75,10 +75,7 @@ protected:
     {
         Q_UNUSED(option);
         Q_UNUSED(widget);
-
-        painter->setBrush(m_brush);
-        painter->setPen(m_pen);
-        painter->drawRect(m_rect);
+        Q_UNUSED(painter);
     }
 
 private:
