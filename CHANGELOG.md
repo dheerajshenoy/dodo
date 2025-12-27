@@ -1,5 +1,9 @@
 # dodo
 
+## 0.4.3
+- Zoom render debounce to improve performance
+
+
 ## 0.4.2
 - Add popup annotation menu item
 - Edit last pages widget disable when no entries exist

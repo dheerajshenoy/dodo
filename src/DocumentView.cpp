@@ -98,6 +98,9 @@ DocumentView::DocumentView(const QString &filePath, const Config &config,
         m_gview->setHorizontalScrollBarPolicy(
             Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
+    m_zoom_debounce_timer = new QTimer(this);
+    m_zoom_debounce_timer->setSingleShot(true);
+    m_zoom_debounce_timer->setInterval(200);
     initConnections();
     m_file_opened_successfully = openFile(filePath);
 
@@ -128,6 +131,9 @@ DocumentView::setDPR(qreal DPR) noexcept
 void
 DocumentView::initConnections() noexcept
 {
+    connect(m_zoom_debounce_timer, &QTimer::timeout, this,
+            &DocumentView::zoomHelper);
+
     connect(m_gview, &GraphicsView::scrollRequested, this,
             &DocumentView::mouseWheelScrollRequested);
     connect(m_gview, &GraphicsView::populateContextMenuRequested, this,
@@ -787,8 +793,10 @@ DocumentView::ZoomIn() noexcept
 {
     if (!m_model->valid())
         return;
-    m_model->setZoom(m_model->zoom() * m_zoom_by);
-    zoomHelper();
+    // m_model->setZoom(m_model->zoom() * m_zoom_by);
+    // zoomHelper();
+    m_target_zoom_factor *= m_zoom_by;
+    scheduleHighQualityZoomRender();
 }
 
 void
@@ -797,8 +805,8 @@ DocumentView::ZoomReset() noexcept
     if (!m_model->valid())
         return;
 
-    m_model->setZoom(m_default_zoom);
-    zoomHelper();
+    m_target_zoom_factor = 1.0f;
+    scheduleHighQualityZoomRender();
 }
 
 void
@@ -807,13 +815,21 @@ DocumentView::ZoomOut() noexcept
     if (!m_model->valid())
         return;
 
-    float zoom = m_model->zoom();
+    // float zoom = m_model->zoom();
 
-    if (zoom * 1 / m_zoom_by != 0)
+    // if (zoom * 1 / m_zoom_by != 0)
+    // {
+    //     m_model->setZoom(zoom * 1 / m_zoom_by);
+    //     zoomHelper();
+    // }
+
+    m_target_zoom_factor = m_target_zoom_factor / m_zoom_by;
+    if (m_target_zoom_factor < 0.1)
     {
-        m_model->setZoom(zoom * 1 / m_zoom_by);
-        zoomHelper();
+        m_target_zoom_factor = 0.1;
+        return;
     }
+    scheduleHighQualityZoomRender();
 }
 
 void
@@ -822,24 +838,33 @@ DocumentView::Zoom(float factor) noexcept
     if (!m_model->valid())
         return;
 
-    m_model->setZoom(factor);
-    zoomHelper();
+    m_target_zoom_factor = factor;
+    scheduleHighQualityZoomRender();
 }
 
 void
 DocumentView::zoomHelper() noexcept
 {
-    renderPage(m_pageno);
+    m_model->setZoom(m_target_zoom_factor);
+    m_pix_item->setScale(1.0f);
+
+    // Only clear cache entries for current page
+    CacheKey key{m_pageno, m_rotation, m_model->zoom()};
+    m_cache.remove(key);
+
+    renderPage(m_pageno, true);
+
     if (m_highlights_present)
     {
         highlightSingleHit();
         highlightHitsInPage();
     }
+
     if (m_model->hasSelection())
         ClearTextSelection();
+
     m_gview->setSceneRect(m_pix_item->boundingRect());
     m_vscrollbar->setValue(m_vscrollbar->value());
-    m_cache.clear();
 }
 
 void
@@ -2191,4 +2216,15 @@ DocumentView::tryReloadLater(int attempt) noexcept
 
     QTimer::singleShot(100, this,
                        [this, attempt]() { tryReloadLater(attempt + 1); });
+}
+
+void
+DocumentView::scheduleHighQualityZoomRender() noexcept
+{
+    const float &visualScale = m_target_zoom_factor / m_model->zoom();
+    m_pix_item->setScale(visualScale);
+    const QRectF &bbox
+        = m_pix_item->mapToScene(m_pix_item->boundingRect()).boundingRect();
+    m_gview->setSceneRect(bbox);
+    m_zoom_debounce_timer->start();
 }

@@ -21,9 +21,6 @@
 #include <QTimer>
 #include <QWidget>
 #include <QWindow>
-#include <qboxlayout.h>
-#include <qfilesystemwatcher.h>
-#include <qvariant.h>
 
 extern "C"
 {
@@ -294,10 +291,14 @@ private:
     void showJumpMarker(const QPointF &p) noexcept;
     void showJumpMarker(const fz_point &p) noexcept;
 
+    // Apply only view zoom (cheap)
+    void applyViewScaleOnly() noexcept;
+
     void reloadDocument() noexcept;
     bool waitUntilReadableAsync() noexcept;
     void tryReloadLater(int attempt) noexcept;
     void onFileReloadRequested(const QString &path) noexcept;
+    void scheduleHighQualityZoomRender() noexcept;
 
     PropertiesWidget *m_propsWidget{nullptr};
     OutlineWidget *m_owidget{nullptr};
@@ -345,4 +346,6 @@ private:
     // highlight annotations
     QFileSystemWatcher *m_file_watcher{nullptr};
     bool m_focus_mode{false}, m_auto_reload{false};
+    QTimer *m_zoom_debounce_timer{nullptr};
+    float m_target_zoom_factor{1.0f}; // For debounced zooming
 };
