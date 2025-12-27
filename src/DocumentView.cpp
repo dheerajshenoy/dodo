@@ -418,6 +418,7 @@ DocumentView::CloseFile(bool skipUnsavedCheck) noexcept
 
     if (!m_pix_item->pixmap().isNull())
         m_pix_item->setPixmap(QPixmap());
+
     m_gview->setSceneRect(m_pix_item->boundingRect());
     m_model->closeFile();
     m_gview->setEnabled(false);
@@ -793,6 +794,8 @@ DocumentView::ZoomIn() noexcept
 {
     if (!m_model->valid())
         return;
+    // m_model->setZoom(m_model->zoom() * m_zoom_by);
+    // zoomHelper();
     m_target_zoom_factor *= m_zoom_by;
     scheduleHighQualityZoomRender();
 }
@@ -812,6 +815,14 @@ DocumentView::ZoomOut() noexcept
 {
     if (!m_model->valid())
         return;
+
+    // float zoom = m_model->zoom();
+
+    // if (zoom * 1 / m_zoom_by != 0)
+    // {
+    //     m_model->setZoom(zoom * 1 / m_zoom_by);
+    //     zoomHelper();
+    // }
 
     m_target_zoom_factor = m_target_zoom_factor / m_zoom_by;
     if (m_target_zoom_factor < 0.1)
@@ -892,10 +903,9 @@ DocumentView::FitHeight() noexcept
     const int &pixmapHeight = m_pix_item->pixmap().height();
     const int &viewHeight   = m_gview->viewport()->height() * m_dpr;
 
-    const qreal &scale = static_cast<qreal>(viewHeight) / pixmapHeight;
-    setFitMode(FitMode::Height);
+    const qreal &scale   = static_cast<qreal>(viewHeight) / pixmapHeight;
     m_target_zoom_factor = scale;
-    scheduleHighQualityZoomRender();
+    setFitMode(FitMode::Height);
 }
 
 void
@@ -908,9 +918,9 @@ DocumentView::FitWidth() noexcept
     int viewWidth   = m_gview->viewport()->width() * m_dpr;
 
     qreal scale = static_cast<qreal>(viewWidth) / pixmapWidth;
+    m_model->setZoom(m_model->zoom() * scale);
+    zoomHelper();
     setFitMode(FitMode::Width);
-    m_target_zoom_factor = scale;
-    scheduleHighQualityZoomRender();
 }
 
 void
@@ -927,9 +937,9 @@ DocumentView::FitWindow() noexcept
 
     // Use the smaller scale to ensure the entire image fits in the window
     const qreal scale = std::min(scaleX, scaleY);
+    m_model->setZoom(m_model->zoom() * scale);
+    zoomHelper();
     setFitMode(FitMode::Window);
-    m_target_zoom_factor = scale;
-    scheduleHighQualityZoomRender();
 }
 
 void
