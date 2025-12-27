@@ -10,7 +10,8 @@
 #include "../Model.hpp"
 
 #include <QUndoCommand>
-#include <QVector>
+#include <vector>
+
 extern "C"
 {
 #include <mupdf/pdf.h>
@@ -20,7 +21,7 @@ class TextHighlightAnnotationCommand : public QUndoCommand
 {
 public:
     TextHighlightAnnotationCommand(Model *model, int pageno,
-                                   const QVector<fz_quad> &quads,
+                                   const std::vector<fz_quad> &quads,
                                    const float color[4],
                                    QUndoCommand *parent = nullptr)
         : QUndoCommand("Add Text Highlight Annotation", parent), m_model(model),
@@ -31,7 +32,7 @@ public:
 
     void undo() override
     {
-        if (!m_model || m_objNums.isEmpty())
+        if (!m_model || m_objNums.empty())
             return;
 
         fz_context *ctx   = m_model->context();
@@ -81,7 +82,7 @@ public:
 
     void redo() override
     {
-        if (!m_model || m_quads.isEmpty())
+        if (!m_model || m_quads.empty())
             return;
 
         fz_context *ctx   = m_model->context();
@@ -102,21 +103,18 @@ public:
 
             // Create a separate highlight annotation for each quad
             // This looks better visually for multi-line selections
-            for (const fz_quad &quad : m_quads)
-            {
-                pdf_annot *annot
-                    = pdf_create_annot(ctx, page, PDF_ANNOT_HIGHLIGHT);
-                if (!annot)
-                    continue;
+            pdf_annot *annot = pdf_create_annot(ctx, page, PDF_ANNOT_HIGHLIGHT);
+            if (!annot)
+                continue;
 
-                pdf_set_annot_quad_points(ctx, annot, 1, &quad);
-                pdf_set_annot_color(ctx, annot, 3, m_color);
-                pdf_set_annot_opacity(ctx, annot, m_color[3]);
-                pdf_update_annot(ctx, annot);
+            pdf_set_annot_quad_points(ctx, annot, m_quads.size(), &m_quads[0]);
+            pdf_set_annot_color(ctx, annot, 3, m_color);
+            pdf_set_annot_opacity(ctx, annot, m_color[3]);
+            pdf_update_annot(ctx, annot);
 
-                // Store the object number for later undo
-                pdf_obj *obj = pdf_annot_obj(ctx, annot);
-                m_objNums.append(pdf_to_num(ctx, obj));
+            // Store the object number for later undo
+            pdf_obj *obj = pdf_annot_obj(ctx, annot);
+            m_objNums.push_back(pdf_to_num(ctx, obj));
 
                 pdf_drop_annot(ctx, annot);
             }
@@ -136,7 +134,7 @@ public:
 private:
     Model *m_model;
     int m_pageno;
-    QVector<fz_quad> m_quads;
+    std::vector<fz_quad> m_quads;
     float m_color[4];
-    QVector<int> m_objNums;
+    std::vector<int> m_objNums;
 };

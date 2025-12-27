@@ -45,7 +45,7 @@ public:
 
     void undo() override
     {
-        if (!m_model || m_annotations.isEmpty())
+        if (!m_model || m_annotations.empty())
             return;
 
         fz_context *ctx   = m_model->context();
@@ -72,7 +72,7 @@ public:
                     {
                         annot
                             = pdf_create_annot(ctx, page, PDF_ANNOT_HIGHLIGHT);
-                        if (annot && !data.quads.isEmpty())
+                        if (annot && !data.quads.empty())
                         {
                             pdf_set_annot_quad_points(ctx, annot,
                                                       data.quads.size(),
@@ -140,7 +140,7 @@ public:
 
     void redo() override
     {
-        if (!m_model || m_annotations.isEmpty())
+        if (!m_model || m_annotations.empty())
             return;
 
         fz_context *ctx   = m_model->context();
@@ -235,7 +235,7 @@ private:
                             for (int i = 0; i < quad_count; ++i)
                             {
                                 fz_quad q = pdf_annot_quad_point(ctx, annot, i);
-                                data.quads.append(q);
+                                data.quads.push_back(q);
                             }
                         }
                         break;
@@ -266,7 +266,7 @@ private:
                             break;
                     }
 
-                    m_annotations.append(data);
+                    m_annotations.push_back(data);
                 }
 
                 annot = pdf_next_annot(ctx, annot);
@@ -284,5 +284,5 @@ private:
 
     Model *m_model;
     int m_pageno;
-    QVector<AnnotationData> m_annotations;
+    std::vector<AnnotationData> m_annotations;
 };
