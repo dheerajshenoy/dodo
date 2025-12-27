@@ -21,6 +21,7 @@
 - [X] Fix unsaved changes being asked multiple times
 - [X] Ask overwrite on session save
 - [X] Session exit update page numbers
+- [ ] Annotation export
 - [ ] Undo/Redo operations
   - [X] Rect Annotation
   - [X] Text Highlight Annotation

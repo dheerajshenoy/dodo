@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(dodo VERSION 0.4.1 LANGUAGES CXX)
+project(dodo VERSION 0.4.2 LANGUAGES CXX)
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
@@ -43,6 +43,7 @@ add_executable(${PROJECT_NAME}
     src/EditLastPagesWidget.cpp
     src/SearchBar.cpp
     src/SaveSessionDialog.cpp
+    src/utils.cpp
 
     src/GraphicsPixmapItem.hpp
     src/BrowseLinkItem.hpp

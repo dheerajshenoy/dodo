@@ -9,7 +9,6 @@
 
 #include <QSet>
 #include <QUndoCommand>
-#include <QVector>
 extern "C"
 {
 #include <mupdf/pdf.h>
@@ -26,8 +25,8 @@ public:
         fz_rect rect;
         float color[4] = {0, 0, 0, 1};
 
-        QVector<fz_quad> quads; // For highlight annotations
-        QString contents;       // For text annotations
+        std::vector<fz_quad> quads; // For highlight annotations
+        QString contents;           // For text annotations
     };
 
     // Constructor that captures annotations by their indexes before deletion

@@ -13,6 +13,7 @@
 #include <QImage>
 #include <qbytearrayview.h>
 #include <qnamespace.h>
+#include <vector>
 extern "C"
 {
 #include <mupdf/fitz/context.h>
@@ -35,6 +36,7 @@ extern "C"
 #include "commands/DeleteAnnotationsCommand.hpp"
 #include "commands/RectAnnotationCommand.hpp"
 #include "commands/TextHighlightAnnotationCommand.hpp"
+#include "utils.hpp"
 
 #include <QStringDecoder>
 #include <qgraphicsitem.h>
@@ -1227,12 +1229,10 @@ Model::highlightSelectedText() noexcept
     }
 
     // Collect quads for the command
-    QVector<fz_quad> quads;
+    std::vector<fz_quad> quads;
     quads.reserve(count);
     for (int i = 0; i < count; ++i)
-    {
-        quads.append(hits[i]);
-    }
+        quads.push_back(hits[i]);
 
     // Create and push the command onto the undo stack for undo/redo support
     TextHighlightAnnotationCommand *cmd = new TextHighlightAnnotationCommand(
@@ -1298,16 +1298,18 @@ Model::annotHighlightSelection(const QPointF &selectionStart,
         return;
 
     // Collect quads for the command
-    QVector<fz_quad> quads;
+    std::vector<fz_quad> quads;
     quads.reserve(count);
     for (int i = 0; i < count; ++i)
     {
-        quads.append(hits[i]);
+        quads.push_back(hits[i]);
     }
+
+    std::vector<fz_quad> merged_quads = merge_quads_by_line(quads);
 
     // Create and push the command onto the undo stack
     TextHighlightAnnotationCommand *cmd = new TextHighlightAnnotationCommand(
-        this, m_pageno, quads, m_highlight_color);
+        this, m_pageno, merged_quads, m_highlight_color);
     m_undoStack->push(cmd);
 }
 

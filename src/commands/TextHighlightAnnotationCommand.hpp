@@ -116,8 +116,7 @@ public:
             pdf_obj *obj = pdf_annot_obj(ctx, annot);
             m_objNums.push_back(pdf_to_num(ctx, obj));
 
-                pdf_drop_annot(ctx, annot);
-            }
+            pdf_drop_annot(ctx, annot);
 
             // Drop the page we loaded (not the Model's internal page)
             fz_drop_page(ctx, (fz_page *)page);

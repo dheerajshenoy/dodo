@@ -12,7 +12,7 @@ Whether you're reading academic papers, technical manuals, or everyday documents
 streamlined interface and robust functionality with minimal resource usage.
 
 > [!NOTE]
-> dodo version is v0.4.1
+> Latest dodo version is v0.4.2
 
 ## Table of Contents
 

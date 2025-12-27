@@ -3,6 +3,8 @@
 ## 0.4.2
 - Add popup annotation menu item
 - Edit last pages widget disable when no entries exist
+- Don't render highlight annotations as it's done by MuPDF
+
 
 ## 0.4.1
 - Remove padding around the document view
