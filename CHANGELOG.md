@@ -2,7 +2,7 @@
 
 ## 0.4.3
 - Zoom render debounce to improve performance
-
+- Make fit window, fit width, fit height work properly with the new debounce logic
 
 ## 0.4.2
 - Add popup annotation menu item
