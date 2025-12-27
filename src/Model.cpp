@@ -612,11 +612,12 @@ Model::getAnnotations() noexcept
 
                 case PDF_ANNOT_HIGHLIGHT:
                 {
-                    pdf_annot_color(m_ctx, annot, &n, color);
-                    const QColor qcolor
-                        = QColor::fromRgbF(color[0], color[1], color[2], alpha);
-                    HighlightAnnotation *highlight
-                        = new HighlightAnnotation(qrect, index, qcolor);
+                    // pdf_annot_color(m_ctx, annot, &n, color);
+                    // const QColor qcolor
+                    //     = QColor::fromRgbF(color[0], color[1], color[2],
+                    //     alpha);
+                    HighlightAnnotation *highlight = new HighlightAnnotation(
+                        qrect, index, Qt::transparent);
                     annot_item = highlight;
                 }
                 break;
