@@ -794,8 +794,6 @@ DocumentView::ZoomIn() noexcept
 {
     if (!m_model->valid())
         return;
-    // m_model->setZoom(m_model->zoom() * m_zoom_by);
-    // zoomHelper();
     m_target_zoom_factor *= m_zoom_by;
     scheduleHighQualityZoomRender();
 }
@@ -815,14 +813,6 @@ DocumentView::ZoomOut() noexcept
 {
     if (!m_model->valid())
         return;
-
-    // float zoom = m_model->zoom();
-
-    // if (zoom * 1 / m_zoom_by != 0)
-    // {
-    //     m_model->setZoom(zoom * 1 / m_zoom_by);
-    //     zoomHelper();
-    // }
 
     m_target_zoom_factor = m_target_zoom_factor / m_zoom_by;
     if (m_target_zoom_factor < 0.1)
@@ -917,10 +907,10 @@ DocumentView::FitWidth() noexcept
     int pixmapWidth = m_pix_item->pixmap().width();
     int viewWidth   = m_gview->viewport()->width() * m_dpr;
 
-    qreal scale = static_cast<qreal>(viewWidth) / pixmapWidth;
-    m_model->setZoom(m_model->zoom() * scale);
-    zoomHelper();
+    const qreal &scale = static_cast<qreal>(viewWidth) / pixmapWidth;
     setFitMode(FitMode::Width);
+    m_target_zoom_factor = scale;
+    scheduleHighQualityZoomRender();
 }
 
 void
@@ -936,10 +926,10 @@ DocumentView::FitWindow() noexcept
     const qreal scaleY = static_cast<qreal>(viewHeight) / pixmapHeight;
 
     // Use the smaller scale to ensure the entire image fits in the window
-    const qreal scale = std::min(scaleX, scaleY);
-    m_model->setZoom(m_model->zoom() * scale);
-    zoomHelper();
+    const qreal &scale = std::min(scaleX, scaleY);
     setFitMode(FitMode::Window);
+    m_target_zoom_factor = scale;
+    scheduleHighQualityZoomRender();
 }
 
 void
