@@ -1851,6 +1851,9 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::panelNameChanged, this,
             [this](const QString &name) { m_panel->setFileName(name); });
 
+    connect(docwidget, &DocumentView::currentPageChanged, m_panel,
+            &Panel::setPageNo);
+
     // Connect undo stack signals to update undo/redo menu actions
     QUndoStack *undoStack = docwidget->model()->undoStack();
     connect(undoStack, &QUndoStack::canUndoChanged, this,

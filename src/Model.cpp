@@ -508,22 +508,21 @@ Model::getLinks(int pageno) noexcept
                 {
                     case FZ_LINK_DEST_FIT_H:
                         item = new BrowseLinkItem(
-                            qtRect, uri, BrowseLinkItem::LinkType::FitH, true);
+                            qtRect, uri, BrowseLinkItem::LinkType::FitH);
                         item->setGotoPageNo(pageno);
                         item->setXYZ({.x = 0, .y = dest.y, .zoom = 0});
                         break;
 
                     case FZ_LINK_DEST_FIT_V:
                         item = new BrowseLinkItem(
-                            qtRect, uri, BrowseLinkItem::LinkType::FitV, true);
+                            qtRect, uri, BrowseLinkItem::LinkType::FitV);
                         item->setGotoPageNo(pageno);
                         break;
 
                     case FZ_LINK_DEST_FIT_R:
                     case FZ_LINK_DEST_XYZ:
                         item = new BrowseLinkItem(
-                            qtRect, uri, BrowseLinkItem::LinkType::Section,
-                            true);
+                            qtRect, uri, BrowseLinkItem::LinkType::Section);
                         item->setGotoPageNo(pageno);
                         item->setXYZ(
                             {.x = dest.x, .y = dest.y, .zoom = dest.zoom});

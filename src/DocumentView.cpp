@@ -40,6 +40,7 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
 
     cachePageStride();
     renderVisiblePages();
+    GotoPage(479);
 }
 
 // Initialize signal-slot connections
@@ -47,7 +48,10 @@ void
 DocumentView::initConnections() noexcept
 {
     connect(m_vscroll, &QScrollBar::valueChanged, this,
-            [this](int) { scheduleHighQualityRender(); });
+            [this](int) { updateCurrentPage(); });
+
+    connect(this, &DocumentView::currentPageChanged, this,
+            &DocumentView::scheduleHighQualityRender);
 
     connect(m_high_quality_render_timer, &QTimer::timeout, this, [this]()
     {
@@ -189,16 +193,23 @@ DocumentView::setFitMode(FitMode mode) noexcept
 
         case FitMode::Width:
         {
-            double viewWidth = m_gview->viewport()->width();
-            // Calculate zoom needed to make page width match view width
-            double newZoom = (viewWidth / m_model->pageWidthPts());
+            const int viewWidth = m_gview->viewport()->width();
+            const double newZoom
+                = viewWidth / (m_model->pageWidthPts() * m_model->DPR());
             setZoom(newZoom);
-            m_model->setZoom(newZoom);
+            scheduleHighQualityRender();
         }
         break;
 
         case FitMode::Height:
-            break;
+        {
+            const int viewHeight = m_gview->viewport()->height();
+            const double newZoom
+                = viewHeight / (m_model->pageHeightPts() * m_model->DPR());
+            setZoom(newZoom);
+            scheduleHighQualityRender();
+        }
+        break;
 
         case FitMode::Window:
             break;
@@ -214,12 +225,29 @@ DocumentView::setZoom(double factor) noexcept
 {
     m_current_zoom = factor;
     m_target_zoom  = factor;
+    zoomHelper();
 }
 
 // Go to specific page number
 void
 DocumentView::GotoPage(int pageno) noexcept
 {
+    // Goto page by adjusting scrollbar value
+    if (pageno < 0 || pageno >= m_model->numPages())
+        return;
+
+    const double yPos = pageno * m_page_stride;
+    m_vscroll->setValue(static_cast<int>(yPos));
+    // Make sure the page is completely visible
+    QRectF visibleRect
+        = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
+    if (visibleRect.top() > yPos)
+        m_vscroll->setValue(static_cast<int>(yPos));
+    else if (visibleRect.bottom()
+             < yPos + m_model->pageHeightPts() * m_current_zoom)
+        m_vscroll->setValue(
+            static_cast<int>(yPos + m_model->pageHeightPts() * m_current_zoom
+                             - visibleRect.height()));
 }
 
 // Go to next page
@@ -572,7 +600,7 @@ DocumentView::renderAnnotationsForPage(int pageno) noexcept
         {
             // m_model->annotDeleteRequested(index);
             // setDirty(true);
-            renderPage(m_pageno, true);
+            // renderPage(m_pageno, true);
         });
 
         connect(annot, &Annotation::annotColorChangeRequested,
@@ -963,4 +991,30 @@ DocumentView::populateContextMenu(QMenu *menu) noexcept
         default:
             break;
     }
+}
+
+int
+DocumentView::currentPage() const noexcept
+{
+    if (m_page_stride <= 0)
+        return 0;
+
+    const QPointF sceneCenter
+        = m_gview->mapToScene(m_gview->viewport()->rect().center());
+
+    int page = static_cast<int>(std::floor(sceneCenter.y() / m_page_stride));
+
+    page = std::clamp(page, 0, m_model->numPages() - 1);
+    return page;
+}
+
+void
+DocumentView::updateCurrentPage() noexcept
+{
+    const int page = currentPage();
+    if (page == m_pageno)
+        return;
+
+    m_pageno = page;
+    emit currentPageChanged(page + 1);
 }

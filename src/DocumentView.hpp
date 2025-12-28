@@ -208,6 +208,7 @@ signals:
     void insertToDBRequested(const QString &filepath, int pageno);
     void highlightColorChanged(const QColor &color);
     void autoResizeActionUpdate(bool state);
+    void currentPageChanged(int pageno);
 
 public slots:
     void handleTextSelection(const QPointF &start, const QPointF &end) noexcept;
@@ -225,10 +226,10 @@ private:
     float m_spacing{1.0f}, m_page_stride{0.0f}, m_page_x_offset{0.0f};
     double m_target_zoom{1.0}, m_current_zoom{1.0}, m_rotation{0.0};
     bool m_auto_resize{false}, m_auto_reload{false};
-    QHash<int, GraphicsPixmapItem *> m_page_items_hash;
     QScrollBar *m_hscroll{nullptr}, *m_vscroll{nullptr};
     std::vector<QGraphicsPolygonItem *>
         m_text_selection_items; // current selection highlight items
+    QHash<int, GraphicsPixmapItem *> m_page_items_hash;
     QHash<int, std::vector<BrowseLinkItem *>> m_page_links_hash;
     QHash<int, std::vector<Annotation *>> m_page_annotations_hash;
 
@@ -248,6 +249,8 @@ private:
     void removeUnusedPageItems(const std::set<int> &visibleSet) noexcept;
     void removeUnusedAnnotations(const std::set<int> &visibleSet) noexcept;
 
+    void updateCurrentPage() noexcept;
+    int currentPage() const noexcept;
     void zoomHelper() noexcept;
     void scheduleHighQualityRender() noexcept;
     void cachePageStride() noexcept;
