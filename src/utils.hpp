@@ -1,11 +1,12 @@
 #pragma once
 
+#include <QPointF>
 #include <algorithm>
 #include <vector>
 
 extern "C"
 {
-#include <mupdf/fitz/geometry.h>
+#include <mupdf/fitz.h>
 }
 
 static inline float
@@ -74,3 +75,8 @@ quad_y_center(const fz_quad &q)
 {
     return (q.ul.y + q.ll.y + q.ur.y + q.lr.y) * 0.25f;
 }
+
+void
+selectionHelper(const QPointF &selectionStart, const QPointF &selectionEnd,
+                fz_point &a, fz_point &b, const fz_matrix &transform,
+                float dpr) noexcept;

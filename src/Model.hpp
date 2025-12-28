@@ -74,7 +74,8 @@ public:
 
     inline void setDPR(float dpr) noexcept
     {
-        m_dpr = dpr;
+        m_dpr     = dpr;
+        m_inv_dpr = 1.0f / dpr;
     }
 
     inline float DPR() const noexcept
@@ -132,11 +133,15 @@ public:
     bool SaveChanges() noexcept;
     QPixmap renderPageToPixmap(int pageno) noexcept;
     void cachePageDimension() noexcept;
+    std::vector<QPolygonF>
+    computeTextSelectionQuad(int pageno, const QPointF &start,
+                             const QPointF &end) noexcept;
 
 private:
     QString m_filepath;
     int m_page_count{0};
-    float m_dpr{1.25f}, m_dpi{96.0f}, m_zoom{1.0f}, m_rotation{0.0f};
+    float m_dpr{1.25f}, m_dpi{96.0f}, m_zoom{1.0f}, m_rotation{0.0f},
+        m_inv_dpr{1.0f};
     bool m_invert_color{false};
 
     fz_context *m_ctx{nullptr};

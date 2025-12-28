@@ -269,3 +269,23 @@ merge_quads_by_line(const std::vector<fz_quad> &input) noexcept
 
     return out;
 }
+
+void
+selectionHelper(const QPointF &selectionStart, const QPointF &selectionEnd,
+                fz_point &a, fz_point &b, const fz_matrix &transform,
+                float dpr) noexcept
+{
+    a = {static_cast<float>(selectionStart.x()),
+         static_cast<float>(selectionStart.y())};
+    b = {static_cast<float>(selectionEnd.x()),
+         static_cast<float>(selectionEnd.y())};
+
+    fz_matrix inv_transform = fz_invert_matrix(transform);
+    a                       = fz_transform_point(a, inv_transform);
+    b                       = fz_transform_point(b, inv_transform);
+
+    fz_matrix dpr_mat = fz_scale(dpr, dpr);
+
+    a = fz_transform_point(a, dpr_mat);
+    b = fz_transform_point(b, dpr_mat);
+}

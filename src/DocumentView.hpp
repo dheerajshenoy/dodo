@@ -203,6 +203,9 @@ signals:
     void highlightColorChanged(const QColor &color);
     void autoResizeActionUpdate(bool state);
 
+public slots:
+    void handleTextSelection(const QPointF &start, const QPointF &end) noexcept;
+
 private:
     Model *m_model{nullptr};
     GraphicsView *m_gview{nullptr};
@@ -215,6 +218,11 @@ private:
     bool m_auto_resize{false}, m_auto_reload{false};
     QHash<int, GraphicsPixmapItem *> m_page_items_hash;
     QScrollBar *m_hscroll{nullptr}, *m_vscroll{nullptr};
+    QVector<QGraphicsItem *>
+        m_text_selection_items; // current selection highlight items
+
+    bool pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
+                        QGraphicsItem *&outPageItem) const noexcept;
 
     void zoomHelper() noexcept;
     void scheduleHighQualityRender() noexcept;

@@ -1,5 +1,8 @@
 #include "DocumentView.hpp"
 
+#include "GraphicsView.hpp"
+#include "utils.hpp"
+
 #include <QVBoxLayout>
 #include <algorithm>
 #include <qnamespace.h>
@@ -46,6 +49,52 @@ DocumentView::initConnections() noexcept
         renderVisiblePages(true);
         m_current_zoom = m_target_zoom;
     });
+
+    connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, [&]()
+    {
+        // Remove existing selection items from scene
+        for (QGraphicsItem *item : m_text_selection_items)
+        {
+            m_gscene->removeItem(item);
+            delete item;
+        }
+        m_text_selection_items.clear();
+    });
+
+    connect(m_gview, &GraphicsView::textSelectionRequested, this,
+            &DocumentView::handleTextSelection);
+}
+
+void
+DocumentView::handleTextSelection(const QPointF &start,
+                                  const QPointF &end) noexcept
+{
+    int pageIndex           = -1;
+    QGraphicsItem *pageItem = nullptr;
+
+    if (!pageAtScenePos(start, pageIndex, pageItem))
+        return; // selection start outside visible pages?
+
+    // 🔴 CRITICAL FIX: map to page-local coordinates
+    const QPointF pageStart = pageItem->mapFromScene(start);
+    const QPointF pageEnd   = pageItem->mapFromScene(end);
+
+    const std::vector<QPolygonF> quads
+        = m_model->computeTextSelectionQuad(pageIndex, pageStart, pageEnd);
+
+    // Add to scene
+    const QBrush brush(Qt::yellow);
+    for (const QPolygonF &poly : quads)
+    {
+        QPolygonF scenePoly = pageItem->mapToScene(poly);
+
+        auto *item = m_gscene->addPolygon(scenePoly, Qt::NoPen, brush);
+        item->setFlag(QGraphicsItem::ItemIsSelectable, false);
+        item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
+        item->setData(0, "selection");
+        item->setData(1, pageIndex);
+        m_text_selection_items.push_back(item);
+    }
 }
 
 void
@@ -446,4 +495,28 @@ DocumentView::scheduleHighQualityRender() noexcept
     recenterPages();
 
     m_high_quality_render_timer->start();
+}
+
+bool
+DocumentView::pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
+                             QGraphicsItem *&outPageItem) const noexcept
+{
+    for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
+         ++it)
+    {
+        QGraphicsItem *item = it.value();
+        if (!item)
+            continue;
+
+        if (item->sceneBoundingRect().contains(scenePos))
+        {
+            outPageIndex = it.key();
+            outPageItem  = item;
+            return true;
+        }
+    }
+
+    outPageIndex = -1;
+    outPageItem  = nullptr;
+    return false;
 }

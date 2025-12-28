@@ -1,5 +1,7 @@
 #include "Model.hpp"
 
+#include "utils.hpp"
+
 #include <QDebug>
 
 Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
@@ -304,4 +306,45 @@ Model::renderPageToPixmap(int pageno) noexcept
     }
 
     return pixmap;
+}
+
+std::vector<QPolygonF>
+Model::computeTextSelectionQuad(int pageno, const QPointF &start,
+                                const QPointF &end) noexcept
+{
+    std::vector<QPolygonF> quads;
+    constexpr int MAX_HITS = 1000;
+    fz_quad hits[MAX_HITS];
+    int count;
+
+    fz_point a, b;
+    selectionHelper(start, end, a, b, m_transform, m_dpr);
+
+    fz_try(m_ctx)
+    {
+        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        fz_stext_page *text_page
+            = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+
+        fz_snap_selection(m_ctx, text_page, &a, &b, FZ_SELECT_CHARS);
+        count = fz_highlight_selection(m_ctx, text_page, a, b, hits, MAX_HITS);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Selection failed";
+        return quads;
+    }
+
+    for (int i = 0; i < count; ++i)
+    {
+        const fz_quad &q = fz_transform_quad(hits[i], m_transform);
+        QPolygonF poly;
+        poly << QPointF(q.ll.x * m_inv_dpr, q.ll.y * m_inv_dpr)
+             << QPointF(q.lr.x * m_inv_dpr, q.lr.y * m_inv_dpr)
+             << QPointF(q.ur.x * m_inv_dpr, q.ur.y * m_inv_dpr)
+             << QPointF(q.ul.x * m_inv_dpr, q.ul.y * m_inv_dpr);
+        quads.push_back(poly);
+    }
+
+    return quads;
 }
