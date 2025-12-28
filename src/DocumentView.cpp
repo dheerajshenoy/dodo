@@ -42,7 +42,7 @@ void
 DocumentView::initConnections() noexcept
 {
     connect(m_vscroll, &QScrollBar::valueChanged, this,
-            [this](int) { renderVisiblePages(); });
+            [this](int) { scheduleHighQualityRender(); });
 
     connect(m_high_quality_render_timer, &QTimer::timeout, this, [&]()
     {
@@ -478,6 +478,7 @@ DocumentView::scheduleHighQualityRender() noexcept
 
     // Upscale the GraphicsPixmapItems for visible pages using setScale
     // temporarily
+
     for (int pageno : visiblePages)
     {
         if (m_page_items_hash.contains(pageno))
@@ -494,7 +495,8 @@ DocumentView::scheduleHighQualityRender() noexcept
     updateSceneRect();
     recenterPages();
 
-    m_high_quality_render_timer->start();
+    if (!m_high_quality_render_timer->isActive())
+        m_high_quality_render_timer->start(); // ms
 }
 
 bool
