@@ -66,6 +66,7 @@ DocumentView::initConnections() noexcept
         m_gscene->clear();
         m_page_links_hash.clear();
         m_page_items_hash.clear();
+        m_page_annotations_hash.clear();
         m_text_selection_items.clear();
 
         renderVisiblePages(true);
@@ -538,8 +539,10 @@ DocumentView::renderLinksForPage(int pageno) noexcept
             }
         });
         // Map link rect to scene coordinates
-        QRectF sceneRect = pageItem->mapToScene(link->rect()).boundingRect();
+        const QRectF sceneRect
+            = pageItem->mapToScene(link->rect()).boundingRect();
         link->setRect(sceneRect);
+        link->setZValue(ZVALUE_LINK);
         m_gscene->addItem(link);
         m_page_links_hash[pageno]
             = links; // Store them so we can actually delete them later
@@ -555,12 +558,16 @@ DocumentView::renderAnnotationsForPage(int pageno) noexcept
 
     clearAnnotationsForPage(pageno);
 
+    GraphicsPixmapItem *pageItem          = m_page_items_hash[pageno];
     std::vector<Annotation *> annotations = m_model->getAnnotations(pageno);
-
     for (Annotation *annot : annotations)
     {
-        // Map link rect to scene coordinates
+        annot->setZValue(ZVALUE_ANNOTATION);
+        annot->setPos(
+            pageItem->pos()); // Annotations are relative to page origin
         m_gscene->addItem(annot);
+        m_page_annotations_hash[pageno]
+            = annotations; // Store them so we can actually delete them later
         connect(annot, &Annotation::annotDeleteRequested, [&](int index)
         {
             // m_model->annotDeleteRequested(index);
@@ -620,6 +627,7 @@ DocumentView::renderVisiblePages(bool force) noexcept
     // Remove unused page items
     removeUnusedLinks(visiblePages);
     removeUnusedPageItems(visiblePages);
+    removeUnusedAnnotations(visiblePages);
 
     updateSceneRect();
 }
@@ -673,6 +681,34 @@ DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
     }
 }
 
+void
+DocumentView::removeUnusedAnnotations(const std::set<int> &visibleSet) noexcept
+{
+    // Copy keys first to avoid iterator invalidation
+    QList<int> trackedPages = m_page_annotations_hash.keys();
+
+    for (int pageno : trackedPages)
+    {
+        if (visibleSet.find(pageno) == visibleSet.end())
+        {
+            auto annots
+                = m_page_annotations_hash.take(pageno); // removes from hash
+
+            for (auto *annot : annots)
+            {
+                if (!annot)
+                    continue;
+
+                // Remove from scene if still present
+                if (annot->scene() == m_gscene)
+                    m_gscene->removeItem(annot);
+
+                delete annot; // safe: we "own" these
+            }
+        }
+    }
+}
+
 // Remove a page item from the scene and delete it
 void
 DocumentView::removePageItem(int pageno) noexcept
@@ -713,6 +749,7 @@ DocumentView::resizeEvent(QResizeEvent *event)
     m_page_items_hash.clear();
     m_text_selection_items.clear();
     m_page_links_hash.clear();
+    m_page_annotations_hash.clear();
 
     renderVisiblePages();
     recenterPages();
@@ -765,6 +802,15 @@ DocumentView::recenterPages() noexcept
         //                            .boundingRect();
         //     selection->setPolygon(sceneRect);
         // }
+
+        // TODO: Center annotations
+        for (auto *annot : m_page_annotations_hash[pageno])
+        {
+            // Map link rect to scene coordinates
+            QRectF sceneRect
+                = pageItem->mapToScene(annot->boundingRect()).boundingRect();
+            annot->setPos(sceneRect.topLeft());
+        }
     }
 }
 
@@ -845,6 +891,22 @@ DocumentView::clearVisibleLinks() noexcept
             if (link->scene() == m_gscene)
                 m_gscene->removeItem(link);
             delete link; // only if you own the memory
+        }
+    }
+}
+
+void
+DocumentView::clearVisibleAnnotations() noexcept
+{
+    QList<int> trackedPages = m_page_annotations_hash.keys();
+    for (int pageno : trackedPages)
+    {
+        std::vector<Annotation *> annots = m_model->getAnnotations(pageno);
+        for (auto *annot : annots)
+        {
+            if (annot->scene() == m_gscene)
+                m_gscene->removeItem(annot);
+            delete annot; // only if you own the memory
         }
     }
 }

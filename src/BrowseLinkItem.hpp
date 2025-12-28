@@ -34,19 +34,20 @@ public:
         External
     };
 
-    BrowseLinkItem(const QRectF &rect, const QLatin1StringView &link, LinkType type, bool boundary = false,
+    BrowseLinkItem(const QRectF &rect, const QLatin1StringView &link,
+                   LinkType type, bool boundary = false,
                    QGraphicsItem *parent = nullptr)
         : QGraphicsRectItem(rect, parent), _link(link), _type(type)
     {
         if (!boundary)
             setPen(Qt::NoPen);
         // setBrush(Qt::transparent);
-        setZValue(2);
         setAcceptHoverEvents(true);
         setToolTip(link);
         setCursor(Qt::PointingHandCursor);
         setAcceptedMouseButtons(Qt::AllButtons);
-        setFlags(QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemIsFocusable);
+        setFlags(QGraphicsItem::ItemIsSelectable
+                 | QGraphicsItem::ItemIsFocusable);
     }
 
     inline void setGotoPageNo(int pageno) noexcept
@@ -71,7 +72,10 @@ public:
         _uri = uri;
     }
 
-    inline const char* URI() noexcept { return _uri; }
+    inline const char *URI() noexcept
+    {
+        return _uri;
+    }
 
 signals:
     void jumpToPageRequested(int pageno);
@@ -131,7 +135,8 @@ protected:
         QMenu menu;
         QAction *copyLinkLocationAction = menu.addAction("Copy Link Location");
 
-        connect(copyLinkLocationAction, &QAction::triggered, this, [this]() { emit linkCopyRequested(_link); });
+        connect(copyLinkLocationAction, &QAction::triggered, this,
+                [this]() { emit linkCopyRequested(_link); });
 
         menu.exec(e->screenPos());
         e->accept();

@@ -68,6 +68,7 @@ protected:
         menu.addAction(changeColorAction);
         menu.exec(e->screenPos());
         e->accept();
+        qDebug() << "DD";
     }
 
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,

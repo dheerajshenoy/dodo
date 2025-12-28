@@ -419,8 +419,8 @@ Model::getAnnotations(int pageno) noexcept
                     // const QColor qcolor
                     //     = QColor::fromRgbF(color[0], color[1], color[2],
                     //     alpha);
-                    HighlightAnnotation *highlight = new HighlightAnnotation(
-                        qrect, index, Qt::transparent);
+                    HighlightAnnotation *highlight
+                        = new HighlightAnnotation(qrect, index, Qt::yellow);
                     annot_item = highlight;
                 }
                 break;
