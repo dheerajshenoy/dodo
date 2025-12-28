@@ -3,6 +3,7 @@
 #include <QVBoxLayout>
 #include <algorithm>
 #include <qnamespace.h>
+#include <qtextcursor.h>
 
 DocumentView::DocumentView(const QString &filepath, const Config &config,
                            QWidget *parent) noexcept
@@ -10,6 +11,10 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
 {
     m_model = new Model(filepath);
     m_model->open();
+
+    m_high_quality_render_timer = new QTimer(this);
+    m_high_quality_render_timer->setSingleShot(true);
+    m_high_quality_render_timer->setInterval(200);
 
     m_gview  = new GraphicsView(this);
     m_gscene = new GraphicsScene(m_gview);
@@ -35,6 +40,12 @@ DocumentView::initConnections() noexcept
 {
     connect(m_vscroll, &QScrollBar::valueChanged, this,
             [this](int) { renderVisiblePages(); });
+
+    connect(m_high_quality_render_timer, &QTimer::timeout, this, [&]()
+    {
+        renderVisiblePages(true);
+        m_current_zoom = m_target_zoom;
+    });
 }
 
 void
@@ -106,8 +117,8 @@ DocumentView::setFitMode(FitMode mode) noexcept
 void
 DocumentView::setZoom(double factor) noexcept
 {
-    m_target_zoom  = factor;
     m_current_zoom = factor;
+    m_target_zoom  = factor;
 }
 
 void
@@ -130,28 +141,34 @@ DocumentView::Search(const QString &term) noexcept
 {
 }
 
+// Function that is common to zoom-in and zoom-out
+void
+DocumentView::zoomHelper() noexcept
+{
+    m_model->setZoom(m_current_zoom);
+    cachePageStride();
+    scheduleHighQualityRender();
+}
+
 void
 DocumentView::ZoomIn() noexcept
 {
-    m_current_zoom *= 1.2;
-    m_model->setZoom(m_current_zoom);
-    cachePageStride();
-    renderVisiblePages();
+    m_target_zoom = m_current_zoom * 1.2;
+    zoomHelper();
 }
 
 void
 DocumentView::ZoomOut() noexcept
 {
-    m_current_zoom /= 1.2;
-    m_model->setZoom(m_current_zoom);
-    cachePageStride();
-    renderVisiblePages();
+    m_target_zoom = m_current_zoom / 1.2;
+    zoomHelper();
 }
 
 void
 DocumentView::ZoomReset() noexcept
 {
-    m_current_zoom = 1.0;
+    m_current_zoom = 1.0f;
+    m_target_zoom  = 1.0f;
     m_model->setZoom(m_current_zoom);
     renderVisiblePages();
 }
@@ -308,12 +325,16 @@ DocumentView::getVisiblePages() noexcept
 }
 
 void
-DocumentView::renderPage(int pageno) noexcept
+DocumentView::renderPage(int pageno, bool force) noexcept
 {
+    if (force == false && m_page_items_hash.contains(pageno))
+        return;
+
     removePageItem(pageno);
     const QPixmap pix = m_model->renderPageToPixmap(pageno);
     auto *item        = new GraphicsPixmapItem();
     item->setPixmap(pix);
+    item->setScale(1.0);
     double pageWidthLogical = pix.width() / pix.devicePixelRatio();
     double xOffset = (m_gview->sceneRect().width() - pageWidthLogical) / 2.0;
     item->setPos(xOffset, pageno * m_page_stride);
@@ -322,16 +343,14 @@ DocumentView::renderPage(int pageno) noexcept
 }
 
 void
-DocumentView::renderVisiblePages() noexcept
+DocumentView::renderVisiblePages(bool force) noexcept
 {
     std::vector<int> visiblePages = getVisiblePages();
-    qDebug() << "Visible pages:" << visiblePages;
     QSet<int> visibleSet;
     for (int pageno : visiblePages)
     {
         visibleSet.insert(pageno);
-        if (!m_page_items_hash.contains(pageno))
-            renderPage(pageno);
+        renderPage(pageno, force);
     }
 
     for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();)
@@ -377,4 +396,54 @@ DocumentView::updateSceneRect() noexcept
     double totalHeight = m_model->numPages() * m_page_stride;
     double width       = m_gview->viewport()->width();
     m_gview->setSceneRect(0, 0, width, totalHeight);
+}
+
+void
+DocumentView::resizeEvent(QResizeEvent *event)
+{
+    updateSceneRect();
+    recenterPages();
+    QWidget::resizeEvent(event);
+}
+
+// Recenter pages in the view
+void
+DocumentView::recenterPages() noexcept
+{
+    for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
+         ++it)
+    {
+        GraphicsPixmapItem *item = it.value();
+        double pageWidthLogical
+            = item->pixmap().width() / item->pixmap().devicePixelRatio();
+        double xOffset
+            = (m_gview->sceneRect().width() - pageWidthLogical) / 2.0;
+        item->setPos(xOffset, it.key() * m_page_stride);
+    }
+}
+
+void
+DocumentView::scheduleHighQualityRender() noexcept
+{
+    std::vector<int> visiblePages = getVisiblePages();
+
+    // Upscale the GraphicsPixmapItems for visible pages using setScale
+    // temporarily
+    for (int pageno : visiblePages)
+    {
+        if (m_page_items_hash.contains(pageno))
+        {
+            GraphicsPixmapItem *item = m_page_items_hash[pageno];
+            QSizeF size              = item->pixmap().size() / m_model->DPR();
+            item->setTransformOriginPoint(size.width() / 2.0,
+                                          size.height() / 2.0);
+            item->setScale(m_target_zoom / m_current_zoom);
+            // item->setPos(item->pos().x(), pageno * m_page_stride);
+        }
+    }
+
+    updateSceneRect();
+    recenterPages();
+
+    m_high_quality_render_timer->start();
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AboutDialog.hpp"
 #include "Config.hpp"
 #include "GraphicsPixmapItem.hpp"
 #include "GraphicsScene.hpp"
@@ -10,7 +11,9 @@
 #include <QHash>
 #include <QScrollBar>
 #include <QString>
+#include <QTimer>
 #include <QWidget>
+#include <qevent.h>
 
 class DocumentView : public QWidget
 {
@@ -143,7 +146,7 @@ public:
         m_model->followLink(info);
     }
 
-    void renderVisiblePages() noexcept;
+    void renderVisiblePages(bool force = false) noexcept;
     void setFitMode(FitMode mode) noexcept;
     void GotoPage(int pageno) noexcept;
     void GotoNextPage() noexcept;
@@ -182,6 +185,8 @@ public:
     void ClearKBHintsOverlay() noexcept;
     void NextSelectionMode() noexcept;
     void NextFitMode() noexcept;
+    void resizeEvent(QResizeEvent *event) override;
+    void recenterPages() noexcept;
 
 signals:
     void pageChanged(int pageno);
@@ -211,10 +216,13 @@ private:
     QHash<int, GraphicsPixmapItem *> m_page_items_hash;
     QScrollBar *m_hscroll{nullptr}, *m_vscroll{nullptr};
 
+    void zoomHelper() noexcept;
+    void scheduleHighQualityRender() noexcept;
     void cachePageStride() noexcept;
     void updateSceneRect() noexcept;
     void initConnections() noexcept;
     std::vector<int> getVisiblePages() noexcept;
-    void renderPage(int pageno) noexcept;
+    void renderPage(int pageno, bool force = false) noexcept;
     void removePageItem(int pageno) noexcept;
+    QTimer *m_high_quality_render_timer{nullptr};
 };
