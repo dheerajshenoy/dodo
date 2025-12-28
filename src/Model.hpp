@@ -1,219 +1,27 @@
 #pragma once
 
-#include "Annotation.hpp"
-#include "BrowseLinkItem.hpp"
+// Wrapper for MuPDF Model
 
-#include <QFuture>
-#include <QImage>
-#include <QMimeData>
-#include <QMimeDatabase>
-#include <QObject>
+#include <QColor>
+#include <QDebug>
+#include <QPixmap>
 #include <QString>
-#include <QThreadPool>
 #include <QUndoStack>
-#include <QtConcurrent/QtConcurrent>
+
 extern "C"
 {
 #include <mupdf/fitz.h>
+#include <mupdf/fitz/geometry.h>
+#include <mupdf/fitz/image.h>
 #include <mupdf/pdf.h>
 }
 
-#define CSTR(x) x.toStdString().c_str()
-
-class QImage;
-class QGraphicsScene;
-
-QString
-generateHint(int index) noexcept;
-fz_quad
-union_quad(const fz_quad &a, const fz_quad &b);
-
-class Model : public QObject
+class Model
 {
-    Q_OBJECT
+
 public:
-    Model(QGraphicsScene *scene, QObject *parent = nullptr);
-    ~Model();
-    explicit operator bool() const noexcept
-    {
-        return m_doc != nullptr;
-    }
-
-    QList<QImage> getImagesFromPage(int pageno) noexcept;
-
-    struct EncryptInfo
-    {
-        bool can_print;
-        bool can_copy;
-        bool can_annotate;
-        bool can_fill_forms;
-        bool can_modify;
-        bool can_extract;
-        // const char *owner_password;
-        QString user_password;
-    };
-
-    // Used for hit-testing images on a page
-    struct ImageHitTestDevice
-    {
-        fz_device super;
-        QPointF query;
-        fz_image *img{nullptr};
-    };
-
-    static void hit_test_image(fz_context *ctx, fz_device *d, fz_image *img,
-                               fz_matrix ctm, float alpha,
-                               fz_color_params color_params)
-    {
-        Q_UNUSED(ctx);
-        Q_UNUSED(alpha);
-        Q_UNUSED(color_params);
-
-        ImageHitTestDevice *dev = reinterpret_cast<ImageHitTestDevice *>(d);
-        fz_rect rect            = fz_transform_rect(fz_unit_rect, ctm);
-        const float x           = dev->query.x();
-        const float y           = dev->query.y();
-
-        if (x >= rect.x0 && x <= rect.x1 && y >= rect.y0 && y <= rect.y1)
-            dev->img = img;
-    }
-
-    fz_pixmap *hitTestImage(int pageno, const QPointF &pagePos) noexcept;
-    void SavePixmap(fz_pixmap *pixmap, const QString &filename) noexcept;
-    void CopyPixmapToClipboard(fz_pixmap *pixmap) noexcept;
-
-    bool encrypt(const Model::EncryptInfo &) noexcept;
-    bool decrypt() noexcept;
-    QString getMimeData(const QString &filepath) noexcept;
-    bool authenticate(const QString &pwd) noexcept;
-    bool passwordRequired() noexcept;
-    bool openFile(const QString &fileName);
-    void closeFile() noexcept;
-    bool valid();
-    inline void setDPI(float dpi)
-    {
-        m_dpi = dpi;
-    }
-    int numPages();
-    QPixmap renderPage(int pageno, bool cache = false) noexcept;
-    QList<BrowseLinkItem *> getLinks() noexcept;
-    pdf_annot *get_annot_by_index(int index) noexcept;
-    QList<pdf_annot *> get_annots_by_indexes(const QSet<int> &index) noexcept;
-    void annotDeleteRequested(int index) noexcept;
-    QList<Annotation *> getAnnotations() noexcept;
-    void setLinkBoundary(bool state);
-    void searchAll(const QString &term, bool caseSensitive);
-    void addRectAnnotation(const QRectF &rect) noexcept;
-    bool save() noexcept;
-    bool saveAs(const char *filename) noexcept;
-    fz_rect convertToMuPdfRect(const QRectF &qtRect) noexcept;
-    bool hasUnsavedChanges() noexcept;
-    void enableICC() noexcept;
-    void setAntialiasingBits(int bits) noexcept;
-    QList<QPair<QString, QString>> extractPDFProperties() noexcept;
-    inline void setDPR(float dpr) noexcept
-    {
-        m_dpr     = dpr;
-        m_inv_dpr = 1 / dpr;
-    }
-
-    fz_context *clonedContext() noexcept;
-    inline fz_document *document() noexcept
-    {
-        return m_doc;
-    }
-    inline pdf_document *pdfDocument() noexcept
-    {
-        return m_pdfdoc;
-    }
-    inline pdf_page *pdfPage() noexcept
-    {
-        return m_pdfpage;
-    }
-
-    void annotHighlightSelection(const QPointF &selectionStart,
-                                 const QPointF &selectionEnd) noexcept;
-    QSet<int> getAnnotationsInArea(const QRectF &area) noexcept;
-    int getAnnotationAtPoint(const QPointF &area) noexcept;
-    inline QUndoStack *undoStack() noexcept
-    {
-        return m_undoStack;
-    }
-
-    inline float zoom() noexcept
-    {
-        return m_zoom_factor;
-    }
-    inline void setZoom(float zoom) noexcept
-    {
-        m_zoom_factor = zoom;
-    }
-    inline float rotation() noexcept
-    {
-        return m_rotation;
-    }
-
-    inline void setRotation(float rotation) noexcept
-    {
-        m_rotation = rotation;
-    }
-
-    inline fz_context *context() noexcept
-    {
-        return m_ctx;
-    }
-
-    inline void setSelectionColor(const QColor &color) noexcept
-    {
-        m_selection_color = color;
-    }
-
-    inline QColor highlightAnnotColor() noexcept
-    {
-        return QColor(static_cast<int>(m_highlight_color[0] * 255),
-                      static_cast<int>(m_highlight_color[1] * 255),
-                      static_cast<int>(m_highlight_color[2] * 255),
-                      static_cast<int>(m_highlight_color[3] * 255));
-    }
-
-    inline QColor popupAnnotColor() noexcept
-    {
-        return QColor(static_cast<int>(m_popup_color[0] * 255),
-                      static_cast<int>(m_popup_color[1] * 255),
-                      static_cast<int>(m_popup_color[2] * 255),
-                      static_cast<int>(m_popup_color[3] * 255));
-    }
-
-    inline void setHighlightColor(const QColor &color) noexcept
-    {
-        m_highlight_color[0] = color.redF();
-        m_highlight_color[1] = color.greenF();
-        m_highlight_color[2] = color.blueF();
-        m_highlight_color[3] = color.alphaF();
-    }
-
-    inline void setAnnotRectColor(const QColor &color) noexcept
-    {
-        m_annot_rect_color[0] = color.redF();
-        m_annot_rect_color[1] = color.greenF();
-        m_annot_rect_color[2] = color.blueF();
-        m_annot_rect_color[3] = color.alphaF();
-    }
-
-    inline void setPopupColor(const QColor &color) noexcept
-    {
-        m_popup_color[0] = color.redF();
-        m_popup_color[1] = color.greenF();
-        m_popup_color[2] = color.blueF();
-        m_popup_color[3] = color.alphaF();
-    }
-
-    enum class MessageType
-    {
-        INFO = 0,
-        WARNING,
-        CRITICAL,
-    };
+    Model(const QString &filepath) noexcept;
+    ~Model() noexcept;
 
     struct LinkInfo
     {
@@ -221,145 +29,140 @@ public:
         fz_link_dest dest;
     };
 
-    struct SearchResult
+    struct EncryptInfo
     {
-        int page;
-        fz_quad quad; // Raw text quad from MuPDF, in page coordinates
-        int index;
+        QString user_password;
+        QString owner_password;
+        int perm_flags{0};
+        int enc_level{128}; // 40, 128, 256
     };
 
-    QString selectAllText(const QPointF &start, const QPointF &end) noexcept;
-    void initSaveOptions() noexcept;
-    inline fz_outline *getOutline() noexcept
+    inline float zoom() const noexcept
     {
-        return m_outline;
+        return m_zoom;
     }
 
-    inline fz_matrix transform() noexcept
+    inline void setZoom(float zoom) noexcept
     {
-        return m_transform;
+        m_zoom = zoom;
     }
 
-    void followLink(const LinkInfo &info) noexcept;
-    void loadColorProfile(const QString &profileName) noexcept;
-
-    inline bool invertColor() noexcept
+    inline QString filePath() const noexcept
     {
-        return m_invert_color_mode;
+        return m_filepath;
     }
 
-    inline void toggleInvertColor() noexcept
+    inline int numPages() const noexcept
     {
-        m_invert_color_mode = !m_invert_color_mode;
+        return m_page_count;
     }
 
-    inline void setInvertColor(bool state) noexcept
+    inline QUndoStack *undoStack() noexcept
     {
-        m_invert_color_mode = state;
+        return m_undo_stack;
     }
 
-    inline float width() noexcept
+    inline void setInvertColor(bool invert) noexcept
     {
-        return m_width;
-    }
-    inline float height() noexcept
-    {
-        return m_height;
+        m_invert_color = invert;
     }
 
-    inline fz_link_dest resolveLink(const char *URI) noexcept
+    inline bool invertColor() const noexcept
     {
-        return fz_resolve_link_dest(m_ctx, m_doc, URI);
+        return m_invert_color;
     }
 
-    void selectWord(const QPointF &loc) noexcept;
-    void selectLine(const QPointF &loc) noexcept;
-    void selectParagraph(const QPointF &loc) noexcept;
-
-    inline bool hasSelection() const noexcept
+    inline void setDPR(float dpr) noexcept
     {
-        return m_has_selection;
+        m_dpr = dpr;
     }
 
-    void clearSelection() noexcept;
-    QString getSelectedText() noexcept;
-    void highlightSelectedText() noexcept;
+    inline float DPR() const noexcept
+    {
+        return m_dpr;
+    }
 
-    void highlightHelper(const QPointF &selectionStart,
-                         const QPointF &selectionEnd, fz_point &a,
-                         fz_point &b) noexcept;
-    void highlightTextSelection(const QPointF &selectionStart,
-                                const QPointF &selectionEnd) noexcept;
-    void doubleClickTextSelection(const QPointF &loc) noexcept;
-    void tripleClickTextSelection(const QPointF &loc) noexcept;
-    void quadrupleClickTextSelection(const QPointF &loc) noexcept;
-    void highlightQuad(fz_quad quad) noexcept;
-    QString getSelectionText(const QPointF &selectionStart,
-                             const QPointF &selectionEnd) noexcept;
-    void deleteAnnots(const QSet<int> &indices) noexcept;
-    void annotChangeColorForIndexes(const QSet<int> &indexes,
-                                    const QColor &color) noexcept;
-    void annotChangeColorForIndex(const int index,
-                                  const QColor &color) noexcept;
-    fz_point mapToPdf(QPointF loc) noexcept;
-    bool isBreak(int c) noexcept;
+    inline bool success() const noexcept
+    {
+        return m_success;
+    }
+
+    inline QColor highlightAnnotColor() const noexcept
+    {
+        return QColor(static_cast<int>(m_highlight_color[0] * 255),
+                      static_cast<int>(m_highlight_color[1] * 255),
+                      static_cast<int>(m_highlight_color[2] * 255),
+                      static_cast<int>(m_highlight_color[3] * 255));
+    }
+
+    inline bool hasUnsavedChanges() const noexcept
+    {
+        if (m_undo_stack)
+            return m_undo_stack->isClean() == false;
+        return false;
+    }
+
+    inline float pageWidthPts() const noexcept
+    {
+        return m_page_width_pts;
+    }
+
+    inline float pageHeightPts() const noexcept
+    {
+        return m_page_height_pts;
+    }
+
+    inline float DPI() const noexcept
+    {
+        return m_dpi;
+    }
+
+    fz_outline *getOutline() noexcept;
+    bool followLink(const LinkInfo &info) noexcept;
     bool reloadDocument() noexcept;
-
-signals:
-    void pageRenderRequested(int pageno, bool cache);
-    void jumpToPageRequested(int pageno);
-    void jumpToLocationRequested(int pageno,
-                                 const BrowseLinkItem::Location &loc);
-    void searchResultsReady(const QMap<int, QList<SearchResult>> &results,
-                            int matchCount);
-    void horizontalFitRequested(int pageno,
-                                const BrowseLinkItem::Location &location);
-    void verticalFitRequested(int pageno,
-                              const BrowseLinkItem::Location &location);
-    void fitRectRequested(int pageno, float x, float y, float w, float h);
-    void fitXYZRequested(int pageno, float x, float y, float zoom);
-    void showMessageRequested(const char *message, MessageType type);
-    void documentSaved();
+    void open() noexcept;
+    bool decrypt() noexcept;
+    bool encrypt(const EncryptInfo &info) noexcept;
+    void setPopupColor(const QColor &color) noexcept;
+    void setHighlightColor(const QColor &color) noexcept;
+    void setSelectionColor(const QColor &color) noexcept;
+    void setAnnotRectColor(const QColor &color) noexcept;
+    bool passwordRequired() const noexcept;
+    bool authenticate(const QString &password) noexcept;
+    bool SaveChanges() noexcept;
+    QPixmap renderPageToPixmap(int pageno) noexcept;
+    void cachePageDimension() noexcept;
 
 private:
-    void apply_night_mode(fz_pixmap *pixmap) noexcept;
-    QImage recolorImage(const QImage &src, QColor fgColor,
-                        QColor bgColor) noexcept;
-
-    QList<SearchResult> searchHelper(int pageno, const QString &term,
-                                     bool caseSensitive);
-
-    fz_colorspace *m_colorspace;
-
-    QString m_filename;
-    int m_match_count{0};
-
-    float m_dpi{72.0f};
-    bool m_link_boundary{false}, m_invert_color_mode{false};
-    QGraphicsScene *m_scene{nullptr};
-    int m_pageno{-1};
+    QString m_filepath;
+    int m_page_count{0};
+    float m_dpr{1.25f}, m_dpi{96.0f}, m_zoom{1.0f}, m_rotation{0.0f};
+    bool m_invert_color{false};
 
     fz_context *m_ctx{nullptr};
     fz_document *m_doc{nullptr};
-    fz_page *m_page{nullptr};
-    pdf_page *m_pdfpage{nullptr};
-    fz_stext_page *m_text_page{nullptr};
-    pdf_document *m_pdfdoc{nullptr};
-    pdf_write_options m_write_opts;
-    fz_matrix m_transform;
-    std::string m_password; // Used when reloading document
+    pdf_document *m_pdf_doc{nullptr};
+    float m_popup_color[4], m_highlight_color[4], m_selection_color[4],
+        m_annot_rect_color[4];
 
-    float m_height, m_width, m_rotation{0.0f}, m_zoom_factor{1.0f}, m_dpr{1.0f},
-        m_inv_dpr{1.0f}, m_highlight_color[4], m_annot_rect_color[4],
-        m_popup_color[4];
-    QColor m_selection_color;
-    float m_page_height{0.0f};
-    QUndoStack *m_undoStack;
+    QUndoStack *m_undo_stack{nullptr};
+    bool m_success{false};
+    fz_colorspace *m_colorspace{nullptr};
     fz_outline *m_outline{nullptr};
-
-    // Selection bounds stored as fz_point for efficiency (no conversion
-    // needed)
-    fz_point m_sel_start{0, 0};
-    fz_point m_sel_end{0, 0};
-    bool m_has_selection{false};
+    fz_matrix m_transform{fz_identity};
+    float m_page_width_pts{0.0f}, m_page_height_pts{0.0f};
 };
+
+/**
+ * @brief Clean up image data when the last copy of the QImage is destoryed.
+ */
+static inline void
+imageCleanupHandler(void *data)
+{
+    unsigned char *samples = static_cast<unsigned char *>(data);
+
+    if (samples)
+    {
+        delete[] samples;
+    }
+}

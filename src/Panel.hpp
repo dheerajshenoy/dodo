@@ -5,6 +5,7 @@
 #include "ElidableLabel.hpp"
 #include "GraphicsView.hpp"
 
+#include <QLineEdit>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QWidget>

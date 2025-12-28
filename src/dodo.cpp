@@ -10,11 +10,16 @@
 #include "toml.hpp"
 
 #include <QColorDialog>
+#include <QDesktopServices>
 #include <QFile>
+#include <QFileDialog>
 #include <QJsonArray>
+#include <QJsonObject>
+#include <QMimeData>
 #include <QSplitter>
 #include <QStackedLayout>
 #include <QStyleHints>
+#include <QWindow>
 #include <qguiapplication.h>
 #include <qjsonarray.h>
 #include <qnamespace.h>
@@ -1117,7 +1122,7 @@ dodo::RotateAnticlock() noexcept
 {
     // TODO:
     if (m_doc)
-        m_doc->RotateAntiClock();
+        m_doc->RotateAnticlock();
 }
 
 // Shows link hints for each visible link to visit link
@@ -1166,14 +1171,6 @@ dodo::YankSelection() noexcept
 {
     if (m_doc)
         m_doc->YankSelection();
-}
-
-// Selects all the text in the file
-void
-dodo::YankAll() noexcept
-{
-    if (m_doc)
-        m_doc->YankAll();
 }
 
 void
@@ -1350,7 +1347,7 @@ void
 dodo::FitWidth() noexcept
 {
     if (m_doc)
-        m_doc->FitWidth();
+        m_doc->setFitMode(DocumentView::FitMode::Width);
 }
 
 // Fit the document to the height of the window
@@ -1358,7 +1355,7 @@ void
 dodo::FitHeight() noexcept
 {
     if (m_doc)
-        m_doc->FitHeight();
+        m_doc->setFitMode(DocumentView::FitMode::Height);
 }
 
 // Fit the document to the window
@@ -1366,7 +1363,7 @@ void
 dodo::FitWindow() noexcept
 {
     if (m_doc)
-        m_doc->FitWindow();
+        m_doc->setFitMode(DocumentView::FitMode::Window);
 }
 
 // Toggle auto-resize mode
@@ -1399,7 +1396,7 @@ dodo::InvertColor() noexcept
 {
     if (m_doc)
     {
-        m_doc->InvertColor();
+        m_doc->setInvertColor(!m_doc->invertColor());
         m_actionInvertColor->setChecked(!m_actionInvertColor->isChecked());
     }
 }
@@ -1449,7 +1446,8 @@ void
 dodo::FirstPage() noexcept
 {
     if (m_doc)
-        m_doc->FirstPage();
+        m_doc->GotoFirstPage();
+    updatePageNavigationActions();
 }
 
 // Go to the previous page
@@ -1457,7 +1455,8 @@ void
 dodo::PrevPage() noexcept
 {
     if (m_doc)
-        m_doc->PrevPage();
+        m_doc->GotoPrevPage();
+    updatePageNavigationActions();
 }
 
 // Go to the next page
@@ -1465,7 +1464,8 @@ void
 dodo::NextPage() noexcept
 {
     if (m_doc)
-        m_doc->NextPage();
+        m_doc->GotoNextPage();
+    updatePageNavigationActions();
 }
 
 // Go to the last page
@@ -1473,7 +1473,7 @@ void
 dodo::LastPage() noexcept
 {
     if (m_doc)
-        m_doc->LastPage();
+        m_doc->GotoLastPage();
 
     updatePageNavigationActions();
 }
@@ -1672,7 +1672,7 @@ dodo::closeEvent(QCloseEvent *e)
                 }
                 else if (ret == QMessageBox::Save)
                 {
-                    if (!model->save())
+                    if (!model->SaveChanges())
                     {
                         QMessageBox::critical(this, "Save Failed",
                                               "Could not save the file.");
@@ -1714,7 +1714,7 @@ dodo::eventFilter(QObject *object, QEvent *event)
                 {
                     case Qt::Key_Escape:
                         m_currentHintInput.clear();
-                        m_doc->clearKBHintsOverlay();
+                        m_doc->ClearKBHintsOverlay();
                         m_link_hint_map.clear();
                         m_link_hint_mode = false;
                         return true;
@@ -1743,7 +1743,7 @@ dodo::eventFilter(QObject *object, QEvent *event)
                             break;
 
                         case LinkHintMode::Visit:
-                            m_doc->model()->followLink(info);
+                            m_doc->FollowLink(info);
                             break;
 
                         case LinkHintMode::Copy:
@@ -1753,7 +1753,7 @@ dodo::eventFilter(QObject *object, QEvent *event)
 
                     m_currentHintInput.clear();
                     m_link_hint_map.clear();
-                    m_doc->clearKBHintsOverlay();
+                    m_doc->ClearKBHintsOverlay();
                     m_link_hint_mode = false;
                     return true;
                 }
@@ -1839,7 +1839,7 @@ dodo::filePropertiesForIndex(int index) noexcept
 {
     DocumentView *doc
         = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
-    doc->InvertColor();
+    // doc->setInvertColor(!doc->invertColor());
     if (doc)
         doc->FileProperties();
 }
@@ -1867,16 +1867,15 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
     });
 
     connect(m_panel, &Panel::modeChangeRequested, docwidget,
-            &DocumentView::nextSelectionMode);
+            &DocumentView::NextSelectionMode);
 
     connect(m_panel, &Panel::fitModeChangeRequested, docwidget,
-            &DocumentView::nextFitMode);
+            &DocumentView::NextFitMode);
 
     connect(docwidget, &DocumentView::fileNameChanged, this,
             &dodo::handleFileNameChanged);
 
-    connect(docwidget, &DocumentView::pageNumberChanged, m_panel,
-            &Panel::setPageNo);
+    connect(docwidget, &DocumentView::pageChanged, m_panel, &Panel::setPageNo);
 
     connect(docwidget, &DocumentView::searchCountChanged, m_search_bar,
             &SearchBar::setSearchCount);
@@ -2163,14 +2162,14 @@ dodo::writeSessionToFile(const QString &sessionName) noexcept
     {
         DocumentView *doc
             = qobject_cast<DocumentView *>(m_tab_widget->widget(i));
-        if (!doc || !doc->model()->valid())
+        if (!doc)
             continue;
 
         QJsonObject entry;
         entry["file_path"]    = doc->filePath();
         entry["current_page"] = doc->pageNo() + 1;
         entry["zoom"]         = doc->zoom();
-        entry["invert_color"] = doc->model()->invertColor();
+        entry["invert_color"] = doc->invertColor();
         entry["rotation"]     = doc->rotation();
         entry["fit_mode"]     = static_cast<int>(doc->fitMode());
 
@@ -2349,7 +2348,6 @@ dodo::initActionMap() noexcept
                        TextHighlightCurrentSelection),
         ACTION_NO_ARGS("toggle_tabs", ToggleTabBar),
         ACTION_NO_ARGS("keybindings", ShowKeybindings),
-        ACTION_NO_ARGS("yank_all", YankAll),
         ACTION_NO_ARGS("save", SaveFile),
         ACTION_NO_ARGS("save_as", SaveAsFile),
         ACTION_NO_ARGS("yank", YankSelection),
@@ -2443,7 +2441,7 @@ dodo::setDPR(float dpr) noexcept
 {
     if (m_doc)
     {
-        m_doc->FirstPage();
+        m_doc->GotoFirstPage();
         m_doc->setDPR(dpr);
     }
 }
@@ -2542,7 +2540,7 @@ void
 dodo::updatePageNavigationActions() noexcept
 {
     const int page  = m_doc ? m_doc->pageNo() : -1;
-    const int count = m_doc ? m_doc->count() : 0;
+    const int count = m_doc ? m_doc->numPages() : 0;
 
     m_actionFirstPage->setEnabled(page > 0);
     m_actionPrevPage->setEnabled(page > 0);
@@ -2595,7 +2593,7 @@ dodo::DecryptDocument() noexcept
                 "Enter password:", QLineEdit::Password, QString(), &ok);
             if (!ok || pwd.isEmpty())
                 return;
-            if (m_doc->model()->authenticate(pwd))
+            if (m_doc->authenticate(pwd))
             {
                 // Password correct, proceed to decryption
                 if (m_doc->model()->decrypt())
@@ -2744,10 +2742,10 @@ dodo::openSessionFromArray(const QJsonArray &sessionArray) noexcept
 
         DocumentView *view = new DocumentView(filePath, m_config, m_tab_widget);
         if (invert)
-            view->model()->setInvertColor(true);
+            view->setInvertColor(true);
         view->GotoPage(page);
-        view->Zoom(zoom);
-        view->Fit(static_cast<DocumentView::FitMode>(fitMode));
+        view->setZoom(zoom);
+        view->setFitMode(static_cast<DocumentView::FitMode>(fitMode));
         OpenFile(view);
     }
 }

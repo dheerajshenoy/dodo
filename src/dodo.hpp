@@ -16,6 +16,8 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QDir>
+#include <QFileSystemWatcher>
+#include <QInputDialog>
 #include <QKeySequence>
 #include <QMainWindow>
 #include <QMenuBar>
@@ -113,7 +115,6 @@ private:
     void ToggleAnnotRect() noexcept;
     void ToggleAnnotSelect() noexcept;
     void ToggleAnnotPopup() noexcept;
-    void YankAll() noexcept;
     void YankSelection() noexcept;
     void ClearTextSelection() noexcept;
     void VisitLinkKB() noexcept;
@@ -246,7 +247,6 @@ private:
     QSqlDatabase m_last_pages_db;
     QString m_session_name;
     QFileSystemWatcher *m_config_watcher{nullptr};
-    QTimer m_debounceTimer;
     QMap<QString, DocumentView *> m_path_tab_map;
     MessageBar *m_message_bar;
     SearchBar *m_search_bar;

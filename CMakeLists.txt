@@ -38,7 +38,6 @@ add_executable(${PROJECT_NAME}
     src/DocumentView.cpp
     src/StartupWidget.cpp
     src/MessageBar.cpp
-    src/HighlightsDialog.cpp
     src/Annotation.cpp
     src/EditLastPagesWidget.cpp
     src/SearchBar.cpp
