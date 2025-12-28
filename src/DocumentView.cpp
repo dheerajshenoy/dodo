@@ -219,33 +219,17 @@ DocumentView::Search(const QString &term) noexcept
 void
 DocumentView::zoomHelper() noexcept
 {
-    // Determine the visible page that contains the viewport center
-    QRectF viewportRect    = m_gview->viewport()->rect();
-    QPointF viewportCenter = viewportRect.center();
-    QPointF sceneCenter    = m_gview->mapToScene(viewportCenter.toPoint());
-
-    GraphicsPixmapItem *item;
-    int index = -1;
-    if (!pageAtScenePos(sceneCenter, index, item))
-    {
-        // Fallback: use first visible page
-        std::vector<int> visiblePages = getVisiblePages();
-        if (visiblePages.empty())
-            return;
-        index = visiblePages[0];
-        item  = m_page_items_hash[index];
-    }
+    m_high_quality_render_timer->stop(); // Stop any pending renders
+    // Clear the scene to prevent ghosting of old resolutions
+    m_gscene->clear();
+    m_page_items_hash.clear();
+    m_page_links_hash.clear();
+    m_text_selection_items.clear();
 
     m_model->setZoom(m_current_zoom);
     cachePageStride();
-    scheduleHighQualityRender();
 
-    // Re-center on the previous page center
-    if (item)
-    {
-        QPointF pageCenter = item->sceneBoundingRect().center();
-        m_gview->centerOn(pageCenter);
-    }
+    scheduleHighQualityRender();
 }
 
 // Zoom in by a fixed factor
@@ -429,10 +413,10 @@ DocumentView::GoBackHistory() noexcept
 }
 
 // Get the list of currently visible pages
-std::vector<int>
+std::set<int>
 DocumentView::getVisiblePages() noexcept
 {
-    std::vector<int> visiblePages;
+    std::set<int> visiblePages;
 
     QRectF visibleSceneRect
         = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
@@ -446,7 +430,7 @@ DocumentView::getVisiblePages() noexcept
     lastPage  = std::min(m_model->numPages() - 1, lastPage);
 
     for (int pageno = firstPage; pageno <= lastPage; ++pageno)
-        visiblePages.push_back(pageno);
+        visiblePages.insert(pageno);
 
     return visiblePages;
 }
@@ -455,12 +439,19 @@ DocumentView::getVisiblePages() noexcept
 void
 DocumentView::clearLinksForPage(int pageno) noexcept
 {
-    std::vector<BrowseLinkItem *> links = m_model->getLinks(pageno);
+    if (!m_page_links_hash.contains(pageno))
+        return;
+    auto links = m_page_links_hash.take(pageno); // removes from hash
     for (auto *link : links)
     {
+        if (!link)
+            continue;
+
+        // Remove from scene if still present
         if (link->scene() == m_gscene)
             m_gscene->removeItem(link);
-        delete link;
+
+        delete link; // safe: we "own" these
     }
 }
 
@@ -468,8 +459,8 @@ DocumentView::clearLinksForPage(int pageno) noexcept
 void
 DocumentView::renderLinksForPage(int pageno) noexcept
 {
-    // if (!m_page_items_hash.contains(pageno))
-    //     return;
+    if (!m_page_items_hash.contains(pageno))
+        return;
 
     clearLinksForPage(pageno);
 
@@ -496,6 +487,8 @@ DocumentView::renderLinksForPage(int pageno) noexcept
         QRectF sceneRect = pageItem->mapToScene(link->rect()).boundingRect();
         link->setRect(sceneRect);
         m_gscene->addItem(link);
+        m_page_links_hash[pageno]
+            = links; // Store them so we can actually delete them later
     }
 }
 
@@ -523,38 +516,52 @@ void
 DocumentView::renderVisiblePages(bool force) noexcept
 {
     // Render visible pages
-    std::vector<int> visiblePages = getVisiblePages();
-    QSet<int> visibleSet;
+    std::set<int> visiblePages = getVisiblePages();
+    qDebug() << "Visible pages:" << visiblePages;
+
     for (int pageno : visiblePages)
     {
-        visibleSet.insert(pageno);
         renderPage(pageno, force);
         renderLinksForPage(pageno);
     }
 
     // Remove unused page items
-    removeUnusedLinks(visibleSet);
-    removeUnusedPageItems(visibleSet);
+    removeUnusedLinks(visiblePages);
+    removeUnusedPageItems(visiblePages);
 
     updateSceneRect();
 }
 
-// Remove links for pages that are not in visibleSet
 void
-DocumentView::removeUnusedLinks(const QSet<int> &visibleSet) noexcept
+DocumentView::removeUnusedLinks(const std::set<int> &visibleSet) noexcept
 {
-    for (int pageno = 0; pageno < m_model->numPages(); ++pageno)
+    // Copy keys first to avoid iterator invalidation
+    QList<int> trackedPages = m_page_links_hash.keys();
+
+    for (int pageno : trackedPages)
     {
-        if (!visibleSet.contains(pageno))
+        if (visibleSet.find(pageno) == visibleSet.end())
         {
-            clearLinksForPage(pageno);
+            auto links = m_page_links_hash.take(pageno); // removes from hash
+
+            for (auto *link : links)
+            {
+                if (!link)
+                    continue;
+
+                // Remove from scene if still present
+                if (link->scene() == m_gscene)
+                    m_gscene->removeItem(link);
+
+                delete link; // safe: we "own" these
+            }
         }
     }
 }
 
 // Remove page items that are not in visibleSet
 void
-DocumentView::removeUnusedPageItems(const QSet<int> &visibleSet) noexcept
+DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
 {
     // Copy keys first to avoid iterator issues
     QList<int> keys = m_page_items_hash.keys();
@@ -606,12 +613,18 @@ DocumentView::updateSceneRect() noexcept
     m_gview->setSceneRect(0, 0, width, totalHeight);
 }
 
-// Handle resize event
 void
 DocumentView::resizeEvent(QResizeEvent *event)
 {
-    updateSceneRect();
+    // Nuclear option to stop artifacts:
+    m_gscene->clear();
+    m_page_items_hash.clear();
+    m_text_selection_items.clear();
+    m_page_links_hash.clear();
+
+    renderVisiblePages();
     recenterPages();
+
     QWidget::resizeEvent(event);
 }
 
@@ -631,8 +644,10 @@ DocumentView::recenterPages() noexcept
     }
 
     // Center links
-    for (int pageno = 0; pageno < m_model->numPages(); ++pageno)
+    for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
+         ++it)
     {
+        const int pageno = it.key();
         if (!m_page_items_hash.contains(pageno))
             continue;
 
@@ -658,7 +673,7 @@ DocumentView::recenterPages() noexcept
 void
 DocumentView::scheduleHighQualityRender() noexcept
 {
-    std::vector<int> visiblePages = getVisiblePages();
+    // std::set<int> visiblePages = getVisiblePages();
 
     // Upscale the GraphicsPixmapItems for visible pages using setScale
     // temporarily
@@ -702,4 +717,34 @@ DocumentView::pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
     outPageIndex = -1;
     outPageItem  = nullptr;
     return false;
+}
+
+void
+DocumentView::clearVisiblePages() noexcept
+{
+    // m_page_items_hash
+    for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
+         ++it)
+    {
+        GraphicsPixmapItem *item = it.value();
+        if (item->scene() == m_gscene)
+            m_gscene->removeItem(item);
+    }
+    m_page_items_hash.clear();
+}
+
+void
+DocumentView::clearVisibleLinks() noexcept
+{
+    QList<int> trackedPages = m_page_links_hash.keys();
+    for (int pageno : trackedPages)
+    {
+        std::vector<BrowseLinkItem *> links = m_model->getLinks(pageno);
+        for (auto *link : links)
+        {
+            if (link->scene() == m_gscene)
+                m_gscene->removeItem(link);
+            delete link; // only if you own the memory
+        }
+    }
 }

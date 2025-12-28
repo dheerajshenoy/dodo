@@ -226,20 +226,23 @@ private:
     QScrollBar *m_hscroll{nullptr}, *m_vscroll{nullptr};
     std::vector<QGraphicsPolygonItem *>
         m_text_selection_items; // current selection highlight items
+    QHash<int, std::vector<BrowseLinkItem *>> m_page_links_hash;
 
     bool pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
                         GraphicsPixmapItem *&outPageItem) const noexcept;
 
     void clearLinksForPage(int pageno) noexcept;
     void renderLinksForPage(int pageno) noexcept;
-    void removeUnusedLinks(const QSet<int> &visibleSet) noexcept;
-    void removeUnusedPageItems(const QSet<int> &visibleSet) noexcept;
+    void clearVisiblePages() noexcept;
+    void clearVisibleLinks() noexcept;
+    void removeUnusedLinks(const std::set<int> &visibleSet) noexcept;
+    void removeUnusedPageItems(const std::set<int> &visibleSet) noexcept;
     void zoomHelper() noexcept;
     void scheduleHighQualityRender() noexcept;
     void cachePageStride() noexcept;
     void updateSceneRect() noexcept;
     void initConnections() noexcept;
-    std::vector<int> getVisiblePages() noexcept;
+    std::set<int> getVisiblePages() noexcept;
     void renderPage(int pageno, bool force = false) noexcept;
     void removePageItem(int pageno) noexcept;
     QTimer *m_high_quality_render_timer{nullptr};

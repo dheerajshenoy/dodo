@@ -353,17 +353,21 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &start,
 std::vector<BrowseLinkItem *>
 Model::getLinks(int pageno) noexcept
 {
-    if (pageno < 0 || pageno >= m_page_count)
-        return {}; // skip invalid pages
-
     std::vector<BrowseLinkItem *> items;
+
+    fz_page *page{nullptr};
+    fz_link *head{nullptr};
 
     fz_try(m_ctx)
     {
-        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
-        fz_link *head = fz_load_links(m_ctx, page);
+        page = fz_load_page(m_ctx, m_doc, pageno);
+        head = fz_load_links(m_ctx, page);
         if (!head)
+        {
+            fz_drop_link(m_ctx, head);
+            fz_drop_page(m_ctx, page);
             return items;
+        }
 
         // Count links for reserve
         int linkCount = 0;
@@ -445,8 +449,11 @@ Model::getLinks(int pageno) noexcept
                 items.push_back(item);
             }
         }
-
+    }
+    fz_always(m_ctx)
+    {
         fz_drop_link(m_ctx, head);
+        fz_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {
