@@ -1,5 +1,6 @@
 #include "Model.hpp"
 
+#include "Annotation.hpp"
 #include "utils.hpp"
 
 #include <QDebug>
@@ -347,4 +348,110 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &start,
     }
 
     return quads;
+}
+
+std::vector<BrowseLinkItem *>
+Model::getLinks(int pageno) noexcept
+{
+    if (pageno < 0 || pageno >= m_page_count)
+        return {}; // skip invalid pages
+
+    std::vector<BrowseLinkItem *> items;
+
+    fz_try(m_ctx)
+    {
+        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        fz_link *head = fz_load_links(m_ctx, page);
+        if (!head)
+            return items;
+
+        // Count links for reserve
+        int linkCount = 0;
+        for (fz_link *l = head; l; l = l->next)
+            ++linkCount;
+        items.reserve(linkCount);
+
+        for (fz_link *link = head; link; link = link->next)
+        {
+            if (!link->uri)
+                continue;
+
+            const fz_rect r = fz_transform_rect(link->rect, m_transform);
+
+            const float x = r.x0 * m_inv_dpr;
+            const float y = r.y0 * m_inv_dpr;
+            const float w = (r.x1 - r.x0) * m_inv_dpr;
+            const float h = (r.y1 - r.y0) * m_inv_dpr;
+            QRectF qtRect(x, y, w, h);
+
+            BrowseLinkItem *item = nullptr;
+            const QLatin1StringView uri(link->uri);
+
+            if (fz_is_external_link(m_ctx, link->uri))
+            {
+                item = new BrowseLinkItem(qtRect, uri,
+                                          BrowseLinkItem::LinkType::External);
+            }
+            else if (uri.startsWith(QLatin1String("#page")))
+            {
+                float xp, yp;
+                fz_location loc
+                    = fz_resolve_link(m_ctx, m_doc, link->uri, &xp, &yp);
+                item = new BrowseLinkItem(qtRect, uri,
+                                          BrowseLinkItem::LinkType::Page);
+                item->setGotoPageNo(loc.page);
+            }
+            else
+            {
+                const fz_link_dest dest
+                    = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
+                const int pageno = dest.loc.page;
+
+                switch (dest.type)
+                {
+                    case FZ_LINK_DEST_FIT_H:
+                        item = new BrowseLinkItem(
+                            qtRect, uri, BrowseLinkItem::LinkType::FitH, true);
+                        item->setGotoPageNo(pageno);
+                        item->setXYZ({.x = 0, .y = dest.y, .zoom = 0});
+                        break;
+
+                    case FZ_LINK_DEST_FIT_V:
+                        item = new BrowseLinkItem(
+                            qtRect, uri, BrowseLinkItem::LinkType::FitV, true);
+                        item->setGotoPageNo(pageno);
+                        break;
+
+                    case FZ_LINK_DEST_FIT_R:
+                    case FZ_LINK_DEST_XYZ:
+                        item = new BrowseLinkItem(
+                            qtRect, uri, BrowseLinkItem::LinkType::Section,
+                            true);
+                        item->setGotoPageNo(pageno);
+                        item->setXYZ(
+                            {.x = dest.x, .y = dest.y, .zoom = dest.zoom});
+                        break;
+
+                    default:
+                        qWarning() << "Unknown link destination type";
+                        break;
+                }
+            }
+
+            if (item)
+            {
+                item->setData(0, "link");
+                item->setURI(link->uri);
+                items.push_back(item);
+            }
+        }
+
+        fz_drop_link(m_ctx, head);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "MuPDF error in getLinks:" << fz_caught_message(m_ctx);
+    }
+
+    return items;
 }

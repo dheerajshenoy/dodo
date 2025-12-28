@@ -14,6 +14,12 @@
 #include <QTimer>
 #include <QWidget>
 #include <qevent.h>
+#include <qgraphicsitem.h>
+
+#define ZVALUE_PAGE 0
+#define ZVALUE_ANNOTATION 800
+#define ZVALUE_TEXT_SELECTION 900
+#define ZVALUE_LINK 1000
 
 class DocumentView : public QWidget
 {
@@ -213,17 +219,21 @@ private:
     Config m_config;
     FitMode m_fit_mode{FitMode::None};
     int m_pageno{-1};
-    float m_spacing{1.0f}, m_page_stride{0.0f};
+    float m_spacing{1.0f}, m_page_stride{0.0f}, m_page_x_offset{0.0f};
     double m_target_zoom{1.0}, m_current_zoom{1.0}, m_rotation{0.0};
     bool m_auto_resize{false}, m_auto_reload{false};
     QHash<int, GraphicsPixmapItem *> m_page_items_hash;
     QScrollBar *m_hscroll{nullptr}, *m_vscroll{nullptr};
-    QVector<QGraphicsItem *>
+    std::vector<QGraphicsPolygonItem *>
         m_text_selection_items; // current selection highlight items
 
     bool pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
-                        QGraphicsItem *&outPageItem) const noexcept;
+                        GraphicsPixmapItem *&outPageItem) const noexcept;
 
+    void clearLinksForPage(int pageno) noexcept;
+    void renderLinksForPage(int pageno) noexcept;
+    void removeUnusedLinks(const QSet<int> &visibleSet) noexcept;
+    void removeUnusedPageItems(const QSet<int> &visibleSet) noexcept;
     void zoomHelper() noexcept;
     void scheduleHighQualityRender() noexcept;
     void cachePageStride() noexcept;

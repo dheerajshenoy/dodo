@@ -2,6 +2,9 @@
 
 // Wrapper for MuPDF Model
 
+#include "Annotation.hpp"
+#include "BrowseLinkItem.hpp"
+
 #include <QColor>
 #include <QDebug>
 #include <QPixmap>
@@ -136,6 +139,8 @@ public:
     std::vector<QPolygonF>
     computeTextSelectionQuad(int pageno, const QPointF &start,
                              const QPointF &end) noexcept;
+    std::vector<Annotation *> getAnnotations(int pageno) noexcept;
+    std::vector<BrowseLinkItem *> getLinks(int pageno) noexcept;
 
 private:
     QString m_filepath;
