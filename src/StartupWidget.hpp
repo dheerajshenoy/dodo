@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QDateTime>
-#include <QDebug>
 #include <QHeaderView>
 #include <QMetaType>
 #include <QSqlDatabase>

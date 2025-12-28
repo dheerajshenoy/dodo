@@ -3,8 +3,6 @@
 #include "Annotation.hpp"
 #include "utils.hpp"
 
-#include <QDebug>
-
 Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
 {
     m_undo_stack         = new QUndoStack();

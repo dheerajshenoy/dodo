@@ -6,7 +6,6 @@
 #include "BrowseLinkItem.hpp"
 
 #include <QColor>
-#include <QDebug>
 #include <QPixmap>
 #include <QString>
 #include <QUndoStack>

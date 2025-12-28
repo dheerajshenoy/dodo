@@ -246,4 +246,5 @@ private:
     void renderPage(int pageno, bool force = false) noexcept;
     void removePageItem(int pageno) noexcept;
     QTimer *m_high_quality_render_timer{nullptr};
+    float m_old_y{0.0f};
 };

@@ -47,10 +47,29 @@ DocumentView::initConnections() noexcept
     connect(m_vscroll, &QScrollBar::valueChanged, this,
             [this](int) { scheduleHighQualityRender(); });
 
-    connect(m_high_quality_render_timer, &QTimer::timeout, this, [&]()
+    connect(m_high_quality_render_timer, &QTimer::timeout, this, [this]()
     {
-        renderVisiblePages(true);
+        // Save viewport center in scene coordinates
+        QPointF sceneCenter
+            = m_gview->mapToScene(m_gview->viewport()->rect().center());
+
+        // Apply HQ zoom
         m_current_zoom = m_target_zoom;
+
+        m_model->setZoom(m_current_zoom);
+        cachePageStride();
+        updateSceneRect();
+
+        // Clear and render pages & links at HQ
+        m_gscene->clear();
+        m_page_links_hash.clear();
+        m_page_items_hash.clear();
+        m_text_selection_items.clear();
+
+        renderVisiblePages(true);
+
+        // Restore viewport center
+        m_gview->centerOn(sceneCenter);
     });
 
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, [&]()
@@ -220,15 +239,6 @@ void
 DocumentView::zoomHelper() noexcept
 {
     m_high_quality_render_timer->stop(); // Stop any pending renders
-    // Clear the scene to prevent ghosting of old resolutions
-    m_gscene->clear();
-    m_page_items_hash.clear();
-    m_page_links_hash.clear();
-    m_text_selection_items.clear();
-
-    m_model->setZoom(m_current_zoom);
-    cachePageStride();
-
     scheduleHighQualityRender();
 }
 
@@ -398,12 +408,15 @@ DocumentView::YankSelection() noexcept
 void
 DocumentView::GotoFirstPage() noexcept
 {
+    m_vscroll->setValue(0);
 }
 
 // Go to the last page
 void
 DocumentView::GotoLastPage() noexcept
 {
+    int maxValue = m_vscroll->maximum();
+    m_vscroll->setValue(maxValue);
 }
 
 // Go back in history
@@ -517,7 +530,6 @@ DocumentView::renderVisiblePages(bool force) noexcept
 {
     // Render visible pages
     std::set<int> visiblePages = getVisiblePages();
-    qDebug() << "Visible pages:" << visiblePages;
 
     for (int pageno : visiblePages)
     {
@@ -661,34 +673,42 @@ DocumentView::recenterPages() noexcept
                 = pageItem->mapToScene(link->rect()).boundingRect();
             link->setRect(sceneRect);
         }
-    }
 
-    // TODO: Center selections
-    // for (auto *item : m_text_selection_items)
-    // {
-    // }
+        // TODO: Center text selections
+        // for (auto *selection : m_text_selection_items)
+        // {
+        //     if (selection->data(1).toInt() != pageno)
+        //         continue;
+
+        //     QRectF sceneRect =
+        //     pageItem->mapToScene(selection->boundingRect())
+        //                            .boundingRect();
+        //     selection->setPolygon(sceneRect);
+        // }
+    }
 }
 
 // Schedule high-quality rendering of visible pages
 void
 DocumentView::scheduleHighQualityRender() noexcept
 {
-    // std::set<int> visiblePages = getVisiblePages();
+    // Apply low-quality zoom to existing items
+    for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
+         ++it)
+    {
+        GraphicsPixmapItem *item = it.value();
+        if (!item)
+            continue;
 
-    // Upscale the GraphicsPixmapItems for visible pages using setScale
-    // temporarily
-
-    // for (int pageno : visiblePages)
-    // {
-    //     if (m_page_items_hash.contains(pageno))
-    //     {
-    //         GraphicsPixmapItem *item = m_page_items_hash[pageno];
-    //         item->setScale(m_target_zoom / m_current_zoom);
-    //         // item->setPos(item->pos().x(), pageno * m_page_stride);
-    //     }
-    // }
-    m_gview->scale(m_target_zoom / m_current_zoom,
-                   m_target_zoom / m_current_zoom);
+        double scaleFactor = m_target_zoom / m_current_zoom;
+        item->setScale(scaleFactor);
+        double pageWidthLogical
+            = item->pixmap().width() / item->pixmap().devicePixelRatio();
+        m_page_x_offset
+            = (m_gview->sceneRect().width() - pageWidthLogical * scaleFactor)
+              / 2.0;
+        item->setPos(m_page_x_offset, it.key() * m_page_stride);
+    }
 
     if (!m_high_quality_render_timer->isActive())
         m_high_quality_render_timer->start(); // ms
