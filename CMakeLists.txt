@@ -49,7 +49,7 @@ add_executable(${PROJECT_NAME}
     src/OutlineWidget.hpp
     src/OutlineModel.hpp
     src/ElidableLabel.hpp
-    src/HighlightItem.hpp
+    src/HighlightAnnotation.hpp
     src/EditLastPagesWidget.hpp
     src/LinkHint.hpp
     src/JumpMarker.hpp

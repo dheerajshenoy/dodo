@@ -140,6 +140,12 @@ public:
                              const QPointF &end) noexcept;
     std::vector<Annotation *> getAnnotations(int pageno) noexcept;
     std::vector<BrowseLinkItem *> getLinks(int pageno) noexcept;
+    std::string getSelectedText(int pageno, const fz_point &a,
+                                const fz_point &b) const noexcept;
+    inline std::pair<fz_point, fz_point> getTextSelectionRange() const noexcept
+    {
+        return {m_selection_start, m_selection_end};
+    }
 
 private:
     QString m_filepath;
@@ -160,6 +166,7 @@ private:
     fz_outline *m_outline{nullptr};
     fz_matrix m_transform{fz_identity};
     float m_page_width_pts{0.0f}, m_page_height_pts{0.0f};
+    fz_point m_selection_start{}, m_selection_end{};
 };
 
 /**

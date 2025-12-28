@@ -4,8 +4,10 @@
 #include "GraphicsView.hpp"
 #include "utils.hpp"
 
+#include <QClipboard>
 #include <QVBoxLayout>
 #include <algorithm>
+#include <qguiapplication.h>
 #include <qnamespace.h>
 #include <qtextcursor.h>
 #include <strings.h>
@@ -86,6 +88,9 @@ DocumentView::initConnections() noexcept
 
     connect(m_gview, &GraphicsView::textSelectionRequested, this,
             &DocumentView::handleTextSelection);
+
+    connect(m_gview, &GraphicsView::populateContextMenuRequested, this,
+            &DocumentView::populateContextMenu);
 }
 
 // Handle text selection from GraphicsView
@@ -396,12 +401,27 @@ DocumentView::ClearKBHintsOverlay() noexcept
 void
 DocumentView::ClearTextSelection() noexcept
 {
+    for (auto *item : m_text_selection_items)
+    {
+        if (item->scene() == m_gscene)
+            m_gscene->removeItem(item);
+        delete item;
+    }
+    m_text_selection_items.clear();
 }
 
 // Yank the current text selection to clipboard
 void
 DocumentView::YankSelection() noexcept
 {
+    if (m_text_selection_items.empty())
+        return;
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    auto range            = m_model->getTextSelectionRange();
+    int pageIndex         = m_text_selection_items[0]->data(1).toInt();
+    clipboard->setText(
+        m_model->getSelectedText(pageIndex, range.first, range.second).c_str());
+    ClearTextSelection();
 }
 
 // Go to the first page
@@ -468,6 +488,27 @@ DocumentView::clearLinksForPage(int pageno) noexcept
     }
 }
 
+// Clear links for a specific page
+void
+DocumentView::clearAnnotationsForPage(int pageno) noexcept
+{
+    if (!m_page_annotations_hash.contains(pageno))
+        return;
+    auto annotations
+        = m_page_annotations_hash.take(pageno); // removes from hash
+    for (auto *annotation : annotations)
+    {
+        if (!annotation)
+            continue;
+
+        // Remove from scene if still present
+        if (annotation->scene() == m_gscene)
+            m_gscene->removeItem(annotation);
+
+        delete annotation; // safe: we "own" these
+    }
+}
+
 // Render links for a specific page
 void
 DocumentView::renderLinksForPage(int pageno) noexcept
@@ -505,6 +546,44 @@ DocumentView::renderLinksForPage(int pageno) noexcept
     }
 }
 
+// Render annotations for a specific page
+void
+DocumentView::renderAnnotationsForPage(int pageno) noexcept
+{
+    if (!m_page_items_hash.contains(pageno))
+        return;
+
+    clearAnnotationsForPage(pageno);
+
+    std::vector<Annotation *> annotations = m_model->getAnnotations(pageno);
+
+    for (Annotation *annot : annotations)
+    {
+        // Map link rect to scene coordinates
+        m_gscene->addItem(annot);
+        connect(annot, &Annotation::annotDeleteRequested, [&](int index)
+        {
+            // m_model->annotDeleteRequested(index);
+            // setDirty(true);
+            renderPage(m_pageno, true);
+        });
+
+        connect(annot, &Annotation::annotColorChangeRequested,
+                [this, annot](int index)
+        {
+            // auto color = QColorDialog::getColor(
+            //     annot->data(3).value<QColor>(), this, "Highlight Color",
+            //     QColorDialog::ColorDialogOption::ShowAlphaChannel);
+            // if (color.isValid())
+            // {
+            //     m_model->annotChangeColorForIndex(index, color);
+            //     setDirty(true);
+            //     renderPage(m_pageno, true);
+            // }
+        });
+    }
+}
+
 // Render a specific page to the scene
 void
 DocumentView::renderPage(int pageno, bool force) noexcept
@@ -535,6 +614,7 @@ DocumentView::renderVisiblePages(bool force) noexcept
     {
         renderPage(pageno, force);
         renderLinksForPage(pageno);
+        renderAnnotationsForPage(pageno);
     }
 
     // Remove unused page items
@@ -766,5 +846,59 @@ DocumentView::clearVisibleLinks() noexcept
                 m_gscene->removeItem(link);
             delete link; // only if you own the memory
         }
+    }
+}
+
+void
+DocumentView::populateContextMenu(QMenu *menu) noexcept
+{
+    auto addAction = [menu, this](const QString &text, const auto &slot)
+    {
+        QAction *action = new QAction(text, menu); // sets parent = menu
+        connect(action, &QAction::triggered, this, slot);
+        menu->addAction(action);
+    };
+
+    // If right-clicked on an image
+    // if (m_hit_pixmap)
+    // {
+    //     addAction("Open Image in External Viewer",
+    //               &DocumentView::OpenHitPixmapInExternalViewer);
+    //     addAction("Save Image As...", &DocumentView::SaveImageAs);
+    //     addAction("Copy Image", &DocumentView::CopyImageToClipboard);
+    //     return;
+    // }
+
+    switch (m_gview->mode())
+    {
+        case GraphicsView::Mode::TextSelection:
+        {
+            if (m_text_selection_items.empty())
+                return;
+            addAction("Copy Text", &DocumentView::YankSelection);
+            addAction("Highlight Text",
+                      &DocumentView::TextHighlightCurrentSelection);
+        }
+        break;
+
+        case GraphicsView::Mode::AnnotSelect:
+        {
+            // if (!m_annot_selection_present)
+            //     return;
+            // addAction("Delete Annotations", &DocumentView::deleteKeyAction);
+            // addAction("Change color", &DocumentView::annotChangeColor);
+        }
+        break;
+
+        case GraphicsView::Mode::TextHighlight:
+            // addAction("Change color", &DocumentView::changeHighlighterColor);
+            break;
+
+        case GraphicsView::Mode::AnnotRect:
+            // addAction("Change color", &DocumentView::changeAnnotRectColor);
+            break;
+
+        default:
+            break;
     }
 }

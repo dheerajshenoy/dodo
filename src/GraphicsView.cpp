@@ -271,19 +271,38 @@ GraphicsView::wheelEvent(QWheelEvent *event)
 void
 GraphicsView::contextMenuEvent(QContextMenuEvent *event)
 {
-    QGraphicsItem *item
-        = scene()->itemAt(mapToScene(event->pos()), transform());
-    bool isSelectionItem = item && item->data(0).toString() == "selection";
+    // Check if there’s any text selection in the scene
+    bool hasTextSelection = false;
+    for (QGraphicsItem *item : scene()->items())
+    {
+        if (item->data(0).toString() == "selection")
+        {
+            hasTextSelection = true;
+            break;
+        }
+    }
 
-    if (item && !isSelectionItem && item->type() != QGraphicsProxyWidget::Type)
+    // If right-clicked on a normal item AND no text selection exists, use
+    // default
+    QGraphicsItem *clickedItem
+        = scene()->itemAt(mapToScene(event->pos()), transform());
+    bool isSelectionItem
+        = clickedItem && clickedItem->data(0).toString() == "selection";
+
+    if (clickedItem && !isSelectionItem
+        && clickedItem->type() != QGraphicsProxyWidget::Type
+        && !hasTextSelection)
     {
         QGraphicsView::contextMenuEvent(event);
         return;
     }
 
+    // Otherwise, show custom menu
     QMenu menu(this);
     emit populateContextMenuRequested(&menu);
+
     if (!menu.isEmpty())
         menu.exec(event->globalPos());
+
     event->accept();
 }

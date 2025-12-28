@@ -1,6 +1,9 @@
 #include "Model.hpp"
 
-#include "Annotation.hpp"
+#include "HighlightAnnotation.hpp"
+#include "PopupAnnotation.hpp"
+#include "RectAnnotation.hpp"
+#include "mupdf/fitz/structured-text.h"
 #include "utils.hpp"
 
 Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
@@ -319,6 +322,9 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &start,
     fz_point a, b;
     selectionHelper(start, end, a, b, m_transform, m_dpr);
 
+    m_selection_start = a;
+    m_selection_end   = b;
+
     fz_try(m_ctx)
     {
         fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
@@ -346,6 +352,95 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &start,
     }
 
     return quads;
+}
+
+std::vector<Annotation *>
+Model::getAnnotations(int pageno) noexcept
+{
+    std::vector<Annotation *> annots;
+    int index = 0;
+
+    fz_try(m_ctx)
+    {
+        fz_page *page      = fz_load_page(m_ctx, m_doc, pageno);
+        pdf_page *pdf_page = pdf_page_from_fz_page(m_ctx, page);
+
+        if (!pdf_page)
+            return annots;
+
+        // Count annotations for reserve (optional optimization)
+        int annotCount = 0;
+        for (pdf_annot *a = pdf_first_annot(m_ctx, pdf_page); a;
+             a            = pdf_next_annot(m_ctx, a))
+            ++annotCount;
+        annots.reserve(annotCount);
+
+        pdf_annot *annot = pdf_first_annot(m_ctx, pdf_page);
+        int n;
+        float color[3];
+        while (annot)
+        {
+            Annotation *annot_item = nullptr;
+            fz_rect bbox           = pdf_bound_annot(m_ctx, annot);
+            bbox                   = fz_transform_rect(bbox, m_transform);
+            QRectF qrect(bbox.x0 * m_inv_dpr, bbox.y0 * m_inv_dpr,
+                         (bbox.x1 - bbox.x0) * m_inv_dpr,
+                         (bbox.y1 - bbox.y0) * m_inv_dpr);
+            const enum pdf_annot_type type = pdf_annot_type(m_ctx, annot);
+            const float alpha              = pdf_annot_opacity(m_ctx, annot);
+            switch (type)
+            {
+                case PDF_ANNOT_TEXT:
+                {
+                    pdf_annot_color(m_ctx, annot, &n, color);
+                    const QString text = pdf_annot_contents(m_ctx, annot);
+                    const QColor qcolor
+                        = QColor::fromRgbF(color[0], color[1], color[2], alpha);
+                    PopupAnnotation *popup
+                        = new PopupAnnotation(qrect, text, index, qcolor);
+                    annot_item = popup;
+                }
+                break;
+
+                case PDF_ANNOT_SQUARE:
+                {
+                    pdf_annot_interior_color(m_ctx, annot, &n, color);
+                    const QColor qcolor
+                        = QColor::fromRgbF(color[0], color[1], color[2], alpha);
+                    RectAnnotation *rect_annot
+                        = new RectAnnotation(qrect, index, qcolor);
+                    annot_item = rect_annot;
+                }
+                break;
+
+                case PDF_ANNOT_HIGHLIGHT:
+                {
+                    // pdf_annot_color(m_ctx, annot, &n, color);
+                    // const QColor qcolor
+                    //     = QColor::fromRgbF(color[0], color[1], color[2],
+                    //     alpha);
+                    HighlightAnnotation *highlight = new HighlightAnnotation(
+                        qrect, index, Qt::transparent);
+                    annot_item = highlight;
+                }
+                break;
+
+                default:
+                    break;
+            }
+
+            if (annot_item)
+                annots.push_back(annot_item);
+            annot = pdf_next_annot(m_ctx, annot);
+            ++index;
+        }
+    }
+    fz_catch(m_ctx)
+    {
+        qDebug() << "MuPDF exception during annotation retrieval";
+    }
+
+    return annots;
 }
 
 std::vector<BrowseLinkItem *>
@@ -459,4 +554,27 @@ Model::getLinks(int pageno) noexcept
     }
 
     return items;
+}
+
+std::string
+Model::getSelectedText(int pageno, const fz_point &a,
+                       const fz_point &b) const noexcept
+{
+    std::string result;
+
+    fz_try(m_ctx)
+    {
+        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        fz_stext_page *text_page
+            = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        result = fz_copy_selection(m_ctx, text_page, a, b, 0);
+        fz_drop_stext_page(m_ctx, text_page);
+        fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Failed to copy selection text";
+    }
+
+    return result;
 }

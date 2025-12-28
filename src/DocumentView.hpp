@@ -212,6 +212,9 @@ signals:
 public slots:
     void handleTextSelection(const QPointF &start, const QPointF &end) noexcept;
 
+protected:
+    void populateContextMenu(QMenu *menu) noexcept;
+
 private:
     Model *m_model{nullptr};
     GraphicsView *m_gview{nullptr};
@@ -227,16 +230,24 @@ private:
     std::vector<QGraphicsPolygonItem *>
         m_text_selection_items; // current selection highlight items
     QHash<int, std::vector<BrowseLinkItem *>> m_page_links_hash;
+    QHash<int, std::vector<Annotation *>> m_page_annotations_hash;
 
     bool pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
                         GraphicsPixmapItem *&outPageItem) const noexcept;
 
     void clearLinksForPage(int pageno) noexcept;
     void renderLinksForPage(int pageno) noexcept;
+    void clearAnnotationsForPage(int pageno) noexcept;
+    void renderAnnotationsForPage(int pageno) noexcept;
+
+    void clearVisibleAnnotations() noexcept;
     void clearVisiblePages() noexcept;
     void clearVisibleLinks() noexcept;
+
     void removeUnusedLinks(const std::set<int> &visibleSet) noexcept;
     void removeUnusedPageItems(const std::set<int> &visibleSet) noexcept;
+    void removeUnusedAnnotations(const std::set<int> &visibleSet) noexcept;
+
     void zoomHelper() noexcept;
     void scheduleHighQualityRender() noexcept;
     void cachePageStride() noexcept;
