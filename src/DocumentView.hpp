@@ -242,9 +242,7 @@ private:
     void requestPageRender(int pageno) noexcept;
 
     void clearLinksForPage(int pageno) noexcept;
-    void renderLinksForPage(int pageno) noexcept;
     void clearAnnotationsForPage(int pageno) noexcept;
-    void renderAnnotationsForPage(int pageno) noexcept;
 
     void clearVisibleAnnotations() noexcept;
     void clearVisiblePages() noexcept;
@@ -275,4 +273,11 @@ private:
     JumpMarker *m_jump_marker{nullptr};
     QTimer *m_scroll_page_update_timer{
         nullptr}; // to throttle page change updates
+    struct PendingJump
+    {
+        int pageno{-1};
+        float x{0.0f}, y{0.0f};
+        double zoom{1.0};
+    };
+    PendingJump m_pending_jump;
 };
