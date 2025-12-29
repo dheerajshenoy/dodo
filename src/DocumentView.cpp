@@ -112,20 +112,28 @@ DocumentView::handleTextSelection(const QPointF &start,
     const std::vector<QPolygonF> quads
         = m_model->computeTextSelectionQuad(pageIndex, pageStart, pageEnd);
 
-    // Add to scene
-    const QBrush brush(m_config.ui.colors["selection"]);
+    // 2. Initialize the path item if it doesn't exist
+    if (!m_selection_path_item)
+    {
+        m_selection_path_item = m_gscene->addPath(QPainterPath());
+        m_selection_path_item->setBrush(
+            QBrush(m_config.ui.colors["selection"]));
+        m_selection_path_item->setPen(Qt::NoPen);
+        m_selection_path_item->setZValue(ZVALUE_TEXT_SELECTION);
+    }
+
+    // 3. Batch all polygons into ONE path
+    QPainterPath path;
     for (const QPolygonF &poly : quads)
     {
-        QPolygonF scenePoly = pageItem->mapToScene(poly);
-
-        auto *item = m_gscene->addPolygon(scenePoly, Qt::NoPen, brush);
-        item->setZValue(ZVALUE_TEXT_SELECTION); // on top of everything
-        item->setFlag(QGraphicsItem::ItemIsSelectable, false);
-        item->setFlag(QGraphicsItem::ItemIgnoresTransformations, false);
-        item->setData(0, "selection");
-        item->setData(1, pageIndex);
-        m_text_selection_items.push_back(item);
+        // We map to scene here, or better yet, make pageItem the parent
+        // of m_selection_path_item once to avoid mapping every frame.
+        path.addPolygon(pageItem->mapToScene(poly));
     }
+
+    // 4. Update the existing item instead of deleting/recreating
+    m_selection_path_item->setPath(path);
+    m_selection_path_item->show();
 }
 
 // Rotate page clockwise
@@ -511,6 +519,7 @@ DocumentView::ClearTextSelection() noexcept
         delete item;
     }
     m_text_selection_items.clear();
+    m_model->clear_fz_stext_page_cache(); // clear cached text pages
 }
 
 // Yank the current text selection to clipboard
@@ -782,7 +791,7 @@ DocumentView::recenterPages() noexcept
             continue;
 
         GraphicsPixmapItem *pageItem        = m_page_items_hash[pageno];
-        std::vector<BrowseLinkItem *> links = m_model->getLinks(pageno);
+        std::vector<BrowseLinkItem *> links = m_page_links_hash[pageno];
 
         for (auto *link : links)
         {
@@ -889,8 +898,7 @@ DocumentView::clearVisibleLinks() noexcept
     QList<int> trackedPages = m_page_links_hash.keys();
     for (int pageno : trackedPages)
     {
-        std::vector<BrowseLinkItem *> links = m_model->getLinks(pageno);
-        for (auto *link : links)
+        for (auto *link : m_page_links_hash.take(pageno))
         {
             if (link->scene() == m_gscene)
                 m_gscene->removeItem(link);
@@ -905,8 +913,7 @@ DocumentView::clearVisibleAnnotations() noexcept
     QList<int> trackedPages = m_page_annotations_hash.keys();
     for (int pageno : trackedPages)
     {
-        std::vector<Annotation *> annots = m_model->getAnnotations(pageno);
-        for (auto *annot : annots)
+        for (auto *annot : m_page_annotations_hash.take(pageno))
         {
             if (annot->scene() == m_gscene)
                 m_gscene->removeItem(annot);

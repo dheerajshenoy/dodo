@@ -75,8 +75,3 @@ quad_y_center(const fz_quad &q)
 {
     return (q.ul.y + q.ll.y + q.ur.y + q.lr.y) * 0.25f;
 }
-
-void
-selectionHelper(const QPointF &selectionStart, const QPointF &selectionEnd,
-                fz_point &a, fz_point &b, const fz_matrix &transform,
-                float dpr) noexcept;

@@ -230,7 +230,7 @@ private:
     double m_target_zoom{1.0}, m_current_zoom{1.0}, m_rotation{0.0};
     bool m_auto_resize{false}, m_auto_reload{false};
     QScrollBar *m_hscroll{nullptr}, *m_vscroll{nullptr};
-    std::vector<QGraphicsPolygonItem *>
+    std::vector<QGraphicsPathItem *>
         m_text_selection_items; // current selection highlight items
     QHash<int, GraphicsPixmapItem *> m_page_items_hash;
     QHash<int, std::vector<BrowseLinkItem *>> m_page_links_hash;
@@ -280,4 +280,5 @@ private:
         double zoom{1.0};
     };
     PendingJump m_pending_jump;
+    QGraphicsPathItem *m_selection_path_item{nullptr};
 };

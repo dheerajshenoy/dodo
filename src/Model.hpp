@@ -9,6 +9,7 @@
 #include <QPixmap>
 #include <QString>
 #include <QUndoStack>
+#include <unordered_map>
 
 extern "C"
 {
@@ -149,9 +150,12 @@ public:
         return {m_selection_start, m_selection_end};
     }
 
-    inline fz_matrix getTransformMatrix() const noexcept
+    // Clear cached fz_stext_page objects
+    inline void clear_fz_stext_page_cache() noexcept
     {
-        return m_transform;
+        for (auto &pair : m_stext_page_cache)
+            fz_drop_stext_page(m_ctx, pair.second);
+        m_stext_page_cache.clear();
     }
 
     RenderJob createRenderJob(int pageno) const noexcept;
@@ -175,14 +179,11 @@ public:
     bool authenticate(const QString &password) noexcept;
     bool SaveChanges() noexcept;
     bool SaveAs(const QString &newFilePath) noexcept;
-    QPixmap renderPageToPixmap(int pageno) noexcept;
     QPointF mapPdfToPixmap(int pageno, float pdfX, float pdfY) noexcept;
     void cachePageDimension() noexcept;
     std::vector<QPolygonF>
     computeTextSelectionQuad(int pageno, const QPointF &start,
                              const QPointF &end) noexcept;
-    std::vector<Annotation *> getAnnotations(int pageno) noexcept;
-    std::vector<BrowseLinkItem *> getLinks(int pageno) noexcept;
     std::string getSelectedText(int pageno, const fz_point &a,
                                 const fz_point &b) const noexcept;
 
@@ -203,8 +204,8 @@ private:
     bool m_success{false};
     fz_colorspace *m_colorspace{nullptr};
     fz_outline *m_outline{nullptr};
-    fz_matrix m_transform{fz_identity};
     float m_page_width_pts{0.0f}, m_page_height_pts{0.0f};
     fz_point m_selection_start{}, m_selection_end{};
     fz_locks_context m_fz_locks;
+    std::unordered_map<int, fz_stext_page *> m_stext_page_cache;
 };
