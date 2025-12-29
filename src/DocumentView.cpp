@@ -29,6 +29,10 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_gscene = new GraphicsScene(m_gview);
     m_gview->setScene(m_gscene);
 
+    m_hq_render_timer = new QTimer(this);
+    m_hq_render_timer->setInterval(200);
+    m_hq_render_timer->setSingleShot(true);
+
     m_scroll_page_update_timer = new QTimer(this);
     m_scroll_page_update_timer->setInterval(100);
     m_scroll_page_update_timer->setSingleShot(true);
@@ -56,14 +60,18 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
 void
 DocumentView::initConnections() noexcept
 {
+
+    connect(m_hq_render_timer, &QTimer::timeout, this,
+            [&]() { renderVisiblePages(); });
+
     connect(m_vscroll, &QScrollBar::valueChanged, this,
             [this](int) { updateCurrentPage(); });
 
     connect(m_scroll_page_update_timer, &QTimer::timeout, this,
-            &DocumentView::scheduleHighQualityRender);
+            &DocumentView::updateCurrentPage);
 
-    // connect(this, &DocumentView::currentPageChanged, this,
-    //         &DocumentView::scheduleHighQualityRender);
+    connect(this, &DocumentView::currentPageChanged, this,
+            &DocumentView::renderVisiblePages);
 
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this,
             &DocumentView::ClearTextSelection);
@@ -173,7 +181,7 @@ DocumentView::setFitMode(FitMode mode) noexcept
             const double newZoom
                 = viewWidth / (m_model->pageWidthPts() * m_model->DPR());
             setZoom(newZoom);
-            scheduleHighQualityRender();
+            renderVisiblePages();
         }
         break;
 
@@ -183,7 +191,7 @@ DocumentView::setFitMode(FitMode mode) noexcept
             const double newZoom
                 = viewHeight / (m_model->pageHeightPts() * m_model->DPR());
             setZoom(newZoom);
-            scheduleHighQualityRender();
+            renderVisiblePages();
         }
         break;
 
@@ -216,7 +224,7 @@ DocumentView::GotoXYZ(int pageno, float x, float y, double zoom) noexcept
     if (zoom > 0.0)
     {
         setZoom(zoom);
-        scheduleHighQualityRender();
+        renderVisiblePages();
     }
 
     if (!m_page_items_hash.contains(pageno))
@@ -287,28 +295,29 @@ DocumentView::Search(const QString &term) noexcept
 void
 DocumentView::zoomHelper() noexcept
 {
-    // Apply low-quality zoom to existing items
+    double scaleFactor = m_target_zoom / m_current_zoom;
+    cachePageStride();
+
     for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
          ++it)
     {
+        int i                    = it.key();
         GraphicsPixmapItem *item = it.value();
-        if (!item)
-            continue;
 
-        double scaleFactor = m_target_zoom / m_current_zoom;
         item->setScale(scaleFactor);
-        double pageWidthLogical
-            = item->pixmap().width() / item->pixmap().devicePixelRatio();
-        m_page_x_offset
-            = (m_gview->sceneRect().width() - pageWidthLogical * scaleFactor)
-              / 2.0;
-        item->setPos(m_page_x_offset, it.key() * m_page_stride);
+        const QPixmap pix = item->pixmap();
+
+        // Recenter page
+        const QRectF bounds         = item->boundingRect();
+        const double pageWidthScene = bounds.width() * item->scale();
+
+        m_page_x_offset = (m_gview->sceneRect().width() - pageWidthScene) / 2.0;
+        item->setPos(m_page_x_offset, i * m_page_stride);
     }
 
-    m_current_zoom = m_target_zoom;
     m_model->setZoom(m_current_zoom);
-    cachePageStride();
-    renderVisiblePages(true);
+    m_current_zoom = m_target_zoom;
+    m_hq_render_timer->start();
 }
 
 // Zoom in by a fixed factor
@@ -522,7 +531,7 @@ DocumentView::YankSelection() noexcept
         = m_model->getSelectedText(pageIndex, range.first, range.second);
     clipboard->setText(text.c_str());
 
-    ClearTextSelection();
+    // ClearTextSelection();
 }
 
 // Go to the first page
@@ -569,8 +578,8 @@ DocumentView::getVisiblePages() noexcept
 
     double preloadMargin = m_page_stride;
 
-    if (m_config.behavior.cache_pages > 0)
-        preloadMargin *= m_config.behavior.cache_pages;
+    // if (m_config.behavior.cache_pages > 0)
+    //     preloadMargin *= m_config.behavior.cache_pages;
 
     const QRectF visibleSceneRect
         = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
@@ -637,21 +646,19 @@ DocumentView::clearAnnotationsForPage(int pageno) noexcept
 
 // Render all visible pages, optionally forcing re-render
 void
-DocumentView::renderVisiblePages(bool force) noexcept
+DocumentView::renderVisiblePages() noexcept
 {
-    // Render visible pages
-    if (force)
-        clearDocumentItems();
-
     std::set<int> visiblePages = getVisiblePages();
+
+    qDebug() << "Visible pages:" << visiblePages;
+
+    // Remove unused page items
+    removeUnusedPageItems(visiblePages);
+    removeUnusedLinks(visiblePages);
+    removeUnusedAnnotations(visiblePages);
 
     for (int pageno : visiblePages)
         requestPageRender(pageno);
-
-    // Remove unused page items
-    removeUnusedLinks(visiblePages);
-    removeUnusedPageItems(visiblePages);
-    removeUnusedAnnotations(visiblePages);
 
     updateSceneRect();
 }
@@ -831,35 +838,6 @@ DocumentView::recenterPages() noexcept
     }
 }
 
-// Schedule high-quality rendering of visible pages
-void
-DocumentView::scheduleHighQualityRender() noexcept
-{
-
-    // Save viewport center in scene coordinates
-    // const QPointF sceneCenter
-    //     = m_gview->mapToScene(m_gview->viewport()->rect().center());
-
-    // Apply HQ zoom
-    m_current_zoom = m_target_zoom;
-    m_model->setZoom(m_current_zoom);
-
-    const auto pages = getVisiblePages();
-    for (int p : pages)
-        requestPageRender(p); // HQ render replaces pixmap when ready
-
-    // cachePageStride();
-    // updateSceneRect();
-
-    // Clear and render pages & links at HQ
-    // clearDocumentItems();
-
-    // renderVisiblePages(true);
-
-    // Restore viewport center
-    // m_gview->centerOn(sceneCenter);
-}
-
 // Check if a scene position is within any page item
 bool
 DocumentView::pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
@@ -970,17 +948,20 @@ DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
         {
             // if (!m_annot_selection_present)
             //     return;
-            // addAction("Delete Annotations", &DocumentView::deleteKeyAction);
-            // addAction("Change color", &DocumentView::annotChangeColor);
+            // addAction("Delete Annotations",
+            // &DocumentView::deleteKeyAction); addAction("Change color",
+            // &DocumentView::annotChangeColor);
         }
         break;
 
         case GraphicsView::Mode::TextHighlight:
-            // addAction("Change color", &DocumentView::changeHighlighterColor);
+            // addAction("Change color",
+            // &DocumentView::changeHighlighterColor);
             break;
 
         case GraphicsView::Mode::AnnotRect:
-            // addAction("Change color", &DocumentView::changeAnnotRectColor);
+            // addAction("Change color",
+            // &DocumentView::changeAnnotRectColor);
             break;
 
         default:
@@ -1023,7 +1004,7 @@ DocumentView::clearDocumentItems() noexcept
 {
     for (QGraphicsItem *item : m_gscene->items())
     {
-        if (item != m_jump_marker || item != m_selection_path_item)
+        if (item != m_jump_marker && item != m_selection_path_item)
         {
             m_gscene->removeItem(item);
             delete item;
@@ -1031,7 +1012,7 @@ DocumentView::clearDocumentItems() noexcept
     }
 
     m_page_items_hash.clear();
-    // ClearTextSelection();
+    ClearTextSelection();
     m_page_links_hash.clear();
     m_page_annotations_hash.clear();
 }
@@ -1040,8 +1021,8 @@ DocumentView::clearDocumentItems() noexcept
 void
 DocumentView::requestPageRender(int pageno) noexcept
 {
-    if (m_page_items_hash.contains(pageno))
-        return;
+    // if (m_page_items_hash.contains(pageno))
+    //     return;
 
     auto job = m_model->createRenderJob(pageno);
 
@@ -1068,9 +1049,20 @@ DocumentView::requestPageRender(int pageno) noexcept
 void
 DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
 {
-    m_gview->resetTransform(); // 🔴 critical
-    auto *item        = new GraphicsPixmapItem();
-    const QPixmap pix = QPixmap::fromImage(image);
+    // if (m_page_items_hash.contains(pageno))
+    // {
+    //     auto old = m_page_items_hash[pageno];
+    //     m_gscene->removeItem(old);
+    //     delete old;
+    // }
+    removePageItem(pageno);
+    createAndAddPageItem(pageno, QPixmap::fromImage(image));
+}
+
+void
+DocumentView::createAndAddPageItem(int pageno, const QPixmap &pix) noexcept
+{
+    auto *item = new GraphicsPixmapItem();
     item->setPixmap(pix);
     double pageWidthLogical = pix.width() / pix.devicePixelRatio();
     m_page_x_offset = (m_gview->sceneRect().width() - pageWidthLogical) / 2.0;

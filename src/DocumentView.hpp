@@ -160,7 +160,8 @@ public:
         m_model->followLink(info);
     }
 
-    void renderVisiblePages(bool force = false) noexcept;
+    void createAndAddPageItem(int pageno, const QPixmap &pixmap) noexcept;
+    void renderVisiblePages() noexcept;
     void setFitMode(FitMode mode) noexcept;
     void GotoPage(int pageno) noexcept;
     void GotoXYZ(int pageno, float x, float y, double zoom) noexcept;
@@ -267,7 +268,6 @@ private:
     void updateCurrentPage() noexcept;
     int currentPage() const noexcept;
     void zoomHelper() noexcept;
-    void scheduleHighQualityRender() noexcept;
     void cachePageStride() noexcept;
     void updateSceneRect() noexcept;
     void initConnections() noexcept;
@@ -285,5 +285,6 @@ private:
     };
     PendingJump m_pending_jump;
     QGraphicsPathItem *m_selection_path_item{nullptr};
+    QTimer *m_hq_render_timer{nullptr};
     std::vector<Location> m_loc_history;
 };
