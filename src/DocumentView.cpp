@@ -62,13 +62,13 @@ DocumentView::initConnections() noexcept
 {
 
     connect(m_hq_render_timer, &QTimer::timeout, this,
-            [&]() { renderVisiblePages(); });
+            &DocumentView::renderVisiblePages);
 
     connect(m_vscroll, &QScrollBar::valueChanged, this,
             [this](int) { updateCurrentPage(); });
 
     connect(m_scroll_page_update_timer, &QTimer::timeout, this,
-            &DocumentView::updateCurrentPage);
+            &DocumentView::renderVisiblePages);
 
     connect(this, &DocumentView::currentPageChanged, this,
             &DocumentView::renderVisiblePages);
@@ -295,8 +295,11 @@ DocumentView::Search(const QString &term) noexcept
 void
 DocumentView::zoomHelper() noexcept
 {
-    double scaleFactor = m_target_zoom / m_current_zoom;
+    m_current_zoom = m_target_zoom;
     cachePageStride();
+
+    const int targetPixelHeight = m_model->pageHeightPts() * m_model->DPR()
+                                  * m_target_zoom * m_model->DPI() / 72.0;
 
     for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
          ++it)
@@ -304,19 +307,24 @@ DocumentView::zoomHelper() noexcept
         int i                    = it.key();
         GraphicsPixmapItem *item = it.value();
 
-        item->setScale(scaleFactor);
         const QPixmap pix = item->pixmap();
 
-        // Recenter page
-        const QRectF bounds         = item->boundingRect();
-        const double pageWidthScene = bounds.width() * item->scale();
+        // 3. Calculate scale based on ACTUAL pixmap height vs TARGET pixel
+        // height This ensures the item perfectly fills the 'pixelHeight'
+        // portion of the stride
+        double currentPixmapHeight = item->pixmap().height();
+        double perfectScale
+            = static_cast<double>(targetPixelHeight) / currentPixmapHeight;
+        item->setScale(perfectScale);
+
+        const double pageWidthScene
+            = item->boundingRect().width() * item->scale();
 
         m_page_x_offset = (m_gview->sceneRect().width() - pageWidthScene) / 2.0;
         item->setPos(m_page_x_offset, i * m_page_stride);
     }
 
     m_model->setZoom(m_current_zoom);
-    m_current_zoom = m_target_zoom;
     m_hq_render_timer->start();
 }
 
@@ -576,7 +584,7 @@ DocumentView::getVisiblePages() noexcept
 {
     std::set<int> visiblePages;
 
-    double preloadMargin = m_page_stride;
+    const double preloadMargin = m_page_stride;
 
     // if (m_config.behavior.cache_pages > 0)
     //     preloadMargin *= m_config.behavior.cache_pages;
@@ -754,13 +762,16 @@ DocumentView::removePageItem(int pageno) noexcept
     }
 }
 
-// Cache the page stride in scene coordinates
 void
 DocumentView::cachePageStride() noexcept
 {
-    m_page_stride = (m_model->pageHeightPts() * m_model->DPR()
-                     + m_spacing * m_model->DPI())
-                    * m_current_zoom;
+    // points → inches → scene units
+    const double pageHeightScene
+        = (m_model->pageHeightPts() / 72.0) * m_model->DPI() * m_current_zoom;
+
+    const double spacingScene = m_spacing * m_current_zoom;
+
+    m_page_stride = pageHeightScene + spacingScene;
 }
 
 // Update the scene rect based on number of pages and page stride
