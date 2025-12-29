@@ -4,6 +4,7 @@
 #include "HighlightAnnotation.hpp"
 #include "PopupAnnotation.hpp"
 #include "RectAnnotation.hpp"
+#include "mupdf/fitz/context.h"
 #include "utils.hpp"
 
 #include <QtConcurrent/QtConcurrent>
@@ -301,7 +302,7 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &start,
         }
         // text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
 
-        fz_snap_selection(m_ctx, text_page, &a, &b, FZ_SELECT_WORDS);
+        fz_snap_selection(m_ctx, text_page, &a, &b, FZ_SELECT_CHARS);
         count = fz_highlight_selection(m_ctx, text_page, a, b, hits, MAX_HITS);
     }
     fz_always(m_ctx)
@@ -332,17 +333,37 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &start,
 
 std::string
 Model::getSelectedText(int pageno, const fz_point &a,
-                       const fz_point &b) const noexcept
+                       const fz_point &b) noexcept
 {
     std::string result;
+    fz_page *page{nullptr};
+    char *selection_text{nullptr};
 
     fz_try(m_ctx)
     {
-        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
-        fz_stext_page *text_page
-            = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-        result = fz_copy_selection(m_ctx, text_page, a, b, 0);
-        fz_drop_stext_page(m_ctx, text_page);
+        page = fz_load_page(m_ctx, m_doc, pageno);
+
+        fz_stext_page *text_page;
+
+        if (m_stext_page_cache.contains(pageno))
+        {
+            text_page = m_stext_page_cache[pageno];
+        }
+        else
+        {
+            text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+            m_stext_page_cache[pageno] = text_page;
+        }
+
+        selection_text = fz_copy_selection(m_ctx, text_page, a, b, 0);
+    }
+    fz_always(m_ctx)
+    {
+        if (selection_text)
+        {
+            result = std::string(selection_text);
+            fz_free(m_ctx, selection_text);
+        }
         fz_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
@@ -433,7 +454,8 @@ Model::mapPdfToPixmap(int pageno, float pdfX, float pdfY) noexcept
     fz_rect bounds = fz_bound_page(m_ctx, page);
 
     // 2. Re-create the same transform used in rendering
-    const float scale   = m_zoom * m_dpr * (m_dpi / 72.0f);
+    const float scale
+        = m_zoom * m_dpr * m_dpi; // note that there is not / 72.0f here
     fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
 
     // 3. Get the bbox (this is the key!)

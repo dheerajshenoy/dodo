@@ -71,7 +71,7 @@ signals:
     void annotSelectClearRequested();
     void zoomInRequested();
     void zoomOutRequested();
-    void populateContextMenuRequested(QMenu *menu);
+    void contextMenuRequested(QPointF scenePos);
     void scrollRequested(int delta);
     void rightClickRequested(QPointF scenePos);
     void doubleClickRequested(QPointF scenePos);

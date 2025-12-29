@@ -39,6 +39,12 @@ public:
         COUNT
     };
 
+    struct Location
+    {
+        int pageno{-1};
+        float x{0.0f}, y{0.0f};
+    };
+
     inline bool passwordRequired() const noexcept
     {
         return m_model->passwordRequired();
@@ -217,7 +223,7 @@ public slots:
     void handleTextSelection(const QPointF &start, const QPointF &end) noexcept;
 
 protected:
-    void populateContextMenu(QMenu *menu) noexcept;
+    void handleContextMenuRequested(const QPointF &scenePos) noexcept;
 
 private:
     Model *m_model{nullptr};
@@ -230,8 +236,6 @@ private:
     double m_target_zoom{1.0}, m_current_zoom{1.0}, m_rotation{0.0};
     bool m_auto_resize{false}, m_auto_reload{false};
     QScrollBar *m_hscroll{nullptr}, *m_vscroll{nullptr};
-    std::vector<QGraphicsPathItem *>
-        m_text_selection_items; // current selection highlight items
     QHash<int, GraphicsPixmapItem *> m_page_items_hash;
     QHash<int, std::vector<BrowseLinkItem *>> m_page_links_hash;
     QHash<int, std::vector<Annotation *>> m_page_annotations_hash;
@@ -281,4 +285,5 @@ private:
     };
     PendingJump m_pending_jump;
     QGraphicsPathItem *m_selection_path_item{nullptr};
+    std::vector<Location> m_loc_history;
 };

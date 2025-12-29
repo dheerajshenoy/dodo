@@ -65,23 +65,14 @@ DocumentView::initConnections() noexcept
     // connect(this, &DocumentView::currentPageChanged, this,
     //         &DocumentView::scheduleHighQualityRender);
 
-    connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, [&]()
-    {
-        // Remove existing selection items from scene
-        for (QGraphicsItem *item : m_text_selection_items)
-        {
-            if (item->scene() == m_gscene)
-                m_gscene->removeItem(item);
-            delete item;
-        }
-        m_text_selection_items.clear();
-    });
+    connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this,
+            &DocumentView::ClearTextSelection);
 
     connect(m_gview, &GraphicsView::textSelectionRequested, this,
             &DocumentView::handleTextSelection);
 
-    connect(m_gview, &GraphicsView::populateContextMenuRequested, this,
-            &DocumentView::populateContextMenu);
+    connect(m_gview, &GraphicsView::contextMenuRequested, this,
+            &DocumentView::handleContextMenuRequested);
 }
 
 // Handle text selection from GraphicsView
@@ -89,16 +80,6 @@ void
 DocumentView::handleTextSelection(const QPointF &start,
                                   const QPointF &end) noexcept
 {
-
-    // Remove previous selection quads
-    for (auto *item : m_text_selection_items)
-    {
-        if (item->scene() == m_gscene)
-            m_gscene->removeItem(item);
-        delete item;
-    }
-    m_text_selection_items.clear();
-
     int pageIndex                = -1;
     GraphicsPixmapItem *pageItem = nullptr;
 
@@ -122,6 +103,7 @@ DocumentView::handleTextSelection(const QPointF &start,
         m_selection_path_item->setZValue(ZVALUE_TEXT_SELECTION);
     }
 
+    m_selection_path_item->setData(0, pageIndex);
     // 3. Batch all polygons into ONE path
     QPainterPath path;
     for (const QPolygonF &poly : quads)
@@ -247,14 +229,17 @@ DocumentView::GotoXYZ(int pageno, float x, float y, double zoom) noexcept
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
 
     // Use the model to get the local pixel offset on that page
-    QPointF localPos = m_model->mapPdfToPixmap(pageno, x, y);
+    const QPointF localPos = m_model->mapPdfToPixmap(pageno, x, y);
 
     // Map the local pixmap coordinate to the global scene coordinate
-    QPointF scenePos = pageItem->mapToScene(localPos);
+    const QPointF scenePos = pageItem->mapToScene(localPos);
 
     // Center view
     m_gview->centerOn(scenePos);
     m_jump_marker->showAt(scenePos.x(), scenePos.y());
+
+    m_loc_history.push_back(Location{m_pageno, static_cast<float>(scenePos.x()),
+                                     static_cast<float>(scenePos.y())});
 }
 
 // Go to specific page number
@@ -269,6 +254,8 @@ DocumentView::GotoPage(int pageno) noexcept
     pageno         = std::clamp(pageno, 0, m_model->numPages() - 1);
     const double y = pageno * m_page_stride + m_page_stride / 2.0;
     m_gview->centerOn(QPointF(m_gview->sceneRect().width() / 2.0, y));
+
+    m_loc_history.push_back(Location{m_pageno, 0.0f, 0.0f});
 }
 
 // Go to next page
@@ -512,13 +499,12 @@ DocumentView::ClearKBHintsOverlay() noexcept
 void
 DocumentView::ClearTextSelection() noexcept
 {
-    for (auto *item : m_text_selection_items)
+    if (m_selection_path_item)
     {
-        if (item->scene() == m_gscene)
-            m_gscene->removeItem(item);
-        delete item;
+        m_selection_path_item->setPath(QPainterPath());
+        m_selection_path_item->hide();
+        m_selection_path_item->setData(0, -1);
     }
-    m_text_selection_items.clear();
     m_model->clear_fz_stext_page_cache(); // clear cached text pages
 }
 
@@ -526,13 +512,16 @@ DocumentView::ClearTextSelection() noexcept
 void
 DocumentView::YankSelection() noexcept
 {
-    if (m_text_selection_items.empty())
+    const int pageIndex = m_selection_path_item->data(0).toInt();
+    if (pageIndex < 0)
         return;
+
     QClipboard *clipboard = QGuiApplication::clipboard();
-    auto range            = m_model->getTextSelectionRange();
-    int pageIndex         = m_text_selection_items[0]->data(1).toInt();
-    clipboard->setText(
-        m_model->getSelectedText(pageIndex, range.first, range.second).c_str());
+    const auto range      = m_model->getTextSelectionRange();
+    const std::string text
+        = m_model->getSelectedText(pageIndex, range.first, range.second);
+    clipboard->setText(text.c_str());
+
     ClearTextSelection();
 }
 
@@ -541,6 +530,7 @@ void
 DocumentView::GotoFirstPage() noexcept
 {
     m_vscroll->setValue(0);
+    m_loc_history.push_back(Location{m_pageno, 0.0f, 0.0f});
 }
 
 // Go to the last page
@@ -549,12 +539,26 @@ DocumentView::GotoLastPage() noexcept
 {
     int maxValue = m_vscroll->maximum();
     m_vscroll->setValue(maxValue);
+    m_loc_history.push_back(Location{m_pageno, 0.0f, 0.0f});
 }
 
 // Go back in history
 void
 DocumentView::GoBackHistory() noexcept
 {
+    if (m_loc_history.empty())
+        return;
+
+    if (m_loc_history.back().pageno == m_pageno)
+    {
+        // Pop current location
+        m_loc_history.pop_back();
+        if (m_loc_history.empty())
+            return;
+    }
+    const Location loc = m_loc_history.back();
+    m_loc_history.pop_back();
+    GotoXYZ(loc.pageno, loc.x, loc.y, m_current_zoom);
 }
 
 // Get the list of currently visible pages
@@ -926,9 +930,12 @@ DocumentView::clearVisibleAnnotations() noexcept
 }
 
 void
-DocumentView::populateContextMenu(QMenu *menu) noexcept
+DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
 {
-    auto addAction = [menu, this](const QString &text, const auto &slot)
+    QMenu *menu = new QMenu(this);
+    menu->move(scenePos.x(), scenePos.y());
+
+    auto addAction = [this, &menu](const QString &text, const auto &slot)
     {
         QAction *action = new QAction(text, menu); // sets parent = menu
         connect(action, &QAction::triggered, this, slot);
@@ -949,8 +956,10 @@ DocumentView::populateContextMenu(QMenu *menu) noexcept
     {
         case GraphicsView::Mode::TextSelection:
         {
-            if (m_text_selection_items.empty())
+            if (!m_selection_path_item
+                || m_selection_path_item->path().isEmpty())
                 return;
+
             addAction("Copy Text", &DocumentView::YankSelection);
             addAction("Highlight Text",
                       &DocumentView::TextHighlightCurrentSelection);
@@ -977,6 +986,8 @@ DocumentView::populateContextMenu(QMenu *menu) noexcept
         default:
             break;
     }
+
+    menu->show();
 }
 
 int
@@ -1012,7 +1023,7 @@ DocumentView::clearDocumentItems() noexcept
 {
     for (QGraphicsItem *item : m_gscene->items())
     {
-        if (item != m_jump_marker)
+        if (item != m_jump_marker || item != m_selection_path_item)
         {
             m_gscene->removeItem(item);
             delete item;
@@ -1020,7 +1031,7 @@ DocumentView::clearDocumentItems() noexcept
     }
 
     m_page_items_hash.clear();
-    m_text_selection_items.clear();
+    // ClearTextSelection();
     m_page_links_hash.clear();
     m_page_annotations_hash.clear();
 }

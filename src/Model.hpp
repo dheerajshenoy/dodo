@@ -185,7 +185,7 @@ public:
     computeTextSelectionQuad(int pageno, const QPointF &start,
                              const QPointF &end) noexcept;
     std::string getSelectedText(int pageno, const fz_point &a,
-                                const fz_point &b) const noexcept;
+                                const fz_point &b) noexcept;
 
 private:
     QString m_filepath;
