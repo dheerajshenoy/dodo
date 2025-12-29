@@ -11,6 +11,7 @@
 #include <QVBoxLayout>
 #include <algorithm>
 #include <qguiapplication.h>
+#include <qicon.h>
 #include <qnamespace.h>
 #include <qtextcursor.h>
 #include <strings.h>
@@ -25,6 +26,10 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_gview  = new GraphicsView(this);
     m_gscene = new GraphicsScene(m_gview);
     m_gview->setScene(m_gscene);
+
+    m_jump_marker = new JumpMarker(m_config.ui.colors["jump_marker"]);
+    m_jump_marker->setZValue(ZVALUE_JUMP_MARKER);
+    m_gscene->addItem(m_jump_marker);
 
     m_gview->setAlignment(Qt::AlignCenter);
 
@@ -201,7 +206,7 @@ DocumentView::setZoom(double factor) noexcept
 }
 
 void
-DocumentView::GotoXYZ(int pageno, double x, double y, double zoom) noexcept
+DocumentView::GotoXYZ(int pageno, float x, float y, double zoom) noexcept
 {
     if (m_model->numPages() == 0)
         return;
@@ -218,13 +223,17 @@ DocumentView::GotoXYZ(int pageno, double x, double y, double zoom) noexcept
     if (!m_page_items_hash.contains(pageno))
         renderPage(pageno, true);
 
-    // Calculate scene coordinates
-    const double page_y  = pageno * m_page_stride;
-    const double scene_x = m_page_x_offset + x * m_current_zoom;
-    const double scene_y = page_y + y * m_current_zoom;
+    GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
 
+    // Use the model to get the local pixel offset on that page
+    QPointF localPos = m_model->mapPdfToPixmap(pageno, x, y);
+
+    // Map the local pixmap coordinate to the global scene coordinate
+    QPointF scenePos = pageItem->mapToScene(localPos);
+
+    m_gview->centerOn(scenePos);
+    m_jump_marker->showAt(scenePos.x(), scenePos.y());
     // Center view
-    m_gview->centerOn(scene_x, scene_y);
 }
 
 // Go to specific page number
@@ -853,13 +862,7 @@ DocumentView::updateSceneRect() noexcept
 void
 DocumentView::resizeEvent(QResizeEvent *event)
 {
-    // Nuclear option to stop artifacts:
-    m_gscene->clear();
-    m_page_items_hash.clear();
-    m_text_selection_items.clear();
-    m_page_links_hash.clear();
-    m_page_annotations_hash.clear();
-
+    clearDocumentItems();
     renderVisiblePages();
     recenterPages();
 
@@ -957,11 +960,7 @@ DocumentView::scheduleHighQualityRender() noexcept
     updateSceneRect();
 
     // Clear and render pages & links at HQ
-    m_gscene->clear();
-    m_page_links_hash.clear();
-    m_page_items_hash.clear();
-    m_page_annotations_hash.clear();
-    m_text_selection_items.clear();
+    clearDocumentItems();
 
     renderVisiblePages(true);
 
@@ -1118,4 +1117,22 @@ DocumentView::updateCurrentPage() noexcept
 
     m_pageno = page;
     emit currentPageChanged(page + 1);
+}
+
+void
+DocumentView::clearDocumentItems() noexcept
+{
+    for (QGraphicsItem *item : m_gscene->items())
+    {
+        if (item != m_jump_marker)
+        {
+            m_gscene->removeItem(item);
+            delete item;
+        }
+    }
+
+    m_page_items_hash.clear();
+    m_text_selection_items.clear();
+    m_page_links_hash.clear();
+    m_page_annotations_hash.clear();
 }

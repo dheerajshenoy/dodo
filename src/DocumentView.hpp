@@ -5,6 +5,7 @@
 #include "GraphicsPixmapItem.hpp"
 #include "GraphicsScene.hpp"
 #include "GraphicsView.hpp"
+#include "JumpMarker.hpp"
 #include "Model.hpp"
 
 #include <QFileInfo>
@@ -20,6 +21,7 @@
 #define ZVALUE_ANNOTATION 800
 #define ZVALUE_TEXT_SELECTION 900
 #define ZVALUE_LINK 1000
+#define ZVALUE_JUMP_MARKER 1100
 
 class DocumentView : public QWidget
 {
@@ -155,7 +157,7 @@ public:
     void renderVisiblePages(bool force = false) noexcept;
     void setFitMode(FitMode mode) noexcept;
     void GotoPage(int pageno) noexcept;
-    void GotoXYZ(int pageno, double x, double y, double zoom) noexcept;
+    void GotoXYZ(int pageno, float x, float y, double zoom) noexcept;
     void GotoNextPage() noexcept;
     void GotoPrevPage() noexcept;
     void GotoFirstPage() noexcept;
@@ -250,6 +252,9 @@ private:
     void removeUnusedPageItems(const std::set<int> &visibleSet) noexcept;
     void removeUnusedAnnotations(const std::set<int> &visibleSet) noexcept;
 
+    // Clear all document items (pages, links, annotations)
+    void clearDocumentItems() noexcept;
+
     void updateCurrentPage() noexcept;
     int currentPage() const noexcept;
     void zoomHelper() noexcept;
@@ -261,4 +266,5 @@ private:
     void renderPage(int pageno, bool force = false) noexcept;
     void removePageItem(int pageno) noexcept;
     float m_old_y{0.0f};
+    JumpMarker *m_jump_marker{nullptr};
 };

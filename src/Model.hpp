@@ -85,6 +85,11 @@ public:
         return m_dpr;
     }
 
+    inline float invDPR() const noexcept
+    {
+        return m_inv_dpr;
+    }
+
     inline bool success() const noexcept
     {
         return m_success;
@@ -125,6 +130,11 @@ public:
         return {m_selection_start, m_selection_end};
     }
 
+    inline fz_matrix getTransformMatrix() const noexcept
+    {
+        return m_transform;
+    }
+
     std::vector<std::pair<QString, QString>> properties() noexcept;
     fz_outline *getOutline() noexcept;
     bool followLink(const LinkInfo &info) noexcept;
@@ -141,6 +151,7 @@ public:
     bool SaveChanges() noexcept;
     bool SaveAs(const QString &newFilePath) noexcept;
     QPixmap renderPageToPixmap(int pageno) noexcept;
+    QPointF mapPdfToPixmap(int pageno, float pdfX, float pdfY) noexcept;
     void cachePageDimension() noexcept;
     std::vector<QPolygonF>
     computeTextSelectionQuad(int pageno, const QPointF &start,

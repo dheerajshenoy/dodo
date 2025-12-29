@@ -694,3 +694,33 @@ Model::properties() noexcept
 
     return props;
 }
+
+QPointF
+Model::mapPdfToPixmap(int pageno, float pdfX, float pdfY) noexcept
+{
+    // 1. Get the page bounds (identical to your render function)
+    fz_page *page  = fz_load_page(m_ctx, m_doc, pageno);
+    fz_rect bounds = fz_bound_page(m_ctx, page);
+
+    // 2. Re-create the same transform used in rendering
+    const float scale   = m_zoom * m_dpr * m_dpi;
+    fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
+
+    // 3. Get the bbox (this is the key!)
+    fz_rect transformed = fz_transform_rect(bounds, transform);
+    fz_irect bbox       = fz_round_rect(transformed);
+
+    // 4. Transform the point
+    fz_point p = {pdfX, pdfY};
+    p          = fz_transform_point(p, transform);
+
+    // 5. SUBTRACT the bbox origin
+    // Pixmap (0,0) is actually at bbox.x0, bbox.y0 in the transformed space
+    float localX = p.x - bbox.x0;
+    float localY = p.y - bbox.y0;
+
+    // 6. Adjust for Qt's Device Pixel Ratio
+    // Since the pixmap is scaled by DPR, but QGraphicsItem::setPos
+    // expects logical coordinates:
+    return QPointF(localX / m_dpr, localY / m_dpr);
+}
