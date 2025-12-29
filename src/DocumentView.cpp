@@ -563,11 +563,16 @@ DocumentView::getVisiblePages() noexcept
 {
     std::set<int> visiblePages;
 
-    QRectF visibleSceneRect
+    double preloadMargin = m_page_stride;
+
+    if (m_config.behavior.cache_pages > 0)
+        preloadMargin *= m_config.behavior.cache_pages;
+
+    const QRectF visibleSceneRect
         = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
-    double top           = visibleSceneRect.top();
-    double bottom        = visibleSceneRect.bottom();
-    double preloadMargin = m_page_stride; // 1 page above and below
+
+    double top    = visibleSceneRect.top();
+    double bottom = visibleSceneRect.bottom();
     top -= preloadMargin;
     bottom += preloadMargin;
 
@@ -632,9 +637,7 @@ DocumentView::renderVisiblePages(bool force) noexcept
 {
     // Render visible pages
     if (force)
-    {
         clearDocumentItems();
-    }
 
     std::set<int> visiblePages = getVisiblePages();
 

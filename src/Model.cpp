@@ -601,15 +601,15 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             const QLatin1StringView uri(link->uri);
 
             if (fz_is_external_link(ctx, link->uri))
-                item = new BrowseLinkItem(
-                    qtRect, uri, BrowseLinkItem::LinkType::External, true);
+                item = new BrowseLinkItem(qtRect, uri,
+                                          BrowseLinkItem::LinkType::External);
             else if (uri.toString().startsWith("#page"))
             {
                 float xp, yp;
                 fz_location loc
                     = fz_resolve_link(ctx, doc, link->uri, &xp, &yp);
                 item = new BrowseLinkItem(qtRect, uri,
-                                          BrowseLinkItem::LinkType::Page, true);
+                                          BrowseLinkItem::LinkType::Page);
                 item->setGotoPageNo(loc.page);
             }
             else
@@ -617,7 +617,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
                 const fz_link_dest dest
                     = fz_resolve_link_dest(ctx, doc, link->uri);
                 item = new BrowseLinkItem(qtRect, uri,
-                                          BrowseLinkItem::LinkType::XYZ, true);
+                                          BrowseLinkItem::LinkType::XYZ);
                 item->setGotoPageNo(dest.loc.page);
                 item->setXYZ({.x = dest.x, .y = dest.y, .zoom = dest.zoom});
             }
