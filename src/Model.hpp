@@ -39,6 +39,25 @@ public:
         int enc_level{128}; // 40, 128, 256
     };
 
+    struct RenderJob
+    {
+        int pageno;
+        double zoom;
+        int rotation;
+        double dpi;
+        double dpr;
+        bool invert_color;
+        fz_colorspace *colorspace;
+        QString filepath; // path to PDF
+    };
+
+    struct PageRenderResult
+    {
+        QImage image;
+        std::vector<BrowseLinkItem *> links;
+        std::vector<Annotation *> annotations;
+    };
+
     inline float zoom() const noexcept
     {
         return m_zoom;
@@ -135,6 +154,12 @@ public:
         return m_transform;
     }
 
+    RenderJob createRenderJob(int pageno) const noexcept;
+    void requestPageRender(
+        const RenderJob &job,
+        const std::function<void(PageRenderResult)> &callback) noexcept;
+    PageRenderResult renderPageWithExtrasAsync(const RenderJob &job) noexcept;
+
     std::vector<std::pair<QString, QString>> properties() noexcept;
     fz_outline *getOutline() noexcept;
     bool followLink(const LinkInfo &info) noexcept;
@@ -181,18 +206,5 @@ private:
     fz_matrix m_transform{fz_identity};
     float m_page_width_pts{0.0f}, m_page_height_pts{0.0f};
     fz_point m_selection_start{}, m_selection_end{};
+    fz_locks_context m_fz_locks;
 };
-
-/**
- * @brief Clean up image data when the last copy of the QImage is destoryed.
- */
-static inline void
-imageCleanupHandler(void *data)
-{
-    unsigned char *samples = static_cast<unsigned char *>(data);
-
-    if (samples)
-    {
-        delete[] samples;
-    }
-}

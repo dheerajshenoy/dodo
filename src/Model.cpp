@@ -4,9 +4,11 @@
 #include "HighlightAnnotation.hpp"
 #include "PopupAnnotation.hpp"
 #include "RectAnnotation.hpp"
-#include "mupdf/fitz/link.h"
-#include "mupdf/fitz/structured-text.h"
 #include "utils.hpp"
+
+#include <QtConcurrent/QtConcurrent>
+#include <pthread.h>
+#include <qbytearrayview.h>
 
 Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
 {
@@ -29,12 +31,47 @@ Model::~Model() noexcept
     fz_drop_context(m_ctx);
 }
 
+/**
+ * @brief Clean up image data when the last copy of the QImage is destoryed.
+ */
+static inline void
+imageCleanupHandler(void *data)
+{
+    unsigned char *samples = static_cast<unsigned char *>(data);
+
+    if (samples)
+    {
+        delete[] samples;
+    }
+}
+
+static std::array<std::mutex, FZ_LOCK_MAX> mupdf_mutexes;
+
+static void
+mupdf_lock_mutex(void *user, int lock)
+{
+    auto *m = static_cast<std::mutex *>(user);
+    m[lock].lock();
+}
+
+static void
+mupdf_unlock_mutex(void *user, int lock)
+{
+    auto *m = static_cast<std::mutex *>(user);
+    m[lock].unlock();
+}
+
 void
 Model::open() noexcept
 {
-    m_ctx        = fz_new_context(nullptr, nullptr, FZ_STORE_UNLIMITED);
-    m_colorspace = fz_device_rgb(m_ctx);
+    // initialize each mutex
+    m_fz_locks.user   = mupdf_mutexes.data();
+    m_fz_locks.lock   = mupdf_lock_mutex;
+    m_fz_locks.unlock = mupdf_unlock_mutex;
+
+    m_ctx = fz_new_context(nullptr, &m_fz_locks, FZ_STORE_UNLIMITED);
     fz_register_document_handlers(m_ctx);
+    m_colorspace = fz_device_rgb(m_ctx);
     if (!m_ctx)
     {
         m_success = false;
@@ -723,4 +760,252 @@ Model::mapPdfToPixmap(int pageno, float pdfX, float pdfY) noexcept
     // Since the pixmap is scaled by DPR, but QGraphicsItem::setPos
     // expects logical coordinates:
     return QPointF(localX / m_dpr, localY / m_dpr);
+}
+
+Model::RenderJob
+Model::createRenderJob(int pageno) const noexcept
+{
+    RenderJob job;
+    job.filepath     = m_filepath;
+    job.pageno       = pageno;
+    job.dpr          = m_dpr;
+    job.dpi          = m_dpi;
+    job.zoom         = m_zoom * m_dpr * m_dpi;
+    job.rotation     = m_rotation;
+    job.invert_color = m_invert_color;
+    job.colorspace   = m_colorspace;
+    return job;
+}
+
+void
+Model::requestPageRender(
+    const RenderJob &job,
+    const std::function<void(PageRenderResult)> &callback) noexcept
+{
+    QFuture<void> _ = QtConcurrent::run([this, job, callback]()
+    {
+        PageRenderResult result = renderPageWithExtrasAsync(job);
+
+        if (callback)
+        {
+            QMetaObject::invokeMethod(QApplication::instance(),
+                                      [result, callback]()
+            { callback(result); }, Qt::QueuedConnection);
+        }
+    });
+}
+
+Model::PageRenderResult
+Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
+{
+    PageRenderResult result;
+
+    fz_context *ctx = fz_clone_context(m_ctx);
+
+    if (!ctx)
+        return result;
+
+    fz_link *head{nullptr};
+    fz_page *page{nullptr};
+    fz_document *doc{nullptr};
+    fz_pixmap *pix{nullptr};
+    fz_device *dev{nullptr};
+
+    auto cleanup = [&]() -> void
+    {
+        fz_close_device(ctx, dev);
+        fz_drop_device(ctx, dev);
+        fz_drop_link(ctx, head);
+        fz_drop_pixmap(ctx, pix);
+        fz_drop_page(ctx, page);
+        fz_drop_document(ctx, doc);
+        fz_drop_context(ctx);
+    };
+
+    fz_try(ctx)
+    {
+        doc = fz_open_document(ctx, job.filepath.toUtf8().constData());
+        if (!doc)
+            return result;
+
+        page = fz_load_page(ctx, doc, job.pageno);
+
+        if (!page)
+            return result;
+
+        fz_rect bounds = fz_bound_page(ctx, page);
+
+        fz_matrix transform = fz_transform_page(bounds, job.zoom, job.rotation);
+        fz_rect transformed = fz_transform_rect(bounds, transform);
+        fz_irect bbox       = fz_round_rect(transformed);
+
+        // --- Render page to QImage ---
+        pix = fz_new_pixmap_with_bbox(ctx, job.colorspace, bbox, nullptr, 1);
+        if (!pix)
+            return result;
+
+        fz_clear_pixmap_with_value(ctx, pix, 255);
+        dev = fz_new_draw_device(ctx, fz_identity, pix);
+        if (!dev)
+            return result;
+
+        fz_run_page(ctx, page, dev, transform, nullptr);
+        if (job.invert_color)
+            fz_invert_pixmap_luminance(ctx, pix);
+        fz_gamma_pixmap(ctx, pix, 1.0f);
+
+        int width  = fz_pixmap_width(ctx, pix);
+        int height = fz_pixmap_height(ctx, pix);
+        int n      = fz_pixmap_components(ctx, pix);
+        int stride = fz_pixmap_stride(ctx, pix);
+
+        unsigned char *samples = fz_pixmap_samples(ctx, pix);
+        if (!samples)
+            return result;
+
+        unsigned char *copyed_samples = new unsigned char[width * height * n];
+        memcpy(copyed_samples, samples, width * height * n);
+
+        QImage::Format fmt;
+        switch (n)
+        {
+            case 1:
+                fmt = QImage::Format_Grayscale8;
+                break;
+            case 3:
+                fmt = QImage::Format_RGB888;
+                break;
+            case 4:
+                fmt = QImage::Format_RGBA8888;
+                break;
+
+            default:
+            {
+                qWarning() << "Unsupported pixmap component count:" << n;
+                return result;
+            }
+        }
+
+        result.image = QImage(copyed_samples, width, height, stride, fmt,
+                              imageCleanupHandler, copyed_samples);
+        result.image.setDotsPerMeterX(
+            static_cast<int>((job.dpi * 1000) / 25.4));
+        result.image.setDotsPerMeterY(
+            static_cast<int>((job.dpi * 1000) / 25.4));
+        result.image.setDevicePixelRatio(job.dpr);
+
+        // --- Extract links ---
+        head = fz_load_links(ctx, page);
+        for (fz_link *link = head; link; link = link->next)
+        {
+            if (!link->uri)
+                continue;
+            fz_rect r = fz_transform_rect(link->rect, transform);
+            QRectF qtRect(r.x0 / job.dpr, r.y0 / job.dpr,
+                          (r.x1 - r.x0) / job.dpr, (r.y1 - r.y0) / job.dpr);
+
+            BrowseLinkItem *item = nullptr;
+            const QLatin1StringView uri(link->uri);
+
+            if (fz_is_external_link(ctx, link->uri))
+                item = new BrowseLinkItem(qtRect, uri,
+                                          BrowseLinkItem::LinkType::External);
+            else if (uri.toString().startsWith("#page"))
+            {
+                float xp, yp;
+                fz_location loc
+                    = fz_resolve_link(ctx, doc, link->uri, &xp, &yp);
+                item = new BrowseLinkItem(qtRect, uri,
+                                          BrowseLinkItem::LinkType::Page);
+                item->setGotoPageNo(loc.page);
+            }
+            else
+            {
+                const fz_link_dest dest
+                    = fz_resolve_link_dest(ctx, doc, link->uri);
+                item = new BrowseLinkItem(qtRect, uri,
+                                          BrowseLinkItem::LinkType::XYZ);
+                item->setGotoPageNo(dest.loc.page);
+                item->setXYZ({.x = dest.x, .y = dest.y, .zoom = dest.zoom});
+            }
+
+            if (item)
+                result.links.push_back(item);
+        }
+
+        // --- Extract annotations ---
+        pdf_page *pdfPage = pdf_page_from_fz_page(ctx, page);
+        if (pdfPage)
+        {
+            int index = 0;
+            float color[3];
+            for (pdf_annot *annot = pdf_first_annot(ctx, pdfPage); annot;
+                 annot            = pdf_next_annot(ctx, annot), ++index)
+            {
+                Annotation *annot_item = nullptr;
+
+                fz_rect bbox = pdf_bound_annot(ctx, annot);
+                bbox         = fz_transform_rect(bbox, transform);
+                QRectF qrect(bbox.x0 * m_inv_dpr, bbox.y0 * m_inv_dpr,
+                             (bbox.x1 - bbox.x0) * m_inv_dpr,
+                             (bbox.y1 - bbox.y0) * m_inv_dpr);
+                const enum pdf_annot_type type = pdf_annot_type(ctx, annot);
+                const float alpha              = pdf_annot_opacity(ctx, annot);
+                switch (type)
+                {
+                    case PDF_ANNOT_TEXT:
+                    {
+                        pdf_annot_color(ctx, annot, &n, color);
+                        const QString text  = pdf_annot_contents(ctx, annot);
+                        const QColor qcolor = QColor::fromRgbF(
+                            color[0], color[1], color[2], alpha);
+                        PopupAnnotation *popup
+                            = new PopupAnnotation(qrect, text, index, qcolor);
+                        annot_item = popup;
+                    }
+                    break;
+
+                    case PDF_ANNOT_SQUARE:
+                    {
+                        pdf_annot_interior_color(ctx, annot, &n, color);
+                        const QColor qcolor = QColor::fromRgbF(
+                            color[0], color[1], color[2], alpha);
+                        RectAnnotation *rect_annot
+                            = new RectAnnotation(qrect, index, qcolor);
+                        annot_item = rect_annot;
+                    }
+                    break;
+
+                    case PDF_ANNOT_HIGHLIGHT:
+                    {
+                        // pdf_annot_color(ctx, annot, &n, color);
+                        // const QColor qcolor
+                        //     = QColor::fromRgbF(color[0], color[1], color[2],
+                        //     alpha);
+                        HighlightAnnotation *highlight
+                            = new HighlightAnnotation(qrect, index,
+                                                      Qt::transparent);
+                        annot_item = highlight;
+                    }
+                    break;
+
+                    default:
+                        break;
+                }
+
+                if (annot_item)
+                    result.annotations.push_back(annot_item);
+            }
+        }
+    }
+    fz_always(ctx)
+    {
+        cleanup();
+    }
+    fz_catch(ctx)
+    {
+        qWarning() << "MuPDF error in thread:" << fz_caught_message(ctx);
+    }
+
+    return result;
 }

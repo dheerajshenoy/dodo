@@ -239,6 +239,8 @@ private:
     bool pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
                         GraphicsPixmapItem *&outPageItem) const noexcept;
 
+    void requestPageRender(int pageno) noexcept;
+
     void clearLinksForPage(int pageno) noexcept;
     void renderLinksForPage(int pageno) noexcept;
     void clearAnnotationsForPage(int pageno) noexcept;
@@ -248,13 +250,18 @@ private:
     void clearVisiblePages() noexcept;
     void clearVisibleLinks() noexcept;
 
+    void renderPageFromImage(int pageno, const QImage &image) noexcept;
+    void renderLinks(int pageno,
+                     const std::vector<BrowseLinkItem *> &links) noexcept;
+    void renderAnnotations(int pageno,
+                           const std::vector<Annotation *> &annots) noexcept;
+
     void removeUnusedLinks(const std::set<int> &visibleSet) noexcept;
     void removeUnusedPageItems(const std::set<int> &visibleSet) noexcept;
     void removeUnusedAnnotations(const std::set<int> &visibleSet) noexcept;
 
     // Clear all document items (pages, links, annotations)
     void clearDocumentItems() noexcept;
-
     void updateCurrentPage() noexcept;
     int currentPage() const noexcept;
     void zoomHelper() noexcept;
@@ -263,8 +270,9 @@ private:
     void updateSceneRect() noexcept;
     void initConnections() noexcept;
     std::set<int> getVisiblePages() noexcept;
-    void renderPage(int pageno, bool force = false) noexcept;
     void removePageItem(int pageno) noexcept;
     float m_old_y{0.0f};
     JumpMarker *m_jump_marker{nullptr};
+    QTimer *m_scroll_page_update_timer{
+        nullptr}; // to throttle page change updates
 };

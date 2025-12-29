@@ -7,12 +7,14 @@
 
 #include <QClipboard>
 #include <QFileDialog>
+#include <QFutureWatcher>
 #include <QMessageBox>
 #include <QVBoxLayout>
 #include <algorithm>
 #include <qguiapplication.h>
 #include <qicon.h>
 #include <qnamespace.h>
+#include <qstyle.h>
 #include <qtextcursor.h>
 #include <strings.h>
 
@@ -26,6 +28,10 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_gview  = new GraphicsView(this);
     m_gscene = new GraphicsScene(m_gview);
     m_gview->setScene(m_gscene);
+
+    m_scroll_page_update_timer = new QTimer(this);
+    m_scroll_page_update_timer->setInterval(100);
+    m_scroll_page_update_timer->setSingleShot(true);
 
     m_jump_marker = new JumpMarker(m_config.ui.colors["jump_marker"]);
     m_jump_marker->setZValue(ZVALUE_JUMP_MARKER);
@@ -53,8 +59,11 @@ DocumentView::initConnections() noexcept
     connect(m_vscroll, &QScrollBar::valueChanged, this,
             [this](int) { updateCurrentPage(); });
 
-    connect(this, &DocumentView::currentPageChanged, this,
+    connect(m_scroll_page_update_timer, &QTimer::timeout, this,
             &DocumentView::scheduleHighQualityRender);
+
+    // connect(this, &DocumentView::currentPageChanged, this,
+    //         &DocumentView::scheduleHighQualityRender);
 
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, [&]()
     {
@@ -221,7 +230,9 @@ DocumentView::GotoXYZ(int pageno, float x, float y, double zoom) noexcept
     }
 
     if (!m_page_items_hash.contains(pageno))
-        renderPage(pageno, true);
+    {
+        requestPageRender(pageno);
+    }
 
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
 
@@ -690,7 +701,6 @@ DocumentView::renderAnnotationsForPage(int pageno) noexcept
         {
             // m_model->annotDeleteRequested(index);
             // setDirty(true);
-            // renderPage(m_pageno, true);
         });
 
         connect(annot, &Annotation::annotColorChangeRequested,
@@ -703,29 +713,9 @@ DocumentView::renderAnnotationsForPage(int pageno) noexcept
             // {
             //     m_model->annotChangeColorForIndex(index, color);
             //     setDirty(true);
-            //     renderPage(m_pageno, true);
             // }
         });
     }
-}
-
-// Render a specific page to the scene
-void
-DocumentView::renderPage(int pageno, bool force) noexcept
-{
-    if (force == false && m_page_items_hash.contains(pageno))
-        return;
-
-    // removePageItem(pageno);
-    m_gview->resetTransform(); // 🔴 critical
-    const QPixmap pix = m_model->renderPageToPixmap(pageno);
-    auto *item        = new GraphicsPixmapItem();
-    item->setPixmap(pix);
-    double pageWidthLogical = pix.width() / pix.devicePixelRatio();
-    m_page_x_offset = (m_gview->sceneRect().width() - pageWidthLogical) / 2.0;
-    item->setPos(m_page_x_offset, pageno * m_page_stride);
-    m_gscene->addItem(item);
-    m_page_items_hash[pageno] = item;
 }
 
 // Render all visible pages, optionally forcing re-render
@@ -736,11 +726,7 @@ DocumentView::renderVisiblePages(bool force) noexcept
     std::set<int> visiblePages = getVisiblePages();
 
     for (int pageno : visiblePages)
-    {
-        renderPage(pageno, force);
-        renderLinksForPage(pageno);
-        renderAnnotationsForPage(pageno);
-    }
+        requestPageRender(pageno);
 
     // Remove unused page items
     removeUnusedLinks(visiblePages);
@@ -864,7 +850,6 @@ DocumentView::resizeEvent(QResizeEvent *event)
 {
     clearDocumentItems();
     renderVisiblePages();
-    recenterPages();
 
     QWidget::resizeEvent(event);
 }
@@ -1116,6 +1101,8 @@ DocumentView::updateCurrentPage() noexcept
         return;
 
     m_pageno = page;
+
+    m_scroll_page_update_timer->start();
     emit currentPageChanged(page + 1);
 }
 
@@ -1135,4 +1122,164 @@ DocumentView::clearDocumentItems() noexcept
     m_text_selection_items.clear();
     m_page_links_hash.clear();
     m_page_annotations_hash.clear();
+}
+
+// Request rendering of a specific page (ASYNC)
+void
+DocumentView::requestPageRender(int pageno) noexcept
+{
+    if (m_page_items_hash.contains(pageno))
+        return;
+    m_page_items_hash[pageno] = nullptr; // placeholder
+
+    auto job = m_model->createRenderJob(pageno);
+
+    m_model->requestPageRender(job,
+                               [this, pageno](Model::PageRenderResult result)
+    {
+        const QImage &image = result.image;
+        if (image.isNull())
+            return;
+
+        renderPageFromImage(pageno, result.image);
+        renderLinks(pageno, result.links);
+        renderAnnotations(pageno, result.annotations);
+    });
+}
+
+void
+DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
+{
+    // removePageItem(pageno);
+    m_gview->resetTransform(); // 🔴 critical
+    auto *item        = new GraphicsPixmapItem();
+    const QPixmap pix = QPixmap::fromImage(image);
+    item->setPixmap(pix);
+    double pageWidthLogical = pix.width() / pix.devicePixelRatio();
+    m_page_x_offset = (m_gview->sceneRect().width() - pageWidthLogical) / 2.0;
+    item->setPos(m_page_x_offset, pageno * m_page_stride);
+    m_gscene->addItem(item);
+    m_page_items_hash[pageno] = item;
+}
+
+void
+DocumentView::renderLinks(int pageno,
+                          const std::vector<BrowseLinkItem *> &links) noexcept
+{
+    if (m_page_links_hash.contains(pageno))
+        return;
+
+    clearLinksForPage(pageno);
+
+    GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
+
+    for (auto *link : links)
+    {
+        switch (link->linkType())
+        {
+            case BrowseLinkItem::LinkType::FitH:
+            {
+                connect(link, &BrowseLinkItem::horizontalFitRequested, this,
+                        [&](int pageno, const BrowseLinkItem::Location &loc)
+                {
+                    // GotoXYZ(pageno, 0, loc.y, m_current_zoom);
+                    // setFitMode(FitMode::Width);
+                    // m_gview->fitToWidthAtY(loc.y);
+                });
+            }
+            break;
+
+            case BrowseLinkItem::LinkType::FitV:
+            {
+                connect(link, &BrowseLinkItem::verticalFitRequested, this,
+                        [&](int pageno, const BrowseLinkItem::Location &loc)
+                {
+                    // GotoXYZ(pageno, 0, 0, m_current_zoom);
+                    // setFitMode(FitMode::Height);
+                    // m_gview->fitToHeight();
+                });
+            }
+            break;
+
+            case BrowseLinkItem::LinkType::Page:
+            {
+                connect(link, &BrowseLinkItem::jumpToPageRequested, this,
+                        [&](int pageno) { GotoPage(pageno); });
+            }
+            break;
+
+            case BrowseLinkItem::LinkType::XYZ:
+            {
+                connect(link, &BrowseLinkItem::jumpToLocationRequested, this,
+                        [&](int pageno, const BrowseLinkItem::Location &loc)
+                { GotoXYZ(pageno, loc.x, loc.y, loc.zoom); });
+            }
+            break;
+
+            default:
+                break;
+        }
+
+        connect(link, &BrowseLinkItem::linkCopyRequested, this,
+                [&](const QString &link)
+        {
+            if (link.startsWith("#"))
+            {
+                auto equal_pos = link.indexOf("=");
+                emit clipboardContentChanged(m_model->filePath() + "#"
+                                             + link.mid(equal_pos + 1));
+            }
+            else
+            {
+                emit clipboardContentChanged(link);
+            }
+        });
+        // Map link rect to scene coordinates
+        const QRectF sceneRect
+            = pageItem->mapToScene(link->rect()).boundingRect();
+        link->setRect(sceneRect);
+        link->setZValue(ZVALUE_LINK);
+        m_gscene->addItem(link);
+        m_page_links_hash[pageno]
+            = links; // Store them so we can actually delete them later
+    }
+}
+
+void
+DocumentView::renderAnnotations(
+    int pageno, const std::vector<Annotation *> &annotations) noexcept
+{
+    if (m_page_annotations_hash.contains(pageno))
+        return;
+
+    clearAnnotationsForPage(pageno);
+
+    GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
+    for (Annotation *annot : annotations)
+    {
+        annot->setZValue(ZVALUE_ANNOTATION);
+        annot->setPos(
+            pageItem->pos()); // Annotations are relative to page origin
+        m_gscene->addItem(annot);
+        m_page_annotations_hash[pageno]
+            = annotations; // Store them so we can actually delete them later
+        connect(annot, &Annotation::annotDeleteRequested, [&](int index)
+        {
+            // m_model->annotDeleteRequested(index);
+            // setDirty(true);
+        });
+
+        connect(annot, &Annotation::annotColorChangeRequested,
+                [this, annot](int index)
+        {
+            // auto color = QColorDialog::getColor(
+            //     annot->data(3).value<QColor>(), this, "Highlight Color",
+            //     QColorDialog::ColorDialogOption::ShowAlphaChannel);
+            // if (color.isValid())
+            // {
+            //     m_model->annotChangeColorForIndex(index, color);
+            //     setDirty(true);
+            // }
+        });
+    }
 }
