@@ -3,7 +3,6 @@
 #include <QDialog>
 #include <QFormLayout>
 #include <QLabel>
-#include <QPair>
 #include <QString>
 #include <QWidget>
 
@@ -13,7 +12,8 @@ class PropertiesWidget : public QDialog
 
 public:
     explicit PropertiesWidget(QWidget *parent = nullptr);
-    void setProperties(const QList<QPair<QString, QString>> &properties) noexcept;
+    void setProperties(
+        const std::vector<std::pair<QString, QString>> &properties) noexcept;
 
 private:
     QFormLayout *m_formLayout;

@@ -2,9 +2,12 @@
 
 #include "GraphicsPixmapItem.hpp"
 #include "GraphicsView.hpp"
+#include "PropertiesWidget.hpp"
 #include "utils.hpp"
 
 #include <QClipboard>
+#include <QFileDialog>
+#include <QMessageBox>
 #include <QVBoxLayout>
 #include <algorithm>
 #include <qguiapplication.h>
@@ -236,36 +239,34 @@ DocumentView::GotoPage(int pageno) noexcept
     if (pageno < 0 || pageno >= m_model->numPages())
         return;
 
-    const double yPos = pageno * m_page_stride;
-    m_vscroll->setValue(static_cast<int>(yPos));
-    // Make sure the page is completely visible
-    QRectF visibleRect
-        = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
-    if (visibleRect.top() > yPos)
-        m_vscroll->setValue(static_cast<int>(yPos));
-    else if (visibleRect.bottom()
-             < yPos + m_model->pageHeightPts() * m_current_zoom)
-        m_vscroll->setValue(
-            static_cast<int>(yPos + m_model->pageHeightPts() * m_current_zoom
-                             - visibleRect.height()));
+    pageno         = std::clamp(pageno, 0, m_model->numPages() - 1);
+    const double y = pageno * m_page_stride + m_page_stride / 2.0;
+    m_gview->centerOn(QPointF(m_gview->sceneRect().width() / 2.0, y));
 }
 
 // Go to next page
 void
 DocumentView::GotoNextPage() noexcept
 {
+    if (m_pageno >= m_model->numPages() - 1)
+        return;
+    GotoPage(m_pageno + 1);
 }
 
 // Go to previous page
 void
 DocumentView::GotoPrevPage() noexcept
 {
+    if (m_pageno == 0)
+        return;
+    GotoPage(m_pageno - 1);
 }
 
 // Perform search for the given term
 void
 DocumentView::Search(const QString &term) noexcept
 {
+    // TODO: Implement search functionality
 }
 
 // Function that is common to zoom-in and zoom-out
@@ -306,18 +307,21 @@ DocumentView::ZoomReset() noexcept
 void
 DocumentView::NextHit() noexcept
 {
+    // TODO: Implement next hit functionality
 }
 
 // Navigate to the previous search hit
 void
 DocumentView::PrevHit() noexcept
 {
+    // TODO: Implement previous hit functionality
 }
 
 // Navigate to a specific search hit by index
 void
 DocumentView::GotoHit(int index) noexcept
 {
+    // TODO: Implement goto hit functionality
 }
 
 // Scroll left by a fixed amount
@@ -352,24 +356,54 @@ DocumentView::ScrollDown() noexcept
 QMap<int, Model::LinkInfo>
 DocumentView::LinkKB() noexcept
 {
+    // TODO: Implement link KB functionality
 }
 
 // Show file properties dialog
 void
 DocumentView::FileProperties() noexcept
 {
+    if (!m_model->success())
+        return;
+
+    PropertiesWidget *propsWidget{nullptr};
+    if (!propsWidget)
+    {
+        propsWidget = new PropertiesWidget(this);
+        auto props  = m_model->properties();
+        propsWidget->setProperties(props);
+    }
+    propsWidget->exec();
 }
 
 // Save the current file
 void
 DocumentView::SaveFile() noexcept
 {
+    if (!m_model->SaveChanges())
+    {
+        QMessageBox::critical(
+            this, "Saving failed",
+            "Could not save the current file. Try 'Save As' instead.");
+    }
 }
 
 // Save the current file as a new file
 void
 DocumentView::SaveAsFile() noexcept
 {
+    const QString filename
+        = QFileDialog::getSaveFileName(this, "Save as", QString());
+
+    if (filename.isEmpty())
+        return;
+
+    if (!m_model->SaveAs(filename))
+    {
+        QMessageBox::critical(
+            this, "Saving as failed",
+            "Could not perform save as operation on the file");
+    }
 }
 
 // Close the current file

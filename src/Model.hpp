@@ -120,6 +120,12 @@ public:
         return m_dpi;
     }
 
+    inline std::pair<fz_point, fz_point> getTextSelectionRange() const noexcept
+    {
+        return {m_selection_start, m_selection_end};
+    }
+
+    std::vector<std::pair<QString, QString>> properties() noexcept;
     fz_outline *getOutline() noexcept;
     bool followLink(const LinkInfo &info) noexcept;
     bool reloadDocument() noexcept;
@@ -133,6 +139,7 @@ public:
     bool passwordRequired() const noexcept;
     bool authenticate(const QString &password) noexcept;
     bool SaveChanges() noexcept;
+    bool SaveAs(const QString &newFilePath) noexcept;
     QPixmap renderPageToPixmap(int pageno) noexcept;
     void cachePageDimension() noexcept;
     std::vector<QPolygonF>
@@ -142,10 +149,6 @@ public:
     std::vector<BrowseLinkItem *> getLinks(int pageno) noexcept;
     std::string getSelectedText(int pageno, const fz_point &a,
                                 const fz_point &b) const noexcept;
-    inline std::pair<fz_point, fz_point> getTextSelectionRange() const noexcept
-    {
-        return {m_selection_start, m_selection_end};
-    }
 
 private:
     QString m_filepath;

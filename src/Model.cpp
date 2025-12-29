@@ -149,7 +149,47 @@ Model::SaveChanges() noexcept
     if (!m_doc || !m_pdf_doc)
         return false;
 
-    // TODO
+    fz_try(m_ctx)
+    {
+        if (m_pdf_doc)
+        {
+            pdf_save_document(m_ctx, m_pdf_doc, m_filepath.toStdString().data(),
+                              nullptr); // TODO: options for saving
+            reloadDocument();
+            // emit documentSaved();
+        }
+        else
+        {
+            qWarning() << "No PDF document opened!";
+            return false;
+        }
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Cannot save file: " << fz_caught_message(m_ctx);
+        return false;
+    }
+
+    return true;
+}
+
+bool
+Model::SaveAs(const QString &newFilePath) noexcept
+{
+    if (!m_doc || !m_pdf_doc)
+        return false;
+
+    fz_try(m_ctx)
+    {
+        pdf_save_document(m_ctx, m_pdf_doc, newFilePath.toStdString().c_str(),
+                          nullptr); // TODO: options for saving
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Save As failed: " << fz_caught_message(m_ctx);
+        return false;
+    }
+    return true;
 }
 
 bool
@@ -576,4 +616,76 @@ Model::getSelectedText(int pageno, const fz_point &a,
     }
 
     return result;
+}
+
+std::vector<std::pair<QString, QString>>
+Model::properties() noexcept
+{
+    std::vector<std::pair<QString, QString>> props;
+    props.reserve(16); // Typical number of PDF properties
+
+    if (!m_ctx || !m_doc)
+        return props;
+
+    pdf_document *pdfdoc = pdf_specifics(m_ctx, m_doc);
+
+    if (!pdfdoc)
+        return props;
+
+    // ========== Info Dictionary ==========
+    pdf_obj *info
+        = pdf_dict_get(m_ctx, pdf_trailer(m_ctx, pdfdoc), PDF_NAME(Info));
+    if (info && pdf_is_dict(m_ctx, info))
+    {
+        int len = pdf_dict_len(m_ctx, info);
+        for (int i = 0; i < len; ++i)
+        {
+            pdf_obj *keyObj = pdf_dict_get_key(m_ctx, info, i);
+            pdf_obj *valObj = pdf_dict_get_val(m_ctx, info, i);
+
+            if (!pdf_is_name(m_ctx, keyObj))
+                continue;
+
+            QString key = QString::fromLatin1(pdf_to_name(m_ctx, keyObj));
+            QString val;
+
+            if (pdf_is_string(m_ctx, valObj))
+            {
+                const char *s = pdf_to_str_buf(m_ctx, valObj);
+                int slen      = pdf_to_str_len(m_ctx, valObj);
+
+                if (slen >= 2 && (quint8)s[0] == 0xFE && (quint8)s[1] == 0xFF)
+                {
+                    QStringDecoder decoder(QStringDecoder::Utf16BE);
+                    val = decoder(QByteArray(s + 2, slen - 2));
+                }
+                else
+                {
+                    val = QString::fromUtf8(s, slen);
+                }
+            }
+            else if (pdf_is_int(m_ctx, valObj))
+                val = QString::number(pdf_to_int(m_ctx, valObj));
+            else if (pdf_is_bool(m_ctx, valObj))
+                val = pdf_to_bool(m_ctx, valObj) ? "true" : "false";
+            else if (pdf_is_name(m_ctx, valObj))
+                val = QString::fromLatin1(pdf_to_name(m_ctx, valObj));
+            else
+                val = QStringLiteral("[Non-string value]");
+
+            props.push_back({key, val});
+        }
+    }
+
+    // ========== Add Derived Properties ==========
+    props.push_back(qMakePair("Page Count",
+                              QString::number(pdf_count_pages(m_ctx, pdfdoc))));
+    props.push_back(qMakePair(
+        "Encrypted", pdf_needs_password(m_ctx, pdfdoc) ? "Yes" : "No"));
+    props.push_back(qMakePair(
+        "PDF Version",
+        QString("%1.%2").arg(pdfdoc->version / 10).arg(pdfdoc->version % 10)));
+    props.push_back(qMakePair("File Path", m_filepath));
+
+    return props;
 }

@@ -11,7 +11,8 @@ PropertiesWidget::PropertiesWidget(QWidget *parent) : QDialog(parent)
 }
 
 void
-PropertiesWidget::setProperties(const QList<QPair<QString, QString>> &properties) noexcept
+PropertiesWidget::setProperties(
+    const std::vector<std::pair<QString, QString>> &properties) noexcept
 {
     // Clear previous content
     QLayoutItem *child;
@@ -27,8 +28,10 @@ PropertiesWidget::setProperties(const QList<QPair<QString, QString>> &properties
         QLabel *keyLabel   = new QLabel(k + ":", this);
         QLabel *valueLabel = new QLabel(v, this);
         valueLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        valueLabel->setWordWrap(true);                                             // <-- wrap long text
-        valueLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed); // allow horizontal growth
+        valueLabel->setWordWrap(true); // <-- wrap long text
+        valueLabel->setSizePolicy(
+            QSizePolicy::Expanding,
+            QSizePolicy::Fixed); // allow horizontal growth
         m_formLayout->addRow(keyLabel, valueLabel);
     }
 
