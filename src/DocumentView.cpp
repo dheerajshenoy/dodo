@@ -513,8 +513,11 @@ DocumentView::getVisiblePages() noexcept
 
     QRectF visibleSceneRect
         = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
-    double top    = visibleSceneRect.top();
-    double bottom = visibleSceneRect.bottom();
+    double top           = visibleSceneRect.top();
+    double bottom        = visibleSceneRect.bottom();
+    double preloadMargin = m_page_stride; // 1 page above and below
+    top -= preloadMargin;
+    bottom += preloadMargin;
 
     int firstPage = static_cast<int>(std::floor(top / m_page_stride));
     int lastPage  = static_cast<int>(std::floor(bottom / m_page_stride));
