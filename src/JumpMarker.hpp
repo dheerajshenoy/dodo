@@ -40,7 +40,7 @@ public:
                QWidget *) override
     {
         p->setPen(Qt::NoPen);
-        p->setBrush(Qt::red);
+        p->setBrush(m_color);
         p->drawRect(boundingRect());
     }
 
