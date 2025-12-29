@@ -31,7 +31,8 @@ public:
         Section,
         FitV,
         FitH,
-        External
+        XYZ,
+        External,
     };
 
     BrowseLinkItem(const QRectF &rect, const QLatin1StringView &link,
@@ -77,6 +78,16 @@ public:
         return _uri;
     }
 
+    inline void setLinkType(LinkType type) noexcept
+    {
+        _type = type;
+    }
+
+    inline LinkType linkType() noexcept
+    {
+        return _type;
+    }
+
 signals:
     void jumpToPageRequested(int pageno);
     void jumpToLocationRequested(int pageno, const Location &loc);
@@ -108,14 +119,17 @@ protected:
                     emit horizontalFitRequested(_pageno, _loc);
                     break;
 
+                case LinkType::XYZ:
+                    emit jumpToLocationRequested(_pageno, _loc);
+                    break;
+
                 case LinkType::External:
                     QDesktopServices::openUrl(QUrl(_link));
                     break;
             }
-            setBrush(Qt::transparent);
-        }
 
-        QGraphicsRectItem::mouseReleaseEvent(e);
+            // setBrush(Qt::transparent);
+        }
     }
 
     void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override

@@ -22,10 +22,6 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_model = new Model(filepath);
     m_model->open();
 
-    m_high_quality_render_timer = new QTimer(this);
-    m_high_quality_render_timer->setSingleShot(true);
-    m_high_quality_render_timer->setInterval(120);
-
     m_gview  = new GraphicsView(this);
     m_gscene = new GraphicsScene(m_gview);
     m_gview->setScene(m_gscene);
@@ -43,7 +39,6 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
 
     cachePageStride();
     renderVisiblePages();
-    GotoPage(479);
 }
 
 // Initialize signal-slot connections
@@ -55,32 +50,6 @@ DocumentView::initConnections() noexcept
 
     connect(this, &DocumentView::currentPageChanged, this,
             &DocumentView::scheduleHighQualityRender);
-
-    connect(m_high_quality_render_timer, &QTimer::timeout, this, [this]()
-    {
-        // Save viewport center in scene coordinates
-        QPointF sceneCenter
-            = m_gview->mapToScene(m_gview->viewport()->rect().center());
-
-        // Apply HQ zoom
-        m_current_zoom = m_target_zoom;
-
-        m_model->setZoom(m_current_zoom);
-        cachePageStride();
-        updateSceneRect();
-
-        // Clear and render pages & links at HQ
-        m_gscene->clear();
-        m_page_links_hash.clear();
-        m_page_items_hash.clear();
-        m_page_annotations_hash.clear();
-        m_text_selection_items.clear();
-
-        renderVisiblePages(true);
-
-        // Restore viewport center
-        m_gview->centerOn(sceneCenter);
-    });
 
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this, [&]()
     {
@@ -231,7 +200,35 @@ DocumentView::setZoom(double factor) noexcept
     zoomHelper();
 }
 
+void
+DocumentView::GotoXYZ(int pageno, double x, double y, double zoom) noexcept
+{
+    if (m_model->numPages() == 0)
+        return;
+
+    pageno = std::clamp(pageno, 0, m_model->numPages() - 1);
+
+    // Apply zoom first (XYZ semantics)
+    if (zoom > 0.0)
+    {
+        setZoom(zoom);
+        scheduleHighQualityRender();
+    }
+
+    if (!m_page_items_hash.contains(pageno))
+        renderPage(pageno, true);
+
+    // Calculate scene coordinates
+    const double page_y  = pageno * m_page_stride;
+    const double scene_x = m_page_x_offset + x * m_current_zoom;
+    const double scene_y = page_y + y * m_current_zoom;
+
+    // Center view
+    m_gview->centerOn(scene_x, scene_y);
+}
+
 // Go to specific page number
+// Does not render page directly, just adjusts scrollbar
 void
 DocumentView::GotoPage(int pageno) noexcept
 {
@@ -273,7 +270,6 @@ DocumentView::Search(const QString &term) noexcept
 void
 DocumentView::zoomHelper() noexcept
 {
-    m_high_quality_render_timer->stop(); // Stop any pending renders
     scheduleHighQualityRender();
 }
 
@@ -357,6 +353,7 @@ QMap<int, Model::LinkInfo>
 DocumentView::LinkKB() noexcept
 {
     // TODO: Implement link KB functionality
+    return QMap<int, Model::LinkInfo>();
 }
 
 // Show file properties dialog
@@ -537,6 +534,7 @@ DocumentView::clearLinksForPage(int pageno) noexcept
 {
     if (!m_page_links_hash.contains(pageno))
         return;
+
     auto links = m_page_links_hash.take(pageno); // removes from hash
     for (auto *link : links)
     {
@@ -557,6 +555,7 @@ DocumentView::clearAnnotationsForPage(int pageno) noexcept
 {
     if (!m_page_annotations_hash.contains(pageno))
         return;
+
     auto annotations
         = m_page_annotations_hash.take(pageno); // removes from hash
     for (auto *annotation : annotations)
@@ -576,7 +575,7 @@ DocumentView::clearAnnotationsForPage(int pageno) noexcept
 void
 DocumentView::renderLinksForPage(int pageno) noexcept
 {
-    if (!m_page_items_hash.contains(pageno))
+    if (m_page_links_hash.contains(pageno))
         return;
 
     clearLinksForPage(pageno);
@@ -586,6 +585,51 @@ DocumentView::renderLinksForPage(int pageno) noexcept
 
     for (auto *link : links)
     {
+        switch (link->linkType())
+        {
+            case BrowseLinkItem::LinkType::FitH:
+            {
+                connect(link, &BrowseLinkItem::horizontalFitRequested, this,
+                        [&](int pageno, const BrowseLinkItem::Location &loc)
+                {
+                    // GotoXYZ(pageno, 0, loc.y, m_current_zoom);
+                    // setFitMode(FitMode::Width);
+                    // m_gview->fitToWidthAtY(loc.y);
+                });
+            }
+            break;
+
+            case BrowseLinkItem::LinkType::FitV:
+            {
+                connect(link, &BrowseLinkItem::verticalFitRequested, this,
+                        [&](int pageno, const BrowseLinkItem::Location &loc)
+                {
+                    // GotoXYZ(pageno, 0, 0, m_current_zoom);
+                    // setFitMode(FitMode::Height);
+                    // m_gview->fitToHeight();
+                });
+            }
+            break;
+
+            case BrowseLinkItem::LinkType::Page:
+            {
+                connect(link, &BrowseLinkItem::jumpToPageRequested, this,
+                        [&](int pageno) { GotoPage(pageno); });
+            }
+            break;
+
+            case BrowseLinkItem::LinkType::XYZ:
+            {
+                connect(link, &BrowseLinkItem::jumpToLocationRequested, this,
+                        [&](int pageno, const BrowseLinkItem::Location &loc)
+                { GotoXYZ(pageno, loc.x, loc.y, loc.zoom); });
+            }
+            break;
+
+            default:
+                break;
+        }
+
         connect(link, &BrowseLinkItem::linkCopyRequested, this,
                 [&](const QString &link)
         {
@@ -615,7 +659,7 @@ DocumentView::renderLinksForPage(int pageno) noexcept
 void
 DocumentView::renderAnnotationsForPage(int pageno) noexcept
 {
-    if (!m_page_items_hash.contains(pageno))
+    if (m_page_annotations_hash.contains(pageno))
         return;
 
     clearAnnotationsForPage(pageno);
@@ -898,8 +942,28 @@ DocumentView::scheduleHighQualityRender() noexcept
         item->setPos(m_page_x_offset, it.key() * m_page_stride);
     }
 
-    if (!m_high_quality_render_timer->isActive())
-        m_high_quality_render_timer->start(); // ms
+    // Save viewport center in scene coordinates
+    const QPointF sceneCenter
+        = m_gview->mapToScene(m_gview->viewport()->rect().center());
+
+    // Apply HQ zoom
+    m_current_zoom = m_target_zoom;
+
+    m_model->setZoom(m_current_zoom);
+    cachePageStride();
+    updateSceneRect();
+
+    // Clear and render pages & links at HQ
+    m_gscene->clear();
+    m_page_links_hash.clear();
+    m_page_items_hash.clear();
+    m_page_annotations_hash.clear();
+    m_text_selection_items.clear();
+
+    renderVisiblePages(true);
+
+    // Restore viewport center
+    m_gview->centerOn(sceneCenter);
 }
 
 // Check if a scene position is within any page item

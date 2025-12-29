@@ -155,6 +155,7 @@ public:
     void renderVisiblePages(bool force = false) noexcept;
     void setFitMode(FitMode mode) noexcept;
     void GotoPage(int pageno) noexcept;
+    void GotoXYZ(int pageno, double x, double y, double zoom) noexcept;
     void GotoNextPage() noexcept;
     void GotoPrevPage() noexcept;
     void GotoFirstPage() noexcept;
@@ -259,6 +260,5 @@ private:
     std::set<int> getVisiblePages() noexcept;
     void renderPage(int pageno, bool force = false) noexcept;
     void removePageItem(int pageno) noexcept;
-    QTimer *m_high_quality_render_timer{nullptr};
     float m_old_y{0.0f};
 };

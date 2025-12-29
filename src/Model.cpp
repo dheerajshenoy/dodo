@@ -1,8 +1,10 @@
 #include "Model.hpp"
 
+#include "BrowseLinkItem.hpp"
 #include "HighlightAnnotation.hpp"
 #include "PopupAnnotation.hpp"
 #include "RectAnnotation.hpp"
+#include "mupdf/fitz/link.h"
 #include "mupdf/fitz/structured-text.h"
 #include "utils.hpp"
 
@@ -549,6 +551,7 @@ Model::getLinks(int pageno) noexcept
                     case FZ_LINK_DEST_FIT_H:
                         item = new BrowseLinkItem(
                             qtRect, uri, BrowseLinkItem::LinkType::FitH);
+                        item->setLinkType(BrowseLinkItem::LinkType::FitH);
                         item->setGotoPageNo(pageno);
                         item->setXYZ({.x = 0, .y = dest.y, .zoom = 0});
                         break;
@@ -556,6 +559,7 @@ Model::getLinks(int pageno) noexcept
                     case FZ_LINK_DEST_FIT_V:
                         item = new BrowseLinkItem(
                             qtRect, uri, BrowseLinkItem::LinkType::FitV);
+                        item->setLinkType(BrowseLinkItem::LinkType::FitV);
                         item->setGotoPageNo(pageno);
                         break;
 
@@ -563,6 +567,7 @@ Model::getLinks(int pageno) noexcept
                     case FZ_LINK_DEST_XYZ:
                         item = new BrowseLinkItem(
                             qtRect, uri, BrowseLinkItem::LinkType::Section);
+                        item->setLinkType(BrowseLinkItem::LinkType::XYZ);
                         item->setGotoPageNo(pageno);
                         item->setXYZ(
                             {.x = dest.x, .y = dest.y, .zoom = dest.zoom});

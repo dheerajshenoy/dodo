@@ -189,6 +189,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     if (m_ignore_next_release)
     {
         m_ignore_next_release = false;
+        QGraphicsView::mouseReleaseEvent(event);
         return;
     }
 
