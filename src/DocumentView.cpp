@@ -280,7 +280,26 @@ DocumentView::setFitMode(FitMode mode) noexcept
         break;
 
         case FitMode::Window:
-            break;
+        {
+            const int viewWidth  = m_gview->viewport()->width();
+            const int viewHeight = m_gview->viewport()->height();
+
+            const double logicalPageWidth
+                = m_model->pageWidthPts() * (m_model->DPI() / 72.0);
+            const double logicalPageHeight
+                = m_model->pageHeightPts() * (m_model->DPI() / 72.0);
+
+            const double zoomX
+                = static_cast<double>(viewWidth) / logicalPageWidth;
+            const double zoomY
+                = static_cast<double>(viewHeight) / logicalPageHeight;
+
+            const double newZoom = std::min(zoomX, zoomY);
+
+            setZoom(newZoom);
+            renderVisiblePages();
+        }
+        break;
 
         default:
             break;
@@ -297,26 +316,22 @@ DocumentView::setZoom(double factor) noexcept
 }
 
 void
-DocumentView::GotoXYZ(int pageno, float x, float y, double zoom) noexcept
+DocumentView::GotoLocation(int pageno, float x, float y) noexcept
 {
     if (m_model->numPages() == 0)
         return;
 
     pageno = std::clamp(pageno, 0, m_model->numPages() - 1);
 
-    // Apply zoom first (XYZ semantics)
-    if (zoom > 0.0)
-    {
-        setZoom(zoom);
-        renderVisiblePages();
-    }
-
     if (!m_page_items_hash.contains(pageno))
     {
-        m_pending_jump = {pageno, x, y, zoom};
+        m_pending_jump = {pageno, x, y};
         requestPageRender(pageno);
         return;
     }
+
+    qDebug() << "GotoLocation: pageno =" << pageno << ", x =" << x
+             << ", y =" << y;
 
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
 
@@ -561,6 +576,7 @@ DocumentView::CloseFile() noexcept
 void
 DocumentView::ToggleAutoResize() noexcept
 {
+    m_auto_resize = !m_auto_resize;
 }
 
 // Toggle text highlight mode
@@ -692,7 +708,7 @@ DocumentView::GoBackHistory() noexcept
     }
     const Location loc = m_loc_history.back();
     m_loc_history.pop_back();
-    GotoXYZ(loc.pageno, loc.x, loc.y, m_current_zoom);
+    GotoLocation(loc.pageno, loc.x, loc.y);
 }
 
 // Get the list of currently visible pages
@@ -906,6 +922,12 @@ DocumentView::resizeEvent(QResizeEvent *event)
 {
     clearDocumentItems();
     renderVisiblePages();
+
+    if (m_auto_resize)
+    {
+        setFitMode(m_fit_mode);
+        fitModeChanged(m_fit_mode);
+    }
 
     QWidget::resizeEvent(event);
 }
@@ -1168,9 +1190,9 @@ DocumentView::requestPageRender(int pageno) noexcept
 
         if (m_pending_jump.pageno != -1)
         {
-            GotoXYZ(m_pending_jump.pageno, m_pending_jump.x, m_pending_jump.y,
-                    m_pending_jump.zoom);
-            m_pending_jump = {-1, 0, 0, 0.0};
+            GotoLocation(m_pending_jump.pageno, m_pending_jump.x,
+                         m_pending_jump.y);
+            m_pending_jump = {-1, 0, 0};
         }
     });
 }
@@ -1250,7 +1272,7 @@ DocumentView::renderLinks(int pageno,
             {
                 connect(link, &BrowseLinkItem::jumpToLocationRequested, this,
                         [&](int pageno, const BrowseLinkItem::Location &loc)
-                { GotoXYZ(pageno, loc.x, loc.y, loc.zoom); });
+                { GotoLocation(pageno, loc.x, loc.y); });
             }
             break;
 

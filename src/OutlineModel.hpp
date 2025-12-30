@@ -11,6 +11,12 @@ public:
         setHorizontalHeaderLabels({"Title", "Page"});
     }
 
+    // Define a custom role for the hidden data
+    enum OutlineRoles
+    {
+        TargetLocationRole = Qt::UserRole + 1
+    };
+
     void loadFromOutline(fz_outline *root)
     {
         clear();
@@ -36,6 +42,9 @@ public:
                     current->title ? current->title : "<no title>"));
                 QStandardItem *pageItem  = new QStandardItem(
                     QString::number(current->page.page + 1));
+
+                titleItem->setData(QPointF{current->x, current->y},
+                                   TargetLocationRole);
 
                 // Add row under the correct parent
                 parentItem->appendRow({titleItem, pageItem});

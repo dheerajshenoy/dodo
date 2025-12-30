@@ -131,6 +131,7 @@ private:
     void PrevHit() noexcept;
     void ZoomReset() noexcept;
     void GotoPage() noexcept;
+    void GotoLocation(int pageno, float x, float y) noexcept;
     void gotoPage(int pageno) noexcept;
     void LoadSession(QString name = QString()) noexcept;
     void SaveSession() noexcept;

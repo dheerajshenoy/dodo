@@ -108,7 +108,13 @@ public:
 
         connect(m_tree, &QTreeView::doubleClicked, this,
                 [&](const QModelIndex &index)
-        { emit jumpToPageRequested(index.siblingAtColumn(1).data().toInt()); });
+        {
+            int page               = index.siblingAtColumn(1).data().toInt();
+            const QPointF location = index.siblingAtColumn(0)
+                                         .data(OutlineModel::TargetLocationRole)
+                                         .toPointF();
+            emit jumpToLocationRequested(page, location.x(), location.y());
+        });
 
         layout->addWidget(m_tree);
 
@@ -149,6 +155,7 @@ public:
                 1, QHeaderView::ResizeToContents);
             m_tree->header()->setSectionResizeMode(
                 QHeaderView::ResizeToContents);
+            // Store the location of target outline
         }
         else
         {
@@ -157,7 +164,7 @@ public:
     }
 
 signals:
-    void jumpToPageRequested(int pageno);
+    void jumpToLocationRequested(int pageno, float x, float y);
 
 private:
     QTreeView *m_tree{nullptr};

@@ -1049,7 +1049,14 @@ void
 dodo::gotoPage(int pageno) noexcept
 {
     if (m_doc)
-        m_doc->GotoPage(pageno);
+        m_doc->GotoPage(pageno - 1);
+}
+
+void
+dodo::GotoLocation(int pageno, float x, float y) noexcept
+{
+    if (m_doc)
+        m_doc->GotoLocation(pageno - 1, x, y);
 }
 
 // Goes to the next search hit
@@ -1580,8 +1587,8 @@ dodo::initConnections() noexcept
     connect(m_navMenu, &QMenu::aboutToShow, this,
             &dodo::updatePageNavigationActions);
 
-    connect(m_outline_widget, &OutlineWidget::jumpToPageRequested, this,
-            &dodo::gotoPage);
+    connect(m_outline_widget, &OutlineWidget::jumpToLocationRequested, this,
+            &dodo::GotoLocation);
 }
 
 // Handle when the file name is changed

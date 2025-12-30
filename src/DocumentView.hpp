@@ -164,7 +164,7 @@ public:
     void renderVisiblePages() noexcept;
     void setFitMode(FitMode mode) noexcept;
     void GotoPage(int pageno) noexcept;
-    void GotoXYZ(int pageno, float x, float y, double zoom) noexcept;
+    void GotoLocation(int pageno, float x, float y) noexcept;
     void GotoNextPage() noexcept;
     void GotoPrevPage() noexcept;
     void GotoFirstPage() noexcept;
@@ -286,7 +286,6 @@ private:
     {
         int pageno{-1};
         float x{0.0f}, y{0.0f};
-        double zoom{1.0};
     };
     PendingJump m_pending_jump;
 
