@@ -12,6 +12,7 @@
 #include <QtConcurrent/QtConcurrent>
 #include <pthread.h>
 #include <qbytearrayview.h>
+#include <qstyle.h>
 
 Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
 {
@@ -30,6 +31,7 @@ Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
 Model::~Model() noexcept
 {
     fz_drop_outline(m_ctx, m_outline);
+    pdf_drop_document(m_ctx, m_pdf_doc);
     fz_drop_document(m_ctx, m_doc);
     fz_drop_context(m_ctx);
 
@@ -107,8 +109,6 @@ Model::open() noexcept
         m_success = false;
         return;
     }
-
-    m_undo_stack = new QUndoStack();
 
     for (int i = 0; i < m_page_count; ++i)
         buildPageCache(i);
@@ -304,10 +304,31 @@ Model::authenticate(const QString &password) noexcept
 bool
 Model::reloadDocument() noexcept
 {
-    if (m_doc)
-        fz_drop_document(m_ctx, m_doc);
-    m_doc = nullptr;
-    open();
+    // Lock to prevent concurrent access (if multithreaded)
+    std::lock_guard<std::mutex> lock(m_doc_mutex);
+
+    // Drop text page cache
+    clear_fz_stext_page_cache();
+
+    // Drop display lists / page cache entries
+    for (auto &[_, entry] : m_page_cache)
+        fz_drop_display_list(m_ctx, entry.display_list);
+    m_page_cache.clear();
+
+    fz_drop_outline(m_ctx, m_outline);
+    pdf_drop_document(m_ctx, m_pdf_doc);
+    fz_drop_document(m_ctx, m_doc);
+    fz_drop_context(m_ctx);
+    m_pdf_doc    = nullptr;
+    m_doc        = nullptr;
+    m_outline    = nullptr;
+    m_success    = false;
+    m_ctx        = nullptr;
+    m_page_count = 0;
+
+    // Reopen the document
+    open(); // ensure open() sets m_doc, m_pdf_doc, m_success
+
     return m_success;
 }
 
@@ -317,12 +338,16 @@ Model::SaveChanges() noexcept
     if (!m_doc || !m_pdf_doc)
         return false;
 
+    std::string path = m_filepath.toStdString();
+
     fz_try(m_ctx)
     {
         if (m_pdf_doc)
         {
-            pdf_save_document(m_ctx, m_pdf_doc, m_filepath.toStdString().data(),
+            pdf_save_document(m_ctx, m_pdf_doc, path.c_str(),
                               nullptr); // TODO: options for saving
+
+            // TODO: reload safely
             reloadDocument();
             // emit documentSaved();
         }
@@ -700,6 +725,11 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     fz_try(ctx)
     {
         // Get cached display list
+        if (!m_page_cache.contains(job.pageno))
+        {
+            qWarning() << "Page not cached:" << job.pageno;
+            return result;
+        }
         const PageCacheEntry &entry = m_page_cache[job.pageno];
 
         fz_matrix transform
@@ -713,7 +743,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
         dev = fz_new_draw_device(ctx, fz_identity, pix);
         fz_run_display_list(ctx, entry.display_list, dev, transform,
-                            transformed, nullptr);
+                            fz_rect_from_irect(bbox), nullptr);
 
         if (job.invert_color)
             fz_invert_pixmap_luminance(ctx, pix);
@@ -879,8 +909,8 @@ Model::highlightTextSelection(int pageno, const QPointF &start,
         quads.push_back(hits[i]);
 
     // // Create and push the command onto the undo stack for undo/redo support
-    m_undo_stack->push(new TextHighlightAnnotationCommand(this, pageno, quads,
-                                                          m_highlight_color));
+    m_undo_stack->push(new TextHighlightAnnotationCommand(
+        this, pageno, std::move(quads), m_highlight_color));
 }
 
 std::vector<int>
@@ -901,8 +931,10 @@ Model::addHighlightAnnotation(int pageno, const std::vector<fz_quad> &quads,
         // This looks better visually for multi-line selections
         pdf_annot *annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_HIGHLIGHT);
         if (!annot)
-            continue;
+            return objNums;
 
+        if (quads.empty())
+            return objNums;
         pdf_set_annot_quad_points(m_ctx, annot, quads.size(), &quads[0]);
         pdf_set_annot_color(m_ctx, annot, 3, color);
         pdf_set_annot_opacity(m_ctx, annot, color[3]);
@@ -914,9 +946,8 @@ Model::addHighlightAnnotation(int pageno, const std::vector<fz_quad> &quads,
         objNums.push_back(pdf_to_num(m_ctx, obj));
 
         pdf_drop_annot(m_ctx, annot);
-
         // Drop the page we loaded (not the Model's internal page)
-        fz_drop_page(m_ctx, (fz_page *)page);
+        pdf_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {

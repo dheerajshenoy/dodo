@@ -258,6 +258,7 @@ private:
     fz_locks_context m_fz_locks;
     std::unordered_map<int, fz_stext_page *> m_stext_page_cache;
     std::unordered_map<int, PageCacheEntry> m_page_cache;
+    std::mutex m_doc_mutex;
 
     friend class TextHighlightAnnotationCommand; // for highlight annotation
     friend class DocumentView;
