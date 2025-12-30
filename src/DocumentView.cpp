@@ -3,7 +3,6 @@
 #include "GraphicsPixmapItem.hpp"
 #include "GraphicsView.hpp"
 #include "PropertiesWidget.hpp"
-#include "utils.hpp"
 
 #include <QClipboard>
 #include <QFileDialog>
@@ -74,6 +73,9 @@ void
 DocumentView::initConnections() noexcept
 {
 
+    connect(m_model, &Model::searchResultsReady, this,
+            &DocumentView::handleSearchResults);
+
     connect(m_model, &Model::reloadRequested, this, &DocumentView::reloadPage);
 
     connect(m_hq_render_timer, &QTimer::timeout, this,
@@ -105,6 +107,17 @@ DocumentView::initConnections() noexcept
 
     connect(m_gview, &GraphicsView::contextMenuRequested, this,
             &DocumentView::handleContextMenuRequested);
+}
+
+void
+DocumentView::handleSearchResults(
+    const QHash<int, std::vector<Model::SearchHit>> &results) noexcept
+{
+    // Clear previous search hits
+    clearSearchHits();
+
+    m_search_hits = results;
+    renderVisiblePages();
 }
 
 void
@@ -386,11 +399,31 @@ DocumentView::GotoPrevPage() noexcept
     GotoPage(m_pageno - 1);
 }
 
+void
+DocumentView::clearSearchHits() noexcept
+{
+
+    for (auto *item : m_search_items)
+    {
+        if (item && item->scene() == m_gscene)
+            item->setPath(QPainterPath()); // clear instead of delete
+    }
+    m_search_items.clear();
+    m_search_hits.clear();
+}
+
 // Perform search for the given term
 void
 DocumentView::Search(const QString &term) noexcept
 {
-    // TODO: Implement search functionality
+    if (term.isEmpty())
+    {
+        clearSearchHits();
+        return;
+    }
+
+    // m_search_hits = m_model->search(term);
+    m_model->search(term);
 }
 
 // Function that is common to zoom-in and zoom-out
@@ -433,6 +466,8 @@ DocumentView::zoomHelper() noexcept
     {
         m_model->invalidatePageCache(pageno);
         clearLinksForPage(pageno);
+        clearAnnotationsForPage(pageno);
+        clearSearchHitsForPage(pageno);
         // requestPageRender(pageno);
     }
 
@@ -766,6 +801,27 @@ DocumentView::clearLinksForPage(int pageno) noexcept
     }
 }
 
+void
+DocumentView::clearSearchHitsForPage(int pageno) noexcept
+{
+    if (!m_search_hits.contains(pageno))
+        return;
+
+    auto searchHits
+        = m_search_hits.take(pageno); // removes SearchHits from hash
+    for (const auto &_ : searchHits)
+    {
+        QGraphicsPathItem *item
+            = m_search_items.take(pageno); // removes item from hash
+        if (item)
+        {
+            if (item->scene() == m_gscene)
+                m_gscene->removeItem(item);
+            delete item;
+        }
+    }
+}
+
 // Clear links for a specific page
 void
 DocumentView::clearAnnotationsForPage(int pageno) noexcept
@@ -796,8 +852,7 @@ DocumentView::renderVisiblePages() noexcept
 
     // Remove unused page items
     removeUnusedPageItems(visiblePages);
-    removeUnusedLinks(visiblePages);
-    removeUnusedAnnotations(visiblePages);
+
     ClearTextSelection();
 
     for (int pageno : visiblePages)
@@ -809,17 +864,15 @@ DocumentView::renderVisiblePages() noexcept
 }
 
 void
-DocumentView::removeUnusedLinks(const std::set<int> &visibleSet) noexcept
+DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
 {
     // Copy keys first to avoid iterator invalidation
     QList<int> trackedPages = m_page_links_hash.keys();
-
     for (int pageno : trackedPages)
     {
         if (visibleSet.find(pageno) == visibleSet.end())
         {
             auto links = m_page_links_hash.take(pageno); // removes from hash
-
             for (auto *link : links)
             {
                 if (!link)
@@ -831,21 +884,7 @@ DocumentView::removeUnusedLinks(const std::set<int> &visibleSet) noexcept
 
                 delete link; // safe: we "own" these
             }
-        }
-    }
-}
 
-// Remove page items that are not in visibleSet
-void
-DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
-{
-    // Copy keys first to avoid iterator issues
-    QList<int> keys = m_page_items_hash.keys();
-
-    for (int pageno : keys)
-    {
-        if (!visibleSet.contains(pageno))
-        {
             auto *item = m_page_items_hash.take(pageno);
             if (item)
             {
@@ -853,23 +892,9 @@ DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
                     m_gscene->removeItem(item);
                 delete item;
             }
-        }
-    }
-}
 
-void
-DocumentView::removeUnusedAnnotations(const std::set<int> &visibleSet) noexcept
-{
-    // Copy keys first to avoid iterator invalidation
-    QList<int> trackedPages = m_page_annotations_hash.keys();
-
-    for (int pageno : trackedPages)
-    {
-        if (visibleSet.find(pageno) == visibleSet.end())
-        {
             auto annots
                 = m_page_annotations_hash.take(pageno); // removes from hash
-
             for (auto *annot : annots)
             {
                 if (!annot)
@@ -881,6 +906,11 @@ DocumentView::removeUnusedAnnotations(const std::set<int> &visibleSet) noexcept
 
                 delete annot; // safe: we "own" these
             }
+
+            // Remove search hits for this page
+            // auto searchHits
+            //     = m_search_hits.take(pageno); // removes SearchHits from hash
+            // clearSearchHitsForPage(pageno);
         }
     }
 }
@@ -891,11 +921,10 @@ DocumentView::removePageItem(int pageno) noexcept
 {
     if (m_page_items_hash.contains(pageno))
     {
-        GraphicsPixmapItem *item = m_page_items_hash[pageno];
+        GraphicsPixmapItem *item = m_page_items_hash.take(pageno);
         if (item->scene() == m_gscene)
             m_gscene->removeItem(item);
         delete item;
-        m_page_items_hash.remove(pageno);
     }
 }
 
@@ -924,7 +953,7 @@ void
 DocumentView::resizeEvent(QResizeEvent *event)
 {
     clearDocumentItems();
-    renderVisiblePages();
+    // renderVisiblePages();
 
     if (m_auto_resize)
     {
@@ -1180,8 +1209,8 @@ DocumentView::requestPageRender(int pageno) noexcept
 
     auto job = m_model->createRenderJob(pageno);
 
-    m_model->requestPageRender(job,
-                               [this, pageno](Model::PageRenderResult result)
+    m_model->requestPageRender(
+        job, [this, pageno](const Model::PageRenderResult &result)
     {
         const QImage &image = result.image;
         if (image.isNull())
@@ -1190,6 +1219,7 @@ DocumentView::requestPageRender(int pageno) noexcept
         renderPageFromImage(pageno, result.image);
         renderLinks(pageno, result.links);
         renderAnnotations(pageno, result.annotations);
+        renderSearchHitsForPage(pageno);
 
         if (m_pending_jump.pageno != -1)
         {
@@ -1203,12 +1233,6 @@ DocumentView::requestPageRender(int pageno) noexcept
 void
 DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
 {
-    // if (m_page_items_hash.contains(pageno))
-    // {
-    //     auto old = m_page_items_hash[pageno];
-    //     m_gscene->removeItem(old);
-    //     delete old;
-    // }
     removePageItem(pageno);
     createAndAddPageItem(pageno, QPixmap::fromImage(image));
 }
@@ -1421,4 +1445,53 @@ DocumentView::DecryptDocument() noexcept
         }
     }
     return true;
+}
+
+void
+DocumentView::renderSearchHitsForPage(int pageno) noexcept
+{
+
+    if (!m_search_hits.contains(pageno))
+        return;
+
+    const auto hits = m_search_hits.value(pageno); // Local copy
+
+    // 2. Validate the Page Item still exists in the scene
+    auto *pageItem = m_page_items_hash.value(pageno, nullptr);
+    if (!pageItem || !pageItem->scene())
+        return;
+
+    auto *item = ensureSearchItemForPage(pageno);
+    if (!item)
+        return;
+
+    QPainterPath path;
+
+    for (const Model::SearchHit &hit : hits)
+    {
+        QPolygonF poly;
+        poly << QPointF(hit.quad.ul.x, hit.quad.ul.y)
+             << QPointF(hit.quad.ur.x, hit.quad.ur.y)
+             << QPointF(hit.quad.lr.x, hit.quad.lr.y)
+             << QPointF(hit.quad.ll.x, hit.quad.ll.y);
+
+        path.addPolygon(pageItem->mapToScene(poly));
+    }
+
+    item->setPath(path);
+}
+
+QGraphicsPathItem *
+DocumentView::ensureSearchItemForPage(int pageno) noexcept
+{
+    if (m_search_items.contains(pageno))
+        return m_search_items[pageno];
+
+    auto *item = m_gscene->addPath(QPainterPath());
+    item->setBrush(QColor(255, 230, 150, 120));
+    item->setPen(Qt::NoPen);
+    item->setZValue(ZVALUE_SEARCH_HITS);
+
+    m_search_items[pageno] = item;
+    return item;
 }

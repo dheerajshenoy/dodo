@@ -22,6 +22,7 @@
 #define ZVALUE_TEXT_SELECTION 900
 #define ZVALUE_LINK 1000
 #define ZVALUE_JUMP_MARKER 1100
+#define ZVALUE_SEARCH_HITS 1200
 
 class DocumentView : public QWidget
 {
@@ -227,6 +228,8 @@ signals:
 public slots:
     void handleTextSelection(const QPointF &start, const QPointF &end) noexcept;
     void handleClickSelection(int clickType, const QPointF &scenePos) noexcept;
+    void handleSearchResults(
+        const QHash<int, std::vector<Model::SearchHit>> &results) noexcept;
 
 protected:
     void handleContextMenuRequested(const QPointF &scenePos) noexcept;
@@ -259,6 +262,7 @@ private:
     void requestPageRender(int pageno) noexcept;
     void clearLinksForPage(int pageno) noexcept;
     void clearAnnotationsForPage(int pageno) noexcept;
+    void clearSearchHitsForPage(int pageno) noexcept;
     void clearVisibleAnnotations() noexcept;
     void clearVisiblePages() noexcept;
     void clearVisibleLinks() noexcept;
@@ -268,9 +272,7 @@ private:
     void renderAnnotations(int pageno,
                            const std::vector<Annotation *> &annots) noexcept;
 
-    void removeUnusedLinks(const std::set<int> &visibleSet) noexcept;
-    void removeUnusedPageItems(const std::set<int> &visibleSet) noexcept;
-    void removeUnusedAnnotations(const std::set<int> &visibleSet) noexcept;
+    void removeUnusedPageItems(const std::set<int> &visiblePages) noexcept;
     void reloadPage(int pageno) noexcept;
     // Clear all document items (pages, links, annotations)
     void clearDocumentItems() noexcept;
@@ -282,6 +284,10 @@ private:
     void initConnections() noexcept;
     std::set<int> getVisiblePages() noexcept;
     void removePageItem(int pageno) noexcept;
+    void renderSearchHitsForPage(int pageno) noexcept;
+    void clearSearchHits() noexcept;
+    QGraphicsPathItem *ensureSearchItemForPage(int pageno) noexcept;
+
     float m_old_y{0.0f};
     JumpMarker *m_jump_marker{nullptr};
     QTimer *m_scroll_page_update_timer{
@@ -294,6 +300,8 @@ private:
     PendingJump m_pending_jump;
 
     void updateSelectionPath(int pageno, std::vector<QPolygonF> quads) noexcept;
+    QHash<int, std::vector<Model::SearchHit>> m_search_hits;
+    QHash<int, QGraphicsPathItem *> m_search_items;
 
     QPointF m_selection_start, m_selection_end;
     QGraphicsPathItem *m_selection_path_item{nullptr};

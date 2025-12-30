@@ -269,3 +269,19 @@ merge_quads_by_line(const std::vector<fz_quad> &input) noexcept
 
     return out;
 }
+
+fz_quad
+getQuadForSubstring(fz_stext_line *line, int start, int len)
+{
+    fz_rect rect;
+    int i = 0;
+
+    for (fz_stext_char *ch = line->first_char; ch; ch = ch->next, ++i)
+    {
+        if (i >= start && i < (start + len))
+        {
+            rect = fz_union_rect(rect, fz_rect_from_quad(ch->quad));
+        }
+    }
+    return fz_quad_from_rect(rect);
+}

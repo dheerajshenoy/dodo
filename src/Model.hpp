@@ -37,6 +37,13 @@ public:
         fz_link_dest dest;
     };
 
+    struct SearchHit
+    {
+        int page;
+        fz_quad quad; // Coordinate of the hit in logical page space
+        int index;    // Index of the hit in the page
+    };
+
     struct EncryptInfo
     {
         QString user_password;
@@ -135,6 +142,11 @@ public:
         return false;
     }
 
+    inline float viewScale() const noexcept
+    {
+        return m_zoom * m_dpi / 72.0f;
+    }
+
     inline float pageWidthPts() const noexcept
     {
         return m_page_width_pts;
@@ -201,9 +213,14 @@ public:
     void highlightTextSelection(int pageno, const QPointF &start,
                                 const QPointF &end) noexcept;
     void invalidatePageCache(int pageno) noexcept;
+    void search(const QString &term) noexcept;
+    std::vector<Model::SearchHit> searchHelper(int pageno, const QString &term,
+                                               bool caseSensitive) noexcept;
 
 signals:
     void reloadRequested(int pageno);
+    void searchResultsReady(
+        const QHash<int, std::vector<Model::SearchHit>> &results);
 
 private:
     struct CachedLink
@@ -266,8 +283,9 @@ private:
     std::unordered_map<int, fz_stext_page *> m_stext_page_cache;
     std::unordered_map<int, PageCacheEntry> m_page_cache;
     std::mutex m_doc_mutex;
-    QFuture<void> m_render_future;
+    QFuture<PageRenderResult> m_render_future;
     pdf_write_options m_pdf_write_options;
+    int m_search_match_count{0};
 
     friend class TextHighlightAnnotationCommand; // for highlight annotation
     friend class DocumentView;

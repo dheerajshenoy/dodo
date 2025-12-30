@@ -75,3 +75,6 @@ quad_y_center(const fz_quad &q)
 {
     return (q.ul.y + q.ll.y + q.ur.y + q.lr.y) * 0.25f;
 }
+
+fz_quad
+getQuadForSubstring(fz_stext_line *line, int start, int len);

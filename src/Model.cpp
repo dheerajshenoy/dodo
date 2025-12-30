@@ -5,6 +5,7 @@
 #include "PopupAnnotation.hpp"
 #include "RectAnnotation.hpp"
 #include "commands/TextHighlightAnnotationCommand.hpp"
+#include "mupdf/fitz/util.h"
 #include "utils.hpp"
 
 #include <QtConcurrent/QtConcurrent>
@@ -727,21 +728,26 @@ Model::requestPageRender(
     const std::function<void(PageRenderResult)> &callback) noexcept
 {
     if (m_render_future.isRunning())
-    {
         m_render_future.waitForFinished();
-    }
 
-    m_render_future = QtConcurrent::run([this, job, callback]()
+    m_render_future = QtConcurrent::run([this, job]() -> PageRenderResult
+    { return renderPageWithExtrasAsync(job); });
+
+    auto watcher = new QFutureWatcher<PageRenderResult>();
+    connect(watcher, &QFutureWatcher<PageRenderResult>::finished,
+            [watcher, callback]()
     {
-        PageRenderResult result = renderPageWithExtrasAsync(job);
+        PageRenderResult result = watcher->result();
+        watcher->deleteLater();
 
+        // on main thread
         if (callback)
         {
-            QMetaObject::invokeMethod(QApplication::instance(),
-                                      [result, callback]()
-            { callback(result); }, Qt::QueuedConnection);
+            callback(result);
         }
     });
+
+    watcher->setFuture(m_render_future);
 }
 
 Model::PageRenderResult
@@ -1256,4 +1262,52 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
     }
 
     return quads;
+}
+
+// Search all pages for the given term
+void
+Model::search(const QString &term) noexcept
+{
+    QHash<int, std::vector<Model::SearchHit>> allResults;
+    for (int i = 0; i < m_page_count; ++i)
+        allResults[i] = searchHelper(i, term, false); // case insensitive
+
+    emit searchResultsReady(allResults);
+}
+
+// Search a single page for the given term
+std::vector<Model::SearchHit>
+Model::searchHelper(int pageno, const QString &term,
+                    bool caseSensitive) noexcept
+{
+    std::vector<Model::SearchHit> results;
+    if (term.isEmpty())
+        return results;
+
+    Qt::CaseSensitivity cs
+        = caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+
+    fz_try(m_ctx)
+    {
+        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+
+        fz_quad hits[512];
+        int hit_count = fz_search_page(m_ctx, page, term.toUtf8().constData(),
+                                       nullptr, hits, 512);
+
+        for (int i = 0; i < hit_count; ++i)
+        {
+            results.push_back({pageno,
+                               hits[i], // already correct
+                               m_search_match_count++});
+        }
+
+        fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Search failed:" << fz_caught_message(m_ctx);
+    }
+
+    return results;
 }
