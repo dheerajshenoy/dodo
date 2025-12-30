@@ -87,8 +87,14 @@ DocumentView::initConnections() noexcept
     connect(m_scroll_page_update_timer, &QTimer::timeout, this,
             &DocumentView::renderVisiblePages);
 
-    connect(this, &DocumentView::currentPageChanged, this,
+    connect(m_vscroll, &QScrollBar::valueChanged, this,
+            &DocumentView::updateCurrentPage);
+
+    connect(m_scroll_page_update_timer, &QTimer::timeout, this,
             &DocumentView::renderVisiblePages);
+
+    // connect(this, &DocumentView::currentPageChanged, this,
+    //         &DocumentView::renderVisiblePages);
 
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this,
             &DocumentView::ClearTextSelection);
@@ -1146,31 +1152,21 @@ DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
     menu->show();
 }
 
-int
-DocumentView::currentPage() const noexcept
-{
-    if (m_page_stride <= 0)
-        return 0;
-
-    const QPointF sceneCenter
-        = m_gview->mapToScene(m_gview->viewport()->rect().center());
-
-    int page = static_cast<int>(std::floor(sceneCenter.y() / m_page_stride));
-
-    page = std::clamp(page, 0, m_model->numPages() - 1);
-    return page;
-}
-
 void
 DocumentView::updateCurrentPage() noexcept
 {
-    const int page = currentPage();
+    const int scrollY = m_vscroll->value();
+    const int viewH   = m_gview->viewport()->height();
+
+    const int centerY = scrollY + viewH / 2;
+
+    int page = centerY / m_page_stride;
+    page     = std::clamp(page, 0, m_model->numPages() - 1);
+
     if (page == m_pageno)
         return;
 
     m_pageno = page;
-
-    m_scroll_page_update_timer->start();
     emit currentPageChanged(page + 1);
 }
 

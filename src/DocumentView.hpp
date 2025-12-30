@@ -277,7 +277,6 @@ private:
     // Clear all document items (pages, links, annotations)
     void clearDocumentItems() noexcept;
     void updateCurrentPage() noexcept;
-    int currentPage() const noexcept;
     void zoomHelper() noexcept;
     void cachePageStride() noexcept;
     void updateSceneRect() noexcept;
