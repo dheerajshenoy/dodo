@@ -11,6 +11,9 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
     setResizeAnchor(QGraphicsView::AnchorViewCenter);
     setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
     setAcceptDrops(false);
+    setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
+    setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing);
+    setOptimizationFlag(QGraphicsView::DontSavePainterState);
 }
 
 void

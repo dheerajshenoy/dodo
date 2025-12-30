@@ -873,8 +873,10 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             if (link.type == BrowseLinkItem::LinkType::XYZ)
             {
                 item->setGotoPageNo(link.target_page);
-                item->setXYZ(
-                    BrowseLinkItem::Location{link.x, link.y, link.zoom});
+                // Set x, y to 0 if nan
+                item->setXYZ(BrowseLinkItem::Location{
+                    std::isnan(link.x) ? 0 : link.x,
+                    std::isnan(link.y) ? 0 : link.y, link.zoom});
             }
 
             if (item)

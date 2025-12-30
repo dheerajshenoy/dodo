@@ -81,8 +81,8 @@ DocumentView::initConnections() noexcept
     connect(m_hq_render_timer, &QTimer::timeout, this,
             &DocumentView::renderVisiblePages);
 
-    connect(m_vscroll, &QScrollBar::valueChanged, this,
-            [this](int) { updateCurrentPage(); });
+    connect(m_vscroll, &QScrollBar::valueChanged, m_scroll_page_update_timer,
+            static_cast<void (QTimer::*)()>(&QTimer::start));
 
     connect(m_scroll_page_update_timer, &QTimer::timeout, this,
             &DocumentView::renderVisiblePages);
@@ -340,7 +340,7 @@ DocumentView::GotoLocation(int pageno, float x, float y) noexcept
     if (m_model->numPages() == 0)
         return;
 
-    pageno = std::clamp(pageno, 0, m_model->numPages() - 1);
+    qDebug() << "GotoLocation: Page" << pageno << "X:" << x << "Y:" << y;
 
     if (!m_page_items_hash.contains(pageno))
     {
