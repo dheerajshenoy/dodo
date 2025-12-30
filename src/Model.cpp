@@ -689,7 +689,12 @@ Model::requestPageRender(
     const RenderJob &job,
     const std::function<void(PageRenderResult)> &callback) noexcept
 {
-    QFuture<void> _ = QtConcurrent::run([this, job, callback]()
+    if (m_render_future.isRunning())
+    {
+        m_render_future.waitForFinished();
+    }
+
+    m_render_future = QtConcurrent::run([this, job, callback]()
     {
         PageRenderResult result = renderPageWithExtrasAsync(job);
 
@@ -706,8 +711,14 @@ Model::PageRenderResult
 Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 {
     PageRenderResult result;
+    fz_context *ctx{nullptr};
 
-    fz_context *ctx = fz_clone_context(m_ctx);
+    {
+        // MuPDF context cloning must be thread-safe
+        static std::mutex clone_lock;
+        std::lock_guard<std::mutex> lock(clone_lock);
+        ctx = fz_clone_context(m_ctx);
+    }
 
     if (!ctx)
         return result;
