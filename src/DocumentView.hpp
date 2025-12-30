@@ -222,6 +222,7 @@ signals:
 
 public slots:
     void handleTextSelection(const QPointF &start, const QPointF &end) noexcept;
+    void handleClickSelection(int clickType, const QPointF &scenePos) noexcept;
 
 protected:
     void handleContextMenuRequested(const QPointF &scenePos) noexcept;
@@ -266,7 +267,6 @@ private:
     void removeUnusedLinks(const std::set<int> &visibleSet) noexcept;
     void removeUnusedPageItems(const std::set<int> &visibleSet) noexcept;
     void removeUnusedAnnotations(const std::set<int> &visibleSet) noexcept;
-
     void reloadPage(int pageno) noexcept;
     // Clear all document items (pages, links, annotations)
     void clearDocumentItems() noexcept;
@@ -289,6 +289,8 @@ private:
         double zoom{1.0};
     };
     PendingJump m_pending_jump;
+
+    void updateSelectionPath(int pageno, std::vector<QPolygonF> quads) noexcept;
 
     QPointF m_selection_start, m_selection_end;
     QGraphicsPathItem *m_selection_path_item{nullptr};

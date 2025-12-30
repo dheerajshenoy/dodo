@@ -14,6 +14,8 @@
 #include <qguiapplication.h>
 #include <qicon.h>
 #include <qnamespace.h>
+#include <qpoint.h>
+#include <qpolygon.h>
 #include <qstyle.h>
 #include <qtextcursor.h>
 #include <strings.h>
@@ -28,6 +30,11 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_gview  = new GraphicsView(this);
     m_gscene = new GraphicsScene(m_gview);
     m_gview->setScene(m_gscene);
+
+    m_selection_path_item = m_gscene->addPath(QPainterPath());
+    m_selection_path_item->setBrush(QBrush(m_config.ui.colors["selection"]));
+    m_selection_path_item->setPen(Qt::NoPen);
+    m_selection_path_item->setZValue(ZVALUE_TEXT_SELECTION);
 
     m_hq_render_timer = new QTimer(this);
     m_hq_render_timer->setInterval(200);
@@ -81,8 +88,54 @@ DocumentView::initConnections() noexcept
     connect(m_gview, &GraphicsView::textSelectionRequested, this,
             &DocumentView::handleTextSelection);
 
+    connect(m_gview, &GraphicsView::doubleClickRequested, this,
+            [this](const QPointF &pos) { handleClickSelection(2, pos); });
+
+    connect(m_gview, &GraphicsView::tripleClickRequested, this,
+            [this](const QPointF &pos) { handleClickSelection(3, pos); });
+
+    connect(m_gview, &GraphicsView::quadrupleClickRequested, this,
+            [this](const QPointF &pos) { handleClickSelection(4, pos); });
+
     connect(m_gview, &GraphicsView::contextMenuRequested, this,
             &DocumentView::handleContextMenuRequested);
+}
+
+void
+DocumentView::handleClickSelection(int clickType,
+                                   const QPointF &scenePos) noexcept
+{
+    int pageIndex                = -1;
+    GraphicsPixmapItem *pageItem = nullptr;
+
+    if (!pageAtScenePos(scenePos, pageIndex, pageItem))
+        return;
+
+    // Map to page-local coordinates
+    const QPointF pagePos = pageItem->mapFromScene(scenePos);
+    fz_point pdfPos       = m_model->toPDFSpace(pageIndex, pagePos);
+
+    std::vector<QPolygonF> quads;
+
+    switch (clickType)
+    {
+        case 2: // double click → select word
+            quads = m_model->selectWordAt(pageIndex, pdfPos);
+            break;
+
+        case 3: // triple click → select line
+            quads = m_model->selectLineAt(pageIndex, pdfPos);
+            break;
+
+        case 4: // quadruple click → select entire page
+            quads = m_model->selectParagraphAt(pageIndex, pdfPos);
+            break;
+
+        default:
+            return;
+    }
+
+    updateSelectionPath(pageIndex, quads);
 }
 
 // Handle text selection from GraphicsView
@@ -103,17 +156,6 @@ DocumentView::handleTextSelection(const QPointF &start,
     const std::vector<QPolygonF> quads
         = m_model->computeTextSelectionQuad(pageIndex, pageStart, pageEnd);
 
-    // 2. Initialize the path item if it doesn't exist
-    if (!m_selection_path_item)
-    {
-        m_selection_path_item = m_gscene->addPath(QPainterPath());
-        m_selection_path_item->setBrush(
-            QBrush(m_config.ui.colors["selection"]));
-        m_selection_path_item->setPen(Qt::NoPen);
-        m_selection_path_item->setZValue(ZVALUE_TEXT_SELECTION);
-    }
-
-    m_selection_path_item->setData(0, pageIndex);
     // 3. Batch all polygons into ONE path
     QPainterPath path;
     for (const QPolygonF &poly : quads)
@@ -123,13 +165,33 @@ DocumentView::handleTextSelection(const QPointF &start,
         path.addPolygon(pageItem->mapToScene(poly));
     }
 
-    // Store selection points
-    m_selection_start = start;
-    m_selection_end   = end;
+    updateSelectionPath(pageIndex, quads);
+}
 
-    // 4. Update the existing item instead of deleting/recreating
+void
+DocumentView::updateSelectionPath(int pageno,
+                                  std::vector<QPolygonF> quads) noexcept
+{
+    // 3. Batch all polygons into ONE path
+    QPainterPath path;
+    GraphicsPixmapItem *pageItem = m_page_items_hash.value(pageno, nullptr);
+    if (!pageItem)
+        return;
+
+    for (const QPolygonF &poly : quads)
+    {
+        // We map to scene here, or better yet, make pageItem the parent
+        // of m_selection_path_item once to avoid mapping every frame.
+        path.addPolygon(pageItem->mapToScene(poly));
+    }
+
     m_selection_path_item->setPath(path);
     m_selection_path_item->show();
+    m_selection_path_item->setData(0, pageno); // store page number
+
+    const auto selectionRange = m_model->getTextSelectionRange();
+    m_selection_start = QPointF(selectionRange.first.x, selectionRange.first.y);
+    m_selection_end = QPointF(selectionRange.second.x, selectionRange.second.y);
 }
 
 // Rotate page clockwise
@@ -331,6 +393,15 @@ DocumentView::zoomHelper() noexcept
     }
 
     m_model->setZoom(m_current_zoom);
+
+    QList<int> trackedPages = m_page_links_hash.keys();
+    for (int pageno : trackedPages)
+    {
+        m_model->invalidatePageCache(pageno);
+        clearLinksForPage(pageno);
+        // requestPageRender(pageno);
+    }
+
     m_hq_render_timer->start();
 }
 

@@ -187,13 +187,19 @@ public:
     fz_point toPDFSpace(int pageno, QPointF pt) const noexcept;
 
     void cachePageDimension() noexcept;
+
     std::vector<QPolygonF>
     computeTextSelectionQuad(int pageno, const QPointF &start,
                              const QPointF &end) noexcept;
+    std::vector<QPolygonF> selectWordAt(int pageno, fz_point pt) noexcept;
+    std::vector<QPolygonF> selectLineAt(int pageno, fz_point pt) noexcept;
+    std::vector<QPolygonF> selectParagraphAt(int pageno, fz_point pt) noexcept;
+
     std::string getSelectedText(int pageno, const fz_point &a,
                                 const fz_point &b) noexcept;
     void highlightTextSelection(int pageno, const QPointF &start,
                                 const QPointF &end) noexcept;
+    void invalidatePageCache(int pageno) noexcept;
 
 signals:
     void reloadRequested(int pageno);
