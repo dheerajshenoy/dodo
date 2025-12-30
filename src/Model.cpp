@@ -14,35 +14,6 @@
 #include <qbytearrayview.h>
 #include <qstyle.h>
 
-Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
-{
-    m_undo_stack         = new QUndoStack();
-    m_highlight_color[0] = 1.0f; // Red
-    m_highlight_color[1] = 1.0f; // Green
-    m_highlight_color[2] = 0.0f; // Blue
-    m_highlight_color[3] = 0.5f; // Alpha (translucent yellow)
-
-    m_annot_rect_color[0] = 1.0f;
-    m_annot_rect_color[1] = 0.0f;
-    m_annot_rect_color[2] = 0.0f;
-    m_annot_rect_color[3] = 0.5f;
-}
-
-Model::~Model() noexcept
-{
-    fz_drop_outline(m_ctx, m_outline);
-    pdf_drop_document(m_ctx, m_pdf_doc);
-    fz_drop_document(m_ctx, m_doc);
-    fz_drop_context(m_ctx);
-
-    for (auto &[_, entry] : m_page_cache)
-        fz_drop_display_list(m_ctx, entry.display_list);
-
-    m_page_cache.clear();
-    m_stext_page_cache.clear();
-    fz_drop_document(m_ctx, m_doc);
-}
-
 /**
  * @brief Clean up image data when the last copy of the QImage is destoryed.
  */
@@ -73,16 +44,45 @@ mupdf_unlock_mutex(void *user, int lock)
     m[lock].unlock();
 }
 
-void
-Model::open() noexcept
+Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
 {
     // initialize each mutex
     m_fz_locks.user   = mupdf_mutexes.data();
     m_fz_locks.lock   = mupdf_lock_mutex;
     m_fz_locks.unlock = mupdf_unlock_mutex;
-
     m_ctx = fz_new_context(nullptr, &m_fz_locks, FZ_STORE_UNLIMITED);
     fz_register_document_handlers(m_ctx);
+
+    m_undo_stack         = new QUndoStack();
+    m_highlight_color[0] = 1.0f; // Red
+    m_highlight_color[1] = 1.0f; // Green
+    m_highlight_color[2] = 0.0f; // Blue
+    m_highlight_color[3] = 0.5f; // Alpha (translucent yellow)
+
+    m_annot_rect_color[0] = 1.0f;
+    m_annot_rect_color[1] = 0.0f;
+    m_annot_rect_color[2] = 0.0f;
+    m_annot_rect_color[3] = 0.5f;
+}
+
+Model::~Model() noexcept
+{
+    fz_drop_outline(m_ctx, m_outline);
+    pdf_drop_document(m_ctx, m_pdf_doc);
+    fz_drop_document(m_ctx, m_doc);
+    fz_drop_context(m_ctx);
+
+    for (auto &[_, entry] : m_page_cache)
+        fz_drop_display_list(m_ctx, entry.display_list);
+
+    m_page_cache.clear();
+    m_stext_page_cache.clear();
+    fz_drop_document(m_ctx, m_doc);
+}
+
+void
+Model::open() noexcept
+{
     m_colorspace = fz_device_rgb(m_ctx);
     if (!m_ctx)
     {
@@ -318,12 +318,12 @@ Model::reloadDocument() noexcept
     fz_drop_outline(m_ctx, m_outline);
     pdf_drop_document(m_ctx, m_pdf_doc);
     fz_drop_document(m_ctx, m_doc);
-    fz_drop_context(m_ctx);
-    m_pdf_doc    = nullptr;
-    m_doc        = nullptr;
-    m_outline    = nullptr;
-    m_success    = false;
-    m_ctx        = nullptr;
+    // fz_drop_context(m_ctx);
+    m_pdf_doc = nullptr;
+    m_doc     = nullptr;
+    m_outline = nullptr;
+    m_success = false;
+    // m_ctx        = nullptr;
     m_page_count = 0;
 
     // Reopen the document
@@ -342,13 +342,19 @@ Model::SaveChanges() noexcept
 
     fz_try(m_ctx)
     {
+        // 1. MUST clear text pages; they hold page references!
+        clear_fz_stext_page_cache();
+
+        // pdf_write_options opts = pdf_default_write_options;
+        // opts.do_incremental    = 1; // Faster and more reliable for
+        // annotations
+
         if (m_pdf_doc)
         {
-            pdf_save_document(m_ctx, m_pdf_doc, path.c_str(),
-                              nullptr); // TODO: options for saving
+            pdf_save_document(m_ctx, m_pdf_doc, path.c_str(), nullptr);
 
             // TODO: reload safely
-            reloadDocument();
+            // reloadDocument();
             // emit documentSaved();
         }
         else
@@ -607,7 +613,7 @@ Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
     fz_rect bounds = fz_bound_page(m_ctx, page);
 
     // 2. Re-create the same transform used in rendering
-    const float scale   = m_zoom * m_dpr * m_dpi;
+    const float scale   = m_zoom * m_dpi * m_dpr;
     fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
 
     // 3. Get the bbox (to find the origin shift)
@@ -948,6 +954,12 @@ Model::addHighlightAnnotation(int pageno, const std::vector<fz_quad> &quads,
         pdf_drop_annot(m_ctx, annot);
         // Drop the page we loaded (not the Model's internal page)
         pdf_drop_page(m_ctx, page);
+
+        if (m_page_cache.contains(pageno))
+        {
+            m_page_cache.erase(pageno);
+            buildPageCache(pageno);
+        }
     }
     fz_catch(m_ctx)
     {

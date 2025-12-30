@@ -513,8 +513,21 @@ DocumentView::TextHighlightCurrentSelection() noexcept
     if (m_selection_start.isNull())
         return;
 
-    m_model->highlightTextSelection(selectionPage(), m_selection_start,
-                                    m_selection_end);
+    // 1. Get the page index where the selection happened
+    int pageIndex = m_selection_path_item->data(0).toInt();
+
+    // 2. Find the corresponding PageItem in the scene
+    GraphicsPixmapItem *pageItem = m_page_items_hash.value(pageIndex, nullptr);
+    if (!pageItem)
+        return;
+
+    // 🔴 CRITICAL FIX: Map scene coordinates to page-local coordinates
+    // This ensures the points passed to highlightTextSelection match
+    // the points used in handleTextSelection.
+    QPointF localStart = pageItem->mapFromScene(m_selection_start);
+    QPointF localEnd   = pageItem->mapFromScene(m_selection_end);
+
+    m_model->highlightTextSelection(pageIndex, localStart, localEnd);
 
     setModified(true);
     // Render page where selection exists
