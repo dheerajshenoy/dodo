@@ -748,6 +748,13 @@ Model::requestPageRender(
     });
 
     watcher->setFuture(m_render_future);
+
+    // Running without QFutureWatcher (no main-thread callback)
+    // m_render_future = QtConcurrent::run([this, job, callback]() -> void
+    // {
+    //     PageRenderResult result = renderPageWithExtrasAsync(job);
+    //     callback(result);
+    // });
 }
 
 Model::PageRenderResult

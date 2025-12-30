@@ -262,7 +262,7 @@ private:
     void requestPageRender(int pageno) noexcept;
     void clearLinksForPage(int pageno) noexcept;
     void clearAnnotationsForPage(int pageno) noexcept;
-    void clearSearchHitsForPage(int pageno) noexcept;
+    void clearSearchItemsForPage(int pageno) noexcept;
     void clearVisibleAnnotations() noexcept;
     void clearVisiblePages() noexcept;
     void clearVisibleLinks() noexcept;
@@ -300,6 +300,7 @@ private:
     PendingJump m_pending_jump;
 
     void updateSelectionPath(int pageno, std::vector<QPolygonF> quads) noexcept;
+    int m_search_index{-1};
     QHash<int, std::vector<Model::SearchHit>> m_search_hits;
     QHash<int, QGraphicsPathItem *> m_search_items;
 

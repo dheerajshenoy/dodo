@@ -76,6 +76,11 @@ public:
         return m_zoom;
     }
 
+    inline int searchMatchesCount() const noexcept
+    {
+        return m_search_match_count;
+    }
+
     inline void setZoom(float zoom) noexcept
     {
         m_zoom = zoom;

@@ -467,8 +467,7 @@ DocumentView::zoomHelper() noexcept
         m_model->invalidatePageCache(pageno);
         clearLinksForPage(pageno);
         clearAnnotationsForPage(pageno);
-        clearSearchHitsForPage(pageno);
-        // requestPageRender(pageno);
+        clearSearchItemsForPage(pageno);
     }
 
     m_hq_render_timer->start();
@@ -504,7 +503,7 @@ DocumentView::ZoomReset() noexcept
 void
 DocumentView::NextHit() noexcept
 {
-    // TODO: Implement next hit functionality
+    m_search_index++;
 }
 
 // Navigate to the previous search hit
@@ -802,23 +801,18 @@ DocumentView::clearLinksForPage(int pageno) noexcept
 }
 
 void
-DocumentView::clearSearchHitsForPage(int pageno) noexcept
+DocumentView::clearSearchItemsForPage(int pageno) noexcept
 {
-    if (!m_search_hits.contains(pageno))
+    if (!m_search_items.contains(pageno))
         return;
 
-    auto searchHits
-        = m_search_hits.take(pageno); // removes SearchHits from hash
-    for (const auto &_ : searchHits)
+    QGraphicsPathItem *item
+        = m_search_items.take(pageno); // removes item from hash
+    if (item)
     {
-        QGraphicsPathItem *item
-            = m_search_items.take(pageno); // removes item from hash
-        if (item)
-        {
-            if (item->scene() == m_gscene)
-                m_gscene->removeItem(item);
-            delete item;
-        }
+        if (item->scene() == m_gscene)
+            m_gscene->removeItem(item);
+        delete item;
     }
 }
 
@@ -850,9 +844,7 @@ DocumentView::renderVisiblePages() noexcept
 {
     std::set<int> visiblePages = getVisiblePages();
 
-    // Remove unused page items
     removeUnusedPageItems(visiblePages);
-
     ClearTextSelection();
 
     for (int pageno : visiblePages)
@@ -908,9 +900,9 @@ DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
             }
 
             // Remove search hits for this page
-            // auto searchHits
-            //     = m_search_hits.take(pageno); // removes SearchHits from hash
-            // clearSearchHitsForPage(pageno);
+            auto searchHits
+                = m_search_hits.take(pageno); // removes SearchHits from hash
+            clearSearchItemsForPage(pageno);
         }
     }
 }
@@ -953,7 +945,7 @@ void
 DocumentView::resizeEvent(QResizeEvent *event)
 {
     clearDocumentItems();
-    // renderVisiblePages();
+    renderVisiblePages();
 
     if (m_auto_resize)
     {
@@ -1196,6 +1188,7 @@ DocumentView::clearDocumentItems() noexcept
 
     m_page_items_hash.clear();
     ClearTextSelection();
+    m_search_items.clear();
     m_page_links_hash.clear();
     m_page_annotations_hash.clear();
 }
@@ -1457,28 +1450,50 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
     const auto hits = m_search_hits.value(pageno); // Local copy
 
     // 2. Validate the Page Item still exists in the scene
-    auto *pageItem = m_page_items_hash.value(pageno, nullptr);
+    GraphicsPixmapItem *pageItem = m_page_items_hash.value(pageno, nullptr);
     if (!pageItem || !pageItem->scene())
         return;
 
-    auto *item = ensureSearchItemForPage(pageno);
+    QGraphicsPathItem *item = ensureSearchItemForPage(pageno);
     if (!item)
         return;
 
-    QPainterPath path;
+    QPainterPath allPath;
+    QPainterPath currentPath;
 
-    for (const Model::SearchHit &hit : hits)
+    for (int i = 0; i < hits.size(); ++i)
     {
+        const Model::SearchHit hit = hits[i];
         QPolygonF poly;
-        poly << QPointF(hit.quad.ul.x, hit.quad.ul.y)
-             << QPointF(hit.quad.ur.x, hit.quad.ur.y)
-             << QPointF(hit.quad.lr.x, hit.quad.lr.y)
-             << QPointF(hit.quad.ll.x, hit.quad.ll.y);
+        poly << QPointF(hit.quad.ul.x * m_current_zoom,
+                        hit.quad.ul.y * m_current_zoom)
+             << QPointF(hit.quad.ur.x * m_current_zoom,
+                        hit.quad.ur.y * m_current_zoom)
+             << QPointF(hit.quad.lr.x * m_current_zoom,
+                        hit.quad.lr.y * m_current_zoom)
+             << QPointF(hit.quad.ll.x * m_current_zoom,
+                        hit.quad.ll.y * m_current_zoom);
 
-        path.addPolygon(pageItem->mapToScene(poly));
+        if (i == m_search_index)
+            currentPath.addPolygon(pageItem->mapToScene(poly));
+        else
+            allPath.addPolygon(pageItem->mapToScene(poly));
     }
 
-    item->setPath(path);
+    // Set colors
+    item->setPath(allPath);
+    item->setBrush(m_config.ui.colors["search_match"]);
+
+    // Highlight current separately
+    if (!currentPath.isEmpty())
+    {
+        auto *currentItem = m_gscene->addPath(currentPath);
+        currentItem->setBrush(
+            m_config.ui.colors["search_index"]); // current hit color
+        currentItem->setPen(Qt::NoPen);
+        currentItem->setZValue(ZVALUE_SEARCH_HITS + 1); // above normal hits
+        // You can store and delete this later when selection changes
+    }
 }
 
 QGraphicsPathItem *
