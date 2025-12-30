@@ -12,7 +12,7 @@ Whether you're reading academic papers, technical manuals, or everyday documents
 streamlined interface and robust functionality with minimal resource usage.
 
 > [!NOTE]
-> Latest dodo version is v0.4.2
+> Latest dodo version is v0.5.0
 
 ## Table of Contents
 
@@ -89,7 +89,7 @@ streamlined interface and robust functionality with minimal resource usage.
 >
 > 1. `main (default)` - This branch has all the stable features. (recommended)
 > 2. `AI` - This branch has AI based features like summarization, text extraction etc. (not as updated as main branch)
->
+> 3. `single_view` - This branch has single page view mode only. (not as updated as main branch)
 
 > [!NOTE]
 > The `install.sh` script installs latest version of MuPDF library required for dodo

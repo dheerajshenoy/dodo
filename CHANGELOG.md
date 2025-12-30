@@ -1,5 +1,15 @@
 # dodo
 
+## 0.5.0
+
+### Features
+- Switch from single view rendering to tile based rendering like sane PDF viewers
+- Huge rewrite of the rendering system
+    - Asynchronous rendering
+    - Improved performance
+
+### Bug Fixes
+
 ## 0.4.3
 - Zoom render debounce to improve performance
 - Make fit window, fit width, fit height work properly with the new debounce logic

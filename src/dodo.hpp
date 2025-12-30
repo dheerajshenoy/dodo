@@ -30,7 +30,7 @@
 #include <QTabWidget>
 #include <qstackedlayout.h>
 
-#define __DODO_VERSION "v0.4.2"
+#define __DODO_VERSION "v0.5.0"
 
 class dodo : public QMainWindow
 {
