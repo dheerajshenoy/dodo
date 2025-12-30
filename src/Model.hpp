@@ -199,12 +199,44 @@ signals:
     void reloadRequested(int pageno);
 
 private:
+    struct CachedLink
+    {
+        fz_rect rect; // page space
+        QString uri;
+        BrowseLinkItem::LinkType type;
+
+        // optional extras
+        int target_page = -1;
+        float x = 0.0f, y = 0.0f;
+        float zoom = 0.0f;
+    };
+
+    struct CachedAnnotation
+    {
+        fz_rect rect; // page space
+        enum pdf_annot_type type;
+        QColor color;
+        QString text;
+        int index;
+        float opacity;
+    };
+
+    struct PageCacheEntry
+    {
+        fz_display_list *display_list{nullptr};
+        fz_rect bounds{};
+
+        std::vector<CachedLink> links;
+        std::vector<CachedAnnotation> annotations;
+    };
+
     QString m_filepath;
     int m_page_count{0};
     float m_dpr{1.25f}, m_dpi{96.0f}, m_zoom{1.0f}, m_rotation{0.0f},
         m_inv_dpr{1.0f};
     bool m_invert_color{false};
 
+    void buildPageCache(int pageno) noexcept;
     std::vector<int> addHighlightAnnotation(int pageno,
                                             const std::vector<fz_quad> &quads,
                                             const float color[4]) noexcept;
@@ -225,6 +257,7 @@ private:
     fz_point m_selection_start{}, m_selection_end{};
     fz_locks_context m_fz_locks;
     std::unordered_map<int, fz_stext_page *> m_stext_page_cache;
+    std::unordered_map<int, PageCacheEntry> m_page_cache;
 
     friend class TextHighlightAnnotationCommand; // for highlight annotation
     friend class DocumentView;

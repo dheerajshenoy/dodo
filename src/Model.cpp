@@ -5,6 +5,8 @@
 #include "PopupAnnotation.hpp"
 #include "RectAnnotation.hpp"
 #include "commands/TextHighlightAnnotationCommand.hpp"
+#include "mupdf/fitz/display-list.h"
+#include "mupdf/fitz/geometry.h"
 #include "utils.hpp"
 
 #include <QtConcurrent/QtConcurrent>
@@ -30,6 +32,13 @@ Model::~Model() noexcept
     fz_drop_outline(m_ctx, m_outline);
     fz_drop_document(m_ctx, m_doc);
     fz_drop_context(m_ctx);
+
+    for (auto &[_, entry] : m_page_cache)
+        fz_drop_display_list(m_ctx, entry.display_list);
+
+    m_page_cache.clear();
+    m_stext_page_cache.clear();
+    fz_drop_document(m_ctx, m_doc);
 }
 
 /**
@@ -100,6 +109,123 @@ Model::open() noexcept
     }
 
     m_undo_stack = new QUndoStack();
+
+    for (int i = 0; i < m_page_count; ++i)
+        buildPageCache(i);
+}
+
+void
+Model::buildPageCache(int pageno) noexcept
+{
+    auto it = m_page_cache.find(pageno);
+    if (it != m_page_cache.end())
+        return;
+
+    PageCacheEntry entry;
+
+    fz_context *ctx = m_ctx;
+
+    fz_page *page = fz_load_page(ctx, m_doc, pageno);
+    if (!page)
+    {
+        qDebug() << "Failed to load page";
+        return;
+    }
+
+    fz_rect bounds = fz_bound_page(ctx, page);
+
+    fz_display_list *dlist = fz_new_display_list(ctx, bounds);
+    fz_device *list_dev    = fz_new_list_device(ctx, dlist);
+
+    fz_run_page(ctx, page, list_dev, fz_identity, nullptr);
+
+    // Extract links and cache them
+    fz_link *head = fz_load_links(ctx, page);
+    for (fz_link *link = head; link; link = link->next)
+    {
+        if (!link->uri)
+            continue;
+
+        CachedLink cl;
+        cl.rect = link->rect;
+        cl.uri  = QString::fromUtf8(link->uri);
+
+        if (fz_is_external_link(ctx, link->uri))
+        {
+            cl.type = BrowseLinkItem::LinkType::External;
+        }
+        else if (cl.uri.startsWith("#page"))
+        {
+            float xp, yp;
+            fz_location loc = fz_resolve_link(ctx, m_doc, link->uri, &xp, &yp);
+            cl.type         = BrowseLinkItem::LinkType::Page;
+            cl.target_page  = loc.page;
+        }
+        else
+        {
+            fz_link_dest dest = fz_resolve_link_dest(ctx, m_doc, link->uri);
+            cl.type           = BrowseLinkItem::LinkType::XYZ;
+            cl.target_page    = dest.loc.page;
+            cl.x              = dest.x;
+            cl.y              = dest.y;
+            cl.zoom           = dest.zoom;
+        }
+
+        entry.links.push_back(std::move(cl));
+    }
+
+    fz_drop_link(ctx, head);
+
+    pdf_page *pdfPage = pdf_page_from_fz_page(ctx, page);
+    if (pdfPage)
+    {
+        int index = 0;
+        float color[3];
+
+        for (pdf_annot *annot = pdf_first_annot(ctx, pdfPage); annot;
+             annot            = pdf_next_annot(ctx, annot), ++index)
+        {
+            CachedAnnotation ca;
+            ca.rect    = pdf_bound_annot(ctx, annot);
+            ca.type    = pdf_annot_type(ctx, annot);
+            ca.index   = index;
+            ca.opacity = pdf_annot_opacity(ctx, annot);
+
+            switch (ca.type)
+            {
+                case PDF_ANNOT_TEXT:
+                    pdf_annot_color(ctx, annot, nullptr, color);
+                    ca.color = QColor::fromRgbF(color[0], color[1], color[2],
+                                                ca.opacity);
+                    ca.text  = pdf_annot_contents(ctx, annot);
+                    break;
+
+                case PDF_ANNOT_SQUARE:
+                    pdf_annot_interior_color(ctx, annot, nullptr, color);
+                    ca.color = QColor::fromRgbF(color[0], color[1], color[2],
+                                                ca.opacity);
+                    break;
+
+                case PDF_ANNOT_HIGHLIGHT:
+                    ca.color = Qt::transparent;
+                    break;
+
+                default:
+                    continue;
+            }
+
+            entry.annotations.push_back(std::move(ca));
+        }
+    }
+
+    fz_close_device(ctx, list_dev);
+    fz_drop_device(ctx, list_dev);
+    fz_drop_page(ctx, page);
+
+    entry.display_list = dlist;
+    entry.bounds       = bounds;
+
+    m_page_cache[pageno] = entry;
 }
 
 bool
@@ -559,8 +685,6 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         return result;
 
     fz_link *head{nullptr};
-    fz_page *page{nullptr};
-    fz_document *doc{nullptr};
     fz_pixmap *pix{nullptr};
     fz_device *dev{nullptr};
 
@@ -570,39 +694,27 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         fz_drop_device(ctx, dev);
         fz_drop_link(ctx, head);
         fz_drop_pixmap(ctx, pix);
-        fz_drop_page(ctx, page);
-        fz_drop_document(ctx, doc);
         fz_drop_context(ctx);
     };
 
     fz_try(ctx)
     {
-        doc = fz_open_document(ctx, job.filepath.toStdString().c_str());
-        if (!doc)
-            return result;
+        // Get cached display list
+        const PageCacheEntry &entry = m_page_cache[job.pageno];
 
-        page = fz_load_page(ctx, doc, job.pageno);
-
-        if (!page)
-            return result;
-
-        fz_rect bounds = fz_bound_page(ctx, page);
-
-        fz_matrix transform = fz_transform_page(bounds, job.zoom, job.rotation);
-        fz_rect transformed = fz_transform_rect(bounds, transform);
+        fz_matrix transform
+            = fz_transform_page(entry.bounds, job.zoom, job.rotation);
+        fz_rect transformed = fz_transform_rect(entry.bounds, transform);
         fz_irect bbox       = fz_round_rect(transformed);
 
         // --- Render page to QImage ---
         pix = fz_new_pixmap_with_bbox(ctx, job.colorspace, bbox, nullptr, 1);
-        if (!pix)
-            return result;
-
         fz_clear_pixmap_with_value(ctx, pix, 255);
-        dev = fz_new_draw_device(ctx, fz_identity, pix);
-        if (!dev)
-            return result;
 
-        fz_run_page(ctx, page, dev, transform, nullptr);
+        dev = fz_new_draw_device(ctx, fz_identity, pix);
+        fz_run_display_list(ctx, entry.display_list, dev, transform,
+                            transformed, nullptr);
+
         if (job.invert_color)
             fz_invert_pixmap_luminance(ctx, pix);
         fz_gamma_pixmap(ctx, pix, 1.0f);
@@ -648,106 +760,64 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         result.image.setDevicePixelRatio(job.dpr);
 
         // --- Extract links ---
-        head = fz_load_links(ctx, page);
-        for (fz_link *link = head; link; link = link->next)
+        for (const auto &link : entry.links)
         {
-            if (!link->uri)
+            if (link.uri.isEmpty())
                 continue;
-            fz_rect r = fz_transform_rect(link->rect, transform);
+            fz_rect r = fz_transform_rect(link.rect, transform);
             QRectF qtRect(r.x0 / job.dpr, r.y0 / job.dpr,
                           (r.x1 - r.x0) / job.dpr, (r.y1 - r.y0) / job.dpr);
 
-            BrowseLinkItem *item = nullptr;
-            const QLatin1StringView uri(link->uri);
+            BrowseLinkItem *item
+                = new BrowseLinkItem(qtRect, link.uri, link.type);
 
-            if (fz_is_external_link(ctx, link->uri))
-                item = new BrowseLinkItem(qtRect, uri,
-                                          BrowseLinkItem::LinkType::External);
-            else if (uri.toString().startsWith("#page"))
+            if (link.type == BrowseLinkItem::LinkType::Page)
             {
-                float xp, yp;
-                fz_location loc
-                    = fz_resolve_link(ctx, doc, link->uri, &xp, &yp);
-                item = new BrowseLinkItem(qtRect, uri,
-                                          BrowseLinkItem::LinkType::Page);
-                item->setGotoPageNo(loc.page);
+                item->setGotoPageNo(link.target_page);
             }
-            else
+
+            if (link.type == BrowseLinkItem::LinkType::XYZ)
             {
-                const fz_link_dest dest
-                    = fz_resolve_link_dest(ctx, doc, link->uri);
-                item = new BrowseLinkItem(qtRect, uri,
-                                          BrowseLinkItem::LinkType::XYZ);
-                item->setGotoPageNo(dest.loc.page);
-                item->setXYZ({.x = dest.x, .y = dest.y, .zoom = dest.zoom});
+                item->setGotoPageNo(link.target_page);
+                item->setXYZ(
+                    BrowseLinkItem::Location{link.x, link.y, link.zoom});
             }
 
             if (item)
                 result.links.push_back(item);
         }
 
-        // --- Extract annotations ---
-        pdf_page *pdfPage = pdf_page_from_fz_page(ctx, page);
-        if (pdfPage)
+        for (const auto &annot : entry.annotations)
         {
-            int index = 0;
-            float color[3];
-            for (pdf_annot *annot = pdf_first_annot(ctx, pdfPage); annot;
-                 annot            = pdf_next_annot(ctx, annot), ++index)
+            fz_rect r = fz_transform_rect(annot.rect, transform);
+
+            QRectF qtRect(r.x0 / job.dpr, r.y0 / job.dpr,
+                          (r.x1 - r.x0) / job.dpr, (r.y1 - r.y0) / job.dpr);
+
+            Annotation *annot_item = nullptr;
+
+            switch (annot.type)
             {
-                Annotation *annot_item = nullptr;
-
-                fz_rect bbox = pdf_bound_annot(ctx, annot);
-                bbox         = fz_transform_rect(bbox, transform);
-                QRectF qrect(bbox.x0 * m_inv_dpr, bbox.y0 * m_inv_dpr,
-                             (bbox.x1 - bbox.x0) * m_inv_dpr,
-                             (bbox.y1 - bbox.y0) * m_inv_dpr);
-                const enum pdf_annot_type type = pdf_annot_type(ctx, annot);
-                const float alpha              = pdf_annot_opacity(ctx, annot);
-                switch (type)
-                {
-                    case PDF_ANNOT_TEXT:
-                    {
-                        pdf_annot_color(ctx, annot, &n, color);
-                        const QString text  = pdf_annot_contents(ctx, annot);
-                        const QColor qcolor = QColor::fromRgbF(
-                            color[0], color[1], color[2], alpha);
-                        PopupAnnotation *popup
-                            = new PopupAnnotation(qrect, text, index, qcolor);
-                        annot_item = popup;
-                    }
+                case PDF_ANNOT_TEXT:
+                    annot_item = new PopupAnnotation(qtRect, annot.text,
+                                                     annot.index, annot.color);
                     break;
 
-                    case PDF_ANNOT_SQUARE:
-                    {
-                        pdf_annot_interior_color(ctx, annot, &n, color);
-                        const QColor qcolor = QColor::fromRgbF(
-                            color[0], color[1], color[2], alpha);
-                        RectAnnotation *rect_annot
-                            = new RectAnnotation(qrect, index, qcolor);
-                        annot_item = rect_annot;
-                    }
+                case PDF_ANNOT_SQUARE:
+                    annot_item
+                        = new RectAnnotation(qtRect, annot.index, annot.color);
                     break;
 
-                    case PDF_ANNOT_HIGHLIGHT:
-                    {
-                        // pdf_annot_color(ctx, annot, &n, color);
-                        // const QColor qcolor = QColor::fromRgbF(
-                        //     color[0], color[1], color[2], alpha);
-                        HighlightAnnotation *highlight
-                            = new HighlightAnnotation(qrect, index,
-                                                      Qt::transparent);
-                        annot_item = highlight;
-                    }
+                case PDF_ANNOT_HIGHLIGHT:
+                    annot_item = new HighlightAnnotation(qtRect, annot.index,
+                                                         annot.color);
                     break;
 
-                    default:
-                        break;
-                }
-
-                if (annot_item)
-                    result.annotations.push_back(annot_item);
+                default:
+                    continue;
             }
+
+            result.annotations.push_back(annot_item);
         }
     }
     fz_always(ctx)
