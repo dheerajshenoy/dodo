@@ -105,7 +105,7 @@ public:
         return m_model->DPR();
     }
 
-    inline bool authenticate(const QString &password) noexcept
+    inline bool authenticate(const QString &password) const noexcept
     {
         return m_model->authenticate(password);
     }
@@ -159,6 +159,10 @@ public:
     {
         m_model->followLink(info);
     }
+
+    void open() noexcept;
+    bool EncryptDocument() noexcept;
+    bool DecryptDocument() noexcept;
 
     void createAndAddPageItem(int pageno, const QPixmap &pixmap) noexcept;
     void renderVisiblePages() noexcept;

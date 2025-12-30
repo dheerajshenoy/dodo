@@ -5,9 +5,6 @@
 #include "PopupAnnotation.hpp"
 #include "RectAnnotation.hpp"
 #include "commands/TextHighlightAnnotationCommand.hpp"
-#include "mupdf/fitz/display-list.h"
-#include "mupdf/fitz/geometry.h"
-#include "mupdf/fitz/structured-text.h"
 #include "utils.hpp"
 
 #include <QtConcurrent/QtConcurrent>
@@ -53,17 +50,12 @@ Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
     m_fz_locks.unlock = mupdf_unlock_mutex;
     m_ctx = fz_new_context(nullptr, &m_fz_locks, FZ_STORE_UNLIMITED);
     fz_register_document_handlers(m_ctx);
-
-    m_undo_stack         = new QUndoStack();
-    m_highlight_color[0] = 1.0f; // Red
-    m_highlight_color[1] = 1.0f; // Green
-    m_highlight_color[2] = 0.0f; // Blue
-    m_highlight_color[3] = 0.5f; // Alpha (translucent yellow)
-
-    m_annot_rect_color[0] = 1.0f;
-    m_annot_rect_color[1] = 0.0f;
-    m_annot_rect_color[2] = 0.0f;
-    m_annot_rect_color[3] = 0.5f;
+    m_doc = fz_open_document(m_ctx, m_filepath.toStdString().c_str());
+    if (!m_doc)
+    {
+        m_success = false;
+        return;
+    }
 }
 
 Model::~Model() noexcept
@@ -92,16 +84,12 @@ Model::open() noexcept
     }
     fz_try(m_ctx)
     {
-        m_doc = fz_open_document(m_ctx, m_filepath.toStdString().c_str());
-        if (!m_doc)
-        {
-            m_success = false;
-            return;
-        }
         m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
         m_page_count = fz_count_pages(m_ctx, m_doc);
         m_success    = true;
         cachePageDimension();
+        for (int pageno = 0; pageno < m_page_count; ++pageno)
+            buildPageCache(pageno);
     }
     fz_catch(m_ctx)
     {
@@ -111,8 +99,18 @@ Model::open() noexcept
         return;
     }
 
-    for (int i = 0; i < m_page_count; ++i)
-        buildPageCache(i);
+    m_undo_stack         = new QUndoStack();
+    m_highlight_color[0] = 1.0f; // Red
+    m_highlight_color[1] = 1.0f; // Green
+    m_highlight_color[2] = 0.0f; // Blue
+    m_highlight_color[3] = 0.5f; // Alpha (translucent yellow)
+
+    m_annot_rect_color[0] = 1.0f;
+    m_annot_rect_color[1] = 0.0f;
+    m_annot_rect_color[2] = 0.0f;
+    m_annot_rect_color[3] = 0.5f;
+
+    m_pdf_write_options = pdf_default_write_options;
 }
 
 void
@@ -232,9 +230,9 @@ Model::buildPageCache(int pageno) noexcept
 bool
 Model::passwordRequired() const noexcept
 {
-    if (!m_doc || !m_pdf_doc)
+    if (!m_doc)
         return false;
-    return pdf_needs_password(m_ctx, m_pdf_doc);
+    return fz_needs_password(m_ctx, m_doc);
 }
 
 void
@@ -276,10 +274,20 @@ Model::setAnnotRectColor(const QColor &color) noexcept
 bool
 Model::decrypt() noexcept
 {
-    if (!m_doc || !m_pdf_doc)
-        return false;
+    // Use MuPDF to decrypt the PDF
+    fz_try(m_ctx)
+    {
+        pdf_write_options opts = m_pdf_write_options;
+        opts.do_encrypt        = PDF_ENCRYPT_NONE;
 
-    // TODO
+        pdf_save_document(m_ctx, m_pdf_doc, m_filepath.toStdString().c_str(),
+                          &opts);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Cannot decrypt file: " << fz_caught_message(m_ctx);
+        return false;
+    }
     return true;
 }
 
@@ -289,17 +297,45 @@ Model::encrypt(const EncryptInfo &info) noexcept
     if (!m_doc || !m_pdf_doc)
         return false;
 
-    // TODO
+    fz_try(m_ctx)
+    {
+
+        pdf_write_options opts = m_pdf_write_options;
+        opts.do_encrypt        = PDF_ENCRYPT_AES_256;
+
+        QByteArray userPwdBytes = info.user_password.toUtf8();
+        strncpy(opts.upwd_utf8, userPwdBytes.constData(),
+                sizeof(opts.upwd_utf8) - 1);
+
+        // Set owner password (required for full access/editing)
+        // QByteArray ownerPwdBytes = password.toUtf8();
+        strncpy(opts.opwd_utf8, userPwdBytes.constData(),
+                sizeof(opts.opwd_utf8) - 1);
+
+        opts.permissions = PDF_PERM_PRINT | PDF_PERM_COPY | PDF_PERM_ANNOTATE
+                           | PDF_PERM_FORM | PDF_PERM_MODIFY | PDF_PERM_ASSEMBLE
+                           | PDF_PERM_PRINT_HQ;
+
+        m_pdf_write_options = opts;
+        SaveChanges();
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Encryption failed:" << fz_caught_message(m_ctx);
+        return false;
+    }
+
     return true;
 }
 
 bool
 Model::authenticate(const QString &password) noexcept
 {
-    if (!m_doc || !m_pdf_doc)
+    if (!m_doc)
         return false;
-    return pdf_authenticate_password(m_ctx, m_pdf_doc,
-                                     password.toUtf8().constData());
+
+    return fz_authenticate_password(m_ctx, m_doc,
+                                    password.toUtf8().constData());
 }
 
 bool
@@ -352,7 +388,8 @@ Model::SaveChanges() noexcept
 
         if (m_pdf_doc)
         {
-            pdf_save_document(m_ctx, m_pdf_doc, path.c_str(), nullptr);
+            pdf_save_document(m_ctx, m_pdf_doc, path.c_str(),
+                              &m_pdf_write_options);
 
             // TODO: reload safely
             // reloadDocument();

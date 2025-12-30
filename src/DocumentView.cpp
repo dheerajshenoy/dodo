@@ -8,6 +8,8 @@
 #include <QClipboard>
 #include <QFileDialog>
 #include <QFutureWatcher>
+#include <QInputDialog>
+#include <QLineEdit>
 #include <QMessageBox>
 #include <QVBoxLayout>
 #include <algorithm>
@@ -25,7 +27,6 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     : QWidget(parent), m_config(config)
 {
     m_model = new Model(filepath);
-    m_model->open();
 
     m_gview  = new GraphicsView(this);
     m_gscene = new GraphicsScene(m_gview);
@@ -58,7 +59,12 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(m_gview);
+}
 
+void
+DocumentView::open() noexcept
+{
+    m_model->open();
     cachePageStride();
     renderVisiblePages();
 }
@@ -329,9 +335,6 @@ DocumentView::GotoLocation(int pageno, float x, float y) noexcept
         requestPageRender(pageno);
         return;
     }
-
-    qDebug() << "GotoLocation: pageno =" << pageno << ", x =" << x
-             << ", y =" << y;
 
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
 
@@ -1381,4 +1384,41 @@ DocumentView::reloadPage(int pageno) noexcept
 {
     removePageItem(pageno);
     requestPageRender(pageno);
+}
+
+bool
+DocumentView::EncryptDocument() noexcept
+{
+    Model::EncryptInfo encryptInfo;
+    bool ok;
+    QString password = QInputDialog::getText(
+        this, "Encrypt Document", "Enter password:", QLineEdit::Password,
+        QString(), &ok);
+    if (!ok || password.isEmpty())
+        return false;
+    encryptInfo.user_password = password;
+    return m_model->encrypt(encryptInfo);
+}
+
+bool
+DocumentView::DecryptDocument() noexcept
+{
+    if (m_model->passwordRequired())
+    {
+        bool ok;
+        QString password;
+
+        while (true)
+        {
+            password = QInputDialog::getText(
+                this, "Decrypt Document",
+                "Enter password:", QLineEdit::Password, QString(), &ok);
+            if (!ok)
+                return false;
+
+            if (authenticate(password))
+                return m_model->decrypt();
+        }
+    }
+    return true;
 }

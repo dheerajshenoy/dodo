@@ -267,6 +267,7 @@ private:
     std::unordered_map<int, PageCacheEntry> m_page_cache;
     std::mutex m_doc_mutex;
     QFuture<void> m_render_future;
+    pdf_write_options m_pdf_write_options;
 
     friend class TextHighlightAnnotationCommand; // for highlight annotation
     friend class DocumentView;

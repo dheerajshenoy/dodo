@@ -1291,6 +1291,39 @@ dodo::OpenFile(const QString &filePath) noexcept
     }
 
     DocumentView *docwidget = new DocumentView(fp, m_config, m_tab_widget);
+    if (docwidget->passwordRequired())
+    {
+        QString password;
+        do
+        {
+            bool ok;
+            password = QInputDialog::getText(
+                this, "Password Required",
+                QString("Enter the password to open %1").arg(fp),
+                QLineEdit::Password, "", &ok);
+            if (ok && !password.isEmpty())
+            {
+                if (docwidget->authenticate(password))
+                    break;
+                else
+                {
+                    QMessageBox::warning(
+                        this, "Incorrect Password",
+                        "The password you entered is incorrect. Please try "
+                        "again.");
+                }
+            }
+            else
+            {
+                docwidget->deleteLater();
+                delete docwidget;
+                return false;
+            }
+        } while (true);
+    }
+
+    docwidget->open();
+
     docwidget->setAutoReload(m_config.behavior.auto_reload);
 
     if (!docwidget->fileOpenedSuccessfully())
@@ -2575,18 +2608,7 @@ dodo::EncryptDocument() noexcept
 {
     if (m_doc)
     {
-        Model::EncryptInfo encryptInfo;
-        bool ok;
-        QString password = QInputDialog::getText(
-            this, "Encrypt Document", "Enter password:", QLineEdit::Password,
-            QString(), &ok);
-        if (!ok || password.isEmpty())
-            return;
-        encryptInfo.user_password = password;
-        if (m_doc->model()->encrypt(encryptInfo))
-            m_message_bar->showMessage("Document encrypted successfully");
-        else
-            m_message_bar->showMessage("Failed to encrypt document");
+        m_doc->EncryptDocument();
     }
 }
 
@@ -2594,40 +2616,11 @@ void
 dodo::DecryptDocument() noexcept
 {
     if (m_doc)
-    {
-        if (m_doc->model()->passwordRequired())
-        {
-            bool ok;
-            QString pwd = QInputDialog::getText(
-                this, "Decrypt Document",
-                "Enter password:", QLineEdit::Password, QString(), &ok);
-            if (!ok || pwd.isEmpty())
-                return;
-            if (m_doc->authenticate(pwd))
-            {
-                // Password correct, proceed to decryption
-                if (m_doc->model()->decrypt())
-                    m_message_bar->showMessage(
-                        "Document decrypted successfully");
-                else
-                    m_message_bar->showMessage("Failed to decrypt document");
-            }
-            else
-            {
-                QMessageBox::critical(this, "Password",
-                                      "Password is incorrect");
-                return;
-            }
-        }
-        else
-        {
-            m_message_bar->showMessage("Document is not encrypted");
-        }
-    }
+        m_doc->DecryptDocument();
 }
 
-// Update selection mode actions (QAction) in QMenu based on current selection
-// mode
+// Update selection mode actions (QAction) in QMenu based on current
+// selection mode
 void
 dodo::updateSelectionModeActions() noexcept
 {
