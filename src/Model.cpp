@@ -4,7 +4,7 @@
 #include "HighlightAnnotation.hpp"
 #include "PopupAnnotation.hpp"
 #include "RectAnnotation.hpp"
-#include "mupdf/fitz/context.h"
+#include "commands/TextHighlightAnnotationCommand.hpp"
 #include "utils.hpp"
 
 #include <QtConcurrent/QtConcurrent>
@@ -98,6 +98,8 @@ Model::open() noexcept
         m_success = false;
         return;
     }
+
+    m_undo_stack = new QUndoStack();
 }
 
 bool
@@ -446,8 +448,46 @@ Model::properties() noexcept
     return props;
 }
 
+fz_point
+Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
+{
+    // 1. Get the page bounds
+    fz_page *page  = fz_load_page(m_ctx, m_doc, pageno);
+    fz_rect bounds = fz_bound_page(m_ctx, page);
+
+    // 2. Re-create the same transform used in rendering
+    const float scale   = m_zoom * m_dpr * m_dpi;
+    fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
+
+    // 3. Get the bbox (to find the origin shift)
+    fz_rect transformed = fz_transform_rect(bounds, transform);
+    fz_irect bbox       = fz_round_rect(transformed);
+
+    // 4. Reverse Step 6: Adjust for Qt's Device Pixel Ratio
+    // Map from logical Qt coordinates back to physical pixel coordinates
+    float physicalX = pixelPos.x() * m_dpr;
+    float physicalY = pixelPos.y() * m_dpr;
+
+    // 5. Reverse Step 5: ADD the bbox origin
+    // Move from the pixmap-local (0,0) back to the transformed coordinate space
+    fz_point p;
+    p.x = physicalX + bbox.x0;
+    p.y = physicalY + bbox.y0;
+
+    // 6. Reverse Step 2: Invert the transformation matrix
+    // This takes the point from transformed (scaled/rotated) space back to PDF
+    // points
+    fz_matrix inv_transform = fz_invert_matrix(transform);
+    p                       = fz_transform_point(p, inv_transform);
+
+    // Clean up
+    fz_drop_page(m_ctx, page);
+
+    return p;
+}
+
 QPointF
-Model::mapPdfToPixmap(int pageno, float pdfX, float pdfY) noexcept
+Model::toPixelSpace(int pageno, fz_point p) const noexcept
 {
     // 1. Get the page bounds (identical to your render function)
     fz_page *page  = fz_load_page(m_ctx, m_doc, pageno);
@@ -462,9 +502,7 @@ Model::mapPdfToPixmap(int pageno, float pdfX, float pdfY) noexcept
     fz_rect transformed = fz_transform_rect(bounds, transform);
     fz_irect bbox       = fz_round_rect(transformed);
 
-    // 4. Transform the point
-    fz_point p = {pdfX, pdfY};
-    p          = fz_transform_point(p, transform);
+    p = fz_transform_point(p, transform);
 
     // 5. SUBTRACT the bbox origin
     // Pixmap (0,0) is actually at bbox.x0, bbox.y0 in the transformed space
@@ -539,7 +577,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
     fz_try(ctx)
     {
-        doc = fz_open_document(ctx, job.filepath.toUtf8().constData());
+        doc = fz_open_document(ctx, job.filepath.toStdString().c_str());
         if (!doc)
             return result;
 
@@ -694,9 +732,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
                     case PDF_ANNOT_HIGHLIGHT:
                     {
                         // pdf_annot_color(ctx, annot, &n, color);
-                        // const QColor qcolor
-                        //     = QColor::fromRgbF(color[0], color[1], color[2],
-                        //     alpha);
+                        // const QColor qcolor = QColor::fromRgbF(
+                        //     color[0], color[1], color[2], alpha);
                         HighlightAnnotation *highlight
                             = new HighlightAnnotation(qrect, index,
                                                       Qt::transparent);
@@ -723,4 +760,137 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     }
 
     return result;
+}
+
+void
+Model::highlightTextSelection(int pageno, const QPointF &start,
+                              const QPointF &end) noexcept
+{
+    fz_page *page{nullptr};
+
+    constexpr int MAX_HITS = 1000;
+    fz_quad hits[MAX_HITS];
+    int count = 0;
+
+    fz_try(m_ctx)
+    {
+        page = fz_load_page(m_ctx, m_doc, pageno);
+
+        fz_stext_page *text_page;
+
+        if (m_stext_page_cache.contains(pageno))
+        {
+            text_page = m_stext_page_cache[pageno];
+        }
+        else
+        {
+            text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+            m_stext_page_cache[pageno] = text_page;
+        }
+
+        fz_point a, b;
+        a     = toPDFSpace(pageno, start);
+        b     = toPDFSpace(pageno, end);
+        count = fz_highlight_selection(m_ctx, text_page, a, b, hits, MAX_HITS);
+    }
+    fz_always(m_ctx)
+    {
+        fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Failed to copy selection text";
+    }
+
+    // Collect quads for the command
+    std::vector<fz_quad> quads;
+    quads.reserve(count);
+    for (int i = 0; i < count; ++i)
+        quads.push_back(hits[i]);
+
+    // // Create and push the command onto the undo stack for undo/redo support
+    m_undo_stack->push(new TextHighlightAnnotationCommand(this, pageno, quads,
+                                                          m_highlight_color));
+}
+
+std::vector<int>
+Model::addHighlightAnnotation(int pageno, const std::vector<fz_quad> &quads,
+                              const float color[4]) noexcept
+{
+    std::vector<int> objNums;
+
+    fz_try(m_ctx)
+    {
+        // Load the specific page for this annotation
+        pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        // Create a separate highlight annotation for each quad
+        // This looks better visually for multi-line selections
+        pdf_annot *annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_HIGHLIGHT);
+        if (!annot)
+            continue;
+
+        pdf_set_annot_quad_points(m_ctx, annot, quads.size(), &quads[0]);
+        pdf_set_annot_color(m_ctx, annot, 3, color);
+        pdf_set_annot_opacity(m_ctx, annot, color[3]);
+        pdf_update_annot(m_ctx, annot);
+        pdf_update_page(m_ctx, page);
+
+        // Store the object number for later undo
+        pdf_obj *obj = pdf_annot_obj(m_ctx, annot);
+        objNums.push_back(pdf_to_num(m_ctx, obj));
+
+        pdf_drop_annot(m_ctx, annot);
+
+        // Drop the page we loaded (not the Model's internal page)
+        fz_drop_page(m_ctx, (fz_page *)page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Redo failed:" << fz_caught_message(m_ctx);
+    }
+
+    return objNums;
+}
+
+void
+Model::removeHighlightAnnotation(int pageno,
+                                 const std::vector<int> &objNums) noexcept
+{
+    fz_try(m_ctx)
+    {
+        // Load the specific page for this annotation
+        pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        // Delete all annotations that were created by this command
+        // We need to delete them one at a time, re-finding each by objNum
+        // since the list changes after each deletion
+        for (int objNum : objNums)
+        {
+            pdf_annot *annot = pdf_first_annot(m_ctx, page);
+            while (annot)
+            {
+                pdf_obj *obj = pdf_annot_obj(m_ctx, annot);
+                if (pdf_to_num(m_ctx, obj) == objNum)
+                {
+                    pdf_delete_annot(m_ctx, page, annot);
+                    pdf_update_page(m_ctx, page);
+                    break;
+                }
+                annot = pdf_next_annot(m_ctx, annot);
+            }
+        }
+
+        // Drop the page we loaded (not the Model's internal page)
+        fz_drop_page(m_ctx, (fz_page *)page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Undo failed:" << fz_caught_message(m_ctx);
+    }
 }

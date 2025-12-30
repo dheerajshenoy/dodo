@@ -61,6 +61,8 @@ void
 DocumentView::initConnections() noexcept
 {
 
+    connect(m_model, &Model::reloadRequested, this, &DocumentView::reloadPage);
+
     connect(m_hq_render_timer, &QTimer::timeout, this,
             &DocumentView::renderVisiblePages);
 
@@ -120,6 +122,10 @@ DocumentView::handleTextSelection(const QPointF &start,
         // of m_selection_path_item once to avoid mapping every frame.
         path.addPolygon(pageItem->mapToScene(poly));
     }
+
+    // Store selection points
+    m_selection_start = start;
+    m_selection_end   = end;
 
     // 4. Update the existing item instead of deleting/recreating
     m_selection_path_item->setPath(path);
@@ -237,7 +243,7 @@ DocumentView::GotoXYZ(int pageno, float x, float y, double zoom) noexcept
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
 
     // Use the model to get the local pixel offset on that page
-    const QPointF localPos = m_model->mapPdfToPixmap(pageno, x, y);
+    const QPointF localPos = m_model->toPixelSpace(pageno, fz_point{x, y});
 
     // Map the local pixmap coordinate to the global scene coordinate
     const QPointF scenePos = pageItem->mapToScene(localPos);
@@ -504,6 +510,14 @@ DocumentView::ToggleAnnotPopup() noexcept
 void
 DocumentView::TextHighlightCurrentSelection() noexcept
 {
+    if (m_selection_start.isNull())
+        return;
+
+    m_model->highlightTextSelection(selectionPage(), m_selection_start,
+                                    m_selection_end);
+
+    setModified(true);
+    // Render page where selection exists
 }
 
 // Clear keyboard hints overlay
@@ -516,6 +530,9 @@ DocumentView::ClearKBHintsOverlay() noexcept
 void
 DocumentView::ClearTextSelection() noexcept
 {
+    if (m_selection_start.isNull())
+        return;
+
     if (m_selection_path_item)
     {
         m_selection_path_item->setPath(QPainterPath());
@@ -529,10 +546,10 @@ DocumentView::ClearTextSelection() noexcept
 void
 DocumentView::YankSelection() noexcept
 {
-    const int pageIndex = m_selection_path_item->data(0).toInt();
-    if (pageIndex < 0)
+    if (m_selection_start.isNull())
         return;
 
+    const int pageIndex   = selectionPage();
     QClipboard *clipboard = QGuiApplication::clipboard();
     const auto range      = m_model->getTextSelectionRange();
     const std::string text
@@ -658,17 +675,18 @@ DocumentView::renderVisiblePages() noexcept
 {
     std::set<int> visiblePages = getVisiblePages();
 
-    qDebug() << "Visible pages:" << visiblePages;
-
     // Remove unused page items
     removeUnusedPageItems(visiblePages);
     removeUnusedLinks(visiblePages);
     removeUnusedAnnotations(visiblePages);
+    ClearTextSelection();
 
     for (int pageno : visiblePages)
         requestPageRender(pageno);
 
     updateSceneRect();
+
+    // Update text selection position after re-render
 }
 
 void
@@ -1186,8 +1204,8 @@ DocumentView::renderAnnotations(
                            // later
         connect(annot, &Annotation::annotDeleteRequested, [&](int index)
         {
-            // m_model->annotDeleteRequested(index);
-            // setDirty(true);
+            m_model->removeHighlightAnnotation(pageno, {index});
+            setModified(true);
         });
 
         connect(annot, &Annotation::annotColorChangeRequested,
@@ -1203,4 +1221,42 @@ DocumentView::renderAnnotations(
             // }
         });
     }
+}
+
+void
+DocumentView::setModified(bool modified) noexcept
+{
+    if (m_is_modified == modified)
+        return;
+
+    m_is_modified = modified;
+
+    QString title     = m_config.ui.window_title_format;
+    QString panelName = m_model->filePath();
+
+    if (modified)
+    {
+        if (!title.endsWith("*"))
+            title.append("*");
+        if (!panelName.endsWith("*"))
+            panelName.append("*");
+    }
+    else
+    {
+        if (title.endsWith("*"))
+            title.chop(1);
+        if (panelName.endsWith("*"))
+            panelName.chop(1);
+    }
+
+    title = title.arg(fileName());
+    emit panelNameChanged(panelName);
+    this->setWindowTitle(title);
+}
+
+void
+DocumentView::reloadPage(int pageno) noexcept
+{
+    removePageItem(pageno);
+    requestPageRender(pageno);
 }

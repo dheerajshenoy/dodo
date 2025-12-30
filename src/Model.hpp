@@ -19,9 +19,13 @@ extern "C"
 #include <mupdf/pdf.h>
 }
 
-class Model
-{
+// Forward declaration
+class TextHighlightAnnotationCommand;
+class DocumentView;
 
+class Model : public QObject
+{
+    Q_OBJECT
 public:
     Model(const QString &filepath) noexcept;
     ~Model() noexcept;
@@ -179,13 +183,20 @@ public:
     bool authenticate(const QString &password) noexcept;
     bool SaveChanges() noexcept;
     bool SaveAs(const QString &newFilePath) noexcept;
-    QPointF mapPdfToPixmap(int pageno, float pdfX, float pdfY) noexcept;
+    QPointF toPixelSpace(int pageno, fz_point pt) const noexcept;
+    fz_point toPDFSpace(int pageno, QPointF pt) const noexcept;
+
     void cachePageDimension() noexcept;
     std::vector<QPolygonF>
     computeTextSelectionQuad(int pageno, const QPointF &start,
                              const QPointF &end) noexcept;
     std::string getSelectedText(int pageno, const fz_point &a,
                                 const fz_point &b) noexcept;
+    void highlightTextSelection(int pageno, const QPointF &start,
+                                const QPointF &end) noexcept;
+
+signals:
+    void reloadRequested(int pageno);
 
 private:
     QString m_filepath;
@@ -193,6 +204,12 @@ private:
     float m_dpr{1.25f}, m_dpi{96.0f}, m_zoom{1.0f}, m_rotation{0.0f},
         m_inv_dpr{1.0f};
     bool m_invert_color{false};
+
+    std::vector<int> addHighlightAnnotation(int pageno,
+                                            const std::vector<fz_quad> &quads,
+                                            const float color[4]) noexcept;
+    void removeHighlightAnnotation(int pageno,
+                                   const std::vector<int> &objNums) noexcept;
 
     fz_context *m_ctx{nullptr};
     fz_document *m_doc{nullptr};
@@ -208,4 +225,7 @@ private:
     fz_point m_selection_start{}, m_selection_end{};
     fz_locks_context m_fz_locks;
     std::unordered_map<int, fz_stext_page *> m_stext_page_cache;
+
+    friend class TextHighlightAnnotationCommand; // for highlight annotation
+    friend class DocumentView;
 };

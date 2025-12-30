@@ -227,6 +227,13 @@ protected:
     void handleContextMenuRequested(const QPointF &scenePos) noexcept;
 
 private:
+    inline int selectionPage() const noexcept
+    {
+        if (!m_selection_path_item)
+            return -1;
+        return m_selection_path_item->data(0).toInt();
+    }
+
     Model *m_model{nullptr};
     GraphicsView *m_gview{nullptr};
     GraphicsScene *m_gscene{nullptr};
@@ -241,18 +248,15 @@ private:
     QHash<int, std::vector<BrowseLinkItem *>> m_page_links_hash;
     QHash<int, std::vector<Annotation *>> m_page_annotations_hash;
 
+    void setModified(bool state) noexcept;
     bool pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
                         GraphicsPixmapItem *&outPageItem) const noexcept;
-
     void requestPageRender(int pageno) noexcept;
-
     void clearLinksForPage(int pageno) noexcept;
     void clearAnnotationsForPage(int pageno) noexcept;
-
     void clearVisibleAnnotations() noexcept;
     void clearVisiblePages() noexcept;
     void clearVisibleLinks() noexcept;
-
     void renderPageFromImage(int pageno, const QImage &image) noexcept;
     void renderLinks(int pageno,
                      const std::vector<BrowseLinkItem *> &links) noexcept;
@@ -263,6 +267,7 @@ private:
     void removeUnusedPageItems(const std::set<int> &visibleSet) noexcept;
     void removeUnusedAnnotations(const std::set<int> &visibleSet) noexcept;
 
+    void reloadPage(int pageno) noexcept;
     // Clear all document items (pages, links, annotations)
     void clearDocumentItems() noexcept;
     void updateCurrentPage() noexcept;
@@ -284,7 +289,10 @@ private:
         double zoom{1.0};
     };
     PendingJump m_pending_jump;
+
+    QPointF m_selection_start, m_selection_end;
     QGraphicsPathItem *m_selection_path_item{nullptr};
     QTimer *m_hq_render_timer{nullptr};
     std::vector<Location> m_loc_history;
+    bool m_is_modified{false};
 };
