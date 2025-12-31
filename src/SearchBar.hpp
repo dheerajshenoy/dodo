@@ -15,6 +15,12 @@ public:
     void setSearchCount(int count) noexcept;
     void setSearchIndex(int index) noexcept;
 
+    inline void focusSearchInput() noexcept
+    {
+        m_searchInput->setFocus();
+        m_searchInput->selectAll();
+    }
+
 private:
     QLabel *m_label;
     QLabel *m_searchSeparator{new QLabel("of")};

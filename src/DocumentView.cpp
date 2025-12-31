@@ -937,8 +937,6 @@ DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
             }
 
             // Remove search hits for this page
-            auto searchHits
-                = m_search_hits.take(pageno); // removes SearchHits from hash
             clearSearchItemsForPage(pageno);
         }
     }
@@ -1446,7 +1444,6 @@ DocumentView::DecryptDocument() noexcept
 void
 DocumentView::renderSearchHitsForPage(int pageno) noexcept
 {
-
     if (!m_search_hits.contains(pageno))
         return;
 

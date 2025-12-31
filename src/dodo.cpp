@@ -2724,7 +2724,14 @@ dodo::ToggleSearchBar() noexcept
 {
     if (!m_doc)
         return;
-    m_search_bar->setVisible(!m_search_bar->isVisible());
+    if (m_search_bar->isVisible())
+    {
+        m_search_bar->focusSearchInput();
+    }
+    else
+    {
+        m_search_bar->setVisible(!m_search_bar->isVisible());
+    }
 }
 
 void
