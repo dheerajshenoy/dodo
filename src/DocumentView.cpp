@@ -119,7 +119,7 @@ DocumentView::initConnections() noexcept
 
 void
 DocumentView::handleSearchResults(
-    const QHash<int, std::vector<Model::SearchHit>> &results) noexcept
+    const QMap<int, std::vector<Model::SearchHit>> &results) noexcept
 {
     // Clear previous search hits
     clearSearchHits();
@@ -446,6 +446,7 @@ DocumentView::Search(const QString &term) noexcept
     if (term.isEmpty())
     {
         clearSearchHits();
+        m_current_search_hit_item->setPath(QPainterPath());
         return;
     }
 
@@ -538,7 +539,6 @@ void
 DocumentView::PrevHit() noexcept
 {
     GotoHit(m_search_index - 1);
-    qDebug() << "PrevHit to index" << m_search_index;
 }
 
 // Navigate to a specific search hit by index
@@ -1181,7 +1181,8 @@ DocumentView::clearDocumentItems() noexcept
 {
     for (QGraphicsItem *item : m_gscene->items())
     {
-        if (item != m_jump_marker && item != m_selection_path_item)
+        if (item != m_jump_marker && item != m_selection_path_item
+            && item != m_current_search_hit_item)
         {
             m_gscene->removeItem(item);
             delete item;

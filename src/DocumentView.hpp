@@ -230,7 +230,7 @@ public slots:
     void handleTextSelection(const QPointF &start, const QPointF &end) noexcept;
     void handleClickSelection(int clickType, const QPointF &scenePos) noexcept;
     void handleSearchResults(
-        const QHash<int, std::vector<Model::SearchHit>> &results) noexcept;
+        const QMap<int, std::vector<Model::SearchHit>> &results) noexcept;
 
 protected:
     void handleContextMenuRequested(const QPointF &scenePos) noexcept;
@@ -308,7 +308,7 @@ private:
     PendingJump m_pending_jump;
 
     int m_search_index{-1};
-    QHash<int, std::vector<Model::SearchHit>> m_search_hits;
+    QMap<int, std::vector<Model::SearchHit>> m_search_hits;
     std::vector<HitRef> m_search_hit_flat_refs;
     QHash<int, QGraphicsPathItem *> m_search_items;
 

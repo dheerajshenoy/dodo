@@ -1277,7 +1277,7 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
 void
 Model::search(const QString &term) noexcept
 {
-    QHash<int, std::vector<Model::SearchHit>> allResults;
+    QMap<int, std::vector<Model::SearchHit>> allResults;
     for (int i = 0; i < m_page_count; ++i)
         allResults[i] = searchHelper(i, term, false); // case insensitive
 

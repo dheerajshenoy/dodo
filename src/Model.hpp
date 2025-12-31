@@ -224,8 +224,8 @@ public:
 
 signals:
     void reloadRequested(int pageno);
-    void searchResultsReady(
-        const QHash<int, std::vector<Model::SearchHit>> &results);
+    void
+    searchResultsReady(const QMap<int, std::vector<Model::SearchHit>> &results);
 
 private:
     struct CachedLink
