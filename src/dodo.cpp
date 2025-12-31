@@ -13,17 +13,14 @@
 #include <QDesktopServices>
 #include <QFile>
 #include <QFileDialog>
+#include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QJsonParseError>
 #include <QMimeData>
 #include <QSplitter>
-#include <QStackedLayout>
 #include <QStyleHints>
 #include <QWindow>
-#include <qguiapplication.h>
-#include <qjsonarray.h>
-#include <qnamespace.h>
-#include <qstackedlayout.h>
 #include <variant>
 
 // Constructs the `dodo` class
@@ -2434,8 +2431,14 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
         ACTION_NO_ARGS("toggle_focus_mode", ToggleFocusMode),
         ACTION_NO_ARGS("search", ToggleSearchBar),
+        ACTION_NO_ARGS("save_session", SaveSession),
+        ACTION_NO_ARGS("save_as_session", SaveAsSession),
+        ACTION_NO_ARGS("load_session", LoadSession),
+        ACTION_NO_ARGS("show_startup", showStartupWidget),
+        ACTION_NO_ARGS("first_tab", FirstTab),
+        ACTION_NO_ARGS("last_tab", LastTab),
+        ACTION_NO_ARGS("reselect_last_selection", ReselectLastTextSelection),
 
-        // Tab navigation shortcuts
         {QStringLiteral("tab1"), [this](const QStringList &) { GotoTab(1); }},
         {QStringLiteral("tab2"), [this](const QStringList &) { GotoTab(2); }},
         {QStringLiteral("tab3"), [this](const QStringList &) { GotoTab(3); }},
@@ -2775,4 +2778,11 @@ dodo::modeColorChangeRequested(const GraphicsView::Mode mode) noexcept
 
         m_panel->setHighlightColor(color);
     }
+}
+
+void
+dodo::ReselectLastTextSelection() noexcept
+{
+    if (m_doc)
+        m_doc->ReselectLastTextSelection();
 }

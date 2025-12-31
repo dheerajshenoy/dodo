@@ -25,10 +25,10 @@
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QStackedLayout>
 #include <QStackedWidget>
 #include <QStandardPaths>
 #include <QTabWidget>
-#include <qstackedlayout.h>
 
 #define __DODO_VERSION "v0.5.0"
 
@@ -143,6 +143,7 @@ private:
     void CloseTab(int tabno = -1) noexcept;
     void NextTab() noexcept;
     void PrevTab() noexcept;
+    void ReselectLastTextSelection() noexcept;
     void setFocusMode(bool state) noexcept;
 
     // private helpers

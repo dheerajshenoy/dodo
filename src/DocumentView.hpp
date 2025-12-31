@@ -9,13 +9,14 @@
 #include "Model.hpp"
 
 #include <QFileInfo>
+#include <QGraphicsItem>
 #include <QHash>
 #include <QScrollBar>
 #include <QString>
 #include <QTimer>
 #include <QWidget>
 #include <qevent.h>
-#include <qgraphicsitem.h>
+#include <set>
 
 #define ZVALUE_PAGE 0
 #define ZVALUE_ANNOTATION 800
@@ -164,6 +165,7 @@ public:
     void open() noexcept;
     bool EncryptDocument() noexcept;
     bool DecryptDocument() noexcept;
+    void ReselectLastTextSelection() noexcept;
 
     void createAndAddPageItem(int pageno, const QPixmap &pixmap) noexcept;
     void renderVisiblePages() noexcept;
@@ -207,7 +209,6 @@ public:
     void NextSelectionMode() noexcept;
     void NextFitMode() noexcept;
     void resizeEvent(QResizeEvent *event) override;
-    void recenterPages() noexcept;
 
 signals:
     void pageChanged(int pageno);
@@ -235,6 +236,18 @@ protected:
     void handleContextMenuRequested(const QPointF &scenePos) noexcept;
 
 private:
+    struct PendingJump
+    {
+        int pageno{-1};
+        float x{0.0f}, y{0.0f};
+    };
+
+    struct HitRef
+    {
+        int page;
+        int indexInPage;
+    };
+
     inline int selectionPage() const noexcept
     {
         if (!m_selection_path_item)
@@ -271,12 +284,12 @@ private:
                      const std::vector<BrowseLinkItem *> &links) noexcept;
     void renderAnnotations(int pageno,
                            const std::vector<Annotation *> &annots) noexcept;
-
+    void buildFlatSearchHitIndex() noexcept;
     void removeUnusedPageItems(const std::set<int> &visiblePages) noexcept;
     void reloadPage(int pageno) noexcept;
-    // Clear all document items (pages, links, annotations)
     void clearDocumentItems() noexcept;
     void updateCurrentPage() noexcept;
+    void updateCurrentHitHighlight() noexcept;
     void zoomHelper() noexcept;
     void cachePageStride() noexcept;
     void updateSceneRect() noexcept;
@@ -286,24 +299,21 @@ private:
     void renderSearchHitsForPage(int pageno) noexcept;
     void clearSearchHits() noexcept;
     QGraphicsPathItem *ensureSearchItemForPage(int pageno) noexcept;
+    QGraphicsPathItem *m_current_search_hit_item{nullptr};
+    void updateSelectionPath(int pageno, std::vector<QPolygonF> quads) noexcept;
 
     float m_old_y{0.0f};
     JumpMarker *m_jump_marker{nullptr};
-    QTimer *m_scroll_page_update_timer{
-        nullptr}; // to throttle page change updates
-    struct PendingJump
-    {
-        int pageno{-1};
-        float x{0.0f}, y{0.0f};
-    };
+    QTimer *m_scroll_page_update_timer{nullptr};
     PendingJump m_pending_jump;
 
-    void updateSelectionPath(int pageno, std::vector<QPolygonF> quads) noexcept;
     int m_search_index{-1};
     QHash<int, std::vector<Model::SearchHit>> m_search_hits;
+    std::vector<HitRef> m_search_hit_flat_refs;
     QHash<int, QGraphicsPathItem *> m_search_items;
 
     QPointF m_selection_start, m_selection_end;
+    int m_last_selection_page{-1};
     QGraphicsPathItem *m_selection_path_item{nullptr};
     QTimer *m_hq_render_timer{nullptr};
     std::vector<Location> m_loc_history;

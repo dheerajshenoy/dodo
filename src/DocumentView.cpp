@@ -36,6 +36,11 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_selection_path_item->setPen(Qt::NoPen);
     m_selection_path_item->setZValue(ZVALUE_TEXT_SELECTION);
 
+    m_current_search_hit_item = m_gscene->addPath(QPainterPath());
+    m_current_search_hit_item->setBrush(m_config.ui.colors["search_index"]);
+    m_current_search_hit_item->setPen(Qt::NoPen);
+    m_current_search_hit_item->setZValue(ZVALUE_SEARCH_HITS + 1);
+
     m_hq_render_timer = new QTimer(this);
     m_hq_render_timer->setInterval(200);
     m_hq_render_timer->setSingleShot(true);
@@ -93,9 +98,6 @@ DocumentView::initConnections() noexcept
     connect(m_scroll_page_update_timer, &QTimer::timeout, this,
             &DocumentView::renderVisiblePages);
 
-    // connect(this, &DocumentView::currentPageChanged, this,
-    //         &DocumentView::renderVisiblePages);
-
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this,
             &DocumentView::ClearTextSelection);
 
@@ -123,7 +125,25 @@ DocumentView::handleSearchResults(
     clearSearchHits();
 
     m_search_hits = results;
+    buildFlatSearchHitIndex();
     renderVisiblePages();
+}
+
+void
+DocumentView::buildFlatSearchHitIndex() noexcept
+{
+    m_search_hit_flat_refs.clear();
+    m_search_hit_flat_refs.reserve(m_model->searchMatchesCount());
+
+    for (auto it = m_search_hits.constBegin(); it != m_search_hits.constEnd();
+         ++it)
+    {
+        const int page   = it.key();
+        const auto &hits = it.value();
+
+        for (int i = 0; i < hits.size(); ++i)
+            m_search_hit_flat_refs.push_back({page, i});
+    }
 }
 
 void
@@ -212,6 +232,7 @@ DocumentView::updateSelectionPath(int pageno,
 
     m_selection_path_item->setPath(path);
     m_selection_path_item->show();
+    m_last_selection_page = pageno;
     m_selection_path_item->setData(0, pageno); // store page number
 
     const auto selectionRange = m_model->getTextSelectionRange();
@@ -408,7 +429,6 @@ DocumentView::GotoPrevPage() noexcept
 void
 DocumentView::clearSearchHits() noexcept
 {
-
     for (auto *item : m_search_items)
     {
         if (item && item->scene() == m_gscene)
@@ -416,6 +436,7 @@ DocumentView::clearSearchHits() noexcept
     }
     m_search_items.clear();
     m_search_hits.clear();
+    m_search_hit_flat_refs.clear();
 }
 
 // Perform search for the given term
@@ -509,21 +530,31 @@ DocumentView::ZoomReset() noexcept
 void
 DocumentView::NextHit() noexcept
 {
-    m_search_index++;
+    GotoHit(m_search_index + 1);
 }
 
 // Navigate to the previous search hit
 void
 DocumentView::PrevHit() noexcept
 {
-    // TODO: Implement previous hit functionality
+    GotoHit(m_search_index - 1);
+    qDebug() << "PrevHit to index" << m_search_index;
 }
 
 // Navigate to a specific search hit by index
 void
 DocumentView::GotoHit(int index) noexcept
 {
-    // TODO: Implement goto hit functionality
+    if (index < 0 || index >= m_search_hit_flat_refs.size())
+        return;
+    const HitRef ref = m_search_hit_flat_refs[index];
+
+    m_search_index = index;
+    m_pageno       = ref.page;
+
+    GotoPage(ref.page);
+    updateCurrentHitHighlight();
+    emit currentPageChanged(ref.page + 1);
 }
 
 // Scroll left by a fixed amount
@@ -851,7 +882,7 @@ DocumentView::renderVisiblePages() noexcept
     std::set<int> visiblePages = getVisiblePages();
 
     removeUnusedPageItems(visiblePages);
-    ClearTextSelection();
+    // ClearTextSelection();
 
     for (int pageno : visiblePages)
         requestPageRender(pageno);
@@ -960,63 +991,6 @@ DocumentView::resizeEvent(QResizeEvent *event)
     }
 
     QWidget::resizeEvent(event);
-}
-
-// Recenter pages in the view
-void
-DocumentView::recenterPages() noexcept
-{
-    for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
-         ++it)
-    {
-        GraphicsPixmapItem *item = it.value();
-        double pageWidthLogical
-            = item->pixmap().width() / item->pixmap().devicePixelRatio();
-        double xOffset
-            = (m_gview->sceneRect().width() - pageWidthLogical) / 2.0;
-        item->setPos(xOffset, it.key() * m_page_stride);
-    }
-
-    // Center links
-    for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
-         ++it)
-    {
-        const int pageno = it.key();
-        if (!m_page_items_hash.contains(pageno))
-            continue;
-
-        GraphicsPixmapItem *pageItem        = m_page_items_hash[pageno];
-        std::vector<BrowseLinkItem *> links = m_page_links_hash[pageno];
-
-        for (auto *link : links)
-        {
-            // Map link rect to scene coordinates
-            QRectF sceneRect
-                = pageItem->mapToScene(link->rect()).boundingRect();
-            link->setRect(sceneRect);
-        }
-
-        // TODO: Center text selections
-        // for (auto *selection : m_text_selection_items)
-        // {
-        //     if (selection->data(1).toInt() != pageno)
-        //         continue;
-
-        //     QRectF sceneRect =
-        //     pageItem->mapToScene(selection->boundingRect())
-        //                            .boundingRect();
-        //     selection->setPolygon(sceneRect);
-        // }
-
-        // TODO: Center annotations
-        for (auto *annot : m_page_annotations_hash[pageno])
-        {
-            // Map link rect to scene coordinates
-            QRectF sceneRect
-                = pageItem->mapToScene(annot->boundingRect()).boundingRect();
-            annot->setPos(sceneRect.topLeft());
-        }
-    }
 }
 
 // Check if a scene position is within any page item
@@ -1150,6 +1124,38 @@ DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
     }
 
     menu->show();
+}
+
+void
+DocumentView::updateCurrentHitHighlight() noexcept
+{
+    if (m_search_index < 0 || m_search_index >= m_search_hit_flat_refs.size())
+    {
+        m_current_search_hit_item->setPath(QPainterPath());
+        return;
+    }
+
+    const HitRef ref = m_search_hit_flat_refs[m_search_index];
+    const auto &hit  = m_search_hits[ref.page][ref.indexInPage];
+
+    GraphicsPixmapItem *pageItem = m_page_items_hash.value(ref.page, nullptr);
+    if (!pageItem || !pageItem->scene())
+        return;
+
+    QPolygonF poly;
+    poly << QPointF(hit.quad.ul.x * m_current_zoom,
+                    hit.quad.ul.y * m_current_zoom)
+         << QPointF(hit.quad.ur.x * m_current_zoom,
+                    hit.quad.ur.y * m_current_zoom)
+         << QPointF(hit.quad.lr.x * m_current_zoom,
+                    hit.quad.lr.y * m_current_zoom)
+         << QPointF(hit.quad.ll.x * m_current_zoom,
+                    hit.quad.ll.y * m_current_zoom);
+
+    QPainterPath path;
+    path.addPolygon(pageItem->mapToScene(poly));
+
+    m_current_search_hit_item->setPath(path);
 }
 
 void
@@ -1455,11 +1461,10 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
         return;
 
     QPainterPath allPath;
-    QPainterPath currentPath;
 
     for (int i = 0; i < hits.size(); ++i)
     {
-        const Model::SearchHit hit = hits[i];
+        const Model::SearchHit &hit = hits[i];
         QPolygonF poly;
         poly << QPointF(hit.quad.ul.x * m_current_zoom,
                         hit.quad.ul.y * m_current_zoom)
@@ -1470,26 +1475,12 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
              << QPointF(hit.quad.ll.x * m_current_zoom,
                         hit.quad.ll.y * m_current_zoom);
 
-        if (i == m_search_index)
-            currentPath.addPolygon(pageItem->mapToScene(poly));
-        else
-            allPath.addPolygon(pageItem->mapToScene(poly));
+        allPath.addPolygon(pageItem->mapToScene(poly));
     }
 
     // Set colors
     item->setPath(allPath);
     item->setBrush(m_config.ui.colors["search_match"]);
-
-    // Highlight current separately
-    if (!currentPath.isEmpty())
-    {
-        auto *currentItem = m_gscene->addPath(currentPath);
-        currentItem->setBrush(
-            m_config.ui.colors["search_index"]); // current hit color
-        currentItem->setPen(Qt::NoPen);
-        currentItem->setZValue(ZVALUE_SEARCH_HITS + 1); // above normal hits
-        // You can store and delete this later when selection changes
-    }
 }
 
 QGraphicsPathItem *
@@ -1505,4 +1496,18 @@ DocumentView::ensureSearchItemForPage(int pageno) noexcept
 
     m_search_items[pageno] = item;
     return item;
+}
+
+void
+DocumentView::ReselectLastTextSelection() noexcept
+{
+    if (m_selection_start.isNull())
+        return;
+
+    // Re-apply the selection path item
+    if (m_selection_path_item)
+    {
+        m_selection_path_item->show();
+        qDebug() << "DD";
+    }
 }
