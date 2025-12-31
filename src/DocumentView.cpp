@@ -124,9 +124,12 @@ DocumentView::handleSearchResults(
     // Clear previous search hits
     clearSearchHits();
 
-    m_search_hits = results;
+    m_search_hits  = results;
+    m_search_index = 0;
     buildFlatSearchHitIndex();
     renderVisiblePages();
+    updateCurrentHitHighlight();
+    emit searchCountChanged(m_model->searchMatchesCount());
 }
 
 void
@@ -367,8 +370,6 @@ DocumentView::GotoLocation(int pageno, float x, float y) noexcept
     if (m_model->numPages() == 0)
         return;
 
-    qDebug() << "GotoLocation: Page" << pageno << "X:" << x << "Y:" << y;
-
     if (!m_page_items_hash.contains(pageno))
     {
         m_pending_jump = {pageno, x, y};
@@ -434,6 +435,7 @@ DocumentView::clearSearchHits() noexcept
         if (item && item->scene() == m_gscene)
             item->setPath(QPainterPath()); // clear instead of delete
     }
+    m_search_index = -1;
     m_search_items.clear();
     m_search_hits.clear();
     m_search_hit_flat_refs.clear();
@@ -443,15 +445,19 @@ DocumentView::clearSearchHits() noexcept
 void
 DocumentView::Search(const QString &term) noexcept
 {
+    clearSearchHits();
     if (term.isEmpty())
     {
-        clearSearchHits();
         m_current_search_hit_item->setPath(QPainterPath());
         return;
     }
 
+    // Check if term has atleast one uppercase letter
+    bool caseSensitive = std::any_of(term.cbegin(), term.cend(),
+                                     [](QChar c) { return c.isUpper(); });
+
     // m_search_hits = m_model->search(term);
-    m_model->search(term);
+    m_model->search(term, caseSensitive);
 }
 
 // Function that is common to zoom-in and zoom-out
@@ -545,8 +551,10 @@ DocumentView::PrevHit() noexcept
 void
 DocumentView::GotoHit(int index) noexcept
 {
-    if (index < 0 || index >= m_search_hit_flat_refs.size())
-        return;
+    if (index < 0)
+        index = m_search_hit_flat_refs.size() - 1;
+    else if (index >= m_search_hit_flat_refs.size())
+        index = 0;
     const HitRef ref = m_search_hit_flat_refs[index];
 
     m_search_index = index;
@@ -554,6 +562,7 @@ DocumentView::GotoHit(int index) noexcept
 
     GotoPage(ref.page);
     updateCurrentHitHighlight();
+    emit searchIndexChanged(index);
     emit currentPageChanged(ref.page + 1);
 }
 
@@ -888,8 +897,7 @@ DocumentView::renderVisiblePages() noexcept
         requestPageRender(pageno);
 
     updateSceneRect();
-
-    // Update text selection position after re-render
+    updateCurrentHitHighlight();
 }
 
 void
@@ -1138,9 +1146,13 @@ DocumentView::updateCurrentHitHighlight() noexcept
 
     GraphicsPixmapItem *pageItem = m_page_items_hash.value(ref.page, nullptr);
     if (!pageItem || !pageItem->scene())
+    {
+        m_current_search_hit_item->setPath(QPainterPath());
         return;
+    }
 
     QPolygonF poly;
+    poly.reserve(4);
     poly << QPointF(hit.quad.ul.x * m_current_zoom,
                     hit.quad.ul.y * m_current_zoom)
          << QPointF(hit.quad.ur.x * m_current_zoom,
@@ -1153,7 +1165,14 @@ DocumentView::updateCurrentHitHighlight() noexcept
     QPainterPath path;
     path.addPolygon(pageItem->mapToScene(poly));
 
-    m_current_search_hit_item->setPath(path);
+    // 4. Only update the underlying QGraphicsPathItem if the path has actually
+    // changed
+    if (m_current_search_hit_item->path() != path)
+    {
+        m_current_search_hit_item->setPath(path);
+    }
+
+    // m_current_search_hit_item->setPath(path);
 }
 
 void
@@ -1220,6 +1239,14 @@ DocumentView::requestPageRender(int pageno) noexcept
             GotoLocation(m_pending_jump.pageno, m_pending_jump.x,
                          m_pending_jump.y);
             m_pending_jump = {-1, 0, 0};
+        }
+
+        // NEW: If the page we just rendered is the page the user is currently
+        // looking for in search
+        if (m_search_index != -1 && !m_search_hit_flat_refs.empty()
+            && m_search_hit_flat_refs[m_search_index].page == pageno)
+        {
+            updateCurrentHitHighlight();
         }
     });
 }

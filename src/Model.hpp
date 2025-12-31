@@ -218,7 +218,7 @@ public:
     void highlightTextSelection(int pageno, const QPointF &start,
                                 const QPointF &end) noexcept;
     void invalidatePageCache(int pageno) noexcept;
-    void search(const QString &term) noexcept;
+    void search(const QString &term, bool caseSensitive = false) noexcept;
     std::vector<Model::SearchHit> searchHelper(int pageno, const QString &term,
                                                bool caseSensitive) noexcept;
 
@@ -259,6 +259,17 @@ private:
         std::vector<CachedAnnotation> annotations;
     };
 
+    struct CachedTextChar
+    {
+        uint32_t rune;
+        fz_quad quad;
+    };
+
+    struct CachedTextPage
+    {
+        std::vector<CachedTextChar> chars;
+    };
+
     QString m_filepath;
     int m_page_count{0};
     float m_dpr{1.25f}, m_dpi{72.0f}, m_zoom{1.0f}, m_rotation{0.0f},
@@ -271,6 +282,7 @@ private:
                                             const float color[4]) noexcept;
     void removeHighlightAnnotation(int pageno,
                                    const std::vector<int> &objNums) noexcept;
+    void buildTextCacheForPage(int pageno) noexcept;
 
     fz_context *m_ctx{nullptr};
     fz_document *m_doc{nullptr};
@@ -291,6 +303,7 @@ private:
     QFuture<PageRenderResult> m_render_future;
     pdf_write_options m_pdf_write_options;
     int m_search_match_count{0};
+    std::unordered_map<int, CachedTextPage> m_text_cache;
 
     friend class TextHighlightAnnotationCommand; // for highlight annotation
     friend class DocumentView;

@@ -78,3 +78,12 @@ quad_y_center(const fz_quad &q)
 
 fz_quad
 getQuadForSubstring(fz_stext_line *line, int start, int len);
+
+static inline bool
+charEqual(uint32_t a, uint32_t b, bool caseSensitive)
+{
+    if (caseSensitive)
+        return a == b;
+
+    return fz_tolower(a) == fz_tolower(b);
+}

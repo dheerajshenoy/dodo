@@ -727,8 +727,6 @@ Model::requestPageRender(
     const RenderJob &job,
     const std::function<void(PageRenderResult)> &callback) noexcept
 {
-    if (m_render_future.isRunning())
-        m_render_future.waitForFinished();
 
     m_render_future = QtConcurrent::run([this, job]() -> PageRenderResult
     { return renderPageWithExtrasAsync(job); });
@@ -1273,50 +1271,145 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
     return quads;
 }
 
-// Search all pages for the given term
 void
-Model::search(const QString &term) noexcept
+Model::search(const QString &term, bool caseSensitive) noexcept
 {
-    QMap<int, std::vector<Model::SearchHit>> allResults;
-    for (int i = 0; i < m_page_count; ++i)
-        allResults[i] = searchHelper(i, term, false); // case insensitive
+    QMap<int, std::vector<Model::SearchHit>> results;
+    m_search_match_count = 0;
 
-    emit searchResultsReady(allResults);
+    if (term.isEmpty())
+    {
+        emit searchResultsReady(results);
+        return;
+    }
+
+    for (int p = 0; p < m_page_count; ++p)
+    {
+        auto hits = searchHelper(p, term, caseSensitive);
+        if (!hits.empty())
+        {
+            m_search_match_count += hits.size();
+            results.insert(p, std::move(hits));
+        }
+    }
+
+    emit searchResultsReady(results);
 }
 
-// Search a single page for the given term
 std::vector<Model::SearchHit>
 Model::searchHelper(int pageno, const QString &term,
                     bool caseSensitive) noexcept
 {
-    std::vector<Model::SearchHit> results;
+    std::vector<SearchHit> results;
+
     if (term.isEmpty())
         return results;
 
-    Qt::CaseSensitivity cs
-        = caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+    buildTextCacheForPage(pageno);
 
-    fz_try(m_ctx)
+    auto it = m_text_cache.find(pageno);
+    if (it == m_text_cache.end())
+        return results;
+
+    const auto &text = it->second.chars;
+    const int n      = text.size();
+    const int m      = term.size();
+
+    if (n < m)
+        return results;
+
+    // Convert search term once
+    std::vector<uint32_t> pattern;
+    pattern.reserve(m);
+    for (QChar c : term)
+        pattern.push_back(c.unicode());
+
+    for (int i = 0; i <= n - m; ++i)
     {
-        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        bool match = true;
 
-        fz_quad hits[512];
-        int hit_count = fz_search_page(m_ctx, page, term.toUtf8().constData(),
-                                       nullptr, hits, 512);
-
-        for (int i = 0; i < hit_count; ++i)
+        for (int j = 0; j < m; ++j)
         {
-            results.push_back({pageno,
-                               hits[i], // already correct
-                               m_search_match_count++});
+            if (!charEqual(text[i + j].rune, pattern[j], caseSensitive))
+            {
+                match = false;
+                break;
+            }
         }
 
-        fz_drop_page(m_ctx, page);
-    }
-    fz_catch(m_ctx)
-    {
-        qWarning() << "Search failed:" << fz_caught_message(m_ctx);
+        if (!match)
+            continue;
+
+        // Compute **single quad for entire match**
+        fz_rect bbox = fz_empty_rect;
+        for (int j = 0; j < m; ++j)
+        {
+            if (!fz_is_empty_quad(text[i + j].quad))
+            {
+                bbox = fz_union_rect(bbox, fz_rect_from_quad(text[i + j].quad));
+            }
+        }
+
+        if (!fz_is_empty_rect(bbox))
+        {
+            results.push_back({
+                pageno,
+                fz_quad{{bbox.x1, bbox.y1},
+                        {bbox.x1, bbox.y0},
+                        {bbox.x0, bbox.y1},
+                        {bbox.x0, bbox.y0}},
+                i // index of first character in match
+            });
+        }
     }
 
     return results;
+}
+
+void
+Model::buildTextCacheForPage(int pageno) noexcept
+{
+    if (m_text_cache.contains(pageno))
+        return;
+
+    fz_page *page        = nullptr;
+    fz_stext_page *stext = nullptr;
+
+    try
+    {
+        page  = fz_load_page(m_ctx, m_doc, pageno);
+        stext = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+
+        CachedTextPage cache;
+        cache.chars.reserve(4096);
+
+        for (fz_stext_block *b = stext->first_block; b; b = b->next)
+        {
+            if (b->type != FZ_STEXT_BLOCK_TEXT)
+                continue;
+
+            for (fz_stext_line *l = b->u.t.first_line; l; l = l->next)
+            {
+                for (fz_stext_char *c = l->first_char; c; c = c->next)
+                {
+                    cache.chars.push_back(
+                        {static_cast<uint32_t>(c->c), c->quad});
+                }
+
+                // logical line break (prevents cross-line matches)
+                cache.chars.push_back({'\n', {}});
+            }
+        }
+
+        m_text_cache.emplace(pageno, std::move(cache));
+    }
+    catch (...)
+    {
+        // ignore page failures
+    }
+
+    if (stext)
+        fz_drop_stext_page(m_ctx, stext);
+    if (page)
+        fz_drop_page(m_ctx, page);
 }
