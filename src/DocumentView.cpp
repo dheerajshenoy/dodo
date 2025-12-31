@@ -69,7 +69,12 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
 void
 DocumentView::open() noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::open(): Opening file:" << m_model->filePath();
+#endif
+
     m_model->open();
+    m_pageno = 0;
     cachePageStride();
     renderVisiblePages();
 }
@@ -78,6 +83,10 @@ DocumentView::open() noexcept
 void
 DocumentView::initConnections() noexcept
 {
+
+#ifndef NDEBUG
+    qDebug() << "DocumentView::initConnections(): Initializing connections";
+#endif
 
     connect(m_model, &Model::searchResultsReady, this,
             &DocumentView::handleSearchResults);
@@ -122,6 +131,11 @@ void
 DocumentView::handleSearchResults(
     const QMap<int, std::vector<Model::SearchHit>> &results) noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::handleSearchResults(): Received"
+             << results.size() << "pages with search hits.";
+#endif
+
     // Clear previous search hits
     clearSearchHits();
 
@@ -148,6 +162,9 @@ DocumentView::handleSearchResults(
 void
 DocumentView::buildFlatSearchHitIndex() noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::buildFlatSearchHitIndex(): Building flat index";
+#endif
     m_search_hit_flat_refs.clear();
     m_search_hit_flat_refs.reserve(m_model->searchMatchesCount());
 
@@ -166,6 +183,10 @@ void
 DocumentView::handleClickSelection(int clickType,
                                    const QPointF &scenePos) noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::handleClickSelection(): Handling click type"
+             << clickType << "at scene position" << scenePos;
+#endif
     int pageIndex                = -1;
     GraphicsPixmapItem *pageItem = nullptr;
 
@@ -204,6 +225,11 @@ void
 DocumentView::handleTextSelection(const QPointF &start,
                                   const QPointF &end) noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::handleTextSelection(): Handling text selection"
+             << "from" << start << "to" << end;
+#endif
+
     int pageIndex                = -1;
     GraphicsPixmapItem *pageItem = nullptr;
 
@@ -233,7 +259,12 @@ void
 DocumentView::updateSelectionPath(int pageno,
                                   std::vector<QPolygonF> quads) noexcept
 {
-    // 3. Batch all polygons into ONE path
+#ifndef NDEBUG
+    qDebug() << "DocumentView::updateSelectionPath(): Updating selection path"
+             << "for page" << pageno << "with" << quads.size() << "polygons.";
+#endif
+
+    // Batch all polygons into ONE path
     QPainterPath path;
     GraphicsPixmapItem *pageItem = m_page_items_hash.value(pageno, nullptr);
     if (!pageItem)
@@ -298,6 +329,10 @@ DocumentView::NextSelectionMode() noexcept
 void
 DocumentView::setFitMode(FitMode mode) noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "setFitMode(): Setting fit mode to:" << static_cast<int>(mode);
+#endif
+
     m_fit_mode = mode;
 
     switch (mode)
@@ -372,6 +407,10 @@ DocumentView::setFitMode(FitMode mode) noexcept
 void
 DocumentView::setZoom(double factor) noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::setZoom(): Setting zoom to factor:" << factor;
+#endif
+
     m_target_zoom  = factor;
     m_current_zoom = factor;
     zoomHelper();
@@ -389,6 +428,11 @@ DocumentView::GotoLocation(int pageno, float x, float y) noexcept
         requestPageRender(pageno);
         return;
     }
+
+#ifndef NDEBUG
+    qDebug() << "DocumentView::GotoLocation(): Requested location:" << pageno
+             << x << y << "in document with" << m_model->numPages() << "pages.";
+#endif
 
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
 
@@ -415,11 +459,14 @@ DocumentView::GotoPage(int pageno) noexcept
     if (pageno < 0 || pageno >= m_model->numPages())
         return;
 
-    pageno         = std::clamp(pageno, 0, m_model->numPages() - 1);
+#ifndef NDEBUG
+    qDebug() << "DocumentView::GotoPage(): Going to page:" << pageno;
+#endif
+
+    m_pageno       = pageno;
     const double y = pageno * m_page_stride + m_page_stride / 2.0;
     m_gview->centerOn(QPointF(m_gview->sceneRect().width() / 2.0, y));
-
-    m_loc_history.push_back(Location{m_pageno, 0.0f, 0.0f});
+    m_loc_history.push_back(Location{pageno, 0.0f, 0.0f});
 }
 
 // Go to next page
@@ -428,6 +475,11 @@ DocumentView::GotoNextPage() noexcept
 {
     if (m_pageno >= m_model->numPages() - 1)
         return;
+
+#ifndef NDEBUG
+    qDebug() << "DocumentView::GotoNextPage(): Going to next page from"
+             << m_pageno;
+#endif
     GotoPage(m_pageno + 1);
 }
 
@@ -443,6 +495,10 @@ DocumentView::GotoPrevPage() noexcept
 void
 DocumentView::clearSearchHits() noexcept
 {
+#ifndef NDEBUG
+    qDebug()
+        << "DocumentView::clearSearchHits(): Clearing previous search hits";
+#endif
     for (auto *item : m_search_items)
     {
         if (item && item->scene() == m_gscene)
@@ -459,6 +515,10 @@ DocumentView::clearSearchHits() noexcept
 void
 DocumentView::Search(const QString &term) noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::Search(): Searching for term:" << term;
+#endif
+
     clearSearchHits();
     if (term.isEmpty())
     {
@@ -478,6 +538,10 @@ DocumentView::Search(const QString &term) noexcept
 void
 DocumentView::zoomHelper() noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::zoomHelper(): Zooming from" << m_current_zoom
+             << "to" << m_target_zoom;
+#endif
     m_current_zoom = m_target_zoom;
     cachePageStride();
 
@@ -545,8 +609,7 @@ DocumentView::ZoomReset() noexcept
 {
     m_current_zoom = 1.0f;
     m_target_zoom  = 1.0f;
-    m_model->setZoom(m_current_zoom);
-    renderVisiblePages();
+    zoomHelper();
 }
 
 // Navigate to the next search hit
@@ -567,6 +630,10 @@ DocumentView::PrevHit() noexcept
 void
 DocumentView::GotoHit(int index) noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::GotoHit(): Going to search hit index:" << index;
+#endif
+
     if (index < 0)
         index = m_search_hit_flat_refs.size() - 1;
     else if (index >= m_search_hit_flat_refs.size())
@@ -669,6 +736,7 @@ DocumentView::SaveAsFile() noexcept
 void
 DocumentView::CloseFile() noexcept
 {
+    m_model->close();
 }
 
 // Toggle auto-resize mode
@@ -745,9 +813,12 @@ DocumentView::ClearKBHintsOverlay() noexcept
 void
 DocumentView::ClearTextSelection() noexcept
 {
-    qDebug() << "Clearing text selection";
     if (m_selection_start.isNull())
         return;
+
+#ifndef NDEBUG
+    qDebug() << "ClearTextSelection(): Clearing text selection";
+#endif
 
     if (m_selection_path_item)
     {
@@ -1206,6 +1277,10 @@ DocumentView::updateCurrentPage() noexcept
     if (page == m_pageno)
         return;
 
+#ifndef NDEBUG
+    qDebug() << "updateCurrentPage(): Current page changed to:" << page;
+#endif
+
     m_pageno = page;
     emit currentPageChanged(page + 1);
 }
@@ -1255,6 +1330,7 @@ DocumentView::requestPageRender(int pageno) noexcept
         {
             GotoLocation(m_pending_jump.pageno, m_pending_jump.x,
                          m_pending_jump.y);
+            centerOnPage(m_pending_jump.pageno);
             m_pending_jump = {-1, 0, 0};
         }
 
@@ -1307,9 +1383,8 @@ DocumentView::renderLinks(int pageno,
                 connect(link, &BrowseLinkItem::horizontalFitRequested, this,
                         [&](int pageno, const BrowseLinkItem::Location &loc)
                 {
-                    // GotoXYZ(pageno, 0, loc.y, m_current_zoom);
-                    // setFitMode(FitMode::Width);
-                    // m_gview->fitToWidthAtY(loc.y);
+                    GotoLocation(pageno, 0, loc.y);
+                    setFitMode(FitMode::Width);
                 });
             }
             break;
@@ -1319,9 +1394,8 @@ DocumentView::renderLinks(int pageno,
                 connect(link, &BrowseLinkItem::verticalFitRequested, this,
                         [&](int pageno, const BrowseLinkItem::Location &loc)
                 {
-                    // GotoXYZ(pageno, 0, 0, m_current_zoom);
-                    // setFitMode(FitMode::Height);
-                    // m_gview->fitToHeight();
+                    GotoLocation(pageno, 0, loc.y);
+                    setFitMode(FitMode::Height);
                 });
             }
             break;
@@ -1581,6 +1655,22 @@ DocumentView::ReselectLastTextSelection() noexcept
     if (m_selection_path_item)
     {
         m_selection_path_item->show();
-        qDebug() << "DD";
     }
+}
+
+void
+DocumentView::centerOnPage(int pageno) noexcept
+{
+    GraphicsPixmapItem *pageItem = m_page_items_hash.value(pageno, nullptr);
+    if (!pageItem)
+        return;
+
+#ifndef NDEBUG
+    qDebug() << "centerOnPage(): Centering on page:" << pageno;
+#endif
+
+    const QPointF localPos = QPointF(pageItem->boundingRect().width() / 2.0,
+                                     pageItem->boundingRect().height() / 2.0);
+    const QPointF scenePos = pageItem->mapToScene(localPos);
+    m_gview->centerOn(scenePos);
 }

@@ -1,5 +1,23 @@
 # dodo
 
+## 0.5.1
+
+### Features
+- Search hits marker on the scrollbar
+- Config option to enable/disable search hits marker on scrollbar
+    - UI
+    `search_hits_on_scrollbar`
+- Search is now smart case by default (i.e. case insensitive unless uppercase letters are used in the search query)
+- Search Bar improvements
+    - Show only icons and not text in the search bar buttons
+- Close file in tab
+    
+
+### Bug Fixes
+
+- Click on links not working properly in some cases
+- Fix navigation from menu
+
 ## 0.5.0
 
 ### Features
@@ -7,8 +25,11 @@
 - Huge rewrite of the rendering system
     - Asynchronous rendering
     - Improved performance
+    
 
 ### Bug Fixes
+- Fix annotation rendering issues
+- Fix annotation position issues on zoom and pan
 
 ## 0.4.3
 - Zoom render debounce to improve performance

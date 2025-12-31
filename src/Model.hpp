@@ -191,6 +191,8 @@ public:
     bool followLink(const LinkInfo &info) noexcept;
     bool reloadDocument() noexcept;
     void open() noexcept;
+    void close() noexcept;
+    void cleanup() noexcept;
     bool decrypt() noexcept;
     bool encrypt(const EncryptInfo &info) noexcept;
     void setPopupColor(const QColor &color) noexcept;

@@ -4,6 +4,7 @@
 #include <QGuiApplication>
 #include <QLineF>
 #include <QMenu>
+#include <qgraphicsview.h>
 
 GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
 {
@@ -91,6 +92,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
             case 1:
                 // Single click - do nothing special here
                 emit textSelectionDeletionRequested();
+                QGraphicsView::mousePressEvent(event);
                 return;
 
             case 2:

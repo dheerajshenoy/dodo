@@ -304,6 +304,7 @@ private:
     QGraphicsPathItem *ensureSearchItemForPage(int pageno) noexcept;
     QGraphicsPathItem *m_current_search_hit_item{nullptr};
     void updateSelectionPath(int pageno, std::vector<QPolygonF> quads) noexcept;
+    void centerOnPage(int pageno) noexcept;
 
     float m_old_y{0.0f};
     JumpMarker *m_jump_marker{nullptr};

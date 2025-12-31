@@ -321,8 +321,6 @@ dodo::initMenubar() noexcept
     helpMenu->addAction(
         QString("Keybindings\t%1").arg(m_config.shortcuts["keybindings"]), this,
         &dodo::ShowKeybindings);
-
-    updateUiEnabledState();
 }
 
 // Initialize the `last_pages_db` related stuff
@@ -718,6 +716,8 @@ void
 dodo::updateUiEnabledState() noexcept
 {
     const bool hasOpenedFile = m_doc ? true : false;
+
+    qDebug() << "Updating UI enabled state. Has opened file:" << hasOpenedFile;
 
     m_actionOpenContainingFolder->setEnabled(hasOpenedFile);
     m_actionZoomIn->setEnabled(hasOpenedFile);
@@ -2589,6 +2589,9 @@ dodo::updatePageNavigationActions() noexcept
 {
     const int page  = m_doc ? m_doc->pageNo() : -1;
     const int count = m_doc ? m_doc->numPages() : 0;
+
+    qDebug() << "Updating page navigation actions: page =" << page
+             << ", count =" << count;
 
     m_actionFirstPage->setEnabled(page > 0);
     m_actionPrevPage->setEnabled(page > 0);

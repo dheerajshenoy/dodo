@@ -59,19 +59,26 @@ Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
     }
 }
 
-Model::~Model() noexcept
+void
+Model::cleanup() noexcept
 {
     fz_drop_outline(m_ctx, m_outline);
     pdf_drop_document(m_ctx, m_pdf_doc);
     fz_drop_document(m_ctx, m_doc);
-    fz_drop_context(m_ctx);
 
     for (auto &[_, entry] : m_page_cache)
         fz_drop_display_list(m_ctx, entry.display_list);
 
     m_page_cache.clear();
     m_stext_page_cache.clear();
+    m_text_cache.clear();
     fz_drop_document(m_ctx, m_doc);
+}
+
+Model::~Model() noexcept
+{
+    cleanup();
+    fz_drop_context(m_ctx);
 }
 
 void
@@ -112,6 +119,13 @@ Model::open() noexcept
     m_annot_rect_color[3] = 0.5f;
 
     m_pdf_write_options = pdf_default_write_options;
+}
+
+void
+Model::close() noexcept
+{
+    m_filepath.clear();
+    cleanup();
 }
 
 void
