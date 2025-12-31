@@ -56,7 +56,8 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_gview->setAlignment(Qt::AlignCenter);
 
     m_hscroll = m_gview->horizontalScrollBar();
-    m_vscroll = m_gview->verticalScrollBar();
+    m_vscroll = new VerticalScrollBar(Qt::Vertical, this);
+    m_gview->setVerticalScrollBar(m_vscroll);
 
     initConnections();
 
@@ -129,6 +130,7 @@ DocumentView::handleSearchResults(
     buildFlatSearchHitIndex();
     renderVisiblePages();
     updateCurrentHitHighlight();
+    renderSearchHitsInScrollbar();
     emit searchCountChanged(m_model->searchMatchesCount());
 }
 
@@ -439,6 +441,7 @@ DocumentView::clearSearchHits() noexcept
     m_search_items.clear();
     m_search_hits.clear();
     m_search_hit_flat_refs.clear();
+    m_vscroll->setSearchMarkers({});
 }
 
 // Perform search for the given term
@@ -503,6 +506,8 @@ DocumentView::zoomHelper() noexcept
         clearAnnotationsForPage(pageno);
         clearSearchItemsForPage(pageno);
     }
+
+    renderSearchHitsInScrollbar();
 
     m_hq_render_timer->start();
 }
@@ -1507,6 +1512,36 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
     // Set colors
     item->setPath(allPath);
     item->setBrush(m_config.ui.colors["search_match"]);
+}
+
+// Render search hits in the scrollbar
+void
+DocumentView::renderSearchHitsInScrollbar() noexcept
+{
+    if (m_search_hit_flat_refs.empty())
+        return;
+
+    std::vector<double> search_markers_pos;
+    search_markers_pos.reserve(m_search_hit_flat_refs.size());
+
+    // Scale factor to convert PDF points to current scene pixels
+    const double pdfToSceneScale = (m_model->DPI() / 72.0) * m_current_zoom;
+
+    for (const auto &hitRef : m_search_hit_flat_refs)
+    {
+        const auto &hit = m_search_hits[hitRef.page][hitRef.indexInPage];
+
+        // 1. Calculate the start of the page in the scene
+        double pageTopInScene = hitRef.page * m_page_stride;
+
+        // 2. Calculate the Y offset within the page
+        // We use the same scaling logic the renderer uses for placement
+        double yOffsetInScene = hit.quad.ul.y * pdfToSceneScale;
+
+        search_markers_pos.push_back(pageTopInScene + yOffsetInScene);
+    }
+
+    m_vscroll->setSearchMarkers(search_markers_pos);
 }
 
 QGraphicsPathItem *

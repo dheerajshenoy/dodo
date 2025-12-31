@@ -7,6 +7,7 @@
 #include "GraphicsView.hpp"
 #include "JumpMarker.hpp"
 #include "Model.hpp"
+#include "VerticalScrollBar.hpp"
 
 #include <QFileInfo>
 #include <QGraphicsItem>
@@ -264,7 +265,8 @@ private:
     float m_spacing{10.0f}, m_page_stride{0.0f}, m_page_x_offset{0.0f};
     double m_target_zoom{1.0}, m_current_zoom{1.0}, m_rotation{0.0};
     bool m_auto_resize{false}, m_auto_reload{false};
-    QScrollBar *m_hscroll{nullptr}, *m_vscroll{nullptr};
+    QScrollBar *m_hscroll{nullptr};
+    VerticalScrollBar *m_vscroll{nullptr};
     QHash<int, GraphicsPixmapItem *> m_page_items_hash;
     QHash<int, std::vector<BrowseLinkItem *>> m_page_links_hash;
     QHash<int, std::vector<Annotation *>> m_page_annotations_hash;
@@ -297,6 +299,7 @@ private:
     std::set<int> getVisiblePages() noexcept;
     void removePageItem(int pageno) noexcept;
     void renderSearchHitsForPage(int pageno) noexcept;
+    void renderSearchHitsInScrollbar() noexcept;
     void clearSearchHits() noexcept;
     QGraphicsPathItem *ensureSearchItemForPage(int pageno) noexcept;
     QGraphicsPathItem *m_current_search_hit_item{nullptr};
