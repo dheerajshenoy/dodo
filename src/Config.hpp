@@ -37,6 +37,7 @@ struct Config
         bool tabs_movable{true};
         QString tab_elide_mode{"right"};
         QString tab_bar_position{"top"};
+        bool search_hits_on_scrollbar{true};
     };
 
     struct rendering

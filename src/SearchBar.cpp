@@ -2,18 +2,27 @@
 
 #include <QHBoxLayout>
 #include <QMessageBox>
+#include <QStyle>
 
 SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
 {
     m_label            = new QLabel("Search:", this);
     m_searchInput      = new QLineEdit(this);
-    m_prevButton       = new QPushButton("Previous", this);
-    m_nextButton       = new QPushButton("Next", this);
-    m_closeButton      = new QPushButton("Close", this);
+    m_prevButton       = new QPushButton(this);
+    m_nextButton       = new QPushButton(this);
+    m_closeButton      = new QPushButton(this);
     m_searchCountLabel = new QLabel(this);
     m_searchIndexLabel = new QLineEdit(this);
 
     m_searchInput->setFocusPolicy(Qt::ClickFocus);
+
+    m_nextButton->setToolTip("Goto Next Hit");
+    m_prevButton->setToolTip("Goto Previous Hit");
+    m_closeButton->setToolTip("Close Search Bar");
+
+    m_nextButton->setIcon(style()->standardIcon(QStyle::SP_ArrowForward));
+    m_prevButton->setIcon(style()->standardIcon(QStyle::SP_ArrowBack));
+    m_closeButton->setIcon(style()->standardIcon(QStyle::SP_DialogCloseButton));
 
     QHBoxLayout *layout = new QHBoxLayout(this);
     layout->addWidget(m_label);

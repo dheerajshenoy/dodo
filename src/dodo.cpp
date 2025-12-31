@@ -438,6 +438,8 @@ dodo::initConfig() noexcept
     m_config.ui.tabs_movable     = ui["tabs_movable"].value_or(true);
     m_config.ui.tab_elide_mode   = ui["tab_elide_mode"].value_or("right");
     m_config.ui.tab_bar_position = ui["tab_bar_position"].value_or("top");
+    m_config.ui.search_hits_on_scrollbar
+        = ui["search_hits_on_scrollbar"].value_or(true);
 
     if (ui["fullscreen"].value_or(false))
         this->showFullScreen();

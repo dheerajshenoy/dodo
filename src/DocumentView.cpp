@@ -125,12 +125,23 @@ DocumentView::handleSearchResults(
     // Clear previous search hits
     clearSearchHits();
 
+    if (results.isEmpty())
+    {
+        QMessageBox::information(this, tr("Search"),
+                                 tr("No matches found for "
+                                    "the given term."));
+        return;
+    }
+
     m_search_hits  = results;
     m_search_index = 0;
     buildFlatSearchHitIndex();
     renderVisiblePages();
     updateCurrentHitHighlight();
-    renderSearchHitsInScrollbar();
+
+    if (m_config.ui.search_hits_on_scrollbar)
+        renderSearchHitsInScrollbar();
+
     emit searchCountChanged(m_model->searchMatchesCount());
 }
 
@@ -1525,7 +1536,8 @@ DocumentView::renderSearchHitsInScrollbar() noexcept
     search_markers_pos.reserve(m_search_hit_flat_refs.size());
 
     // Scale factor to convert PDF points to current scene pixels
-    const double pdfToSceneScale = (m_model->DPI() / 72.0) * m_current_zoom;
+    const double pdfToSceneScale
+        = (m_model->DPI() / 72.0) * m_current_zoom * m_model->DPR();
 
     for (const auto &hitRef : m_search_hit_flat_refs)
     {
