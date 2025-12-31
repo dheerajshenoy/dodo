@@ -1150,14 +1150,14 @@ Model::selectLineAt(int pageno, fz_point pt) noexcept
     fz_quad hits[MAX_HITS];
     int count;
 
+    // Find the word at this location
+    fz_point lineStart = pt;
+    fz_point lineEnd   = pt;
+
     fz_stext_page *text_page;
     const float scale = m_zoom * (m_dpi / 72.0f);
     fz_matrix ctm     = fz_scale(1 / scale, 1 / scale);
     pt                = fz_transform_point(pt, ctm);
-
-    // Find the word at this location
-    fz_point lineStart = pt;
-    fz_point lineEnd   = pt;
 
     fz_try(m_ctx)
     {
@@ -1211,6 +1211,7 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
     const float scale = m_zoom * (m_dpi / 72.0f);
     fz_matrix ctm     = fz_scale(1 / scale, 1 / scale);
     pt                = fz_transform_point(pt, ctm);
+
     fz_try(m_ctx)
     {
         fz_stext_page *text_page;

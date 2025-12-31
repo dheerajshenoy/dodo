@@ -729,6 +729,7 @@ DocumentView::ClearKBHintsOverlay() noexcept
 void
 DocumentView::ClearTextSelection() noexcept
 {
+    qDebug() << "Clearing text selection";
     if (m_selection_start.isNull())
         return;
 

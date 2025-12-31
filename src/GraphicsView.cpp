@@ -86,19 +86,25 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         m_lastClickPos = event->pos();
         m_clickTimer.restart();
 
-        emit textSelectionDeletionRequested();
-
         switch (m_clickCount)
         {
+            case 1:
+                // Single click - do nothing special here
+                emit textSelectionDeletionRequested();
+                return;
+
             case 2:
                 emit doubleClickRequested(scenePos);
                 return;
+
             case 3:
                 emit tripleClickRequested(scenePos);
                 return;
+
             case 4:
                 emit quadrupleClickRequested(scenePos);
                 return;
+
             default:
                 break;
         }
