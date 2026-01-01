@@ -11,6 +11,7 @@ struct Config
 
     struct ui
     {
+        QString layout{"top-to-bottom"};
         QHash<QString, QColor> colors{};
         float link_hint_size{0.5f};
         float zoom_by{1.25f};

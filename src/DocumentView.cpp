@@ -74,6 +74,58 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(m_gview);
+
+    setLayoutMode(LayoutMode::SINGLE);
+}
+
+// Get the size of the current page in scene coordinates
+QSizeF
+DocumentView::currentPageSceneSize() const noexcept
+{
+    // pts -> inches (/72) -> pixels (*DPI) -> zoom
+    double w
+        = (m_model->pageWidthPts() / 72.0) * m_model->DPI() * m_current_zoom;
+    double h
+        = (m_model->pageHeightPts() / 72.0) * m_model->DPI() * m_current_zoom;
+
+    const int rot = static_cast<int>(std::fmod(std::abs(m_rotation), 360.0));
+    if (rot == 90 || rot == 270)
+        std::swap(w, h);
+
+    return QSizeF(w, h);
+}
+
+void
+DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
+{
+    if (m_layout_mode == mode)
+        return;
+
+    m_layout_mode = mode;
+
+    // Reset view state
+    clearDocumentItems();
+
+    // Recompute stride + scene rect
+    cachePageStride();
+    updateSceneRect();
+
+    // Make sure scrollbars start sane
+    if (m_layout_mode == LayoutMode::SINGLE)
+    {
+        // Keep current page, but only render it.
+        if (m_pageno < 0)
+            m_pageno = 0;
+        if (m_pageno >= m_model->numPages())
+            m_pageno = m_model->numPages() - 1;
+    }
+    else
+    {
+        // Put viewport near current page along the main axis
+        GotoPage(m_pageno);
+    }
+
+    renderVisiblePages();
 }
 
 void
@@ -142,6 +194,12 @@ DocumentView::initConnections() noexcept
 
     connect(m_vscroll, &QScrollBar::valueChanged, m_scroll_page_update_timer,
             static_cast<void (QTimer::*)()>(&QTimer::start));
+
+    connect(m_hscroll, &QScrollBar::valueChanged, m_scroll_page_update_timer,
+            static_cast<void (QTimer::*)()>(&QTimer::start));
+
+    connect(m_hscroll, &QScrollBar::valueChanged, this,
+            &DocumentView::updateCurrentPage);
 
     connect(m_scroll_page_update_timer, &QTimer::timeout, this,
             &DocumentView::renderVisiblePages);
@@ -539,7 +597,7 @@ DocumentView::GotoLocation(const PageLocation &targetLocation,
     {
         if (sourceLocation.pageno != -1)
         {
-            // Use provided source location
+// Use provided source location
 #ifndef NDEBUG
             qDebug() << "Recording source location from provided data:"
                      << sourceLocation.pageno << sourceLocation.x
@@ -600,21 +658,32 @@ DocumentView::GotoLocation(const PageLocation &targetLocation,
 void
 DocumentView::GotoPage(int pageno) noexcept
 {
-    // Goto page by adjusting scrollbar value
     if (pageno < 0 || pageno >= m_model->numPages())
         return;
 
-#ifndef NDEBUG
-    qDebug() << "DocumentView::GotoPage(): Going to page:" << pageno;
-#endif
+    m_pageno = pageno;
 
-    m_pageno       = pageno;
-    const double y = pageno * m_page_stride + m_page_stride / 2.0;
-    m_gview->centerOn(QPointF(m_gview->sceneRect().width() / 2.0, y));
+    if (m_layout_mode == LayoutMode::SINGLE)
+    {
+        clearDocumentItems();      // single page: dump everything else
+        requestPageRender(pageno); // render only this page
+        updateSceneRect();
+        return;
+    }
+
+    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    {
+        const double x = pageno * m_page_stride + m_page_stride / 2.0;
+        m_gview->centerOn(QPointF(x, m_gview->sceneRect().height() / 2.0));
+    }
+    else
+    {
+        const double y = pageno * m_page_stride + m_page_stride / 2.0;
+        m_gview->centerOn(QPointF(m_gview->sceneRect().width() / 2.0, y));
+    }
 
     if (!m_suppress_history_recording)
-    {
-    }
+        emit currentPageChanged(pageno + 1);
 }
 
 // Go to next page
@@ -1058,16 +1127,35 @@ DocumentView::getVisiblePages() noexcept
 #endif
     std::set<int> visiblePages;
 
+    if (m_model->numPages() == 0)
+        return visiblePages;
+
+    if (m_layout_mode == LayoutMode::SINGLE)
+    {
+        visiblePages.insert(std::clamp(m_pageno, 0, m_model->numPages() - 1));
+        return visiblePages;
+    }
+
     const QRectF visibleSceneRect
         = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
 
-    double top    = visibleSceneRect.top();
-    double bottom = visibleSceneRect.bottom();
-    top -= m_preload_margin;
-    bottom += m_preload_margin;
+    double a0, a1; // main axis interval
+    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    {
+        a0 = visibleSceneRect.left();
+        a1 = visibleSceneRect.right();
+    }
+    else
+    {
+        a0 = visibleSceneRect.top();
+        a1 = visibleSceneRect.bottom();
+    }
 
-    int firstPage = static_cast<int>(std::floor(top / m_page_stride));
-    int lastPage  = static_cast<int>(std::floor(bottom / m_page_stride));
+    a0 -= m_preload_margin;
+    a1 += m_preload_margin;
+
+    int firstPage = static_cast<int>(std::floor(a0 / m_page_stride));
+    int lastPage  = static_cast<int>(std::floor(a1 / m_page_stride));
 
     firstPage = std::max(0, firstPage);
     lastPage  = std::min(m_model->numPages() - 1, lastPage);
@@ -1219,15 +1307,22 @@ DocumentView::removePageItem(int pageno) noexcept
 void
 DocumentView::cachePageStride() noexcept
 {
-    // points → inches → scene units
-    const double pageHeightScene
-        = (m_model->pageHeightPts() / 72.0) * m_model->DPI() * m_current_zoom;
-
     const double spacingScene = m_spacing * m_current_zoom;
 
-    m_page_stride = pageHeightScene + spacingScene;
+    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    {
+        const double pageWidthScene = (m_model->pageWidthPts() / 72.0)
+                                      * m_model->DPI() * m_current_zoom;
+        m_page_stride = pageWidthScene + spacingScene;
+    }
+    else
+    {
+        const double pageHeightScene = (m_model->pageHeightPts() / 72.0)
+                                       * m_model->DPI() * m_current_zoom;
+        m_page_stride = pageHeightScene + spacingScene;
+    }
 
-    m_preload_margin = m_page_stride; // preload one page above and below
+    m_preload_margin = m_page_stride;
     if (m_config.behavior.cache_pages > 0)
         m_preload_margin *= m_config.behavior.cache_pages;
 }
@@ -1236,9 +1331,29 @@ DocumentView::cachePageStride() noexcept
 void
 DocumentView::updateSceneRect() noexcept
 {
-    double totalHeight = m_model->numPages() * m_page_stride;
-    double width       = m_gview->viewport()->width();
-    m_gview->setSceneRect(0, 0, width, totalHeight);
+    const double viewW = m_gview->viewport()->width();
+    const double viewH = m_gview->viewport()->height();
+
+    if (m_layout_mode == LayoutMode::SINGLE)
+    {
+        // Allow scrollbars to pan within the page
+        const QSizeF page   = currentPageSceneSize();
+        const double sceneW = std::max(viewW, page.width());
+        const double sceneH = std::max(viewH, page.height());
+        m_gview->setSceneRect(0, 0, sceneW, sceneH);
+        return;
+    }
+
+    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    {
+        const double totalWidth = m_model->numPages() * m_page_stride;
+        m_gview->setSceneRect(0, 0, totalWidth, viewH);
+    }
+    else
+    {
+        const double totalHeight = m_model->numPages() * m_page_stride;
+        m_gview->setSceneRect(0, 0, viewW, totalHeight);
+    }
 }
 
 void
@@ -1347,16 +1462,6 @@ DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
         menu->addAction(action);
     };
 
-    // if (m_hit_pixmap)
-    // {
-    //     menu->show();
-    //     addAction("Open Image in External Viewer",
-    //               &DocumentView::OpenHitPixmapInExternalViewer);
-    //     addAction("Save Image As...", &DocumentView::SaveImageAs);
-    //     addAction("Copy Image", &DocumentView::CopyImageToClipboard);
-    //     return;
-    // }
-
     switch (m_gview->mode())
     {
         case GraphicsView::Mode::TextSelection:
@@ -1443,9 +1548,33 @@ DocumentView::updateCurrentHitHighlight() noexcept
 void
 DocumentView::updateCurrentPage() noexcept
 {
+    if (m_layout_mode == LayoutMode::SINGLE)
+    {
+        // The current page is explicit in single-page mode.
+        emit currentPageChanged(m_pageno + 1);
+        return;
+    }
+
+    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    {
+        const int scrollX = m_hscroll->value();
+        const int viewW   = m_gview->viewport()->width();
+        const int centerX = scrollX + viewW / 2;
+
+        int page = centerX / m_page_stride;
+        page     = std::clamp(page, 0, m_model->numPages() - 1);
+
+        if (page == m_pageno)
+            return;
+
+        m_pageno = page;
+        emit currentPageChanged(page + 1);
+        return;
+    }
+
+    // default vertical
     const int scrollY = m_vscroll->value();
     const int viewH   = m_gview->viewport()->height();
-
     const int centerY = scrollY + viewH / 2;
 
     int page = centerY / m_page_stride;
@@ -1453,10 +1582,6 @@ DocumentView::updateCurrentPage() noexcept
 
     if (page == m_pageno)
         return;
-
-#ifndef NDEBUG
-    qDebug() << "updateCurrentPage(): Current page changed to:" << page;
-#endif
 
     m_pageno = page;
     emit currentPageChanged(page + 1);
@@ -1532,9 +1657,33 @@ DocumentView::createAndAddPageItem(int pageno, const QPixmap &pix) noexcept
 {
     auto *item = new GraphicsPixmapItem();
     item->setPixmap(pix);
-    double pageWidthLogical = pix.width() / pix.devicePixelRatio();
-    m_page_x_offset = (m_gview->sceneRect().width() - pageWidthLogical) / 2.0;
-    item->setPos(m_page_x_offset, pageno * m_page_stride);
+
+    const double pageW = pix.width() / pix.devicePixelRatio();
+    const double pageH = pix.height() / pix.devicePixelRatio();
+
+    const QRectF sr = m_gview->sceneRect();
+
+    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    {
+        const double yOffset = (sr.height() - pageH) / 2.0;
+        const double xPos    = pageno * m_page_stride;
+        item->setPos(xPos, yOffset);
+    }
+    else if (m_layout_mode == LayoutMode::SINGLE)
+    {
+        // Always place the current page in the center-ish of the viewport
+        // scene.
+        const double xOffset = (sr.width() - pageW) / 2.0;
+        const double yOffset = (sr.height() - pageH) / 2.0;
+        item->setPos(xOffset, yOffset);
+    }
+    else
+    {
+        const double xOffset = (sr.width() - pageW) / 2.0;
+        const double yPos    = pageno * m_page_stride;
+        item->setPos(xOffset, yPos);
+    }
+
     m_gscene->addItem(item);
     m_page_items_hash[pageno] = item;
 }
@@ -1664,7 +1813,7 @@ DocumentView::renderAnnotations(
         m_gscene->addItem(annot);
         m_page_annotations_hash[pageno]
             = annotations; // Store them so we can actually delete them
-                           // later
+        // later
         connect(annot, &Annotation::annotDeleteRequested, [&](int index)
         {
             m_model->removeHighlightAnnotation(pageno, {index});
@@ -1875,19 +2024,4 @@ DocumentView::centerOnPage(int pageno) noexcept
                                      pageItem->boundingRect().height() / 2.0);
     const QPointF scenePos = pageItem->mapToScene(localPos);
     m_gview->centerOn(scenePos);
-}
-
-void
-DocumentView::OpenHitPixmapInExternalViewer() noexcept
-{
-}
-
-void
-DocumentView::SaveImageAs() noexcept
-{
-}
-
-void
-DocumentView::CopyImageToClipboard() noexcept
-{
 }

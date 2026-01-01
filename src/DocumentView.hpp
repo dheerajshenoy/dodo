@@ -44,6 +44,14 @@ public:
     DocumentView(const QString &filepath, const Config &config,
                  QWidget *parent = nullptr) noexcept;
 
+    enum class LayoutMode
+    {
+        SINGLE = 0,
+        LEFT_TO_RIGHT,
+        TOP_TO_BOTTOM,
+        COUNT
+    };
+
     enum class FitMode
     {
         None = 0,
@@ -304,6 +312,7 @@ private:
     void updateCurrentHitHighlight() noexcept;
     void zoomHelper() noexcept;
     void cachePageStride() noexcept;
+    void cachePageXOffset() noexcept;
     void updateSceneRect() noexcept;
     void initConnections() noexcept;
     std::set<int> getVisiblePages() noexcept;
@@ -315,9 +324,8 @@ private:
     QGraphicsPathItem *m_current_search_hit_item{nullptr};
     void updateSelectionPath(int pageno, std::vector<QPolygonF> quads) noexcept;
     void centerOnPage(int pageno) noexcept;
-    void OpenHitPixmapInExternalViewer() noexcept;
-    void SaveImageAs() noexcept;
-    void CopyImageToClipboard() noexcept;
+    void setLayoutMode(const LayoutMode &mode) noexcept;
+    QSizeF currentPageSceneSize() const noexcept;
 
 #ifdef HAS_SYNCTEX
     void initSynctex() noexcept;
@@ -343,6 +351,7 @@ private:
     bool m_is_modified{false};
     bool m_suppress_history_recording{false};
     // fz_pixmap *m_hit_pixmap{nullptr};
+    LayoutMode m_layout_mode{LayoutMode::TOP_TO_BOTTOM};
 
 #ifdef HAS_SYNCTEX
     synctex_scanner_p m_synctex_scanner{nullptr};
