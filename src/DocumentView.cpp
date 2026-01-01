@@ -112,6 +112,21 @@ DocumentView::initConnections() noexcept
             &DocumentView::handleSynctexJumpRequested);
 #endif
 
+    // connect(m_gview, &GraphicsView::rightClickRequested, this,
+    //         [&](const QPointF &scenePos)
+    // {
+    // int pageIndex                = -1;
+    // GraphicsPixmapItem *pageItem = nullptr;
+
+    // if (!pageAtScenePos(scenePos, pageIndex, pageItem))
+    //     return; // selection start outside visible pages?
+
+    // const QPointF pagePos = pageItem->mapFromScene(scenePos);
+    // m_hit_pixmap = m_model->hitTestImage(pageIndex, pagePos,
+    // m_current_zoom,
+    //                                      m_rotation);
+    // });
+
     connect(m_model, &Model::searchResultsReady, this,
             &DocumentView::handleSearchResults);
 
@@ -314,16 +329,17 @@ void
 DocumentView::handleTextSelection(const QPointF &start,
                                   const QPointF &end) noexcept
 {
-#ifndef NDEBUG
-    qDebug() << "DocumentView::handleTextSelection(): Handling text selection"
-             << "from" << start << "to" << end;
-#endif
 
     int pageIndex                = -1;
     GraphicsPixmapItem *pageItem = nullptr;
 
     if (!pageAtScenePos(start, pageIndex, pageItem))
         return; // selection start outside visible pages?
+
+#ifndef NDEBUG
+    qDebug() << "DocumentView::handleTextSelection(): Handling text selection"
+             << "from" << start << "to" << end;
+#endif
 
     // 🔴 CRITICAL FIX: map to page-local coordinates
     const QPointF pageStart = pageItem->mapFromScene(start);
@@ -880,13 +896,8 @@ DocumentView::TextHighlightCurrentSelection() noexcept
     if (!pageItem)
         return;
 
-    // 🔴 CRITICAL FIX: Map scene coordinates to page-local coordinates
-    // This ensures the points passed to highlightTextSelection match
-    // the points used in handleTextSelection.
-    QPointF localStart = pageItem->mapFromScene(m_selection_start);
-    QPointF localEnd   = pageItem->mapFromScene(m_selection_end);
-
-    m_model->highlightTextSelection(pageIndex, localStart, localEnd);
+    m_model->highlightTextSelection(pageIndex, m_selection_start,
+                                    m_selection_end);
 
     setModified(true);
     // Render page where selection exists
@@ -1181,6 +1192,11 @@ bool
 DocumentView::pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
                              GraphicsPixmapItem *&outPageItem) const noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::pageAtScenePos(): Checking for page at scene "
+             << "position:" << scenePos;
+#endif
+
     for (auto it = m_page_items_hash.begin(); it != m_page_items_hash.end();
          ++it)
     {
@@ -1248,6 +1264,10 @@ DocumentView::clearVisibleAnnotations() noexcept
 void
 DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::handleContextMenuRequested(): Context menu "
+             << "requested at scene position:" << scenePos;
+#endif
     QMenu *menu = new QMenu(this);
     menu->move(scenePos.x(), scenePos.y());
 
@@ -1258,9 +1278,9 @@ DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
         menu->addAction(action);
     };
 
-    // If right-clicked on an image
-    // if (m_model->hitTestImage(scenePos))
+    // if (m_hit_pixmap)
     // {
+    //     menu->show();
     //     addAction("Open Image in External Viewer",
     //               &DocumentView::OpenHitPixmapInExternalViewer);
     //     addAction("Save Image As...", &DocumentView::SaveImageAs);
@@ -1305,7 +1325,6 @@ DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
         default:
             break;
     }
-
     menu->show();
 }
 
@@ -1762,4 +1781,19 @@ DocumentView::centerOnPage(int pageno) noexcept
                                      pageItem->boundingRect().height() / 2.0);
     const QPointF scenePos = pageItem->mapToScene(localPos);
     m_gview->centerOn(scenePos);
+}
+
+void
+DocumentView::OpenHitPixmapInExternalViewer() noexcept
+{
+}
+
+void
+DocumentView::SaveImageAs() noexcept
+{
+}
+
+void
+DocumentView::CopyImageToClipboard() noexcept
+{
 }

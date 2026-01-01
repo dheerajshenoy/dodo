@@ -5,6 +5,8 @@
 #include "PopupAnnotation.hpp"
 #include "RectAnnotation.hpp"
 #include "commands/TextHighlightAnnotationCommand.hpp"
+#include "mupdf/fitz/display-list.h"
+#include "mupdf/fitz/document.h"
 #include "mupdf/fitz/util.h"
 #include "utils.hpp"
 
@@ -16,14 +18,17 @@
 /**
  * @brief Clean up image data when the last copy of the QImage is destoryed.
  */
-static inline void
-imageCleanupHandler(void *data)
+// This is called by Qt when the last copy of the QImage is destroyed
+static void
+imageCleanupHandler(void *info) noexcept
 {
-    unsigned char *samples = static_cast<unsigned char *>(data);
-
-    if (samples)
+    Model::RenderPayload *payload = static_cast<Model::RenderPayload *>(info);
+    if (payload)
     {
-        delete[] samples;
+        // Drop the pixmap first, then the context
+        fz_drop_pixmap(payload->ctx, payload->pix);
+        fz_drop_context(payload->ctx);
+        delete payload;
     }
 }
 
@@ -790,11 +795,6 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
     auto cleanup = [&]() -> void
     {
-        fz_close_device(ctx, dev);
-        fz_drop_device(ctx, dev);
-        fz_drop_link(ctx, head);
-        fz_drop_pixmap(ctx, pix);
-        fz_drop_context(ctx);
     };
 
     fz_try(ctx)
@@ -833,9 +833,6 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         if (!samples)
             return result;
 
-        unsigned char *copyed_samples = new unsigned char[width * height * n];
-        memcpy(copyed_samples, samples, width * height * n);
-
         QImage::Format fmt;
         switch (n)
         {
@@ -856,8 +853,10 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             }
         }
 
-        result.image = QImage(copyed_samples, width, height, stride, fmt,
-                              imageCleanupHandler, copyed_samples);
+        RenderPayload *payload = new RenderPayload{ctx, pix};
+
+        result.image = QImage(samples, width, height, stride, fmt,
+                              imageCleanupHandler, payload);
         result.image.setDotsPerMeterX(
             static_cast<int>((job.dpi * 1000) / 25.4));
         result.image.setDotsPerMeterY(
@@ -929,11 +928,15 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     }
     fz_always(ctx)
     {
-        cleanup();
+        fz_close_device(ctx, dev);
+        fz_drop_device(ctx, dev);
+        fz_drop_link(ctx, head);
+        // fz_drop_context(ctx);
     }
     fz_catch(ctx)
     {
         qWarning() << "MuPDF error in thread:" << fz_caught_message(ctx);
+        fz_drop_pixmap(ctx, pix);
     }
 
     return result;
@@ -1428,10 +1431,64 @@ Model::buildTextCacheForPage(int pageno) noexcept
         fz_drop_page(m_ctx, page);
 }
 
-QPixmap
-Model::hitTestImage(int pageno, const fz_point &pt) noexcept
-{
-    QPixmap pixmap;
+// fz_pixmap *
+// Model::hitTestImage(int pageno, const QPointF &pagePos, float zoom,
+//                     float rotation) noexcept
+// {
+// #ifndef NDEBUG
+//     qDebug() << "Hit-testing image at page" << pageno << "pos" << pagePos
+//              << "zoom" << zoom << "rotation" << rotation;
+// #endif
+//     std::lock_guard lock(m_doc_mutex);
 
-    return pixmap;
-}
+//     auto it = m_page_cache.find(pageno);
+//     if (it == m_page_cache.end() || !it->second.display_list)
+//         return nullptr;
+
+//     fz_pixmap *result{nullptr};
+
+//     fz_try(m_ctx)
+//     {
+//         const PageCacheEntry &entry = m_page_cache[pageno];
+
+//         fz_point query    = {static_cast<float>(pagePos.x()),
+//                              static_cast<float>(pagePos.y())};
+//         const float scale = m_zoom * (m_dpi / 72.0f);
+//         fz_matrix ctm     = fz_scale(1 / scale, 1 / scale);
+//         query             = fz_transform_point(query, ctm);
+
+//         auto *dev = reinterpret_cast<ImageHitTestDevice *>(
+//             fz_new_device_of_size(m_ctx, sizeof(ImageHitTestDevice)));
+
+//         memset(dev, 0, sizeof(ImageHitTestDevice));
+
+//         dev->query            = query;
+//         dev->super.fill_image = hit_test_image;
+//         dev->img              = nullptr;
+
+//         fz_matrix transform = fz_transform_page(entry.bounds, zoom,
+//         rotation);
+//         // fz_matrix transform = fz_identity;
+//         fz_rect transformed = fz_transform_rect(entry.bounds, transform);
+//         fz_irect bbox       = fz_round_rect(transformed);
+
+//         fz_run_display_list(m_ctx, entry.display_list, (fz_device *)dev,
+//                             fz_identity, fz_rect_from_irect(bbox), nullptr);
+
+//         if (dev->img)
+//         {
+//             result = fz_get_pixmap_from_image(m_ctx, dev->img, nullptr,
+//                                               &transform, nullptr, nullptr);
+
+//             fz_drop_image(m_ctx, dev->img);
+//         }
+
+//         fz_drop_device(m_ctx, (fz_device *)dev);
+//     }
+//     fz_catch(m_ctx)
+//     {
+//         qWarning() << "MuPDF exception during on-demand image hit-test";
+//     }
+
+//     return result;
+// }

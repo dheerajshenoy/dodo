@@ -344,8 +344,9 @@ private:
     QTimer *m_hq_render_timer{nullptr};
     std::vector<Location> m_loc_history;
     bool m_is_modified{false};
+    // fz_pixmap *m_hit_pixmap{nullptr};
 
 #ifdef HAS_SYNCTEX
-    synctex_scanner_p m_synctex_scanner;
+    synctex_scanner_p m_synctex_scanner{nullptr};
 #endif
 };

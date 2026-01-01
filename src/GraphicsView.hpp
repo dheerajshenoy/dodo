@@ -28,10 +28,6 @@ public:
     {
         return m_selection_start;
     }
-    QPointF selectionEnd() const noexcept
-    {
-        return m_selection_end;
-    }
 
     void setMode(Mode mode) noexcept;
     Mode mode() const noexcept
@@ -91,7 +87,7 @@ private:
     QRect m_rect;
     QPoint m_start;
     QPointF m_mousePressPos;
-    QPointF m_selection_start, m_selection_end;
+    QPointF m_selection_start;
 
     bool m_selecting{false};
     bool m_dragging{false};

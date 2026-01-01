@@ -66,13 +66,13 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     }
 #endif
 
-    // Right click passthrough
-    if (event->button() == Qt::RightButton)
-    {
-        emit rightClickRequested(scenePos);
-        QGraphicsView::mousePressEvent(event);
-        return;
-    }
+    // Right click passthrough (for image context menu)
+    // if (event->button() == Qt::RightButton)
+    // {
+    //     emit rightClickRequested(scenePos);
+    //     QGraphicsView::mousePressEvent(event);
+    //     return;
+    // }
 
     // Multi-click tracking
     if (event->button() == Qt::LeftButton)
@@ -91,12 +91,6 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 
         switch (m_clickCount)
         {
-            case 1:
-                // Single click - do nothing special here
-                emit textSelectionDeletionRequested();
-                QGraphicsView::mousePressEvent(event);
-                return;
-
             case 2:
                 emit doubleClickRequested(scenePos);
                 return;
@@ -109,7 +103,9 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                 emit quadrupleClickRequested(scenePos);
                 return;
 
+            case 1:
             default:
+                emit textSelectionDeletionRequested();
                 break;
         }
     }
@@ -161,13 +157,10 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
         case Mode::TextHighlight:
             if (m_selecting)
             {
-                m_selection_end = scenePos;
                 if (m_mode == Mode::TextSelection)
-                    emit textSelectionRequested(m_selection_start,
-                                                m_selection_end);
+                    emit textSelectionRequested(m_selection_start, scenePos);
                 else
-                    emit textHighlightRequested(m_selection_start,
-                                                m_selection_end);
+                    emit textHighlightRequested(m_selection_start, scenePos);
             }
             break;
 
@@ -214,14 +207,20 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     switch (m_mode)
     {
         case Mode::TextSelection:
-            if (event->button() == Qt::LeftButton && isDrag)
+            if (m_selection_start == scenePos && !isDrag)
+            {
+                // No selection, just a click
+                emit textSelectionDeletionRequested();
+            }
+            else if (event->button() == Qt::LeftButton && isDrag)
                 emit textSelectionRequested(m_selection_start, scenePos);
             break;
 
         case Mode::TextHighlight:
             if (isDrag)
                 emit textHighlightRequested(m_selection_start, scenePos);
-            emit textSelectionDeletionRequested();
+            // emit textSelectionDeletionRequested(); Should we clear selection
+            // here?
             break;
 
         case Mode::RegionSelection:

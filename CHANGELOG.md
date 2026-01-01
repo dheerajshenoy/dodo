@@ -11,13 +11,13 @@
 - Search Bar improvements
     - Show only icons and not text in the search bar buttons
 - Close file in tab
-    
 
 ### Bug Fixes
 
 - Click on links not working properly in some cases
 - Fix navigation from menu
 - Fix synctex to work with new rendering system
+- Significantly improved rendering performance by optimizing memory copying from MuPDF to Qt
 
 ## 0.5.0
 

@@ -73,6 +73,13 @@ public:
         std::vector<Annotation *> annotations;
     };
 
+    // structure to carry the "Life Support" for the image memory
+    struct RenderPayload
+    {
+        fz_context *ctx;
+        fz_pixmap *pix;
+    };
+
     inline float zoom() const noexcept
     {
         return m_zoom;
@@ -188,7 +195,8 @@ public:
         const std::function<void(PageRenderResult)> &callback) noexcept;
     PageRenderResult renderPageWithExtrasAsync(const RenderJob &job) noexcept;
 
-    QPixmap hitTestImage(int pageno, const fz_point &pt) noexcept;
+    // fz_pixmap *hitTestImage(int pageno, const QPointF &pt, float zoom,
+    //                         float rotation) noexcept;
 
     std::vector<std::pair<QString, QString>> properties() noexcept;
     fz_outline *getOutline() noexcept;
@@ -275,6 +283,35 @@ private:
     {
         std::vector<CachedTextChar> chars;
     };
+
+    // Used for hit-testing images on a page
+    struct ImageHitTestDevice
+    {
+        fz_device super;
+        fz_point query;
+        fz_image *img{nullptr};
+    };
+
+    // Callback for hit-testing images
+    // static void hit_test_image(fz_context *ctx, fz_device *d, fz_image *img,
+    //                            fz_matrix ctm, float alpha,
+    //                            fz_color_params color_params)
+    // {
+    //     Q_UNUSED(ctx);
+    //     Q_UNUSED(alpha);
+    //     Q_UNUSED(color_params);
+
+    //     ImageHitTestDevice *dev = reinterpret_cast<ImageHitTestDevice *>(d);
+    //     fz_rect rect            = fz_transform_rect(fz_unit_rect, ctm);
+    //     const float x           = dev->query.x;
+    //     const float y           = dev->query.y;
+
+    //     if (x >= rect.x0 && x <= rect.x1 && y >= rect.y0 && y <= rect.y1)
+    //     {
+    //         qDebug() << "Image hit at point (" << x << "," << y << ")";
+    //         dev->img = img;
+    //     }
+    // }
 
     QString m_filepath;
     int m_page_count{0};
