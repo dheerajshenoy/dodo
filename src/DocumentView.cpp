@@ -527,6 +527,27 @@ DocumentView::GotoLocation(int pageno, float x, float y) noexcept
     if (m_model->numPages() == 0)
         return;
 
+    // 1. RECORD HISTORY BEFORE JUMPING
+    // Only record if not currently navigating through history
+    if (!m_suppress_history_recording)
+    {
+        // Get current view state to save it
+        int currentPage = m_pageno;
+        // Map the center of the current viewport back to PDF space
+        QPointF centerScene
+            = m_gview->mapToScene(m_gview->viewport()->rect().center());
+        int dummyIdx;
+        GraphicsPixmapItem *pageItem = nullptr;
+
+        if (pageAtScenePos(centerScene, dummyIdx, pageItem))
+        {
+            QPointF localPos = pageItem->mapFromScene(centerScene);
+            fz_point pdfLoc  = m_model->toPDFSpace(dummyIdx, localPos);
+            m_loc_history.push_back({dummyIdx, pdfLoc.x, pdfLoc.y});
+        }
+    }
+
+    // 2. HANDLE PENDING RENDERS
     if (!m_page_items_hash.contains(pageno))
     {
         m_pending_jump = {pageno, x, y};
@@ -540,19 +561,12 @@ DocumentView::GotoLocation(int pageno, float x, float y) noexcept
 #endif
 
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
-
-    // Use the model to get the local pixel offset on that page
     const QPointF localPos = m_model->toPixelSpace(pageno, fz_point{x, y});
-
-    // Map the local pixmap coordinate to the global scene coordinate
     const QPointF scenePos = pageItem->mapToScene(localPos);
 
     // Center view
     m_gview->centerOn(scenePos);
     m_jump_marker->showAt(scenePos.x(), scenePos.y());
-
-    m_loc_history.push_back(Location{m_pageno, static_cast<float>(scenePos.x()),
-                                     static_cast<float>(scenePos.y())});
 }
 
 // Go to specific page number
@@ -571,7 +585,10 @@ DocumentView::GotoPage(int pageno) noexcept
     m_pageno       = pageno;
     const double y = pageno * m_page_stride + m_page_stride / 2.0;
     m_gview->centerOn(QPointF(m_gview->sceneRect().width() / 2.0, y));
-    m_loc_history.push_back(Location{pageno, 0.0f, 0.0f});
+
+    if (!m_suppress_history_recording)
+    {
+    }
 }
 
 // Go to next page
@@ -951,7 +968,6 @@ void
 DocumentView::GotoFirstPage() noexcept
 {
     m_vscroll->setValue(0);
-    m_loc_history.push_back(Location{m_pageno, 0.0f, 0.0f});
 }
 
 // Go to the last page
@@ -960,7 +976,6 @@ DocumentView::GotoLastPage() noexcept
 {
     int maxValue = m_vscroll->maximum();
     m_vscroll->setValue(maxValue);
-    m_loc_history.push_back(Location{m_pageno, 0.0f, 0.0f});
 }
 
 // Go back in history
@@ -970,16 +985,15 @@ DocumentView::GoBackHistory() noexcept
     if (m_loc_history.empty())
         return;
 
-    if (m_loc_history.back().pageno == m_pageno)
-    {
-        // Pop current location
-        m_loc_history.pop_back();
-        if (m_loc_history.empty())
-            return;
-    }
+#ifndef NDEBUG
+    qDebug() << "DocumentView::GoBackHistory(): Going back in history";
+#endif
+
     const Location loc = m_loc_history.back();
     m_loc_history.pop_back();
+    m_suppress_history_recording = true;
     GotoLocation(loc.pageno, loc.x, loc.y);
+    m_suppress_history_recording = false;
 }
 
 // Get the list of currently visible pages

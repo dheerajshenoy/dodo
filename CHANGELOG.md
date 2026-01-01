@@ -18,6 +18,7 @@
 - Fix navigation from menu
 - Fix synctex to work with new rendering system
 - Significantly improved rendering performance by optimizing memory copying from MuPDF to Qt
+- Fix go back history not working properly
 
 ## 0.5.0
 
