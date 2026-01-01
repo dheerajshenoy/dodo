@@ -175,6 +175,10 @@ Model::buildPageCache(int pageno) noexcept
         cl.rect = link->rect;
         cl.uri  = QString::fromUtf8(link->uri);
 
+        // Store source location for all link types (where the link is located)
+        cl.source_loc.x = link->rect.x0;
+        cl.source_loc.y = link->rect.y0;
+
         if (fz_is_external_link(ctx, link->uri))
         {
             cl.type = BrowseLinkItem::LinkType::External;
@@ -193,8 +197,6 @@ Model::buildPageCache(int pageno) noexcept
             cl.target_page    = dest.loc.page;
             cl.target_loc.x   = dest.x;
             cl.target_loc.y   = dest.y;
-            cl.source_loc.x   = link->rect.x0;
-            cl.source_loc.y   = link->rect.y0;
             cl.zoom           = dest.zoom;
         }
 

@@ -1521,8 +1521,9 @@ DocumentView::renderLinks(int pageno,
         {
             case BrowseLinkItem::LinkType::FitH:
             {
-                connect(link, &BrowseLinkItem::horizontalFitRequested, this,
-                        [&](int pageno, const BrowseLinkItem::PageLocation &loc)
+                connect(
+                    link, &BrowseLinkItem::horizontalFitRequested, this,
+                    [this](int pageno, const BrowseLinkItem::PageLocation &loc)
                 {
                     GotoLocation({pageno, loc.x, loc.y});
                     setFitMode(FitMode::Width);
@@ -1532,8 +1533,9 @@ DocumentView::renderLinks(int pageno,
 
             case BrowseLinkItem::LinkType::FitV:
             {
-                connect(link, &BrowseLinkItem::verticalFitRequested, this,
-                        [&](int pageno, const BrowseLinkItem::PageLocation &loc)
+                connect(
+                    link, &BrowseLinkItem::verticalFitRequested, this,
+                    [this](int pageno, const BrowseLinkItem::PageLocation &loc)
                 {
                     GotoLocation({pageno, loc.x, loc.y});
                     setFitMode(FitMode::Height);
@@ -1544,11 +1546,12 @@ DocumentView::renderLinks(int pageno,
             case BrowseLinkItem::LinkType::Page:
             {
                 connect(link, &BrowseLinkItem::jumpToPageRequested, this,
-                        [&](int pageno, const BrowseLinkItem::PageLocation
-                                            &sourceLocationOfLink)
+                        [this, pageno](int targetPageno,
+                                       const BrowseLinkItem::PageLocation
+                                           &sourceLocationOfLink)
                 {
-                    const DocumentView::PageLocation targetLocation{pageno, 0,
-                                                                    0};
+                    const DocumentView::PageLocation targetLocation{
+                        targetPageno, 0, 0};
                     const DocumentView::PageLocation sourceLocation{
                         pageno, sourceLocationOfLink.x, sourceLocationOfLink.y};
 
@@ -1561,23 +1564,25 @@ DocumentView::renderLinks(int pageno,
             {
 
                 connect(link, &BrowseLinkItem::jumpToLocationRequested, this,
-                        [&](int pageno,
-                            const BrowseLinkItem::PageLocation
-                                &targetLocationOfLink,
-                            const BrowseLinkItem::PageLocation
-                                &sourceLocationOfLink)
+                        [this, pageno](int targetPageno,
+                                       const BrowseLinkItem::PageLocation
+                                           &targetLocationOfLink,
+                                       const BrowseLinkItem::PageLocation
+                                           &sourceLocationOfLink)
                 {
                     qDebug() << "-------------------------------";
-                    qDebug() << "Link clicked to go to page" << pageno
+                    qDebug() << "Link clicked to go to page" << targetPageno
                              << "at location" << targetLocationOfLink.x << ","
                              << targetLocationOfLink.y;
 
-                    qDebug() << "Source location is" << sourceLocationOfLink.x
-                             << "," << sourceLocationOfLink.y;
+                    qDebug() << "Source location is on page" << pageno << "at"
+                             << sourceLocationOfLink.x << ","
+                             << sourceLocationOfLink.y;
                     qDebug() << "-------------------------------";
 
                     const DocumentView::PageLocation targetLocation{
-                        pageno, targetLocationOfLink.x, targetLocationOfLink.y};
+                        targetPageno, targetLocationOfLink.x,
+                        targetLocationOfLink.y};
 
                     const DocumentView::PageLocation sourceLocation{
                         pageno, sourceLocationOfLink.x, sourceLocationOfLink.y};
@@ -1592,7 +1597,7 @@ DocumentView::renderLinks(int pageno,
         }
 
         connect(link, &BrowseLinkItem::linkCopyRequested, this,
-                [&](const QString &link)
+                [this](const QString &link)
         {
             if (link.startsWith("#"))
             {
