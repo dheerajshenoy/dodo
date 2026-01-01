@@ -53,10 +53,10 @@ public:
         COUNT
     };
 
-    struct Location
+    struct PageLocation
     {
-        int pageno{-1};
-        float x{0.0f}, y{0.0f};
+        int pageno;
+        float x, y;
     };
 
     inline bool passwordRequired() const noexcept
@@ -183,7 +183,9 @@ public:
     void renderVisiblePages() noexcept;
     void setFitMode(FitMode mode) noexcept;
     void GotoPage(int pageno) noexcept;
-    void GotoLocation(int pageno, float x, float y) noexcept;
+    void GotoLocation(const PageLocation &targetlocation,
+                      const PageLocation &sourceLocation
+                      = {-1, -1, -1}) noexcept;
     void GotoNextPage() noexcept;
     void GotoPrevPage() noexcept;
     void GotoFirstPage() noexcept;
@@ -251,12 +253,6 @@ protected:
     void handleContextMenuRequested(const QPointF &scenePos) noexcept;
 
 private:
-    struct PendingJump
-    {
-        int pageno{-1};
-        float x{0.0f}, y{0.0f};
-    };
-
     struct HitRef
     {
         int page;
@@ -331,18 +327,19 @@ private:
     float m_old_y{0.0f};
     JumpMarker *m_jump_marker{nullptr};
     QTimer *m_scroll_page_update_timer{nullptr};
-    PendingJump m_pending_jump;
+    PageLocation m_pending_jump{-1, 0, 0};
 
     int m_search_index{-1};
     QMap<int, std::vector<Model::SearchHit>> m_search_hits;
     std::vector<HitRef> m_search_hit_flat_refs;
     QHash<int, QGraphicsPathItem *> m_search_items;
 
+    float m_preload_margin{1.0f};
     QPointF m_selection_start, m_selection_end;
     int m_last_selection_page{-1};
     QGraphicsPathItem *m_selection_path_item{nullptr};
     QTimer *m_hq_render_timer{nullptr};
-    std::vector<Location> m_loc_history;
+    std::vector<PageLocation> m_loc_history;
     bool m_is_modified{false};
     bool m_suppress_history_recording{false};
     // fz_pixmap *m_hit_pixmap{nullptr};

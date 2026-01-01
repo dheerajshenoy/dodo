@@ -11,6 +11,10 @@
 - Search Bar improvements
     - Show only icons and not text in the search bar buttons
 - Close file in tab
+- Preload next and previous pages for faster navigation (configurable in settings)
+    - Rendering
+        `preload_adjacent_pages`
+        `num_preloaded_pages`
 
 ### Bug Fixes
 

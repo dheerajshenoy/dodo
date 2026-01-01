@@ -1,5 +1,6 @@
 #include "DocumentView.hpp"
 
+#include "BrowseLinkItem.hpp"
 #include "GraphicsPixmapItem.hpp"
 #include "GraphicsView.hpp"
 #include "PropertiesWidget.hpp"
@@ -522,47 +523,64 @@ DocumentView::setZoom(double factor) noexcept
 }
 
 void
-DocumentView::GotoLocation(int pageno, float x, float y) noexcept
+DocumentView::GotoLocation(const PageLocation &targetLocation,
+                           const PageLocation &sourceLocation) noexcept
 {
     if (m_model->numPages() == 0)
         return;
 
-    // 1. RECORD HISTORY BEFORE JUMPING
+    // RECORD HISTORY BEFORE JUMPING
     // Only record if not currently navigating through history
     if (!m_suppress_history_recording)
     {
-        // Get current view state to save it
-        int currentPage = m_pageno;
-        // Map the center of the current viewport back to PDF space
-        QPointF centerScene
-            = m_gview->mapToScene(m_gview->viewport()->rect().center());
-        int dummyIdx;
-        GraphicsPixmapItem *pageItem = nullptr;
-
-        if (pageAtScenePos(centerScene, dummyIdx, pageItem))
+        if (sourceLocation.pageno != -1)
         {
-            QPointF localPos = pageItem->mapFromScene(centerScene);
-            fz_point pdfLoc  = m_model->toPDFSpace(dummyIdx, localPos);
-            m_loc_history.push_back({dummyIdx, pdfLoc.x, pdfLoc.y});
+            // Use provided source location
+            qDebug() << "Recording source location from provided data:"
+                     << sourceLocation.pageno << sourceLocation.x
+                     << sourceLocation.y;
+            m_loc_history.push_back(
+                {sourceLocation.pageno, sourceLocation.x, sourceLocation.y});
+        }
+        else
+        {
+            // Map the center of the current viewport back to PDF space
+            const QPointF centerScene
+                = m_gview->mapToScene(m_gview->viewport()->rect().center());
+            int dummyIdx;
+            GraphicsPixmapItem *pageItem = nullptr;
+
+            if (pageAtScenePos(centerScene, dummyIdx, pageItem))
+            {
+                QPointF localPos = pageItem->mapFromScene(centerScene);
+                fz_point pdfLoc  = m_model->toPDFSpace(dummyIdx, localPos);
+                m_loc_history.push_back({dummyIdx, pdfLoc.x, pdfLoc.y});
+            }
         }
     }
 
-    // 2. HANDLE PENDING RENDERS
-    if (!m_page_items_hash.contains(pageno))
+    // HANDLE PENDING RENDERS
+    if (!m_page_items_hash.contains(targetLocation.pageno))
     {
-        m_pending_jump = {pageno, x, y};
-        requestPageRender(pageno);
+        qDebug() << "DocumentView::GotoLocation(): Target page"
+                 << targetLocation.pageno
+                 << "not yet rendered. Deferring jump until render.";
+        m_pending_jump = targetLocation;
+        requestPageRender(targetLocation.pageno);
         return;
     }
 
 #ifndef NDEBUG
-    qDebug() << "DocumentView::GotoLocation(): Requested location:" << pageno
-             << x << y << "in document with" << m_model->numPages() << "pages.";
+    qDebug() << "DocumentView::GotoLocation(): Requested "
+                "targetLocationation:"
+             << targetLocation.pageno << targetLocation.x << targetLocation.y
+             << "in document with" << m_model->numPages() << "pages.";
 #endif
 
-    GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
-    const QPointF localPos = m_model->toPixelSpace(pageno, fz_point{x, y});
-    const QPointF scenePos = pageItem->mapToScene(localPos);
+    GraphicsPixmapItem *pageItem = m_page_items_hash[targetLocation.pageno];
+    const QPointF targetLocationalPos = m_model->toPixelSpace(
+        targetLocation.pageno, fz_point{targetLocation.x, targetLocation.y});
+    const QPointF scenePos = pageItem->mapToScene(targetLocationalPos);
 
     // Center view
     m_gview->centerOn(scenePos);
@@ -989,10 +1007,10 @@ DocumentView::GoBackHistory() noexcept
     qDebug() << "DocumentView::GoBackHistory(): Going back in history";
 #endif
 
-    const Location loc = m_loc_history.back();
+    const PageLocation loc = m_loc_history.back();
     m_loc_history.pop_back();
     m_suppress_history_recording = true;
-    GotoLocation(loc.pageno, loc.x, loc.y);
+    GotoLocation(loc);
     m_suppress_history_recording = false;
 }
 
@@ -1000,20 +1018,18 @@ DocumentView::GoBackHistory() noexcept
 std::set<int>
 DocumentView::getVisiblePages() noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::getVisiblePages(): Calculating visible pages";
+#endif
     std::set<int> visiblePages;
-
-    const double preloadMargin = m_page_stride;
-
-    // if (m_config.behavior.cache_pages > 0)
-    //     preloadMargin *= m_config.behavior.cache_pages;
 
     const QRectF visibleSceneRect
         = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
 
     double top    = visibleSceneRect.top();
     double bottom = visibleSceneRect.bottom();
-    top -= preloadMargin;
-    bottom += preloadMargin;
+    top -= m_preload_margin;
+    bottom += m_preload_margin;
 
     int firstPage = static_cast<int>(std::floor(top / m_page_stride));
     int lastPage  = static_cast<int>(std::floor(bottom / m_page_stride));
@@ -1175,6 +1191,10 @@ DocumentView::cachePageStride() noexcept
     const double spacingScene = m_spacing * m_current_zoom;
 
     m_page_stride = pageHeightScene + spacingScene;
+
+    m_preload_margin = m_page_stride; // preload one page above and below
+    if (m_config.behavior.cache_pages > 0)
+        m_preload_margin *= m_config.behavior.cache_pages;
 }
 
 // Update the scene rect based on number of pages and page stride
@@ -1450,8 +1470,7 @@ DocumentView::requestPageRender(int pageno) noexcept
 
         if (m_pending_jump.pageno != -1)
         {
-            GotoLocation(m_pending_jump.pageno, m_pending_jump.x,
-                         m_pending_jump.y);
+            GotoLocation(m_pending_jump);
             centerOnPage(m_pending_jump.pageno);
             m_pending_jump = {-1, 0, 0};
         }
@@ -1503,9 +1522,9 @@ DocumentView::renderLinks(int pageno,
             case BrowseLinkItem::LinkType::FitH:
             {
                 connect(link, &BrowseLinkItem::horizontalFitRequested, this,
-                        [&](int pageno, const BrowseLinkItem::Location &loc)
+                        [&](int pageno, const BrowseLinkItem::PageLocation &loc)
                 {
-                    GotoLocation(pageno, 0, loc.y);
+                    GotoLocation({pageno, loc.x, loc.y});
                     setFitMode(FitMode::Width);
                 });
             }
@@ -1514,9 +1533,9 @@ DocumentView::renderLinks(int pageno,
             case BrowseLinkItem::LinkType::FitV:
             {
                 connect(link, &BrowseLinkItem::verticalFitRequested, this,
-                        [&](int pageno, const BrowseLinkItem::Location &loc)
+                        [&](int pageno, const BrowseLinkItem::PageLocation &loc)
                 {
-                    GotoLocation(pageno, 0, loc.y);
+                    GotoLocation({pageno, loc.x, loc.y});
                     setFitMode(FitMode::Height);
                 });
             }
@@ -1525,15 +1544,46 @@ DocumentView::renderLinks(int pageno,
             case BrowseLinkItem::LinkType::Page:
             {
                 connect(link, &BrowseLinkItem::jumpToPageRequested, this,
-                        [&](int pageno) { GotoPage(pageno); });
+                        [&](int pageno, const BrowseLinkItem::PageLocation
+                                            &sourceLocationOfLink)
+                {
+                    const DocumentView::PageLocation targetLocation{pageno, 0,
+                                                                    0};
+                    const DocumentView::PageLocation sourceLocation{
+                        pageno, sourceLocationOfLink.x, sourceLocationOfLink.y};
+
+                    GotoLocation(targetLocation, sourceLocation);
+                });
             }
             break;
 
-            case BrowseLinkItem::LinkType::XYZ:
+            case BrowseLinkItem::LinkType::Location:
             {
+
                 connect(link, &BrowseLinkItem::jumpToLocationRequested, this,
-                        [&](int pageno, const BrowseLinkItem::Location &loc)
-                { GotoLocation(pageno, loc.x, loc.y); });
+                        [&](int pageno,
+                            const BrowseLinkItem::PageLocation
+                                &targetLocationOfLink,
+                            const BrowseLinkItem::PageLocation
+                                &sourceLocationOfLink)
+                {
+                    qDebug() << "-------------------------------";
+                    qDebug() << "Link clicked to go to page" << pageno
+                             << "at location" << targetLocationOfLink.x << ","
+                             << targetLocationOfLink.y;
+
+                    qDebug() << "Source location is" << sourceLocationOfLink.x
+                             << "," << sourceLocationOfLink.y;
+                    qDebug() << "-------------------------------";
+
+                    const DocumentView::PageLocation targetLocation{
+                        pageno, targetLocationOfLink.x, targetLocationOfLink.y};
+
+                    const DocumentView::PageLocation sourceLocation{
+                        pageno, sourceLocationOfLink.x, sourceLocationOfLink.y};
+
+                    GotoLocation(targetLocation, sourceLocation);
+                });
             }
             break;
 

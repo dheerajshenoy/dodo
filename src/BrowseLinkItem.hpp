@@ -20,7 +20,7 @@ class BrowseLinkItem : public QObject, public QGraphicsRectItem
 {
     Q_OBJECT
 public:
-    struct Location
+    struct PageLocation
     {
         float x, y, zoom;
     };
@@ -31,7 +31,7 @@ public:
         Section,
         FitV,
         FitH,
-        XYZ,
+        Location,
         External,
     };
 
@@ -58,13 +58,18 @@ public:
     {
         return _pageno;
     }
-    inline void setXYZ(const Location &loc) noexcept
+    inline void setTargetLocation(const PageLocation &loc) noexcept
     {
         _loc = loc;
     }
-    inline Location XYZ() noexcept
+    inline PageLocation location() noexcept
     {
         return _loc;
+    }
+
+    inline void setSourceLocation(const PageLocation &loc) noexcept
+    {
+        _source_loc = loc;
     }
 
     inline void setURI(char *uri) noexcept
@@ -88,10 +93,11 @@ public:
     }
 
 signals:
-    void jumpToPageRequested(int pageno);
-    void jumpToLocationRequested(int pageno, const Location &loc);
-    void verticalFitRequested(int pageno, const Location &loc);
-    void horizontalFitRequested(int pageno, const Location &loc);
+    void jumpToPageRequested(int pageno, const PageLocation &sourceLoc);
+    void jumpToLocationRequested(int pageno, const PageLocation &targetLoc,
+                                 const PageLocation &sourceLoc);
+    void verticalFitRequested(int pageno, const PageLocation &loc);
+    void horizontalFitRequested(int pageno, const PageLocation &loc);
     void linkCopyRequested(const QString &link);
 
 protected:
@@ -103,11 +109,11 @@ protected:
             {
                 case LinkType::Page:
                     if (_pageno)
-                        emit jumpToPageRequested(_pageno);
+                        emit jumpToPageRequested(_pageno, _source_loc);
                     break;
 
                 case LinkType::Section:
-                    emit jumpToLocationRequested(_pageno, _loc);
+                    emit jumpToLocationRequested(_pageno, _loc, _source_loc);
                     break;
 
                 case LinkType::FitV:
@@ -118,8 +124,8 @@ protected:
                     emit horizontalFitRequested(_pageno, _loc);
                     break;
 
-                case LinkType::XYZ:
-                    emit jumpToLocationRequested(_pageno, _loc);
+                case LinkType::Location:
+                    emit jumpToLocationRequested(_pageno, _loc, _source_loc);
                     break;
 
                 case LinkType::External:
@@ -156,7 +162,8 @@ protected:
     }
 
 private:
-    Location _loc{0, 0, 0};
+    PageLocation _loc{0, 0, 0};
+    PageLocation _source_loc{0, 0, 0};
     int _pageno{-1};
     QString _link;
     LinkType _type;

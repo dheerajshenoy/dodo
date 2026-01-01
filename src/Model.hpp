@@ -250,7 +250,8 @@ private:
 
         // optional extras
         int target_page = -1;
-        float x = 0.0f, y = 0.0f;
+        fz_point target_loc{}; // It's target location
+        fz_point source_loc{}; // It's own location
         float zoom = 0.0f;
     };
 

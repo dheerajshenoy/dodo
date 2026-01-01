@@ -5,6 +5,7 @@
 #include "PopupAnnotation.hpp"
 #include "RectAnnotation.hpp"
 #include "commands/TextHighlightAnnotationCommand.hpp"
+#include "mupdf/fitz/device.h"
 #include "mupdf/fitz/display-list.h"
 #include "mupdf/fitz/document.h"
 #include "mupdf/fitz/util.h"
@@ -793,10 +794,6 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     fz_pixmap *pix{nullptr};
     fz_device *dev{nullptr};
 
-    auto cleanup = [&]() -> void
-    {
-    };
-
     fz_try(ctx)
     {
         // Get cached display list
@@ -874,19 +871,22 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
             BrowseLinkItem *item
                 = new BrowseLinkItem(qtRect, link.uri, link.type);
+            item->setSourceLocation(BrowseLinkItem::PageLocation{
+                link.source_loc.x, link.source_loc.y, 0.0f});
 
             if (link.type == BrowseLinkItem::LinkType::Page)
             {
                 item->setGotoPageNo(link.target_page);
             }
 
-            if (link.type == BrowseLinkItem::LinkType::XYZ)
+            if (link.type == BrowseLinkItem::LinkType::Location)
             {
                 item->setGotoPageNo(link.target_page);
                 // Set x, y to 0 if nan
-                item->setXYZ(BrowseLinkItem::Location{
-                    std::isnan(link.x) ? 0 : link.x,
-                    std::isnan(link.y) ? 0 : link.y, link.zoom});
+                item->setTargetLocation(BrowseLinkItem::PageLocation{
+                    std::isnan(link.target_loc.x) ? 0 : link.target_loc.x,
+                    std::isnan(link.target_loc.y) ? 0 : link.target_loc.y,
+                    link.zoom});
             }
 
             if (item)

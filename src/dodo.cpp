@@ -1055,7 +1055,7 @@ void
 dodo::GotoLocation(int pageno, float x, float y) noexcept
 {
     if (m_doc)
-        m_doc->GotoLocation(pageno - 1, x, y);
+        m_doc->GotoLocation({pageno - 1, x, y});
 }
 
 // Goes to the next search hit
