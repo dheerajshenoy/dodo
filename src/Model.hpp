@@ -343,6 +343,7 @@ private:
     fz_locks_context m_fz_locks;
     std::unordered_map<int, fz_stext_page *> m_stext_page_cache;
     std::unordered_map<int, PageCacheEntry> m_page_cache;
+    mutable std::recursive_mutex m_page_cache_mutex;
     std::mutex m_doc_mutex;
     QFuture<PageRenderResult> m_render_future;
     pdf_write_options m_pdf_write_options;

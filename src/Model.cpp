@@ -5,7 +5,6 @@
 #include "PopupAnnotation.hpp"
 #include "RectAnnotation.hpp"
 #include "commands/TextHighlightAnnotationCommand.hpp"
-#include "mupdf/fitz/device.h"
 #include "mupdf/fitz/display-list.h"
 #include "mupdf/fitz/document.h"
 #include "mupdf/fitz/util.h"
@@ -72,10 +71,13 @@ Model::cleanup() noexcept
     pdf_drop_document(m_ctx, m_pdf_doc);
     fz_drop_document(m_ctx, m_doc);
 
-    for (auto &[_, entry] : m_page_cache)
-        fz_drop_display_list(m_ctx, entry.display_list);
+    {
+        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+        for (auto &[_, entry] : m_page_cache)
+            fz_drop_display_list(m_ctx, entry.display_list);
 
-    m_page_cache.clear();
+        m_page_cache.clear();
+    }
     m_stext_page_cache.clear();
     m_text_cache.clear();
     fz_drop_document(m_ctx, m_doc);
@@ -137,9 +139,12 @@ Model::close() noexcept
 void
 Model::buildPageCache(int pageno) noexcept
 {
-    auto it = m_page_cache.find(pageno);
-    if (it != m_page_cache.end())
-        return;
+    {
+        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+        auto it = m_page_cache.find(pageno);
+        if (it != m_page_cache.end())
+            return;
+    }
 
     PageCacheEntry entry;
 
@@ -184,10 +189,12 @@ Model::buildPageCache(int pageno) noexcept
         else
         {
             fz_link_dest dest = fz_resolve_link_dest(ctx, m_doc, link->uri);
-            cl.type           = BrowseLinkItem::LinkType::XYZ;
+            cl.type           = BrowseLinkItem::LinkType::Location;
             cl.target_page    = dest.loc.page;
-            cl.x              = dest.x;
-            cl.y              = dest.y;
+            cl.target_loc.x   = dest.x;
+            cl.target_loc.y   = dest.y;
+            cl.source_loc.x   = link->rect.x0;
+            cl.source_loc.y   = link->rect.y0;
             cl.zoom           = dest.zoom;
         }
 
@@ -245,7 +252,10 @@ Model::buildPageCache(int pageno) noexcept
     entry.display_list = dlist;
     entry.bounds       = bounds;
 
-    m_page_cache[pageno] = entry;
+    {
+        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+        m_page_cache[pageno] = entry;
+    }
 }
 
 bool
@@ -368,9 +378,12 @@ Model::reloadDocument() noexcept
     clear_fz_stext_page_cache();
 
     // Drop display lists / page cache entries
-    for (auto &[_, entry] : m_page_cache)
-        fz_drop_display_list(m_ctx, entry.display_list);
-    m_page_cache.clear();
+    {
+        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+        for (auto &[_, entry] : m_page_cache)
+            fz_drop_display_list(m_ctx, entry.display_list);
+        m_page_cache.clear();
+    }
 
     fz_drop_outline(m_ctx, m_outline);
     pdf_drop_document(m_ctx, m_pdf_doc);
@@ -790,23 +803,43 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     if (!ctx)
         return result;
 
+    // Copy cache entry data under lock to avoid race condition with
+    // invalidatePageCache. We keep a reference to the display list so it
+    // won't be freed while we're using it.
+    fz_display_list *dlist{nullptr};
+    fz_rect bounds{};
+    std::vector<CachedLink> links;
+    std::vector<CachedAnnotation> annotations;
+
+    {
+        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+        auto it = m_page_cache.find(job.pageno);
+        if (it == m_page_cache.end())
+        {
+            qWarning() << "Page not cached:" << job.pageno;
+            fz_drop_context(ctx);
+            return result;
+        }
+        const PageCacheEntry &entry = it->second;
+        // Increment reference count so the display list stays valid
+        dlist       = fz_keep_display_list(ctx, entry.display_list);
+        bounds      = entry.bounds;
+        links       = entry.links;
+        annotations = entry.annotations;
+    }
+
     fz_link *head{nullptr};
     fz_pixmap *pix{nullptr};
     fz_device *dev{nullptr};
 
+    auto cleanup = [&]() -> void
+    {
+    };
+
     fz_try(ctx)
     {
-        // Get cached display list
-        if (!m_page_cache.contains(job.pageno))
-        {
-            qWarning() << "Page not cached:" << job.pageno;
-            return result;
-        }
-        const PageCacheEntry &entry = m_page_cache[job.pageno];
-
-        fz_matrix transform
-            = fz_transform_page(entry.bounds, job.zoom, job.rotation);
-        fz_rect transformed = fz_transform_rect(entry.bounds, transform);
+        fz_matrix transform = fz_transform_page(bounds, job.zoom, job.rotation);
+        fz_rect transformed = fz_transform_rect(bounds, transform);
         fz_irect bbox       = fz_round_rect(transformed);
 
         // --- Render page to QImage ---
@@ -814,7 +847,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         fz_clear_pixmap_with_value(ctx, pix, 255);
 
         dev = fz_new_draw_device(ctx, fz_identity, pix);
-        fz_run_display_list(ctx, entry.display_list, dev, transform,
+        fz_run_display_list(ctx, dlist, dev, transform,
                             fz_rect_from_irect(bbox), nullptr);
 
         if (job.invert_color)
@@ -861,7 +894,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         result.image.setDevicePixelRatio(job.dpr);
 
         // --- Extract links ---
-        for (const auto &link : entry.links)
+        for (const auto &link : links)
         {
             if (link.uri.isEmpty())
                 continue;
@@ -893,7 +926,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
                 result.links.push_back(item);
         }
 
-        for (const auto &annot : entry.annotations)
+        for (const auto &annot : annotations)
         {
             fz_rect r = fz_transform_rect(annot.rect, transform);
 
@@ -931,7 +964,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         fz_close_device(ctx, dev);
         fz_drop_device(ctx, dev);
         fz_drop_link(ctx, head);
-        // fz_drop_context(ctx);
+        fz_drop_display_list(ctx, dlist);
     }
     fz_catch(ctx)
     {
@@ -1029,11 +1062,18 @@ Model::addHighlightAnnotation(int pageno, const std::vector<fz_quad> &quads,
         // Drop the page we loaded (not the Model's internal page)
         pdf_drop_page(m_ctx, page);
 
-        if (m_page_cache.contains(pageno))
         {
-            m_page_cache.erase(pageno);
-            buildPageCache(pageno);
+            std::lock_guard<std::recursive_mutex> cache_lock(
+                m_page_cache_mutex);
+            if (m_page_cache.contains(pageno))
+            {
+                fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
+                m_page_cache.erase(pageno);
+            }
         }
+        // Build cache outside the lock to avoid holding it during expensive
+        // operations
+        buildPageCache(pageno);
     }
     fz_catch(m_ctx)
     {
@@ -1085,6 +1125,7 @@ Model::removeHighlightAnnotation(int pageno,
 void
 Model::invalidatePageCache(int pageno) noexcept
 {
+    std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
     if (m_page_cache.contains(pageno))
     {
         fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);

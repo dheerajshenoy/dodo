@@ -14898,7 +14898,6 @@ TOML_IMPL_NAMESPACE_START
 				set_error_and_return_default("expected '-', saw '"sv, to_sv(*cp), "'"sv);
 			advance_and_return_if_error_or_eof({});
 
-			// "DD"
 			if (!consume_digit_sequence(digits, 2u))
 				set_error_and_return_default("expected 2-digit day, saw '"sv, to_sv(cp), "'"sv);
 			const auto day = digits[1] + digits[0] * 10u;
