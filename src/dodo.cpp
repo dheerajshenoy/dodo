@@ -717,8 +717,6 @@ dodo::updateUiEnabledState() noexcept
 {
     const bool hasOpenedFile = m_doc ? true : false;
 
-    qDebug() << "Updating UI enabled state. Has opened file:" << hasOpenedFile;
-
     m_actionOpenContainingFolder->setEnabled(hasOpenedFile);
     m_actionZoomIn->setEnabled(hasOpenedFile);
     m_actionZoomOut->setEnabled(hasOpenedFile);
@@ -1261,14 +1259,20 @@ dodo::OpenFile(const QString &filePath) noexcept
         }
     }
 
-    // Handle relative paths and home "~" expansion with this variable
-    QString fp                    = filePath;
-    static const QString &homeDir = QString::fromLocal8Bit(qgetenv("HOME"));
-    if (filePath.startsWith("~"))
-        fp = fp.replace(QLatin1Char('~'), homeDir);
+    QString fp = filePath;
 
-    if (QFileInfo(fp).isRelative())
-        fp = QDir::current().absoluteFilePath(filePath);
+    // expand ~
+    if (fp == "~")
+        fp = QDir::homePath();
+    else if (fp.startsWith("~/"))
+        fp = QDir(QDir::homePath()).filePath(fp.mid(2));
+
+    // make absolute + clean
+    fp = QDir::cleanPath(QFileInfo(fp).absoluteFilePath());
+
+    // make absolute
+    if (QDir::isRelativePath(fp))
+        fp = QDir::current().absoluteFilePath(fp);
 
     // Switch to already opened filepath, if it's open.
     auto it = m_path_tab_map.find(filePath);
@@ -2589,9 +2593,6 @@ dodo::updatePageNavigationActions() noexcept
 {
     const int page  = m_doc ? m_doc->pageNo() : -1;
     const int count = m_doc ? m_doc->numPages() : 0;
-
-    qDebug() << "Updating page navigation actions: page =" << page
-             << ", count =" << count;
 
     m_actionFirstPage->setEnabled(page > 0);
     m_actionPrevPage->setEnabled(page > 0);

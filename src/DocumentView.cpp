@@ -27,6 +27,10 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
                            QWidget *parent) noexcept
     : QWidget(parent), m_config(config)
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::DocumentView(): Initializing DocumentView for"
+             << filepath;
+#endif
     m_model = new Model(filepath);
 
     m_gview  = new GraphicsView(this);
@@ -536,9 +540,11 @@ DocumentView::GotoLocation(const PageLocation &targetLocation,
         if (sourceLocation.pageno != -1)
         {
             // Use provided source location
+#ifndef NDEBUG
             qDebug() << "Recording source location from provided data:"
                      << sourceLocation.pageno << sourceLocation.x
                      << sourceLocation.y;
+#endif
             m_loc_history.push_back(
                 {sourceLocation.pageno, sourceLocation.x, sourceLocation.y});
         }
@@ -562,9 +568,11 @@ DocumentView::GotoLocation(const PageLocation &targetLocation,
     // HANDLE PENDING RENDERS
     if (!m_page_items_hash.contains(targetLocation.pageno))
     {
+#ifndef NDEBUG
         qDebug() << "DocumentView::GotoLocation(): Target page"
                  << targetLocation.pageno
                  << "not yet rendered. Deferring jump until render.";
+#endif
         m_pending_jump = targetLocation;
         requestPageRender(targetLocation.pageno);
         return;
@@ -1570,16 +1578,6 @@ DocumentView::renderLinks(int pageno,
                                        const BrowseLinkItem::PageLocation
                                            &sourceLocationOfLink)
                 {
-                    qDebug() << "-------------------------------";
-                    qDebug() << "Link clicked to go to page" << targetPageno
-                             << "at location" << targetLocationOfLink.x << ","
-                             << targetLocationOfLink.y;
-
-                    qDebug() << "Source location is on page" << pageno << "at"
-                             << sourceLocationOfLink.x << ","
-                             << sourceLocationOfLink.y;
-                    qDebug() << "-------------------------------";
-
                     const DocumentView::PageLocation targetLocation{
                         targetPageno, targetLocationOfLink.x,
                         targetLocationOfLink.y};
