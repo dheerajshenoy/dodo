@@ -15,6 +15,14 @@
     - Rendering
         `preload_adjacent_pages`
         `num_preloaded_pages`
+- Layouts
+    - Single Page
+    - Left to Right
+    - Top to Bottom
+- Config option to set default layout on file open
+    - UI
+        `layout` - values: `single`, `left-to-right`, `top-to-bottom`
+    
 
 ### Bug Fixes
 
