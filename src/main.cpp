@@ -23,12 +23,14 @@ init_args(argparse::ArgumentParser &program)
         .nargs(1)
         .metavar("SESSION_NAME");
 
+#ifdef HAS_SYNCTEX
     program.add_argument("--synctex-forward")
         .help(
             "Format: "
             "--synctex-forward={pdf-file-path}#{src-file-path}:{line}:{column}")
         .default_value(std::string{})
         .metavar("SYNCTEX_FORMAT");
+#endif
 
     program.add_argument("files").remaining().metavar("FILE_PATH(s)");
 }

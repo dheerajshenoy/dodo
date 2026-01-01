@@ -10,6 +10,7 @@
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QProcess>
 #include <QVBoxLayout>
 #include <algorithm>
 #include <qguiapplication.h>
@@ -41,6 +42,10 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_current_search_hit_item->setPen(Qt::NoPen);
     m_current_search_hit_item->setZValue(ZVALUE_SEARCH_HITS + 1);
 
+#ifdef HAS_SYNCTEX
+    initSynctex();
+#endif
+
     m_hq_render_timer = new QTimer(this);
     m_hq_render_timer->setInterval(200);
     m_hq_render_timer->setSingleShot(true);
@@ -67,6 +72,20 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
 }
 
 void
+DocumentView::initSynctex() noexcept
+{
+    if (m_synctex_scanner)
+    {
+        synctex_scanner_free(m_synctex_scanner);
+        m_synctex_scanner = nullptr;
+    }
+    m_synctex_scanner = synctex_scanner_new_with_output_file(
+        CSTR(m_model->filePath()), nullptr, 1);
+    if (!m_synctex_scanner)
+        return;
+}
+
+void
 DocumentView::open() noexcept
 {
 #ifndef NDEBUG
@@ -86,6 +105,11 @@ DocumentView::initConnections() noexcept
 
 #ifndef NDEBUG
     qDebug() << "DocumentView::initConnections(): Initializing connections";
+#endif
+
+#ifdef HAS_SYNCTEX
+    connect(m_gview, &GraphicsView::synctexJumpRequested, this,
+            &DocumentView::handleSynctexJumpRequested);
 #endif
 
     connect(m_model, &Model::searchResultsReady, this,
@@ -218,6 +242,71 @@ DocumentView::handleClickSelection(int clickType,
     }
 
     updateSelectionPath(pageIndex, quads);
+}
+
+// Handle SyncTeX jump request
+#ifdef HAS_SYNCTEX
+void
+DocumentView::handleSynctexJumpRequested(const QPointF &scenePos) noexcept
+{
+#ifndef NDEBUG
+    qDebug() << "DocumentView::handleSynctexJumpRequested(): Handling "
+             << "SyncTeX jump to scene position" << scenePos;
+#endif
+
+    if (m_synctex_scanner)
+    {
+        int pageIndex                = -1;
+        GraphicsPixmapItem *pageItem = nullptr;
+
+        if (!pageAtScenePos(scenePos, pageIndex, pageItem))
+            return;
+
+        // Map to page-local coordinates
+        const QPointF pagePos = pageItem->mapFromScene(scenePos);
+        fz_point pdfPos       = m_model->toPDFSpace(pageIndex, pagePos);
+
+        if (synctex_edit_query(m_synctex_scanner, pageIndex + 1, pdfPos.x,
+                               pdfPos.y)
+            > 0)
+        {
+            synctex_node_p node;
+            while ((node = synctex_scanner_next_result(m_synctex_scanner)))
+                synctexLocateInDocument(synctex_node_get_name(node),
+                                        synctex_node_line(node));
+        }
+        else
+        {
+            QMessageBox::warning(this, "SyncTeX Error",
+                                 "No matching source found!");
+        }
+    }
+    else
+    {
+        QMessageBox::warning(this, "SyncTex", "Not a valid synctex document");
+    }
+}
+#endif
+
+void
+DocumentView::synctexLocateInDocument(const char *texFileName,
+                                      int line) noexcept
+{
+    QString tmp = m_config.behavior.synctex_editor_command;
+    if (!tmp.contains("%f") || !tmp.contains("%l"))
+    {
+        QMessageBox::critical(this, "SyncTeX error",
+                              "Invalid SyncTeX editor command: missing "
+                              "placeholders (%l and/or %f).");
+        return;
+    }
+
+    auto args   = QProcess::splitCommand(tmp);
+    auto editor = args.takeFirst();
+    args.replaceInStrings("%l", QString::number(line));
+    args.replaceInStrings("%f", texFileName);
+
+    QProcess::startDetached(editor, args);
 }
 
 // Handle text selection from GraphicsView
@@ -1170,7 +1259,7 @@ DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
     };
 
     // If right-clicked on an image
-    // if (m_hit_pixmap)
+    // if (m_model->hitTestImage(scenePos))
     // {
     //     addAction("Open Image in External Viewer",
     //               &DocumentView::OpenHitPixmapInExternalViewer);

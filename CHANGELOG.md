@@ -17,6 +17,7 @@
 
 - Click on links not working properly in some cases
 - Fix navigation from menu
+- Fix synctex to work with new rendering system
 
 ## 0.5.0
 

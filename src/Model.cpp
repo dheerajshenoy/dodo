@@ -51,7 +51,7 @@ Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
     m_fz_locks.unlock = mupdf_unlock_mutex;
     m_ctx = fz_new_context(nullptr, &m_fz_locks, FZ_STORE_UNLIMITED);
     fz_register_document_handlers(m_ctx);
-    m_doc = fz_open_document(m_ctx, m_filepath.toStdString().c_str());
+    m_doc = fz_open_document(m_ctx, CSTR(m_filepath));
     if (!m_doc)
     {
         m_success = false;
@@ -295,8 +295,7 @@ Model::decrypt() noexcept
         pdf_write_options opts = m_pdf_write_options;
         opts.do_encrypt        = PDF_ENCRYPT_NONE;
 
-        pdf_save_document(m_ctx, m_pdf_doc, m_filepath.toStdString().c_str(),
-                          &opts);
+        pdf_save_document(m_ctx, m_pdf_doc, CSTR(m_filepath), &opts);
     }
     fz_catch(m_ctx)
     {
@@ -433,7 +432,7 @@ Model::SaveAs(const QString &newFilePath) noexcept
 
     fz_try(m_ctx)
     {
-        pdf_save_document(m_ctx, m_pdf_doc, newFilePath.toStdString().c_str(),
+        pdf_save_document(m_ctx, m_pdf_doc, CSTR(newFilePath),
                           nullptr); // TODO: options for saving
     }
     fz_catch(m_ctx)
@@ -1427,4 +1426,12 @@ Model::buildTextCacheForPage(int pageno) noexcept
         fz_drop_stext_page(m_ctx, stext);
     if (page)
         fz_drop_page(m_ctx, page);
+}
+
+QPixmap
+Model::hitTestImage(int pageno, const fz_point &pt) noexcept
+{
+    QPixmap pixmap;
+
+    return pixmap;
 }

@@ -10,7 +10,9 @@
 extern "C"
 {
 #include <mupdf/fitz.h>
+#ifdef HAS_SYNCTEX
 #include <synctex/synctex_version.h>
+#endif
 }
 
 AboutDialog::AboutDialog(QWidget *parent)
@@ -91,7 +93,9 @@ AboutDialog::softwaresUsedSection() noexcept
 
     layout->addRow("Qt", new QLabel(QT_VERSION_STR));
     layout->addRow("MuPDF", new QLabel(QString(FZ_VERSION)));
+#ifdef HAS_SYNCTEX
     layout->addRow("SyncTeX", new QLabel(QString(SYNCTEX_VERSION_STRING)));
+#endif
 
     outerLayout->addLayout(layout, Qt::AlignCenter);
     widget->setLayout(outerLayout);

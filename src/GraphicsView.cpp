@@ -56,6 +56,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     const QPointF scenePos = mapToScene(event->pos());
 
     // SyncTeX priority
+#ifdef HAS_SYNCTEX
     if (m_mode == Mode::TextSelection && event->button() == Qt::LeftButton
         && (event->modifiers() & Qt::ShiftModifier))
     {
@@ -63,6 +64,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         m_ignore_next_release = true;
         return;
     }
+#endif
 
     // Right click passthrough
     if (event->button() == Qt::RightButton)

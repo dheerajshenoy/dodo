@@ -9,6 +9,15 @@
 #include "Model.hpp"
 #include "VerticalScrollBar.hpp"
 
+#ifdef HAS_SYNCTEX
+extern "C"
+{
+#include <synctex/synctex_parser.h>
+#include <synctex/synctex_parser_utils.h>
+#include <synctex/synctex_version.h>
+}
+#endif
+
 #include <QFileInfo>
 #include <QGraphicsItem>
 #include <QHash>
@@ -25,6 +34,8 @@
 #define ZVALUE_LINK 1000
 #define ZVALUE_JUMP_MARKER 1100
 #define ZVALUE_SEARCH_HITS 1200
+
+#define CSTR(x) x.toStdString().c_str()
 
 class DocumentView : public QWidget
 {
@@ -232,6 +243,9 @@ public slots:
     void handleClickSelection(int clickType, const QPointF &scenePos) noexcept;
     void handleSearchResults(
         const QMap<int, std::vector<Model::SearchHit>> &results) noexcept;
+#ifdef HAS_SYNCTEX
+    void handleSynctexJumpRequested(const QPointF &scenePos) noexcept;
+#endif
 
 protected:
     void handleContextMenuRequested(const QPointF &scenePos) noexcept;
@@ -305,6 +319,14 @@ private:
     QGraphicsPathItem *m_current_search_hit_item{nullptr};
     void updateSelectionPath(int pageno, std::vector<QPolygonF> quads) noexcept;
     void centerOnPage(int pageno) noexcept;
+    void OpenHitPixmapInExternalViewer() noexcept;
+    void SaveImageAs() noexcept;
+    void CopyImageToClipboard() noexcept;
+
+#ifdef HAS_SYNCTEX
+    void initSynctex() noexcept;
+    void synctexLocateInDocument(const char *fileName, int line) noexcept;
+#endif
 
     float m_old_y{0.0f};
     JumpMarker *m_jump_marker{nullptr};
@@ -322,4 +344,8 @@ private:
     QTimer *m_hq_render_timer{nullptr};
     std::vector<Location> m_loc_history;
     bool m_is_modified{false};
+
+#ifdef HAS_SYNCTEX
+    synctex_scanner_p m_synctex_scanner;
+#endif
 };

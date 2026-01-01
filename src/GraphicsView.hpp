@@ -64,7 +64,9 @@ signals:
     void textSelectionRequested(const QPointF &a, const QPointF &b);
     void textHighlightRequested(const QPointF &a, const QPointF &b);
     void textSelectionDeletionRequested();
+#ifdef HAS_SYNCTEX
     void synctexJumpRequested(QPointF scenePos);
+#endif
     void regionSelectRequested(const QRectF &sceneRect);
     void annotSelectRequested(const QRectF &sceneRect);
     void annotSelectRequested(const QPointF &scenePos);

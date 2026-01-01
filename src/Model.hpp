@@ -20,6 +20,8 @@ extern "C"
 #include <mupdf/pdf.h>
 }
 
+#define CSTR(x) x.toStdString().c_str()
+
 // Forward declaration
 class TextHighlightAnnotationCommand;
 class DocumentView;
@@ -185,6 +187,8 @@ public:
         const RenderJob &job,
         const std::function<void(PageRenderResult)> &callback) noexcept;
     PageRenderResult renderPageWithExtrasAsync(const RenderJob &job) noexcept;
+
+    QPixmap hitTestImage(int pageno, const fz_point &pt) noexcept;
 
     std::vector<std::pair<QString, QString>> properties() noexcept;
     fz_outline *getOutline() noexcept;

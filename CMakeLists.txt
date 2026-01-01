@@ -25,6 +25,9 @@ set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 find_package(Qt6 COMPONENTS Gui Widgets Core Sql Svg SvgWidgets Concurrent REQUIRED)
+find_package(PkgConfig REQUIRED)
+
+pkg_check_modules(synctex QUIET synctex)
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
@@ -72,11 +75,25 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 
-target_link_libraries(
-    ${PROJECT_NAME} Qt6::Widgets Qt6::Core Qt6::Sql Qt6::SvgWidgets Qt6::Concurrent
-    ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
-    ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
-    synctex)
+
+if(synctex_FOUND)
+    message(STATUS "Found SyncTex: ${synctex_VERSION}. Compiling with SyncTeX support.")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_SYNCTEX=1)
+    target_link_libraries(
+        ${PROJECT_NAME} Qt6::Widgets Qt6::Core Qt6::Sql Qt6::SvgWidgets Qt6::Concurrent
+        ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
+        ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
+        synctex
+    )
+else()
+    message(FATAL_ERROR "SyncTex not found. If you want SyncTex support please install it and compile again.")
+    target_link_libraries(
+        ${PROJECT_NAME} Qt6::Widgets Qt6::Core Qt6::Sql Qt6::SvgWidgets Qt6::Concurrent
+        ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
+        ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
+    )
+endif()
+
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 #Install icons to correct freedesktop - compliant locations
