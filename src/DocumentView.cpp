@@ -690,6 +690,23 @@ DocumentView::zoomHelper() noexcept
     qDebug() << "DocumentView::zoomHelper(): Zooming from" << m_current_zoom
              << "to" << m_target_zoom;
 #endif
+
+    // Record the current center position in PDF coordinates before zooming
+    int anchorPageIndex            = -1;
+    GraphicsPixmapItem *anchorItem = nullptr;
+    fz_point anchorPdfPos          = {0, 0};
+    bool hasAnchor                 = false;
+
+    const QPointF centerScene
+        = m_gview->mapToScene(m_gview->viewport()->rect().center());
+
+    if (pageAtScenePos(centerScene, anchorPageIndex, anchorItem))
+    {
+        QPointF localPos = anchorItem->mapFromScene(centerScene);
+        anchorPdfPos     = m_model->toPDFSpace(anchorPageIndex, localPos);
+        hasAnchor        = true;
+    }
+
     m_current_zoom = m_target_zoom;
     cachePageStride();
 
@@ -731,6 +748,16 @@ DocumentView::zoomHelper() noexcept
     }
 
     renderSearchHitsInScrollbar();
+
+    // Restore viewport to the same PDF position after zoom
+    if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
+    {
+        GraphicsPixmapItem *pageItem = m_page_items_hash[anchorPageIndex];
+        const QPointF restoredPixelPos
+            = m_model->toPixelSpace(anchorPageIndex, anchorPdfPos);
+        const QPointF restoredScenePos = pageItem->mapToScene(restoredPixelPos);
+        m_gview->centerOn(restoredScenePos);
+    }
 
     m_hq_render_timer->start();
 }
