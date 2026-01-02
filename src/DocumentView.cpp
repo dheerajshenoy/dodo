@@ -66,6 +66,8 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_gview->setAlignment(Qt::AlignCenter);
     m_gview->setMode(m_config.behavior.initial_mode);
     m_gview->setBackgroundBrush(QColor(m_config.ui.colors["background"]));
+
+    qDebug() << "Setting DPR to" << m_config.rendering.dpi;
     m_model->setDPI(m_config.rendering.dpi);
     m_model->setAnnotRectColor(
         QColor(m_config.ui.colors["annot_rect"]).toRgb());
@@ -102,14 +104,14 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
 
     initConnections();
 
-    if (m_config.ui.initial_fit == "height")
-        setFitMode(FitMode::Height);
-    else if (m_config.ui.initial_fit == "width")
-        setFitMode(FitMode::Width);
-    else if (m_config.ui.initial_fit == "window")
-        setFitMode(FitMode::Window);
-    else
-        setFitMode(FitMode::None);
+    // if (m_config.ui.initial_fit == "height")
+    //     setFitMode(FitMode::Height);
+    // else if (m_config.ui.initial_fit == "width")
+    //     setFitMode(FitMode::Width);
+    // else if (m_config.ui.initial_fit == "window")
+    //     setFitMode(FitMode::Window);
+    // else
+    //     setFitMode(FitMode::None);
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setAlignment(Qt::AlignCenter);
@@ -131,9 +133,8 @@ DocumentView::~DocumentView() noexcept
     delete m_jump_marker;
     delete m_selection_path_item;
     delete m_current_search_hit_item;
-}
 
-delete m_model;
+    delete m_model;
 }
 
 // Get the size of the current page in scene coordinates
@@ -1431,13 +1432,17 @@ DocumentView::updateSceneRect() noexcept
 
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
     {
+        const QSizeF page       = currentPageSceneSize();
         const double totalWidth = m_model->numPages() * m_page_stride;
-        m_gview->setSceneRect(0, 0, totalWidth, viewH);
+        const double sceneH     = std::max(viewH, page.height());
+        m_gview->setSceneRect(0, 0, totalWidth, sceneH);
     }
     else
     {
+        const QSizeF page        = currentPageSceneSize();
         const double totalHeight = m_model->numPages() * m_page_stride;
-        m_gview->setSceneRect(0, 0, viewW, totalHeight);
+        const double sceneW      = std::max(viewW, page.width());
+        m_gview->setSceneRect(0, 0, sceneW, totalHeight);
     }
 }
 
@@ -2122,4 +2127,18 @@ DocumentView::addToHistory(const PageLocation &location) noexcept
              << ", y =" << location.y;
 #endif
     m_loc_history.push_back(location);
+}
+
+void
+DocumentView::setInvertColor(bool invert) noexcept
+{
+    m_model->setInvertColor(invert);
+    if (m_layout_mode == LayoutMode::SINGLE)
+    {
+        renderPage();
+    }
+    else
+    {
+        renderVisiblePages();
+    }
 }

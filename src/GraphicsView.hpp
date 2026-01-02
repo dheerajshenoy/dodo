@@ -35,10 +35,6 @@ public:
         return m_mode;
     }
 
-    void setPageNavWithMouse(bool state) noexcept
-    {
-        m_page_nav_with_mouse = state;
-    }
     void setSelectionDragThreshold(int value) noexcept
     {
         m_drag_threshold = value;
@@ -93,7 +89,6 @@ private:
 
     bool m_selecting{false};
     bool m_dragging{false};
-    bool m_page_nav_with_mouse{true};
     bool m_ignore_next_release{false};
     Mode m_mode{Mode::TextSelection};
 

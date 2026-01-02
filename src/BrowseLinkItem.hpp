@@ -48,6 +48,7 @@ public:
         setAcceptedMouseButtons(Qt::AllButtons);
         setFlags(QGraphicsItem::ItemIsSelectable
                  | QGraphicsItem::ItemIsFocusable);
+        setData(0, QStringLiteral("link"));
     }
 
     inline void setGotoPageNo(int pageno) noexcept

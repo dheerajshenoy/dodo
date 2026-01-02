@@ -33,7 +33,6 @@ struct Config
         QString window_title_format{"{} - dodo"};
         bool full_filepath_in_panel{false};
         QString initial_fit{"none"};
-        bool page_nav_with_mouse{false};
         bool tabs_closable{true};
         bool tabs_movable{true};
         QString tab_elide_mode{"right"};

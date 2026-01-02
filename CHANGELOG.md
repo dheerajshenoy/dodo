@@ -1,5 +1,14 @@
 # dodo
 
+## 0.5.2
+
+### Bug Fixes
+
+- Fix invert color not reloading already visible pages
+- Fix LEFT_TO_RIGHT layout not showing vertical scrollbar
+- Fix link clicking
+
+
 ## 0.5.1
 
 ### Features

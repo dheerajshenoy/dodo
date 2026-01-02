@@ -62,6 +62,7 @@ Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
         m_success = false;
         return;
     }
+    m_undo_stack = new QUndoStack();
 }
 
 void
@@ -115,7 +116,6 @@ Model::open() noexcept
         return;
     }
 
-    m_undo_stack         = new QUndoStack();
     m_highlight_color[0] = 1.0f; // Red
     m_highlight_color[1] = 1.0f; // Green
     m_highlight_color[2] = 0.0f; // Blue

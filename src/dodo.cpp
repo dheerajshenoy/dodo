@@ -483,6 +483,8 @@ dodo::initConfig() noexcept
 
     auto rendering = toml["rendering"];
 
+    m_config.rendering.dpi = rendering["dpi"].value_or(72.0f);
+
     // If DPR is specified in config, use that (can be scalar or map)
     if (rendering["dpr"])
     {
@@ -553,8 +555,6 @@ dodo::initConfig() noexcept
         = behavior["antialasing_bits"].value_or(8);
     m_config.ui.auto_resize = behavior["auto_resize"].value_or(false);
     m_config.ui.zoom_by     = behavior["zoom_factor"].value_or(1.25);
-    m_config.ui.page_nav_with_mouse
-        = behavior["page_nav_with_mouse"].value_or(false);
     m_config.behavior.synctex_editor_command = QString::fromStdString(
         behavior["synctex_editor_command"].value_or(""));
     m_config.behavior.invert_mode = behavior["invert_mode"].value_or(false);

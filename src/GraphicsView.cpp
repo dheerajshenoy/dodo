@@ -1,6 +1,7 @@
 #include "GraphicsView.hpp"
 
 #include <QGestureEvent>
+#include <QGraphicsItem>
 #include <QGuiApplication>
 #include <QLineF>
 #include <QMenu>
@@ -81,6 +82,19 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         return; // don't forward to QGraphicsView
     }
 #endif
+
+    if ((m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
+        && event->button() == Qt::LeftButton)
+    {
+        if (QGraphicsItem *item = itemAt(event->pos()))
+        {
+            if (item->data(0).toString() == "link")
+            {
+                QGraphicsView::mousePressEvent(event);
+                return;
+            }
+        }
+    }
 
     // Multi-click tracking (avoid QLineF sqrt)
     if (event->button() == Qt::LeftButton)
@@ -313,16 +327,10 @@ GraphicsView::wheelEvent(QWheelEvent *event)
         return; // do NOT call base
     }
 
-    if (m_page_nav_with_mouse)
-    {
-        const int delta = !event->pixelDelta().isNull()
-                              ? event->pixelDelta().y()
-                              : event->angleDelta().y();
-        if (delta > 0)
-            emit scrollVerticalRequested(delta);
-        event->accept();
-        return; // do NOT call base (prevents double scroll + extra work)
-    }
+    const int delta = !event->pixelDelta().isNull() ? event->pixelDelta().y()
+                                                    : event->angleDelta().y();
+    if (delta > 0)
+        emit scrollVerticalRequested(delta);
 
     QGraphicsView::wheelEvent(event);
 }

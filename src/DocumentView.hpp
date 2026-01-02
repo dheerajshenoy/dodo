@@ -133,11 +133,6 @@ public:
         return m_model->authenticate(password);
     }
 
-    inline void setInvertColor(bool invert) noexcept
-    {
-        m_model->setInvertColor(invert);
-    }
-
     inline bool invertColor() const noexcept
     {
         return m_model->invertColor();
@@ -183,11 +178,11 @@ public:
         m_model->followLink(info);
     }
 
+    void setInvertColor(bool invert) noexcept;
     void open() noexcept;
     bool EncryptDocument() noexcept;
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
-
     void createAndAddPageItem(int pageno, const QPixmap &pixmap) noexcept;
     void renderVisiblePages() noexcept;
     void renderPage() noexcept;
