@@ -186,13 +186,13 @@ dodo::initMenubar() noexcept
         this, [&]() { SetLayoutMode(DocumentView::LayoutMode::SINGLE); });
 
     m_actionLayoutLeftToRight = m_layoutMenu->addAction(
-        QString("LeftToRight Page\t%1")
+        QString("Left to Right Page\t%1")
             .arg(m_config.shortcuts["layout_left_to_right"]),
         this,
         [&]() { SetLayoutMode(DocumentView::LayoutMode::LEFT_TO_RIGHT); });
 
     m_actionLayoutTopToBottom = m_layoutMenu->addAction(
-        QString("TopToBottom Page\t%1")
+        QString("Top to Bottom Page\t%1")
             .arg(m_config.shortcuts["layout_top_to_bottom"]),
         this,
         [&]() { SetLayoutMode(DocumentView::LayoutMode::TOP_TO_BOTTOM); });
@@ -649,7 +649,7 @@ dodo::initKeybinds() noexcept
     m_config.shortcuts[QStringLiteral("zoom_reset")] = QStringLiteral("0");
     m_config.shortcuts[QStringLiteral("prev_location")]
         = QStringLiteral("Ctrl+o");
-    m_config.shortcuts[QStringLiteral("open")]         = QStringLiteral("o");
+    m_config.shortcuts[QStringLiteral("open_file")]    = QStringLiteral("o");
     m_config.shortcuts[QStringLiteral("scroll_left")]  = QStringLiteral("h");
     m_config.shortcuts[QStringLiteral("scroll_down")]  = QStringLiteral("j");
     m_config.shortcuts[QStringLiteral("scroll_up")]    = QStringLiteral("k");
@@ -703,6 +703,7 @@ void
 dodo::initGui() noexcept
 {
     QWidget *widget = new QWidget();
+    m_layout        = new QVBoxLayout();
     m_layout->setContentsMargins(0, 0, 0, 0);
 
     // Panel

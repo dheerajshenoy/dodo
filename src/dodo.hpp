@@ -69,7 +69,7 @@ private:
 
     inline bool validTabIndex(int index) const noexcept
     {
-        return index >= 0 && index < m_tab_widget->count();
+        return m_tab_widget && index >= 0 && index < m_tab_widget->count();
     }
 
     // Interactive functions
@@ -170,13 +170,11 @@ private:
     void modeColorChangeRequested(const GraphicsView::Mode mode) noexcept;
 
     QDir m_config_dir, m_session_dir;
-    float m_default_zoom{0.0f};
     Panel *m_panel{nullptr};
 
     QMenuBar *m_menuBar{nullptr};
     QMenu *m_fitMenu{nullptr};
     QMenu *m_recentFilesMenu{nullptr};
-    QMenu *m_editMenu{nullptr};
     QMenu *m_navMenu{nullptr};
     QMenu *m_toggleMenu{nullptr};
     QMenu *m_viewMenu{nullptr};
@@ -248,9 +246,7 @@ private:
     QMap<int, Model::LinkInfo> m_link_hint_map;
     DocumentView *m_doc{nullptr};
     TabWidget *m_tab_widget{nullptr};
-    QVBoxLayout *m_layout = new QVBoxLayout();
-    OutlineWidget *m_owidget{nullptr};
-    PropertiesWidget *m_propsWidget{nullptr};
+    QVBoxLayout *m_layout = {nullptr};
     QMap<QString, std::function<void(const QStringList &args)>> m_actionMap;
     QClipboard *m_clipboard = QGuiApplication::clipboard();
     QSqlDatabase m_last_pages_db;
