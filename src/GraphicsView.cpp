@@ -341,7 +341,7 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *event)
     QGraphicsView::contextMenuEvent(event);
     if (!event->isAccepted())
     {
-        emit contextMenuRequested(mapToScene(event->pos()));
+        emit contextMenuRequested(event->pos());
         event->accept();
     }
 }

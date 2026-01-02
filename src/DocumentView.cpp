@@ -1776,10 +1776,12 @@ DocumentView::clearVisibleAnnotations() noexcept
 void
 DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
 {
+
 #ifndef NDEBUG
     qDebug() << "DocumentView::handleContextMenuRequested(): Context menu "
              << "requested at scene position:" << scenePos;
 #endif
+
     QMenu *menu = new QMenu(this);
     menu->move(scenePos.x(), scenePos.y());
 

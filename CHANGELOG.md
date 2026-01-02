@@ -13,6 +13,7 @@
 - Fix invert color not reloading already visible pages
 - Fix LEFT_TO_RIGHT layout not showing vertical scrollbar
 - Fix link clicking
+- Fix context menu positioning
 
 
 ## 0.5.1
