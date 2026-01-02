@@ -1,31 +1,53 @@
-# ===== Appearance Settings =====
-[ui]
-panel = true # enable/disable panel
-fullscreen = false # fullscreen or not on startup
-zoom_level = 1.0 # Default zoom factor
-link_boundary = false # show link boundary box
-hscrollbar = false # show/hide horizontal scrollbar
-vscrollbar = false # show/hide vertical scrollbar
+# ===== UI =====
+[ui.window]
+fullscreen = false
+menubar = false
+panel = true
+startup_tab = false
 full_file_path_in_panel = false
-menubar = false # show/hide menubar
-window_title = "{} - dodo" # '{}' will be replaced with the base name of the opened file
-jump_marker = true # show/hide markers at the location of the destination after jump
-selection_drag_threshold = 100
-startup_tab = false # show/hide startup tab
-link_hint_size = 0.25 # size of link hints (px)
-outline = false # show/hide outline panel
-outline_as_side_panel = true # outline whether to show in popup or side panel
-outline_panel_position = "left" # outline panel position ("left" or "right")
-outline_panel_width = 300 # outline panel width (if outline_in_panel is true)
+window_title = "{} - dodo" # '{}' replaced with base file name
 
-tabs = true # show/hide tabs
-auto_hide_tabs = true # hide tabs when there is only one file
-tabs_closable = true # show/hide close button on tabs
-tabs_movable = true # allow/disallow moving tabs
-tab_elide_mode = "middle" # ("none", "start", "middle", "end")
-tab_bar_position = "bottom" # ("top", "bottom", "left", "right")
+[ui.layout]
+mode = "left_to_right" # "single", "top_to_bottom", "left_to_right"
+initial_fit = "width" # "none", "width", "height", "window"
+auto_resize = false # fit document to window
 
-# Format is #AARRGGBB (ARGB format)
+[ui.zoom]
+level = 1.0 # default zoom factor
+factor = 1.25 # factor for zoom in/out
+
+[ui.selection]
+drag_threshold = 100
+
+[ui.scrollbars]
+horizontal = true
+vertical = true
+search_hits = false # show/hide search hits on scrollbar
+
+[ui.markers]
+jump_marker = true
+
+[ui.links]
+boundary = false # show link boundary box
+
+[ui.link_hints]
+size = 0.25 # relative scale for link hint labels
+
+[ui.tabs]
+visible = true
+auto_hide = true
+closable = true
+movable = true
+elide_mode = "middle" # "none", "start", "middle", "end"
+bar_position = "bottom" # "top", "bottom", "left", "right"
+
+[ui.outline]
+visible = false
+as_side_panel = true
+panel_position = "left" # "left", "right"
+panel_width = 300
+
+# ===== Colors (ARGB) =====
 [colors]
 accent = "#3daee9FF"
 background = "#00000000"
@@ -37,33 +59,29 @@ selection = "#330000FF"
 highlight = "#55FF0055"
 jump_marker = "#FFFF0000"
 annot_rect = "#55FF5500"
+annot_popup = "#FFFFFFAA"
 
-# ===== Rendering Settings =====
+# ===== Rendering =====
 [rendering]
-dpi = 300.0 # DPI of the rendered PDF file
-dpr = { "eDP-1" = 1.25, "DP-5" = 1.0, "DP-7" = 1.0 } # Device Pixel Ratio for high-DPI displays; can be a single float value or a map of display names to DPR values
-cache_pages = 0 # Number of pages to keep in RAM
-antialiasing_bits = 8 # 4=good, 8=high quality
-icc_color_profile = true # whether to use ICC color profile
+dpi = 72.0
+dpr = { "eDP-1" = 1.25, "DP-5" = 1.0, "DP-7" = 1.0 } # float or map
+cache_pages = 10
+antialiasing_bits = 8 # 4=good, 8=high
+icc_color_profile = true
 
-# ===== Navigation & Behavior =====
+# ===== Behavior =====
 [behavior]
-initial_mode = "text_select" # values: "region_select", "annot_rect", "annot_select", "text_select", "text_highlight"
-remember_last_visited = true   # Helps to go to last visited page of document
-page_history = 100 # History for visited pages in the file (only for the session)
-confirm_on_quit = true # Ask before quitting dodo
-auto_resize = false # Resize the document to fit the window
-zoom_factor = 1.25 # Factor by which to zoom in/out
-initial_fit = "width" # Fit applied once every file opened; values: "none", "width", "height", "window":
-invert_mode = true # Start in invert color mode
-synctex_editor_command = "kitty -e nvim --remote-silent +%l %f"
-auto_reload = true # reload document on file change
-recent_files = true # save recent files
-num_recent_files = 25 # number of recent files (if negative, makes it unlimited)
-undo_limit = 25 # Maximum number of undo operations to keep in history
-# page_nav_with_mouse = true # scrolling to the top/bottom goes to the prev/next page
-# session_files_dir = auto
-# save_session = true # open the last session on startup
+initial_mode = "text_select" # "region_select", "annot_rect", "annot_select", "text_select", "text_highlight"
+remember_last_visited = true
+page_history = 100
+confirm_on_quit = true
+invert_mode = false
+auto_reload = true
+recent_files = true
+num_recent_files = 25
+undo_limit = 25
+synctex_editor_command = "zeditor %f:+%l"
+# page_nav_with_mouse = true
 
 # ===== Shortcuts =====
 [keybindings]
@@ -71,31 +89,24 @@ open_file = "o"
 close_file = "Ctrl+w"
 link_hint_visit = "f"
 link_hint_copy = "Shift+F"
-
 scroll_left = "h"
 scroll_down = "j"
 scroll_up = "k"
 scroll_right = "l"
-
 prev_location = "Ctrl+o"
-
 next_page = "Shift+J"
 prev_page = "Shift+K"
 first_page = "g,g"
 last_page = "Shift+G"
 goto_page = "b"
-
 outline = "t"
-
 search = "/"
-search_this_page = "?" #TODO
+search_this_page = "?" # TODO
 search_next = "n"
 search_prev = "Shift+N"
-
 zoom_reset = "0"
 zoom_in = "="
 zoom_out = "-"
-
 tab1 = "Alt+1"
 tab2 = "Alt+2"
 tab3 = "Alt+3"
@@ -105,42 +116,34 @@ tab6 = "Alt+6"
 tab7 = "Alt+7"
 tab8 = "Alt+8"
 tab9 = "Alt+9"
-
 tab_next = "Ctrl+Period"
 tab_prev = "Ctrl+Comma"
-
-text_highlight_mode = "4"
 region_select_mode = "1"
 annot_rect_mode = "2"
 annot_edit_mode = "3"
-
+text_highlight_mode = "4"
+annot_pen_mode = "5"
+annot_popup_mode = "6"
 delete = "d"
-
 file_properties = "Ctrl+Shift+F"
 invert_color = "i"
-
 fullscreen = "F11"
 fit_height = "Ctrl+Shift+H"
 fit_width = "Ctrl+Shift+W"
 fit_window = "Ctrl+Shift+="
 auto_resize = "Ctrl+Shift+R"
-
 toggle_menubar = "Ctrl+Shift+M"
 toggle_panel = "Ctrl+Shift+B"
 toggle_tabs = "Ctrl+Shift+T"
-
 cancel_selection = "escape"
 yank = "y"
 about = "F12"
 save = "Ctrl+S"
 select_all = "Ctrl+A"
-
 rotate_clock = ">"
 rotate_anticlock = "<"
-
 list_text_highlights = "]"
 undo = "u"
 redo = "Ctrl+R"
-
 toggle_focus_mode = "Ctrl+Space"
-
+reselect_last_selection = "g,v"

@@ -4,6 +4,7 @@
 
 - Add runtime layout switching
 - Link hinting mode for keyboard link navigation
+- Updated organized configuration settings (check config.toml)
 
 ### Bug Fixes
 

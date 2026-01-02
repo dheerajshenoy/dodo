@@ -136,6 +136,7 @@ dodo::initMenubar() noexcept
         QString("Fullscreen\t%1").arg(m_config.shortcuts["fullscreen"]), this,
         &dodo::ToggleFullscreen);
     m_actionFullscreen->setCheckable(true);
+    m_actionFullscreen->setChecked(m_config.ui.window.fullscreen);
 
     m_actionZoomIn = m_viewMenu->addAction(
         QString("Zoom In\t%1").arg(m_config.shortcuts["zoom_in"]), this,
@@ -172,7 +173,7 @@ dodo::initMenubar() noexcept
         &dodo::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
     m_actionAutoresize->setChecked(
-        m_config.ui.auto_resize); // default on or off
+        m_config.ui.layout.auto_resize); // default on or off
 
     // --- Layout Menu ---
 
@@ -204,12 +205,12 @@ dodo::initMenubar() noexcept
     m_actionLayoutSingle->setCheckable(true);
     m_actionLayoutLeftToRight->setCheckable(true);
     m_actionLayoutTopToBottom->setCheckable(true);
-    m_actionLayoutSingle->setChecked(m_config.ui.layout == "single" ? true
-                                                                    : false);
+    m_actionLayoutSingle->setChecked(
+        m_config.ui.layout.mode == "single" ? true : false);
     m_actionLayoutLeftToRight->setChecked(
-        m_config.ui.layout == "left_to_right" ? true : false);
+        m_config.ui.layout.mode == "left_to_right" ? true : false);
     m_actionLayoutTopToBottom->setChecked(
-        m_config.ui.layout == "top_to_bottom" ? true : false);
+        m_config.ui.layout.mode == "top_to_bottom" ? true : false);
 
     // --- Toggle Menu ---
 
@@ -387,12 +388,12 @@ dodo::initDB() noexcept
 void
 dodo::initDefaults() noexcept
 {
-    m_config.ui.jump_marker_shown      = true;
-    m_config.ui.full_filepath_in_panel = false;
-    m_config.ui.zoom                   = 1.0f;
-    m_config.ui.outline_shown          = false;
-    m_config.ui.window_title_format    = QStringLiteral("%1 - dodo");
-    m_config.ui.link_hint_size         = 16.0f;
+    m_config.ui.markers.jump_marker            = true;
+    m_config.ui.window.full_file_path_in_panel = false;
+    m_config.ui.zoom.level                     = 1.0f;
+    m_config.ui.outline.visible                = false;
+    m_config.ui.window.title_format            = QStringLiteral("%1 - dodo");
+    m_config.ui.link_hints.size                = 0.5f;
 
     m_config.ui.colors[QStringLiteral("search_index")]
         = QStringLiteral("#3daee944");
@@ -422,9 +423,9 @@ dodo::initDefaults() noexcept
     m_config.behavior.undo_limit            = 25;
     m_config.behavior.remember_last_visited = true;
     m_config.behavior.page_history_limit    = 10;
-    m_config.ui.auto_resize                 = false;
-    m_config.ui.zoom_by                     = 1.25;
-    m_config.ui.initial_fit                 = "width";
+    m_config.ui.layout.auto_resize          = false;
+    m_config.ui.zoom.factor                 = 1.25;
+    m_config.ui.layout.initial_fit          = "width";
 }
 
 // Initialize the config related stuff
@@ -467,41 +468,63 @@ dodo::initConfig() noexcept
 
     auto ui = toml["ui"];
 
-    m_config.ui.startup_tab      = ui["startup_tab"].value_or(true);
-    m_config.ui.auto_hide_tabs   = ui["auto_hide_tabs"].value_or(false);
-    m_config.ui.panel_shown      = ui["panel"].value_or(true);
-    m_config.ui.outline_shown    = ui["outline"].value_or(false);
-    m_config.ui.menubar_shown    = ui["menubar"].value_or(true);
-    m_config.ui.tabs_shown       = ui["tabs"].value_or(true);
-    m_config.ui.tabs_closable    = ui["tabs_closable"].value_or(true);
-    m_config.ui.tabs_movable     = ui["tabs_movable"].value_or(true);
-    m_config.ui.tab_elide_mode   = ui["tab_elide_mode"].value_or("right");
-    m_config.ui.tab_bar_position = ui["tab_bar_position"].value_or("top");
-    m_config.ui.layout           = ui["layout"].value_or("top_to_bottom");
-    m_config.ui.search_hits_on_scrollbar
-        = ui["search_hits_on_scrollbar"].value_or(true);
-
-    if (ui["fullscreen"].value_or(false))
+    auto ui_window                 = ui["window"];
+    m_config.ui.window.startup_tab = ui_window["startup_tab"].value_or(true);
+    m_config.ui.window.panel       = ui_window["panel"].value_or(true);
+    m_config.ui.window.menubar     = ui_window["menubar"].value_or(true);
+    m_config.ui.window.full_file_path_in_panel
+        = ui_window["full_file_path_in_panel"].value_or(false);
+    m_config.ui.window.fullscreen = ui_window["fullscreen"].value_or(false);
+    if (m_config.ui.window.fullscreen)
         this->showFullScreen();
-
-    m_config.ui.link_hint_size = ui["link_hint_size"].value_or(0.5f);
-
-    m_config.ui.outline_as_side_panel
-        = ui["outline_as_side_panel"].value_or(true);
-    m_config.ui.outline_panel_width = ui["outline_panel_width"].value_or(300);
-    m_config.ui.vscrollbar_shown    = ui["vscrollbar"].value_or(true);
-    m_config.ui.hscrollbar_shown    = ui["hscrollbar"].value_or(true);
-    m_config.ui.selection_drag_threshold
-        = ui["selection_drag_threshold"].value_or(50);
-    m_config.ui.jump_marker_shown = ui["jump_marker"].value_or(true);
-    m_config.ui.full_filepath_in_panel
-        = ui["full_file_path_in_panel"].value_or(false);
-    m_config.ui.zoom          = ui["zoom_level"].value_or(1.0);
-    m_config.ui.link_boundary = ui["link_boundary"].value_or(false);
-    QString window_title
-        = QString::fromStdString(ui["window_title"].value_or("{} - dodo"));
+    QString window_title = QString::fromStdString(
+        ui_window["window_title"].value_or("{} - dodo"));
     window_title.replace("{}", "%1");
-    m_config.ui.window_title_format = window_title;
+    m_config.ui.window.title_format = window_title;
+
+    auto ui_layout          = ui["layout"];
+    m_config.ui.layout.mode = ui_layout["mode"].value_or("top_to_bottom");
+    m_config.ui.layout.initial_fit = ui_layout["initial_fit"].value_or("width");
+    m_config.ui.layout.auto_resize = ui_layout["auto_resize"].value_or(false);
+
+    auto ui_zoom            = ui["zoom"];
+    m_config.ui.zoom.level  = ui_zoom["level"].value_or(1.0);
+    m_config.ui.zoom.factor = ui_zoom["factor"].value_or(1.25);
+
+    auto ui_selection = ui["selection"];
+    m_config.ui.selection.drag_threshold
+        = ui_selection["drag_threshold"].value_or(50);
+
+    auto ui_scrollbars              = ui["scrollbars"];
+    m_config.ui.scrollbars.vertical = ui_scrollbars["vertical"].value_or(true);
+    m_config.ui.scrollbars.horizontal
+        = ui_scrollbars["horizontal"].value_or(true);
+    m_config.ui.scrollbars.search_hits
+        = ui_scrollbars["search_hits"].value_or(true);
+
+    auto ui_markers                 = ui["markers"];
+    m_config.ui.markers.jump_marker = ui_markers["jump_marker"].value_or(true);
+
+    auto ui_links               = ui["links"];
+    auto ui_link_hints          = ui["link_hints"];
+    m_config.ui.links.boundary  = ui_links["boundary"].value_or(false);
+    m_config.ui.link_hints.size = ui_link_hints["size"].value_or(0.5f);
+
+    auto ui_tabs                  = ui["tabs"];
+    m_config.ui.tabs.visible      = ui_tabs["visible"].value_or(true);
+    m_config.ui.tabs.auto_hide    = ui_tabs["auto_hide"].value_or(false);
+    m_config.ui.tabs.closable     = ui_tabs["closable"].value_or(true);
+    m_config.ui.tabs.movable      = ui_tabs["movable"].value_or(true);
+    m_config.ui.tabs.elide_mode   = ui_tabs["elide_mode"].value_or("right");
+    m_config.ui.tabs.bar_position = ui_tabs["bar_position"].value_or("top");
+
+    auto ui_outline             = ui["outline"];
+    m_config.ui.outline.visible = ui_outline["visible"].value_or(false);
+    m_config.ui.outline.as_side_panel
+        = ui_outline["as_side_panel"].value_or(true);
+    m_config.ui.outline.panel_position
+        = ui_outline["panel_position"].value_or("left");
+    m_config.ui.outline.panel_width = ui_outline["panel_width"].value_or(300);
 
     auto colors = toml["colors"];
 
@@ -524,7 +547,12 @@ dodo::initConfig() noexcept
 
     auto rendering = toml["rendering"];
 
-    m_config.rendering.dpi = rendering["dpi"].value_or(72.0f);
+    m_config.rendering.dpi        = rendering["dpi"].value_or(72.0f);
+    m_config.behavior.cache_pages = rendering["cache_pages"].value_or(10);
+    m_config.rendering.antialiasing_bits
+        = rendering["antialiasing_bits"].value_or(8);
+    m_config.rendering.icc_color_profile
+        = rendering["icc_color_profile"].value_or(true);
 
     // If DPR is specified in config, use that (can be scalar or map)
     if (rendering["dpr"])
@@ -584,24 +612,16 @@ dodo::initConfig() noexcept
         m_config.behavior.initial_mode = initial_mode;
     }
 
-    m_config.behavior.undo_limit  = behavior["undo_limit"].value_or(25);
-    m_config.behavior.cache_pages = behavior["cache_pages"].value_or(10);
+    m_config.behavior.undo_limit = behavior["undo_limit"].value_or(25);
     m_config.behavior.remember_last_visited
         = behavior["remember_last_visited"].value_or(true);
     m_config.behavior.open_last_visited
         = behavior["open_last_visited"].value_or(false);
     m_config.behavior.page_history_limit
         = behavior["page_history"].value_or(100);
-    m_config.rendering.antialiasing_bits
-        = behavior["antialasing_bits"].value_or(8);
-    m_config.ui.auto_resize = behavior["auto_resize"].value_or(false);
-    m_config.ui.zoom_by     = behavior["zoom_factor"].value_or(1.25);
     m_config.behavior.synctex_editor_command = QString::fromStdString(
         behavior["synctex_editor_command"].value_or(""));
     m_config.behavior.invert_mode = behavior["invert_mode"].value_or(false);
-    m_config.rendering.icc_color_profile
-        = behavior["icc_color_profile"].value_or(true);
-    m_config.ui.initial_fit       = behavior["initial_fit"].value_or("width");
     m_config.behavior.auto_reload = behavior["auto_reload"].value_or(true);
     m_config.behavior.config_auto_reload
         = behavior["config_auto_reload"].value_or(true);
@@ -728,20 +748,34 @@ dodo::initGui() noexcept
     m_menuBar = this->menuBar(); // initialize here so that the config
                                  // visibility works
 
-    if (m_config.ui.outline_as_side_panel)
+    if (m_config.ui.outline.as_side_panel)
     {
-        QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
-        splitter->addWidget(m_outline_widget);
-        splitter->addWidget(m_tab_widget);
-        splitter->setStretchFactor(0, 0);
-        splitter->setStretchFactor(1, 1);
+        QSplitter *splitter    = new QSplitter(Qt::Horizontal, this);
+        const bool outlineLeft = m_config.ui.outline.panel_position != "right";
+        if (outlineLeft)
+        {
+            splitter->addWidget(m_outline_widget);
+            splitter->addWidget(m_tab_widget);
+            splitter->setStretchFactor(0, 0);
+            splitter->setStretchFactor(1, 1);
+            splitter->setSizes(
+                {m_config.ui.outline.panel_width,
+                 this->width() - m_config.ui.outline.panel_width});
+        }
+        else
+        {
+            splitter->addWidget(m_tab_widget);
+            splitter->addWidget(m_outline_widget);
+            splitter->setStretchFactor(0, 1);
+            splitter->setStretchFactor(1, 0);
+            splitter->setSizes({this->width() - m_config.ui.outline.panel_width,
+                                m_config.ui.outline.panel_width});
+        }
         splitter->setFrameShape(QFrame::NoFrame);
         splitter->setFrameShadow(QFrame::Plain);
         splitter->setHandleWidth(1);
         splitter->setContentsMargins(0, 0, 0, 0);
         splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-        splitter->setSizes({m_config.ui.outline_panel_width,
-                            this->width() - m_config.ui.outline_panel_width});
         m_layout->addWidget(splitter, 1);
     }
     else
@@ -912,7 +946,7 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
             openLastVisitedFile();
     }
 
-    if (m_tab_widget->count() == 0 && m_config.ui.startup_tab)
+    if (m_tab_widget->count() == 0 && m_config.ui.window.startup_tab)
         showStartupWidget();
     m_config.behavior.startpage_override = -1;
 }
@@ -1391,8 +1425,8 @@ dodo::OpenFile(const QString &filePath) noexcept
 
     m_path_tab_map[filePath] = docwidget;
 
-    if (m_config.ui.outline_shown)
-        m_outline_widget->setVisible(m_config.ui.outline_shown);
+    if (m_config.ui.outline.visible)
+        m_outline_widget->setVisible(m_config.ui.outline.visible);
     return true;
 }
 
@@ -2080,7 +2114,7 @@ dodo::updatePanel() noexcept
         Model *model = m_doc->model();
         if (!model)
             return;
-        if (m_config.ui.full_filepath_in_panel)
+        if (m_config.ui.window.full_file_path_in_panel)
             m_panel->setFileName(m_doc->filePath());
         else
             m_panel->setFileName(m_doc->fileName());
@@ -2714,28 +2748,28 @@ dodo::updateSelectionModeActions() noexcept
 void
 dodo::updateGUIFromConfig() noexcept
 {
-    m_tab_widget->setTabsClosable(m_config.ui.tabs_closable);
-    m_tab_widget->setMovable(m_config.ui.tabs_movable);
+    m_tab_widget->setTabsClosable(m_config.ui.tabs.closable);
+    m_tab_widget->setMovable(m_config.ui.tabs.movable);
 
-    if (m_config.ui.tab_bar_position == "top")
+    if (m_config.ui.tabs.bar_position == "top")
         m_tab_widget->setTabPosition(QTabWidget::North);
-    else if (m_config.ui.tab_bar_position == "bottom")
+    else if (m_config.ui.tabs.bar_position == "bottom")
         m_tab_widget->setTabPosition(QTabWidget::South);
-    else if (m_config.ui.tab_bar_position == "left")
+    else if (m_config.ui.tabs.bar_position == "left")
         m_tab_widget->setTabPosition(QTabWidget::West);
-    else if (m_config.ui.tab_bar_position == "right")
+    else if (m_config.ui.tabs.bar_position == "right")
         m_tab_widget->setTabPosition(QTabWidget::East);
 
-    m_outline_widget->setVisible(m_config.ui.outline_shown);
+    m_outline_widget->setVisible(m_config.ui.outline.visible);
 
     m_layout->addWidget(m_search_bar);
     m_layout->addWidget(m_message_bar);
     m_layout->addWidget(m_panel);
 
-    m_tab_widget->setTabBarAutoHide(m_config.ui.auto_hide_tabs);
-    m_panel->setVisible(m_config.ui.panel_shown);
-    m_menuBar->setVisible(m_config.ui.menubar_shown);
-    m_tab_widget->tabBar()->setVisible(m_config.ui.tabs_shown);
+    m_tab_widget->setTabBarAutoHide(m_config.ui.tabs.auto_hide);
+    m_panel->setVisible(m_config.ui.window.panel);
+    m_menuBar->setVisible(m_config.ui.window.menubar);
+    m_tab_widget->tabBar()->setVisible(m_config.ui.tabs.visible);
 }
 
 void
@@ -2760,8 +2794,8 @@ dodo::setFocusMode(bool enable) noexcept
     }
     else
     {
-        m_menuBar->setVisible(m_config.ui.menubar_shown);
-        m_panel->setVisible(m_config.ui.panel_shown);
+        m_menuBar->setVisible(m_config.ui.window.menubar);
+        m_panel->setVisible(m_config.ui.window.panel);
         updateTabbarVisibility();
     }
 }

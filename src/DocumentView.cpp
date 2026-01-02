@@ -83,7 +83,7 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_model->undoStack()->setUndoLimit(m_config.behavior.undo_limit);
 
     m_model->setInvertColor(m_config.behavior.invert_mode);
-    m_model->setLinkBoundary(m_config.ui.link_boundary);
+    m_model->setLinkBoundary(m_config.ui.links.boundary);
 
     // if (m_config.rendering.icc_color_profile)
     //     m_model->enableICC();
@@ -93,32 +93,24 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_vscroll = new VerticalScrollBar(Qt::Vertical, this);
     m_gview->setVerticalScrollBar(m_vscroll);
 
-    if (!m_config.ui.vscrollbar_shown)
+    if (!m_config.ui.scrollbars.vertical)
         m_gview->setVerticalScrollBarPolicy(
             Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
-    if (!m_config.ui.hscrollbar_shown)
+    if (!m_config.ui.scrollbars.horizontal)
         m_gview->setHorizontalScrollBarPolicy(
             Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
-    if (m_config.ui.layout == "single")
+    if (m_config.ui.layout.mode == "single")
         setLayoutMode(LayoutMode::SINGLE);
-    else if (m_config.ui.layout == "left_to_right")
+    else if (m_config.ui.layout.mode == "left_to_right")
         setLayoutMode(LayoutMode::LEFT_TO_RIGHT);
     else
         setLayoutMode(LayoutMode::TOP_TO_BOTTOM);
 
     initConnections();
 
-    // if (m_config.ui.initial_fit == "height")
-    //     setFitMode(FitMode::Height);
-    // else if (m_config.ui.initial_fit == "width")
-    //     setFitMode(FitMode::Width);
-    // else if (m_config.ui.initial_fit == "window")
-    //     setFitMode(FitMode::Window);
-    // else
-    //     setFitMode(FitMode::None);
-
+    m_auto_resize       = m_config.ui.layout.auto_resize;
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setAlignment(Qt::AlignCenter);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -217,6 +209,16 @@ DocumentView::open() noexcept
 
     m_model->open();
     m_pageno = 0;
+
+    if (m_config.ui.layout.initial_fit == "height")
+        setFitMode(FitMode::Height);
+    else if (m_config.ui.layout.initial_fit == "width")
+        setFitMode(FitMode::Width);
+    else if (m_config.ui.layout.initial_fit == "window")
+        setFitMode(FitMode::Window);
+    else
+        setFitMode(FitMode::None);
+
     cachePageStride();
 }
 
@@ -392,7 +394,7 @@ DocumentView::handleSearchResults(
     renderVisiblePages();
     updateCurrentHitHighlight();
 
-    if (m_config.ui.search_hits_on_scrollbar)
+    if (m_config.ui.scrollbars.search_hits)
         renderSearchHitsInScrollbar();
 
     emit searchIndexChanged(m_search_index);
@@ -1108,7 +1110,7 @@ DocumentView::LinkKB() noexcept
             hint *= 10;
     }
 
-    float fontSize = m_config.ui.link_hint_size;
+    float fontSize = m_config.ui.link_hints.size;
     if (fontSize < 1.0f)
         fontSize = std::max(8.0f, fontSize * 32.0f);
 
@@ -2170,7 +2172,7 @@ DocumentView::setModified(bool modified) noexcept
 
     m_is_modified = modified;
 
-    QString title     = m_config.ui.window_title_format;
+    QString title     = m_config.ui.window.title_format;
     QString panelName = m_model->filePath();
 
     if (modified)

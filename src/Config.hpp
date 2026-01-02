@@ -11,33 +11,75 @@ struct Config
 
     struct ui
     {
-        QString layout{"top_to_bottom"};
+        struct window
+        {
+            bool fullscreen{false};
+            bool menubar{true};
+            bool panel{true};
+            bool startup_tab{true};
+            bool full_file_path_in_panel{false};
+            QString title_format{"{} - dodo"};
+        } window{};
+
+        struct layout
+        {
+            QString mode{"top_to_bottom"};
+            QString initial_fit{"none"};
+            bool auto_resize{false};
+        } layout{};
+
+        struct zoom
+        {
+            float level{1.0f};
+            float factor{1.25f};
+        } zoom{};
+
+        struct selection
+        {
+            int drag_threshold{50};
+        } selection{};
+
+        struct scrollbars
+        {
+            bool horizontal{true};
+            bool vertical{true};
+            bool search_hits{true};
+        } scrollbars{};
+
+        struct markers
+        {
+            bool jump_marker{true};
+        } markers{};
+
+        struct links
+        {
+            bool boundary{false};
+        } links{};
+
+        struct link_hints
+        {
+            float size{0.5f};
+        } link_hints{};
+
+        struct tabs
+        {
+            bool visible{true};
+            bool auto_hide{false};
+            bool closable{true};
+            bool movable{true};
+            QString elide_mode{"right"};
+            QString bar_position{"top"};
+        } tabs{};
+
+        struct outline
+        {
+            bool visible{false};
+            bool as_side_panel{true};
+            QString panel_position{"left"};
+            int panel_width{300};
+        } outline{};
+
         QHash<QString, QColor> colors{};
-        float link_hint_size{0.5f};
-        float zoom_by{1.25f};
-        float zoom{1.0};
-        bool outline_shown{false};
-        bool menubar_shown{true};
-        bool panel_shown{true};
-        bool auto_resize{false};
-        bool link_boundary{false};
-        bool jump_marker_shown{true};
-        bool vscrollbar_shown{true};
-        bool hscrollbar_shown{true};
-        bool startup_tab{true};
-        bool outline_as_side_panel{true};
-        bool tabs_shown{true};
-        bool auto_hide_tabs{false};
-        int outline_panel_width{300};
-        int selection_drag_threshold{50};
-        QString window_title_format{"{} - dodo"};
-        bool full_filepath_in_panel{false};
-        QString initial_fit{"none"};
-        bool tabs_closable{true};
-        bool tabs_movable{true};
-        QString tab_elide_mode{"right"};
-        QString tab_bar_position{"top"};
-        bool search_hits_on_scrollbar{true};
     };
 
     struct rendering
