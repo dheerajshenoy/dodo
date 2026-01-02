@@ -18,11 +18,13 @@
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QPainter>
 #include <QProcess>
 #include <QTextCursor>
 #include <QUrl>
 #include <QVBoxLayout>
 #include <algorithm>
+#include <cmath>
 #include <qdebug.h>
 #include <qguiapplication.h>
 #include <qicon.h>
@@ -1884,6 +1886,8 @@ DocumentView::updateCurrentHitHighlight() noexcept
 void
 DocumentView::updateCurrentPage() noexcept
 {
+    ensureVisiblePagePlaceholders();
+
     if (m_layout_mode == LayoutMode::SINGLE)
     {
         // The current page is explicit in single-page mode.
@@ -1924,6 +1928,14 @@ DocumentView::updateCurrentPage() noexcept
 }
 
 void
+DocumentView::ensureVisiblePagePlaceholders() noexcept
+{
+    const std::set<int> visiblePages = getVisiblePages();
+    for (int pageno : visiblePages)
+        createAndAddPlaceholderPageItem(pageno);
+}
+
+void
 DocumentView::clearDocumentItems() noexcept
 {
     for (QGraphicsItem *item : m_gscene->items())
@@ -1941,6 +1953,9 @@ DocumentView::clearDocumentItems() noexcept
     m_search_items.clear();
     m_page_links_hash.clear();
     m_page_annotations_hash.clear();
+    m_pending_renders.clear();
+    m_render_queue.clear();
+    m_render_in_flight = false;
 }
 
 // Request rendering of a specific page (ASYNC)
@@ -1950,33 +1965,63 @@ DocumentView::requestPageRender(int pageno) noexcept
     // if (m_page_items_hash.contains(pageno))
     //     return;
 
-    auto job = m_model->createRenderJob(pageno);
+    if (m_pending_renders.contains(pageno))
+        return;
 
-    m_model->requestPageRender(
-        job, [this, pageno](const Model::PageRenderResult &result)
+    m_pending_renders.insert(pageno);
+    createAndAddPlaceholderPageItem(pageno);
+
+    m_render_queue.enqueue(pageno);
+    startNextRenderJob();
+}
+
+void
+DocumentView::startNextRenderJob() noexcept
+{
+    if (m_render_in_flight)
+        return;
+
+    while (!m_render_queue.isEmpty())
     {
-        const QImage &image = result.image;
-        if (image.isNull())
-            return;
+        const int pageno = m_render_queue.dequeue();
+        if (!m_pending_renders.contains(pageno))
+            continue;
 
-        renderPageFromImage(pageno, result.image);
-        renderLinks(pageno, result.links);
-        renderAnnotations(pageno, result.annotations);
-        renderSearchHitsForPage(pageno);
+        m_render_in_flight = true;
+        auto job           = m_model->createRenderJob(pageno);
 
-        if (m_pending_jump.pageno != -1)
+        m_model->requestPageRender(
+            job, [this, pageno](const Model::PageRenderResult &result)
         {
-            GotoLocation(m_pending_jump);
-        }
+            m_pending_renders.remove(pageno);
+            m_render_in_flight = false;
 
-        // NEW: If the page we just rendered is the page the user is
-        // currently looking for in search
-        if (m_search_index != -1 && !m_search_hit_flat_refs.empty()
-            && m_search_hit_flat_refs[m_search_index].page == pageno)
-        {
-            updateCurrentHitHighlight();
-        }
-    });
+            const QImage &image = result.image;
+            if (!image.isNull())
+            {
+                renderPageFromImage(pageno, result.image);
+                renderLinks(pageno, result.links);
+                renderAnnotations(pageno, result.annotations);
+                renderSearchHitsForPage(pageno);
+
+                if (m_pending_jump.pageno != -1)
+                {
+                    GotoLocation(m_pending_jump);
+                }
+
+                // If the page we just rendered is the page in the current
+                // search.
+                if (m_search_index != -1 && !m_search_hit_flat_refs.empty()
+                    && m_search_hit_flat_refs[m_search_index].page == pageno)
+                {
+                    updateCurrentHitHighlight();
+                }
+            }
+
+            startNextRenderJob();
+        });
+        break;
+    }
 }
 
 void
@@ -1986,6 +2031,62 @@ DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
     clearAnnotationsForPage(pageno);
     removePageItem(pageno);
     createAndAddPageItem(pageno, QPixmap::fromImage(image));
+}
+
+void
+DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
+{
+    if (m_page_items_hash.contains(pageno))
+        return;
+
+    const QSizeF logicalSize = currentPageSceneSize();
+    if (logicalSize.isEmpty())
+        return;
+
+    const qreal dpr = m_model->DPR();
+    const int pixelW
+        = std::max(1, static_cast<int>(std::lround(logicalSize.width() * dpr)));
+    const int pixelH = std::max(
+        1, static_cast<int>(std::lround(logicalSize.height() * dpr)));
+
+    QPixmap pix(pixelW, pixelH);
+    pix.setDevicePixelRatio(dpr);
+
+    const QColor bg(Qt::white);
+    const QColor base = bg.lightness() > 128 ? bg.darker(110) : bg.lighter(130);
+    const QColor accent
+        = bg.lightness() > 128 ? bg.darker(160) : bg.lighter(160);
+    const QColor textColor
+        = bg.lightness() > 128 ? bg.darker(200) : bg.lighter(200);
+
+    pix.fill(base);
+
+    QPainter painter(&pix);
+    painter.setRenderHint(QPainter::Antialiasing, false);
+    const QRectF rect(0.0, 0.0, logicalSize.width(), logicalSize.height());
+
+    QPen borderPen(accent);
+    borderPen.setWidthF(1.0);
+    painter.setPen(borderPen);
+    painter.setBrush(Qt::NoBrush);
+    painter.drawRect(rect.adjusted(0.5, 0.5, -0.5, -0.5));
+
+    QColor hatchColor = accent;
+    hatchColor.setAlpha(60);
+    painter.fillRect(rect, QBrush(hatchColor, Qt::BDiagPattern));
+
+    // QFont font         = painter.font();
+    // const qreal minDim = std::min(rect.width(), rect.height());
+    // font.setPointSizeF(std::max(10.0, minDim / 18.0));
+    // font.setBold(true);
+    // painter.setFont(font);
+    // painter.setPen(textColor);
+    // painter.drawText(rect, Qt::AlignCenter, QStringLiteral("Loading..."));
+
+    createAndAddPageItem(pageno, pix);
+    GraphicsPixmapItem *item = m_page_items_hash.value(pageno, nullptr);
+    if (item)
+        item->setData(0, QStringLiteral("placeholder_page"));
 }
 
 void

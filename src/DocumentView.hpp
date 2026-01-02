@@ -21,7 +21,9 @@ extern "C"
 #include <QFileInfo>
 #include <QGraphicsItem>
 #include <QHash>
+#include <QQueue>
 #include <QScrollBar>
+#include <QSet>
 #include <QString>
 #include <QTimer>
 #include <QWidget>
@@ -271,6 +273,7 @@ private:
     bool pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
                         GraphicsPixmapItem *&outPageItem) const noexcept;
     void requestPageRender(int pageno) noexcept;
+    void startNextRenderJob() noexcept;
     void clearLinksForPage(int pageno) noexcept;
     void clearAnnotationsForPage(int pageno) noexcept;
     void clearSearchItemsForPage(int pageno) noexcept;
@@ -286,6 +289,7 @@ private:
     void removeUnusedPageItems(const std::set<int> &visiblePages) noexcept;
     void reloadPage(int pageno) noexcept;
     void clearDocumentItems() noexcept;
+    void ensureVisiblePagePlaceholders() noexcept;
     void updateCurrentPage() noexcept;
     void updateCurrentHitHighlight() noexcept;
     void zoomHelper() noexcept;
@@ -296,6 +300,7 @@ private:
     void resetConnections() noexcept;
     std::set<int> getVisiblePages() noexcept;
     void removePageItem(int pageno) noexcept;
+    void createAndAddPlaceholderPageItem(int pageno) noexcept;
     void renderSearchHitsForPage(int pageno) noexcept;
     void renderSearchHitsInScrollbar() noexcept;
     void clearSearchHits() noexcept;
@@ -325,6 +330,9 @@ private:
     QHash<int, GraphicsPixmapItem *> m_page_items_hash;
     QHash<int, std::vector<BrowseLinkItem *>> m_page_links_hash;
     QHash<int, std::vector<Annotation *>> m_page_annotations_hash;
+    QSet<int> m_pending_renders;
+    QQueue<int> m_render_queue;
+    bool m_render_in_flight{false};
     float m_old_y{0.0f};
     JumpMarker *m_jump_marker{nullptr};
     QTimer *m_scroll_page_update_timer{nullptr};
