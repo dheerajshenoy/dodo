@@ -56,8 +56,6 @@ protected:
         // Groove = track. Slider = thumb/handle.
         const QRect groove = style()->subControlRect(
             QStyle::CC_ScrollBar, &opt, QStyle::SC_ScrollBarGroove, this);
-        const QRect slider = style()->subControlRect(
-            QStyle::CC_ScrollBar, &opt, QStyle::SC_ScrollBarSlider, this);
 
         if (!groove.isValid())
             return;
