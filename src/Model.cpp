@@ -1012,8 +1012,8 @@ Model::highlightTextSelection(int pageno, const QPointF &start,
         }
 
         fz_point a, b;
-        a     = toPDFSpace(pageno, start);
-        b     = toPDFSpace(pageno, end);
+        a     = {static_cast<float>(start.x()), static_cast<float>(start.y())};
+        b     = {static_cast<float>(end.x()), static_cast<float>(end.y())};
         count = fz_highlight_selection(m_ctx, text_page, a, b, hits, MAX_HITS);
     }
     fz_always(m_ctx)
