@@ -104,6 +104,8 @@ private:
     QPointF m_lastClickPos;
     static constexpr int MULTI_CLICK_INTERVAL        = 400;
     static constexpr double CLICK_DISTANCE_THRESHOLD = 5.0;
+    QPoint m_lastMovePos;
+    static constexpr int MOVE_EMIT_THRESHOLD_PX = 2;
 
     // Utility
     QPointF scenePosFromEvent(QMouseEvent *event) const

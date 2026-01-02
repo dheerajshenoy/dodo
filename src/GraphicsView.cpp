@@ -15,6 +15,10 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
     setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
     setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing);
     setOptimizationFlag(QGraphicsView::DontSavePainterState);
+
+    if (!m_rubberBand)
+        m_rubberBand = new QRubberBand(QRubberBand::Rectangle, this);
+    m_rubberBand->hide();
 }
 
 void
@@ -29,8 +33,6 @@ GraphicsView::setMode(Mode mode) noexcept
             if (m_rubberBand)
             {
                 m_rubberBand->hide();
-                delete m_rubberBand;
-                m_rubberBand = nullptr;
             }
             break;
 
@@ -53,91 +55,97 @@ GraphicsView::setMode(Mode mode) noexcept
 void
 GraphicsView::mousePressEvent(QMouseEvent *event)
 {
-    const QPointF scenePos = mapToScene(event->pos());
-
-    // SyncTeX priority
 #ifdef HAS_SYNCTEX
     if (m_mode == Mode::TextSelection && event->button() == Qt::LeftButton
         && (event->modifiers() & Qt::ShiftModifier))
     {
-        emit synctexJumpRequested(scenePos);
+        emit synctexJumpRequested(mapToScene(event->pos()));
         m_ignore_next_release = true;
-        return;
+        event->accept();
+        return; // don't forward to QGraphicsView
     }
 #endif
 
-    // Right click passthrough (for image context menu)
-    // if (event->button() == Qt::RightButton)
-    // {
-    //     emit rightClickRequested(scenePos);
-    //     QGraphicsView::mousePressEvent(event);
-    //     return;
-    // }
-
-    // Multi-click tracking
+    // Multi-click tracking (avoid QLineF sqrt)
     if (event->button() == Qt::LeftButton)
     {
-        bool isMultiClick = m_clickTimer.isValid()
-                            && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL
-                            && QLineF(event->pos(), m_lastClickPos).length()
-                                   < CLICK_DISTANCE_THRESHOLD;
+        const bool timerOk = m_clickTimer.isValid()
+                             && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL;
 
-        m_clickCount = isMultiClick ? m_clickCount + 1 : 1;
+        const QPointF d    = event->pos() - m_lastClickPos;
+        const double dist2 = d.x() * d.x() + d.y() * d.y();
+        const double thresh2
+            = CLICK_DISTANCE_THRESHOLD * CLICK_DISTANCE_THRESHOLD;
+
+        const bool isMultiClick = timerOk && (dist2 < thresh2);
+
+        m_clickCount = isMultiClick ? (m_clickCount + 1) : 1;
         if (m_clickCount > 4)
             m_clickCount = 1;
 
         m_lastClickPos = event->pos();
         m_clickTimer.restart();
 
-        switch (m_clickCount)
+        const QPointF scenePos = mapToScene(event->pos());
+
+        if (m_clickCount == 2)
         {
-            case 2:
-                emit doubleClickRequested(scenePos);
-                return;
-
-            case 3:
-                emit tripleClickRequested(scenePos);
-                return;
-
-            case 4:
-                emit quadrupleClickRequested(scenePos);
-                return;
-
-            case 1:
-            default:
-                emit textSelectionDeletionRequested();
-                break;
+            emit doubleClickRequested(scenePos);
+            event->accept();
+            return;
         }
+        if (m_clickCount == 3)
+        {
+            emit tripleClickRequested(scenePos);
+            event->accept();
+            return;
+        }
+        if (m_clickCount == 4)
+        {
+            emit quadrupleClickRequested(scenePos);
+            event->accept();
+            return;
+        }
+
+        // single click
+        emit textSelectionDeletionRequested();
     }
 
-    // Mode-specific handling
     switch (m_mode)
     {
         case Mode::RegionSelection:
         case Mode::AnnotRect:
         case Mode::AnnotSelect:
+        {
             m_start     = event->pos();
             m_rect      = QRect();
             m_dragging  = false;
             m_selecting = true;
 
-            if (!m_rubberBand)
-                m_rubberBand = new QRubberBand(QRubberBand::Rectangle, this);
-
             m_rubberBand->setGeometry(QRect(m_start, QSize()));
             m_rubberBand->show();
-            break;
+
+            event->accept();
+            return; // handled
+        }
 
         case Mode::TextSelection:
         case Mode::TextHighlight:
+        {
             if (event->button() == Qt::LeftButton)
             {
-                QGuiApplication::setOverrideCursor(Qt::IBeamCursor);
-                m_mousePressPos   = scenePos;
-                m_selection_start = scenePos;
-                m_selecting       = true;
+                setCursor(
+                    Qt::IBeamCursor); // cheaper than global override cursor
+                const QPointF scenePos = mapToScene(event->pos());
+                m_mousePressPos        = scenePos;
+                m_selection_start      = scenePos;
+                m_selecting            = true;
+
+                event->accept();
+                return; // handled
             }
             break;
+        }
 
         default:
             break;
@@ -149,41 +157,47 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 void
 GraphicsView::mouseMoveEvent(QMouseEvent *event)
 {
-    const QPointF scenePos = mapToScene(event->pos());
-
-    switch (m_mode)
+    // If we are selecting text/highlight, throttle signals
+    if ((m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
+        && m_selecting)
     {
-        case Mode::TextSelection:
-        case Mode::TextHighlight:
-            if (m_selecting)
-            {
-                if (m_mode == Mode::TextSelection)
-                    emit textSelectionRequested(m_selection_start, scenePos);
-                else
-                    emit textHighlightRequested(m_selection_start, scenePos);
-            }
-            break;
+        if ((event->pos() - m_lastMovePos).manhattanLength()
+            < MOVE_EMIT_THRESHOLD_PX)
+        {
+            event->accept();
+            return;
+        }
+        m_lastMovePos = event->pos();
 
-        case Mode::AnnotSelect:
-        case Mode::RegionSelection:
-        case Mode::AnnotRect:
-            if (event->buttons() & Qt::LeftButton && m_selecting)
-            {
-                if (!m_dragging
-                    && (event->pos() - m_start).manhattanLength()
-                           > m_drag_threshold)
-                    m_dragging = true;
+        const QPointF scenePos = mapToScene(event->pos());
+        if (m_mode == Mode::TextSelection)
+            emit textSelectionRequested(m_selection_start, scenePos);
+        else
+            emit textHighlightRequested(m_selection_start, scenePos);
 
-                if (m_dragging && m_rubberBand)
-                {
-                    m_rect = QRect(m_start, event->pos()).normalized();
-                    m_rubberBand->setGeometry(m_rect);
-                }
-            }
-            break;
+        event->accept();
+        return; // handled
+    }
 
-        default:
-            break;
+    // Rubber band modes: no mapToScene needed during drag
+    if ((m_mode == Mode::AnnotSelect || m_mode == Mode::RegionSelection
+         || m_mode == Mode::AnnotRect)
+        && (event->buttons() & Qt::LeftButton) && m_selecting)
+    {
+        if (!m_dragging
+            && (event->pos() - m_start).manhattanLength() > m_drag_threshold)
+        {
+            m_dragging = true;
+        }
+
+        if (m_dragging)
+        {
+            m_rect = QRect(m_start, event->pos()).normalized();
+            m_rubberBand->setGeometry(m_rect);
+        }
+
+        event->accept();
+        return; // handled
     }
 
     QGraphicsView::mouseMoveEvent(event);
@@ -199,37 +213,56 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
         return;
     }
 
-    const QPointF scenePos = mapToScene(event->pos());
-    const int dist
-        = (event->pos() - m_mousePressPos.toPoint()).manhattanLength();
-    const bool isDrag = dist > m_drag_threshold;
+    const bool wasSelecting = m_selecting;
+    m_selecting             = false;
 
-    switch (m_mode)
+    // If we weren't doing any interaction, let base handle it
+    if (!wasSelecting)
     {
-        case Mode::TextSelection:
-            if (m_selection_start == scenePos && !isDrag)
-            {
-                // No selection, just a click
-                emit textSelectionDeletionRequested();
-            }
-            else if (event->button() == Qt::LeftButton && isDrag)
-                emit textSelectionRequested(m_selection_start, scenePos);
-            break;
+        QGraphicsView::mouseReleaseEvent(event);
+        return;
+    }
 
-        case Mode::TextHighlight:
+    // Text modes
+    if (m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
+    {
+        unsetCursor();
+
+        const QPointF scenePos = mapToScene(event->pos());
+        const int dist = (scenePos.toPoint() - m_mousePressPos.toPoint())
+                             .manhattanLength();
+        const bool isDrag = dist > m_drag_threshold;
+
+        if (m_mode == Mode::TextSelection)
+        {
+            if (!isDrag || m_selection_start == scenePos)
+                emit textSelectionDeletionRequested();
+            else if (event->button() == Qt::LeftButton)
+                emit textSelectionRequested(m_selection_start, scenePos);
+        }
+        else
+        {
             if (isDrag)
                 emit textHighlightRequested(m_selection_start, scenePos);
-            // emit textSelectionDeletionRequested(); Should we clear selection
-            // here?
-            break;
+        }
 
-        case Mode::RegionSelection:
-        case Mode::AnnotRect:
-        case Mode::AnnotSelect:
+        m_dragging = false;
+        event->accept();
+        return; // handled
+    }
+
+    // Rubber band modes
+    if (m_mode == Mode::RegionSelection || m_mode == Mode::AnnotRect
+        || m_mode == Mode::AnnotSelect)
+    {
+        m_rubberBand->hide();
+
+        if (!m_dragging && m_mode == Mode::AnnotSelect)
         {
-            if (m_rubberBand)
-                m_rubberBand->hide();
-
+            emit annotSelectRequested(mapToScene(event->pos()));
+        }
+        else
+        {
             const QRectF sceneRect = mapToScene(m_rect).boundingRect();
             if (!sceneRect.isEmpty())
             {
@@ -237,25 +270,17 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
                     emit regionSelectRequested(sceneRect);
                 else if (m_mode == Mode::AnnotRect)
                     emit highlightDrawn(sceneRect);
-                else if (m_mode == Mode::AnnotSelect)
-                {
-                    if (!m_dragging)
-                        emit annotSelectRequested(scenePos);
-                    else
-                        emit annotSelectRequested(sceneRect);
-                }
+                else
+                    emit annotSelectRequested(sceneRect);
             }
         }
-        break;
 
-        default:
-            break;
+        m_dragging = false;
+        event->accept();
+        return; // handled
     }
 
-    m_selecting = false;
-    m_dragging  = false;
-    QGuiApplication::restoreOverrideCursor();
-
+    m_dragging = false;
     QGraphicsView::mouseReleaseEvent(event);
 }
 
@@ -268,14 +293,18 @@ GraphicsView::wheelEvent(QWheelEvent *event)
             emit zoomInRequested();
         else
             emit zoomOutRequested();
-        return;
+        event->accept();
+        return; // do NOT call base
     }
 
     if (m_page_nav_with_mouse)
     {
-        int delta = !event->pixelDelta().isNull() ? event->pixelDelta().y()
-                                                  : event->angleDelta().y();
+        const int delta = !event->pixelDelta().isNull()
+                              ? event->pixelDelta().y()
+                              : event->angleDelta().y();
         emit scrollRequested(delta);
+        event->accept();
+        return; // do NOT call base (prevents double scroll + extra work)
     }
 
     QGraphicsView::wheelEvent(event);
@@ -284,6 +313,6 @@ GraphicsView::wheelEvent(QWheelEvent *event)
 void
 GraphicsView::contextMenuEvent(QContextMenuEvent *event)
 {
-    emit contextMenuRequested(event->pos());
+    emit contextMenuRequested(mapToScene(event->pos()));
     event->accept();
 }
