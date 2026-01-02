@@ -226,6 +226,7 @@ public:
     void NextSelectionMode() noexcept;
     void NextFitMode() noexcept;
     void resizeEvent(QResizeEvent *event) override;
+    void setLayoutMode(const LayoutMode &mode) noexcept;
 
 signals:
     void pageChanged(int pageno);
@@ -295,6 +296,7 @@ private:
     void cachePageXOffset() noexcept;
     void updateSceneRect() noexcept;
     void initConnections() noexcept;
+    void resetConnections() noexcept;
     std::set<int> getVisiblePages() noexcept;
     void removePageItem(int pageno) noexcept;
     void renderSearchHitsForPage(int pageno) noexcept;
@@ -304,7 +306,6 @@ private:
     QGraphicsPathItem *m_current_search_hit_item{nullptr};
     void updateSelectionPath(int pageno, std::vector<QPolygonF> quads) noexcept;
     void centerOnPage(int pageno) noexcept;
-    void setLayoutMode(const LayoutMode &mode) noexcept;
     QSizeF currentPageSceneSize() const noexcept;
     void addToHistory(const PageLocation &location) noexcept;
 

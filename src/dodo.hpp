@@ -144,6 +144,7 @@ private:
     void NextTab() noexcept;
     void PrevTab() noexcept;
     void ReselectLastTextSelection() noexcept;
+    void SetLayoutMode(DocumentView::LayoutMode mode) noexcept;
     void setFocusMode(bool state) noexcept;
 
     // private helpers
@@ -178,6 +179,12 @@ private:
     QMenu *m_editMenu{nullptr};
     QMenu *m_navMenu{nullptr};
     QMenu *m_toggleMenu{nullptr};
+    QMenu *m_viewMenu{nullptr};
+    QMenu *m_layoutMenu{nullptr};
+
+    QAction *m_actionLayoutSingle{nullptr};
+    QAction *m_actionLayoutLeftToRight{nullptr};
+    QAction *m_actionLayoutTopToBottom{nullptr};
 
     QAction *m_actionEncrypt{nullptr};
     QAction *m_actionDecrypt{nullptr};

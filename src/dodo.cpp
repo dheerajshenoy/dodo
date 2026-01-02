@@ -131,22 +131,22 @@ dodo::initMenubar() noexcept
         this, &dodo::editLastPages);
 
     // --- View Menu ---
-    QMenu *viewMenu    = m_menuBar->addMenu("&View");
-    m_actionFullscreen = viewMenu->addAction(
+    m_viewMenu         = m_menuBar->addMenu("&View");
+    m_actionFullscreen = m_viewMenu->addAction(
         QString("Fullscreen\t%1").arg(m_config.shortcuts["fullscreen"]), this,
         &dodo::ToggleFullscreen);
     m_actionFullscreen->setCheckable(true);
 
-    m_actionZoomIn = viewMenu->addAction(
+    m_actionZoomIn = m_viewMenu->addAction(
         QString("Zoom In\t%1").arg(m_config.shortcuts["zoom_in"]), this,
         &dodo::ZoomIn);
-    m_actionZoomOut = viewMenu->addAction(
+    m_actionZoomOut = m_viewMenu->addAction(
         QString("Zoom Out\t%1").arg(m_config.shortcuts["zoom_out"]), this,
         &dodo::ZoomOut);
 
-    viewMenu->addSeparator();
+    m_viewMenu->addSeparator();
 
-    m_fitMenu = viewMenu->addMenu("Fit");
+    m_fitMenu = m_viewMenu->addMenu("Fit");
 
     m_actionFitNone = m_fitMenu->addAction(
         QString("None\t%1").arg(m_config.shortcuts["fit_none"]), this,
@@ -174,8 +174,47 @@ dodo::initMenubar() noexcept
     m_actionAutoresize->setChecked(
         m_config.ui.auto_resize); // default on or off
 
-    viewMenu->addSeparator();
-    m_toggleMenu = viewMenu->addMenu("Show/Hide");
+    // --- Layout Menu ---
+
+    m_viewMenu->addSeparator();
+    m_layoutMenu                    = m_viewMenu->addMenu("Layout");
+    QActionGroup *layoutActionGroup = new QActionGroup(this);
+    layoutActionGroup->setExclusive(true);
+
+    m_actionLayoutSingle = m_layoutMenu->addAction(
+        QString("Single Page\t%1").arg(m_config.shortcuts["layout_single"]),
+        this, [&]() { SetLayoutMode(DocumentView::LayoutMode::SINGLE); });
+
+    m_actionLayoutLeftToRight = m_layoutMenu->addAction(
+        QString("LeftToRight Page\t%1")
+            .arg(m_config.shortcuts["layout_left_to_right"]),
+        this,
+        [&]() { SetLayoutMode(DocumentView::LayoutMode::LEFT_TO_RIGHT); });
+
+    m_actionLayoutTopToBottom = m_layoutMenu->addAction(
+        QString("TopToBottom Page\t%1")
+            .arg(m_config.shortcuts["layout_top_to_bottom"]),
+        this,
+        [&]() { SetLayoutMode(DocumentView::LayoutMode::TOP_TO_BOTTOM); });
+
+    layoutActionGroup->addAction(m_actionLayoutSingle);
+    layoutActionGroup->addAction(m_actionLayoutLeftToRight);
+    layoutActionGroup->addAction(m_actionLayoutTopToBottom);
+
+    m_actionLayoutSingle->setCheckable(true);
+    m_actionLayoutLeftToRight->setCheckable(true);
+    m_actionLayoutTopToBottom->setCheckable(true);
+    m_actionLayoutSingle->setChecked(m_config.ui.layout == "single" ? true
+                                                                    : false);
+    m_actionLayoutLeftToRight->setChecked(
+        m_config.ui.layout == "left_to_right" ? true : false);
+    m_actionLayoutTopToBottom->setChecked(
+        m_config.ui.layout == "top_to_bottom" ? true : false);
+
+    // --- Toggle Menu ---
+
+    m_viewMenu->addSeparator();
+    m_toggleMenu = m_viewMenu->addMenu("Show/Hide");
 
     m_actionToggleOutline = m_toggleMenu->addAction(
         QString("Outline\t%1").arg(m_config.shortcuts["outline"]), this,
@@ -201,11 +240,13 @@ dodo::initMenubar() noexcept
     m_actionTogglePanel->setCheckable(true);
     m_actionTogglePanel->setChecked(!m_panel->isHidden());
 
-    m_actionInvertColor = viewMenu->addAction(
+    m_actionInvertColor = m_viewMenu->addAction(
         QString("Invert Color\t%1").arg(m_config.shortcuts["invert_color"]),
         this, &dodo::InvertColor);
     m_actionInvertColor->setCheckable(true);
     m_actionInvertColor->setChecked(m_config.behavior.invert_mode);
+
+    // --- Tools Menu ---
 
     QMenu *toolsMenu = m_menuBar->addMenu("Tools");
 
@@ -436,7 +477,7 @@ dodo::initConfig() noexcept
     m_config.ui.tabs_movable     = ui["tabs_movable"].value_or(true);
     m_config.ui.tab_elide_mode   = ui["tab_elide_mode"].value_or("right");
     m_config.ui.tab_bar_position = ui["tab_bar_position"].value_or("top");
-    m_config.ui.layout           = ui["layout"].value_or("top-to-bottom");
+    m_config.ui.layout           = ui["layout"].value_or("top_to_bottom");
     m_config.ui.search_hits_on_scrollbar
         = ui["search_hits_on_scrollbar"].value_or(true);
 
@@ -2446,15 +2487,22 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("last_tab", LastTab),
         ACTION_NO_ARGS("reselect_last_selection", ReselectLastTextSelection),
 
-        {QStringLiteral("tab1"), [this](const QStringList &) { GotoTab(1); }},
-        {QStringLiteral("tab2"), [this](const QStringList &) { GotoTab(2); }},
-        {QStringLiteral("tab3"), [this](const QStringList &) { GotoTab(3); }},
-        {QStringLiteral("tab4"), [this](const QStringList &) { GotoTab(4); }},
-        {QStringLiteral("tab5"), [this](const QStringList &) { GotoTab(5); }},
-        {QStringLiteral("tab6"), [this](const QStringList &) { GotoTab(6); }},
-        {QStringLiteral("tab7"), [this](const QStringList &) { GotoTab(7); }},
-        {QStringLiteral("tab8"), [this](const QStringList &) { GotoTab(8); }},
-        {QStringLiteral("tab9"), [this](const QStringList &) { GotoTab(9); }},
+        {"layout_single", [this](const QStringList &)
+    { SetLayoutMode(DocumentView::LayoutMode::SINGLE); }},
+        {"layout_left_to_right", [this](const QStringList &)
+    { SetLayoutMode(DocumentView::LayoutMode::LEFT_TO_RIGHT); }},
+        {"layout_top_to_bottom", [this](const QStringList &)
+    { SetLayoutMode(DocumentView::LayoutMode::TOP_TO_BOTTOM); }},
+
+        {"tab1", [this](const QStringList &) { GotoTab(1); }},
+        {"tab2", [this](const QStringList &) { GotoTab(2); }},
+        {"tab3", [this](const QStringList &) { GotoTab(3); }},
+        {"tab4", [this](const QStringList &) { GotoTab(4); }},
+        {"tab5", [this](const QStringList &) { GotoTab(5); }},
+        {"tab6", [this](const QStringList &) { GotoTab(6); }},
+        {"tab7", [this](const QStringList &) { GotoTab(7); }},
+        {"tab8", [this](const QStringList &) { GotoTab(8); }},
+        {"tab9", [this](const QStringList &) { GotoTab(9); }},
     };
 }
 
@@ -2799,4 +2847,11 @@ dodo::ReselectLastTextSelection() noexcept
 {
     if (m_doc)
         m_doc->ReselectLastTextSelection();
+}
+
+void
+dodo::SetLayoutMode(DocumentView::LayoutMode mode) noexcept
+{
+    if (m_doc)
+        m_doc->setLayoutMode(mode);
 }

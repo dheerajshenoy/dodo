@@ -2,6 +2,8 @@
 
 ## 0.5.2
 
+- Add runtime layout switching
+
 ### Bug Fixes
 
 - Fix invert color not reloading already visible pages

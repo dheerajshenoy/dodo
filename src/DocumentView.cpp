@@ -19,6 +19,7 @@
 #include <QTextCursor>
 #include <QVBoxLayout>
 #include <algorithm>
+#include <qdebug.h>
 #include <qguiapplication.h>
 #include <qicon.h>
 #include <qnamespace.h>
@@ -163,6 +164,7 @@ DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
 
     m_layout_mode = mode;
 
+    initConnections();
     // Reset view state
     clearDocumentItems();
 
@@ -214,10 +216,59 @@ DocumentView::open() noexcept
     cachePageStride();
 }
 
+void
+DocumentView::resetConnections() noexcept
+{
+#ifndef NDEBUG
+    qDebug()
+        << "DocumentView::resetConnections(): Clearing existing connections";
+#endif
+
+    // 1. Disconnect all signals originating FROM this DocumentView instance
+    // to any other objects.
+    this->disconnect();
+
+    // 2. Disconnect specific objects that signal INTO this DocumentView
+    if (m_model)
+    {
+        m_model->disconnect(this);
+    }
+
+    if (m_gview)
+    {
+        m_gview->disconnect(this);
+    }
+
+    // 3. Disconnect UI elements that are layout-dependent
+    if (m_hscroll)
+    {
+        m_hscroll->disconnect(this);
+        // Also disconnect it from the timer if it was connected there
+        m_hscroll->disconnect(m_scroll_page_update_timer);
+    }
+
+    if (m_vscroll)
+    {
+        m_vscroll->disconnect(this);
+        m_vscroll->disconnect(m_scroll_page_update_timer);
+    }
+
+    if (m_hq_render_timer)
+    {
+        m_hq_render_timer->disconnect(this);
+    }
+
+    if (m_scroll_page_update_timer)
+    {
+        m_scroll_page_update_timer->disconnect(this);
+    }
+}
+
 // Initialize signal-slot connections
 void
 DocumentView::initConnections() noexcept
 {
+    resetConnections();
 
 #ifndef NDEBUG
     qDebug() << "DocumentView::initConnections(): Initializing connections";
@@ -1174,15 +1225,13 @@ DocumentView::YankSelection() noexcept
 void
 DocumentView::GotoFirstPage() noexcept
 {
-    m_vscroll->setValue(0);
+    GotoPage(0);
 }
-
 // Go to the last page
 void
 DocumentView::GotoLastPage() noexcept
 {
-    int maxValue = m_vscroll->maximum();
-    m_vscroll->setValue(maxValue);
+    GotoPage(m_model->numPages() - 1);
 }
 
 // Go back in history
@@ -1598,7 +1647,8 @@ DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
         break;
 
         case GraphicsView::Mode::TextHighlight:
-            // addAction("Change color", &DocumentView::changeHighlighterColor);
+            // addAction("Change color",
+            // &DocumentView::changeHighlighterColor);
             break;
 
         case GraphicsView::Mode::AnnotRect:
@@ -1645,8 +1695,8 @@ DocumentView::updateCurrentHitHighlight() noexcept
     QPainterPath path;
     path.addPolygon(pageItem->mapToScene(poly));
 
-    // 4. Only update the underlying QGraphicsPathItem if the path has actually
-    // changed
+    // 4. Only update the underlying QGraphicsPathItem if the path has
+    // actually changed
     if (m_current_search_hit_item->path() != path)
     {
         m_current_search_hit_item->setPath(path);
@@ -1743,8 +1793,8 @@ DocumentView::requestPageRender(int pageno) noexcept
             GotoLocation(m_pending_jump);
         }
 
-        // NEW: If the page we just rendered is the page the user is currently
-        // looking for in search
+        // NEW: If the page we just rendered is the page the user is
+        // currently looking for in search
         if (m_search_index != -1 && !m_search_hit_flat_refs.empty()
             && m_search_hit_flat_refs[m_search_index].page == pageno)
         {
