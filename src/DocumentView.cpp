@@ -1128,13 +1128,14 @@ DocumentView::GoBackHistory() noexcept
 std::set<int>
 DocumentView::getVisiblePages() noexcept
 {
-#ifndef NDEBUG
-    qDebug() << "DocumentView::getVisiblePages(): Calculating visible pages";
-#endif
     std::set<int> visiblePages;
 
     if (m_model->numPages() == 0)
         return visiblePages;
+
+#ifndef NDEBUG
+    qDebug() << "DocumentView::getVisiblePages(): Calculating visible pages";
+#endif
 
     if (m_layout_mode == LayoutMode::SINGLE)
     {
