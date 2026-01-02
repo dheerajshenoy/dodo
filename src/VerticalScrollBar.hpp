@@ -70,14 +70,15 @@ public:
                 QStyle::CC_ScrollBar, &opt, QStyle::SC_ScrollBarGroove, this);
 
             // Map scene positions to groove height
-            double sceneHeight = maximum() + pageStep();
+            const double sceneHeight = maximum() - minimum() + pageStep();
             if (sceneHeight <= 0)
                 return;
 
             for (double posY : m_search_markers)
             {
-                float ratio = static_cast<float>(posY) / sceneHeight;
-                int y       = groove.top() + (ratio * groove.height());
+                float ratio
+                    = static_cast<float>((posY - minimum()) / sceneHeight);
+                int y = groove.top() + (ratio * groove.height());
                 painter.drawLine(0, y, width(), y);
             }
             painter.end();

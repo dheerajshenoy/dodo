@@ -1668,14 +1668,16 @@ DocumentView::updateSceneRect() noexcept
         const QSizeF page       = currentPageSceneSize();
         const double totalWidth = m_model->numPages() * m_page_stride;
         const double sceneH     = std::max(viewH, page.height());
-        m_gview->setSceneRect(0, 0, totalWidth, sceneH);
+        const double xMargin    = std::max(0.0, (viewW - page.width()) / 2.0);
+        m_gview->setSceneRect(-xMargin, 0, totalWidth + 2.0 * xMargin, sceneH);
     }
     else
     {
         const QSizeF page        = currentPageSceneSize();
         const double totalHeight = m_model->numPages() * m_page_stride;
         const double sceneW      = std::max(viewW, page.width());
-        m_gview->setSceneRect(0, 0, sceneW, totalHeight);
+        const double yMargin     = std::max(0.0, (viewH - page.height()) / 2.0);
+        m_gview->setSceneRect(0, -yMargin, sceneW, totalHeight + 2.0 * yMargin);
     }
 }
 
