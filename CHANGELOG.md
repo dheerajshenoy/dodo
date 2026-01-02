@@ -22,7 +22,6 @@
 - Config option to set default layout on file open
     - UI
         `layout` - values: `single`, `left-to-right`, `top-to-bottom`
-    
 
 ### Bug Fixes
 
@@ -31,7 +30,10 @@
 - Fix synctex to work with new rendering system
 - Significantly improved rendering performance by optimizing memory copying from MuPDF to Qt
 - Fix go back history not working properly
-
+- Single page layout issues
+    - Link item deletion
+    - Page navigation
+- History navigation issues
 ## 0.5.0
 
 ### Features

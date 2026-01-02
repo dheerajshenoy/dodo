@@ -106,10 +106,7 @@ SearchBar::setSearchCount(int count) noexcept
 void
 SearchBar::setSearchIndex(int index) noexcept
 {
-    if (index >= 0)
-    {
-        m_searchIndexLabel->setText(QString::number(index));
-        m_searchIndexLabel->show();
-        m_searchSeparator->show();
-    }
+    m_searchIndexLabel->setText(QString::number(index + 1));
+    m_searchIndexLabel->show();
+    m_searchSeparator->show();
 }

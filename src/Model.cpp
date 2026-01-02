@@ -818,7 +818,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         auto it = m_page_cache.find(job.pageno);
         if (it == m_page_cache.end())
         {
-            qWarning() << "Page not cached:" << job.pageno;
+            qWarning() << "Model::PageRenderResult() Page not cached:"
+                       << job.pageno;
             fz_drop_context(ctx);
             return result;
         }

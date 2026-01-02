@@ -69,13 +69,12 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_vscroll = new VerticalScrollBar(Qt::Vertical, this);
     m_gview->setVerticalScrollBar(m_vscroll);
 
+    setLayoutMode(LayoutMode::SINGLE);
     initConnections();
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(m_gview);
-
-    setLayoutMode(LayoutMode::SINGLE);
 }
 
 // Get the size of the current page in scene coordinates
@@ -118,14 +117,14 @@ DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
             m_pageno = 0;
         if (m_pageno >= m_model->numPages())
             m_pageno = m_model->numPages() - 1;
+        renderPage();
     }
     else
     {
         // Put viewport near current page along the main axis
         GotoPage(m_pageno);
+        renderVisiblePages();
     }
-
-    renderVisiblePages();
 }
 
 void
@@ -152,7 +151,6 @@ DocumentView::open() noexcept
     m_model->open();
     m_pageno = 0;
     cachePageStride();
-    renderVisiblePages();
 }
 
 // Initialize signal-slot connections
@@ -189,26 +187,41 @@ DocumentView::initConnections() noexcept
 
     connect(m_model, &Model::reloadRequested, this, &DocumentView::reloadPage);
 
-    connect(m_hq_render_timer, &QTimer::timeout, this,
-            &DocumentView::renderVisiblePages);
+    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    {
+        connect(m_hscroll, &QScrollBar::valueChanged,
+                m_scroll_page_update_timer,
+                static_cast<void (QTimer::*)()>(&QTimer::start));
 
-    connect(m_vscroll, &QScrollBar::valueChanged, m_scroll_page_update_timer,
-            static_cast<void (QTimer::*)()>(&QTimer::start));
+        connect(m_hscroll, &QScrollBar::valueChanged, this,
+                &DocumentView::updateCurrentPage);
 
-    connect(m_hscroll, &QScrollBar::valueChanged, m_scroll_page_update_timer,
-            static_cast<void (QTimer::*)()>(&QTimer::start));
+        connect(m_hq_render_timer, &QTimer::timeout, this,
+                &DocumentView::renderVisiblePages);
 
-    connect(m_hscroll, &QScrollBar::valueChanged, this,
-            &DocumentView::updateCurrentPage);
+        connect(m_scroll_page_update_timer, &QTimer::timeout, this,
+                &DocumentView::renderVisiblePages);
+    }
+    else if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM)
+    {
+        connect(m_vscroll, &QScrollBar::valueChanged,
+                m_scroll_page_update_timer,
+                static_cast<void (QTimer::*)()>(&QTimer::start));
 
-    connect(m_scroll_page_update_timer, &QTimer::timeout, this,
-            &DocumentView::renderVisiblePages);
+        connect(m_vscroll, &QScrollBar::valueChanged, this,
+                &DocumentView::updateCurrentPage);
 
-    connect(m_vscroll, &QScrollBar::valueChanged, this,
-            &DocumentView::updateCurrentPage);
+        connect(m_hq_render_timer, &QTimer::timeout, this,
+                &DocumentView::renderVisiblePages);
 
-    connect(m_scroll_page_update_timer, &QTimer::timeout, this,
-            &DocumentView::renderVisiblePages);
+        connect(m_scroll_page_update_timer, &QTimer::timeout, this,
+                &DocumentView::renderVisiblePages);
+    }
+    else if (m_layout_mode == LayoutMode::SINGLE)
+    {
+        connect(m_hq_render_timer, &QTimer::timeout, this,
+                &DocumentView::renderPage);
+    }
 
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this,
             &DocumentView::ClearTextSelection);
@@ -258,6 +271,7 @@ DocumentView::handleSearchResults(
     if (m_config.ui.search_hits_on_scrollbar)
         renderSearchHitsInScrollbar();
 
+    emit searchIndexChanged(m_search_index);
     emit searchCountChanged(m_model->searchMatchesCount());
 }
 
@@ -585,43 +599,10 @@ DocumentView::setZoom(double factor) noexcept
 }
 
 void
-DocumentView::GotoLocation(const PageLocation &targetLocation,
-                           const PageLocation &sourceLocation) noexcept
+DocumentView::GotoLocation(const PageLocation &targetLocation) noexcept
 {
     if (m_model->numPages() == 0)
         return;
-
-    // RECORD HISTORY BEFORE JUMPING
-    // Only record if not currently navigating through history
-    if (!m_suppress_history_recording)
-    {
-        if (sourceLocation.pageno != -1)
-        {
-// Use provided source location
-#ifndef NDEBUG
-            qDebug() << "Recording source location from provided data:"
-                     << sourceLocation.pageno << sourceLocation.x
-                     << sourceLocation.y;
-#endif
-            m_loc_history.push_back(
-                {sourceLocation.pageno, sourceLocation.x, sourceLocation.y});
-        }
-        else
-        {
-            // Map the center of the current viewport back to PDF space
-            const QPointF centerScene
-                = m_gview->mapToScene(m_gview->viewport()->rect().center());
-            int dummyIdx;
-            GraphicsPixmapItem *pageItem = nullptr;
-
-            if (pageAtScenePos(centerScene, dummyIdx, pageItem))
-            {
-                QPointF localPos = pageItem->mapFromScene(centerScene);
-                fz_point pdfLoc  = m_model->toPDFSpace(dummyIdx, localPos);
-                m_loc_history.push_back({dummyIdx, pdfLoc.x, pdfLoc.y});
-            }
-        }
-    }
 
     // HANDLE PENDING RENDERS
     if (!m_page_items_hash.contains(targetLocation.pageno))
@@ -632,25 +613,46 @@ DocumentView::GotoLocation(const PageLocation &targetLocation,
                  << "not yet rendered. Deferring jump until render.";
 #endif
         m_pending_jump = targetLocation;
-        requestPageRender(targetLocation.pageno);
+        GotoPage(targetLocation.pageno);
         return;
     }
 
 #ifndef NDEBUG
     qDebug() << "DocumentView::GotoLocation(): Requested "
-                "targetLocationation:"
+                "target location:"
              << targetLocation.pageno << targetLocation.x << targetLocation.y
              << "in document with" << m_model->numPages() << "pages.";
 #endif
 
+    // Continuous / LTR layouts
     GraphicsPixmapItem *pageItem = m_page_items_hash[targetLocation.pageno];
-    const QPointF targetLocationalPos = m_model->toPixelSpace(
-        targetLocation.pageno, fz_point{targetLocation.x, targetLocation.y});
-    const QPointF scenePos = pageItem->mapToScene(targetLocationalPos);
 
-    // Center view
-    m_gview->centerOn(scenePos);
+    QPointF targetPixelPos = m_model->toPixelSpace(
+        targetLocation.pageno, {targetLocation.x, targetLocation.y});
+
+    QPointF scenePos = pageItem->mapToScene(targetPixelPos);
+
+    if (m_layout_mode == LayoutMode::SINGLE)
+    {
+        // 1. Ensure correct page is shown
+        if (m_pageno != targetLocation.pageno)
+            GotoPage(targetLocation.pageno);
+
+        // 2. Scroll inside the page (top by default)
+        // Since history stores no y, go to top
+        m_vscroll->setValue(m_vscroll->minimum());
+
+        // Optional: horizontal reset
+        m_hscroll->setValue(m_hscroll->minimum());
+    }
+    else
+    {
+        m_gview->centerOn(scenePos);
+    }
+
     m_jump_marker->showAt(scenePos.x(), scenePos.y());
+    centerOnPage(m_pending_jump.pageno);
+    m_pending_jump = {-1, 0, 0};
 }
 
 // Go to specific page number
@@ -662,12 +664,11 @@ DocumentView::GotoPage(int pageno) noexcept
         return;
 
     m_pageno = pageno;
+    emit currentPageChanged(pageno + 1);
 
     if (m_layout_mode == LayoutMode::SINGLE)
     {
-        clearDocumentItems();      // single page: dump everything else
-        requestPageRender(pageno); // render only this page
-        updateSceneRect();
+        renderPage();
         return;
     }
 
@@ -681,9 +682,6 @@ DocumentView::GotoPage(int pageno) noexcept
         const double y = pageno * m_page_stride + m_page_stride / 2.0;
         m_gview->centerOn(QPointF(m_gview->sceneRect().width() / 2.0, y));
     }
-
-    if (!m_suppress_history_recording)
-        emit currentPageChanged(pageno + 1);
 }
 
 // Go to next page
@@ -761,20 +759,20 @@ DocumentView::zoomHelper() noexcept
 #endif
 
     // Record the current center position in PDF coordinates before zooming
-    int anchorPageIndex            = -1;
-    GraphicsPixmapItem *anchorItem = nullptr;
-    fz_point anchorPdfPos          = {0, 0};
-    bool hasAnchor                 = false;
+    // int anchorPageIndex            = -1;
+    // GraphicsPixmapItem *anchorItem = nullptr;
+    // fz_point anchorPdfPos          = {0, 0};
+    // bool hasAnchor                 = false;
 
-    const QPointF centerScene
-        = m_gview->mapToScene(m_gview->viewport()->rect().center());
+    // const QPointF centerScene
+    //     = m_gview->mapToScene(m_gview->viewport()->rect().center());
 
-    if (pageAtScenePos(centerScene, anchorPageIndex, anchorItem))
-    {
-        QPointF localPos = anchorItem->mapFromScene(centerScene);
-        anchorPdfPos     = m_model->toPDFSpace(anchorPageIndex, localPos);
-        hasAnchor        = true;
-    }
+    // if (pageAtScenePos(centerScene, anchorPageIndex, anchorItem))
+    // {
+    //     QPointF localPos = anchorItem->mapFromScene(centerScene);
+    //     anchorPdfPos     = m_model->toPDFSpace(anchorPageIndex, localPos);
+    //     hasAnchor        = true;
+    // }
 
     m_current_zoom = m_target_zoom;
     cachePageStride();
@@ -819,14 +817,15 @@ DocumentView::zoomHelper() noexcept
     renderSearchHitsInScrollbar();
 
     // Restore viewport to the same PDF position after zoom
-    if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
-    {
-        GraphicsPixmapItem *pageItem = m_page_items_hash[anchorPageIndex];
-        const QPointF restoredPixelPos
-            = m_model->toPixelSpace(anchorPageIndex, anchorPdfPos);
-        const QPointF restoredScenePos = pageItem->mapToScene(restoredPixelPos);
-        m_gview->centerOn(restoredScenePos);
-    }
+    // if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
+    // {
+    //     GraphicsPixmapItem *pageItem = m_page_items_hash[anchorPageIndex];
+    //     const QPointF restoredPixelPos
+    //         = m_model->toPixelSpace(anchorPageIndex, anchorPdfPos);
+    //     const QPointF restoredScenePos =
+    //     pageItem->mapToScene(restoredPixelPos);
+    //     m_gview->centerOn(restoredScenePos);
+    // }
 
     m_hq_render_timer->start();
 }
@@ -1112,10 +1111,17 @@ DocumentView::GoBackHistory() noexcept
 #endif
 
     const PageLocation loc = m_loc_history.back();
+
+    if (loc.pageno == m_pageno)
+    {
+        // Same page, just go back one more
+        m_loc_history.pop_back();
+        if (m_loc_history.empty())
+            return;
+    }
+
     m_loc_history.pop_back();
-    m_suppress_history_recording = true;
     GotoLocation(loc);
-    m_suppress_history_recording = false;
 }
 
 // Get the list of currently visible pages
@@ -1241,6 +1247,17 @@ DocumentView::renderVisiblePages() noexcept
     updateCurrentHitHighlight();
 }
 
+// Render a specific page (used when LayoutMode is SINGLE)
+void
+DocumentView::renderPage() noexcept
+{
+    removeUnusedPageItems({m_pageno});
+    requestPageRender(m_pageno);
+
+    updateSceneRect();
+    updateCurrentHitHighlight();
+}
+
 void
 DocumentView::removeUnusedPageItems(const std::set<int> &visibleSet) noexcept
 {
@@ -1360,7 +1377,10 @@ void
 DocumentView::resizeEvent(QResizeEvent *event)
 {
     clearDocumentItems();
-    renderVisiblePages();
+    if (m_layout_mode == LayoutMode::SINGLE)
+        renderPage();
+    else
+        renderVisiblePages();
 
     if (m_auto_resize)
     {
@@ -1631,8 +1651,6 @@ DocumentView::requestPageRender(int pageno) noexcept
         if (m_pending_jump.pageno != -1)
         {
             GotoLocation(m_pending_jump);
-            centerOnPage(m_pending_jump.pageno);
-            m_pending_jump = {-1, 0, 0};
         }
 
         // NEW: If the page we just rendered is the page the user is currently
@@ -1738,8 +1756,8 @@ DocumentView::renderLinks(int pageno,
                         targetPageno, 0, 0};
                     const DocumentView::PageLocation sourceLocation{
                         pageno, sourceLocationOfLink.x, sourceLocationOfLink.y};
-
-                    GotoLocation(targetLocation, sourceLocation);
+                    addToHistory(sourceLocation);
+                    GotoLocation(targetLocation);
                 });
             }
             break;
@@ -1761,7 +1779,8 @@ DocumentView::renderLinks(int pageno,
                     const DocumentView::PageLocation sourceLocation{
                         pageno, sourceLocationOfLink.x, sourceLocationOfLink.y};
 
-                    GotoLocation(targetLocation, sourceLocation);
+                    addToHistory(sourceLocation);
+                    GotoLocation(targetLocation);
                 });
             }
             break;
@@ -2024,4 +2043,15 @@ DocumentView::centerOnPage(int pageno) noexcept
                                      pageItem->boundingRect().height() / 2.0);
     const QPointF scenePos = pageItem->mapToScene(localPos);
     m_gview->centerOn(scenePos);
+}
+
+void
+DocumentView::addToHistory(const PageLocation &location) noexcept
+{
+#ifndef NDEBUG
+    qDebug() << "DocumentView::addLocationToHistory(): Adding location to "
+             << "history: Page =" << location.pageno << ", x =" << location.x
+             << ", y =" << location.y;
+#endif
+    m_loc_history.push_back(location);
 }
