@@ -121,8 +121,13 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
 
 DocumentView::~DocumentView() noexcept
 {
+#ifdef HAS_SYNCTEX
     synctex_scanner_free(m_synctex_scanner);
+#endif
     clearDocumentItems();
+
+    m_model->cleanup();
+    delete m_model;
 
     m_gscene->removeItem(m_jump_marker);
     m_gscene->removeItem(m_selection_path_item);
@@ -131,9 +136,6 @@ DocumentView::~DocumentView() noexcept
     delete m_jump_marker;
     delete m_selection_path_item;
     delete m_current_search_hit_item;
-
-    m_model->cleanup();
-    delete m_model;
 }
 
 // Get the size of the current page in scene coordinates
@@ -187,6 +189,7 @@ DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
     }
 }
 
+#ifdef HAS_SYNCTEX
 void
 DocumentView::initSynctex() noexcept
 {
@@ -200,6 +203,7 @@ DocumentView::initSynctex() noexcept
     if (!m_synctex_scanner)
         return;
 }
+#endif
 
 void
 DocumentView::open() noexcept
@@ -506,6 +510,7 @@ DocumentView::handleSynctexJumpRequested(const QPointF &scenePos) noexcept
 }
 #endif
 
+#ifdef HAS_SYNCTEX
 void
 DocumentView::synctexLocateInDocument(const char *texFileName,
                                       int line) noexcept
@@ -526,6 +531,7 @@ DocumentView::synctexLocateInDocument(const char *texFileName,
 
     QProcess::startDetached(editor, args);
 }
+#endif
 
 // Handle text selection from GraphicsView
 void
