@@ -3,6 +3,7 @@
 ## 0.5.2
 
 - Add runtime layout switching
+- Link hinting mode for keyboard link navigation
 
 ### Bug Fixes
 

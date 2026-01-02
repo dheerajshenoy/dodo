@@ -38,6 +38,11 @@ public:
     {
         QString uri;
         fz_link_dest dest;
+        BrowseLinkItem::LinkType type{BrowseLinkItem::LinkType::External};
+        int target_page{-1};
+        BrowseLinkItem::PageLocation target_loc{0, 0, 0};
+        BrowseLinkItem::PageLocation source_loc{0, 0, 0};
+        int source_page{-1};
     };
 
     struct SearchHit

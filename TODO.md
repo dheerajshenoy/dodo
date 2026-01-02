@@ -1,4 +1,5 @@
 # TODO
+- [X] Configurable page layout (single, left-right, continuous, facing etc.)
 - [X] Encrypt PDF with password
 - [X] Reload document on request
 - [X] Double, triple and quadruple click to select word, line and paragraph respectively
@@ -46,4 +47,3 @@
 - [ ] Two page side-by-side view mode
 - [ ] Two selected page view mode
 - [ ] Implement LRU caching for pages and other resources
-- [ ] Configurable page layout (single, left-right, continuous, facing etc.)

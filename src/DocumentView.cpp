@@ -4,19 +4,23 @@
 #include "GraphicsPixmapItem.hpp"
 #include "GraphicsView.hpp"
 #include "HighlightAnnotation.hpp"
+#include "LinkHint.hpp"
 #include "PopupAnnotation.hpp"
 #include "PropertiesWidget.hpp"
 #include "RectAnnotation.hpp"
 
 #include <QClipboard>
 #include <QColorDialog>
+#include <QDesktopServices>
 #include <QFileDialog>
+#include <QFontMetricsF>
 #include <QFutureWatcher>
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QProcess>
 #include <QTextCursor>
+#include <QUrl>
 #include <QVBoxLayout>
 #include <algorithm>
 #include <qdebug.h>
@@ -99,7 +103,7 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
 
     if (m_config.ui.layout == "single")
         setLayoutMode(LayoutMode::SINGLE);
-    else if (m_config.ui.layout == "left-to-right")
+    else if (m_config.ui.layout == "left_to_right")
         setLayoutMode(LayoutMode::LEFT_TO_RIGHT);
     else
         setLayoutMode(LayoutMode::TOP_TO_BOTTOM);
@@ -1061,8 +1065,153 @@ DocumentView::ScrollDown() noexcept
 QMap<int, Model::LinkInfo>
 DocumentView::LinkKB() noexcept
 {
-    // TODO: Implement link KB functionality
-    return QMap<int, Model::LinkInfo>();
+    QMap<int, Model::LinkInfo> hintMap;
+
+    if (!m_gscene)
+        return hintMap;
+
+    ClearKBHintsOverlay();
+
+    const QRectF visibleSceneRect
+        = m_gview->mapToScene(m_gview->viewport()->rect()).boundingRect();
+
+    std::vector<std::pair<BrowseLinkItem *, int>> visibleLinks;
+    const std::set<int> visiblePages = getVisiblePages();
+    for (int pageno : visiblePages)
+    {
+        if (!m_page_links_hash.contains(pageno))
+            continue;
+
+        const auto &links = m_page_links_hash.value(pageno);
+        for (auto *link : links)
+        {
+            if (!link || link->scene() != m_gscene)
+                continue;
+
+            const QRectF linkRect = link->sceneBoundingRect();
+            if (!linkRect.intersects(visibleSceneRect))
+                continue;
+
+            visibleLinks.push_back({link, pageno});
+        }
+    }
+
+    if (visibleLinks.empty())
+        return hintMap;
+
+    int hint = 1;
+    if (visibleLinks.size() > 9)
+    {
+        int digits = QString::number(visibleLinks.size()).size();
+        hint       = 1;
+        for (int i = 1; i < digits; ++i)
+            hint *= 10;
+    }
+
+    float fontSize = m_config.ui.link_hint_size;
+    if (fontSize < 1.0f)
+        fontSize = std::max(8.0f, fontSize * 32.0f);
+
+    QFont font;
+    font.setPointSizeF(fontSize);
+    QFontMetricsF metrics(font);
+
+    const QColor bg = m_config.ui.colors["link_hint_bg"];
+    const QColor fg = m_config.ui.colors["link_hint_fg"];
+
+    for (const auto &entry : visibleLinks)
+    {
+        BrowseLinkItem *link = entry.first;
+        const int pageno     = entry.second;
+
+        const QString hintText = QString::number(hint);
+        const QRectF textRect  = metrics.boundingRect(hintText);
+        const qreal padding    = 4.0;
+        const QSizeF hintSize(textRect.width() + padding * 2.0,
+                              textRect.height() + padding * 2.0);
+
+        QPointF hintPos = link->sceneBoundingRect().topLeft() + QPointF(2, 2);
+        if (hintPos.x() + hintSize.width() > visibleSceneRect.right())
+            hintPos.setX(visibleSceneRect.right() - hintSize.width());
+        if (hintPos.y() + hintSize.height() > visibleSceneRect.bottom())
+            hintPos.setY(visibleSceneRect.bottom() - hintSize.height());
+        if (hintPos.x() < visibleSceneRect.left())
+            hintPos.setX(visibleSceneRect.left());
+        if (hintPos.y() < visibleSceneRect.top())
+            hintPos.setY(visibleSceneRect.top());
+
+        LinkHint *hintItem
+            = new LinkHint(QRectF(hintPos, hintSize), bg, fg, hint, fontSize);
+        m_gscene->addItem(hintItem);
+
+        Model::LinkInfo info;
+        info.uri         = link->link();
+        info.dest        = fz_make_link_dest_none();
+        info.type        = link->linkType();
+        info.target_page = link->gotoPageNo();
+        info.target_loc  = link->location();
+        info.source_loc  = link->sourceLocation();
+        info.source_page = pageno;
+        hintMap.insert(hint, info);
+
+        ++hint;
+    }
+
+    return hintMap;
+}
+
+void
+DocumentView::FollowLink(const Model::LinkInfo &info) noexcept
+{
+    switch (info.type)
+    {
+        case BrowseLinkItem::LinkType::External:
+            if (!info.uri.isEmpty())
+                QDesktopServices::openUrl(QUrl(info.uri));
+            break;
+
+        case BrowseLinkItem::LinkType::FitH:
+            if (info.target_page >= 0)
+            {
+                addToHistory(
+                    {info.source_page, info.source_loc.x, info.source_loc.y});
+                GotoLocation(
+                    {info.target_page, info.target_loc.x, info.target_loc.y});
+                setFitMode(FitMode::Width);
+            }
+            break;
+
+        case BrowseLinkItem::LinkType::FitV:
+            if (info.target_page >= 0)
+            {
+                addToHistory(
+                    {info.source_page, info.source_loc.x, info.source_loc.y});
+                GotoLocation(
+                    {info.target_page, info.target_loc.x, info.target_loc.y});
+                setFitMode(FitMode::Height);
+            }
+            break;
+
+        case BrowseLinkItem::LinkType::Page:
+            if (info.target_page >= 0)
+            {
+                addToHistory(
+                    {info.source_page, info.source_loc.x, info.source_loc.y});
+                GotoLocation({info.target_page, 0, 0});
+            }
+            break;
+
+        case BrowseLinkItem::LinkType::Section:
+        case BrowseLinkItem::LinkType::Location:
+            if (info.target_page >= 0)
+            {
+                addToHistory(
+                    {info.source_page, info.source_loc.x, info.source_loc.y});
+                GotoLocation(
+                    {info.target_page, info.target_loc.x, info.target_loc.y});
+            }
+            break;
+    }
 }
 
 // Show file properties dialog
@@ -1182,6 +1331,21 @@ DocumentView::TextHighlightCurrentSelection() noexcept
 void
 DocumentView::ClearKBHintsOverlay() noexcept
 {
+    if (!m_gscene)
+        return;
+
+    const auto items = m_gscene->items();
+    for (auto *item : items)
+    {
+        if (!item)
+            continue;
+
+        if (item->data(0).toString() == "kb_link_overlay")
+        {
+            m_gscene->removeItem(item);
+            delete item;
+        }
+    }
 }
 
 // Clear the current text selection

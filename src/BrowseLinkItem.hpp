@@ -72,6 +72,10 @@ public:
     {
         _source_loc = loc;
     }
+    inline PageLocation sourceLocation() const noexcept
+    {
+        return _source_loc;
+    }
 
     inline void setURI(char *uri) noexcept
     {
@@ -91,6 +95,10 @@ public:
     inline LinkType linkType() noexcept
     {
         return _type;
+    }
+    inline const QString &link() const noexcept
+    {
+        return _link;
     }
 
 signals:

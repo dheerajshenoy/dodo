@@ -173,10 +173,7 @@ public:
         return m_rotation;
     }
 
-    inline void FollowLink(const Model::LinkInfo &info) noexcept
-    {
-        m_model->followLink(info);
-    }
+    void FollowLink(const Model::LinkInfo &info) noexcept;
 
     void setInvertColor(bool invert) noexcept;
     void open() noexcept;
