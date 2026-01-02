@@ -10,6 +10,7 @@ Annotation::Annotation(int index, const QColor &color, QGraphicsItem *parent)
     m_originalBrush = m_brush;
     m_originalPen   = m_pen;
     setData(0, "annot");
+    setData(3, color);
     setAcceptHoverEvents(true);
     setFlags(QGraphicsItem::ItemIsSelectable);
 }

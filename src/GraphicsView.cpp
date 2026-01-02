@@ -338,8 +338,12 @@ GraphicsView::wheelEvent(QWheelEvent *event)
 void
 GraphicsView::contextMenuEvent(QContextMenuEvent *event)
 {
-    emit contextMenuRequested(mapToScene(event->pos()));
-    event->accept();
+    QGraphicsView::contextMenuEvent(event);
+    if (!event->isAccepted())
+    {
+        emit contextMenuRequested(mapToScene(event->pos()));
+        event->accept();
+    }
 }
 
 // bool

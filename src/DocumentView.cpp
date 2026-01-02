@@ -3,15 +3,20 @@
 #include "BrowseLinkItem.hpp"
 #include "GraphicsPixmapItem.hpp"
 #include "GraphicsView.hpp"
+#include "HighlightAnnotation.hpp"
+#include "PopupAnnotation.hpp"
 #include "PropertiesWidget.hpp"
+#include "RectAnnotation.hpp"
 
 #include <QClipboard>
+#include <QColorDialog>
 #include <QFileDialog>
 #include <QFutureWatcher>
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QProcess>
+#include <QTextCursor>
 #include <QVBoxLayout>
 #include <algorithm>
 #include <qguiapplication.h>
@@ -20,8 +25,6 @@
 #include <qpoint.h>
 #include <qpolygon.h>
 #include <qstyle.h>
-#include <qtextcursor.h>
-#include <strings.h>
 
 DocumentView::DocumentView(const QString &filepath, const Config &config,
                            QWidget *parent) noexcept
@@ -66,8 +69,6 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_gview->setAlignment(Qt::AlignCenter);
     m_gview->setMode(m_config.behavior.initial_mode);
     m_gview->setBackgroundBrush(QColor(m_config.ui.colors["background"]));
-
-    qDebug() << "Setting DPR to" << m_config.rendering.dpi;
     m_model->setDPI(m_config.rendering.dpi);
     m_model->setAnnotRectColor(
         QColor(m_config.ui.colors["annot_rect"]).toRgb());
@@ -123,7 +124,6 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
 DocumentView::~DocumentView() noexcept
 {
     synctex_scanner_free(m_synctex_scanner);
-
     clearDocumentItems();
 
     m_gscene->removeItem(m_jump_marker);
@@ -134,6 +134,7 @@ DocumentView::~DocumentView() noexcept
     delete m_selection_path_item;
     delete m_current_search_hit_item;
 
+    m_model->cleanup();
     delete m_model;
 }
 
@@ -856,7 +857,7 @@ DocumentView::zoomHelper() noexcept
 
         const QPixmap pix = item->pixmap();
 
-        // 3. Calculate scale based on ACTUAL pixmap height vs TARGET pixel
+        // Calculate scale based on ACTUAL pixmap height vs TARGET pixel
         // height This ensures the item perfectly fills the 'pixelHeight'
         // portion of the stride
         double currentPixmapHeight = item->pixmap().height();
@@ -866,9 +867,26 @@ DocumentView::zoomHelper() noexcept
 
         const double pageWidthScene
             = item->boundingRect().width() * item->scale();
+        const double pageHeightScene
+            = item->boundingRect().height() * item->scale();
+        const QRectF sr = m_gview->sceneRect();
 
-        m_page_x_offset = (m_gview->sceneRect().width() - pageWidthScene) / 2.0;
-        item->setPos(m_page_x_offset, i * m_page_stride);
+        if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+        {
+            const double yOffset = (sr.height() - pageHeightScene) / 2.0;
+            item->setPos(i * m_page_stride, yOffset);
+        }
+        else if (m_layout_mode == LayoutMode::SINGLE)
+        {
+            const double xOffset = (sr.width() - pageWidthScene) / 2.0;
+            const double yOffset = (sr.height() - pageHeightScene) / 2.0;
+            item->setPos(xOffset, yOffset);
+        }
+        else
+        {
+            m_page_x_offset = (sr.width() - pageWidthScene) / 2.0;
+            item->setPos(m_page_x_offset, i * m_page_stride);
+        }
     }
 
     m_model->setZoom(m_current_zoom);
@@ -1580,8 +1598,7 @@ DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
         break;
 
         case GraphicsView::Mode::TextHighlight:
-            // addAction("Change color",
-            // &DocumentView::changeHighlighterColor);
+            // addAction("Change color", &DocumentView::changeHighlighterColor);
             break;
 
         case GraphicsView::Mode::AnnotRect:
@@ -1739,6 +1756,8 @@ DocumentView::requestPageRender(int pageno) noexcept
 void
 DocumentView::renderPageFromImage(int pageno, const QImage &image) noexcept
 {
+    clearLinksForPage(pageno);
+    clearAnnotationsForPage(pageno);
     removePageItem(pageno);
     createAndAddPageItem(pageno, QPixmap::fromImage(image));
 }
@@ -1897,15 +1916,16 @@ DocumentView::renderAnnotations(
     clearAnnotationsForPage(pageno);
 
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
-    for (Annotation *annot : annotations)
+    for (const auto &annot : annotations)
     {
+        // annot_item->setOpacity(0.0);
         annot->setZValue(ZVALUE_ANNOTATION);
         annot->setPos(
             pageItem->pos()); // Annotations are relative to page origin
         m_gscene->addItem(annot);
-        m_page_annotations_hash[pageno]
-            = annotations; // Store them so we can actually delete them
-        // later
+        m_page_annotations_hash[pageno].push_back(
+            annot); // Store them so we can actually delete them
+
         connect(annot, &Annotation::annotDeleteRequested, [&](int index)
         {
             m_model->removeHighlightAnnotation(pageno, {index});
@@ -1913,16 +1933,17 @@ DocumentView::renderAnnotations(
         });
 
         connect(annot, &Annotation::annotColorChangeRequested,
-                [this, annot](int index)
+                [this, annot, pageno](int index)
         {
-            // auto color = QColorDialog::getColor(
-            //     annot->data(3).value<QColor>(), this, "Highlight Color",
-            //     QColorDialog::ColorDialogOption::ShowAlphaChannel);
-            // if (color.isValid())
-            // {
-            //     m_model->annotChangeColorForIndex(index, color);
-            //     setDirty(true);
-            // }
+            auto color = QColorDialog::getColor(
+                annot->data(3).value<QColor>(), this, "Highlight Color",
+                QColorDialog::ColorDialogOption::ShowAlphaChannel);
+            if (color.isValid())
+            {
+                m_model->annotChangeColor(pageno, index, color);
+                annot->setData(3, color);
+                setModified(true);
+            }
         });
     }
 }

@@ -8,6 +8,7 @@
 #include <QColor>
 #include <QFuture>
 #include <QPixmap>
+#include <QRectF>
 #include <QString>
 #include <QUndoStack>
 #include <unordered_map>
@@ -250,6 +251,7 @@ public:
     void search(const QString &term, bool caseSensitive = false) noexcept;
     std::vector<Model::SearchHit> searchHelper(int pageno, const QString &term,
                                                bool caseSensitive) noexcept;
+    void annotChangeColor(int pageno, int index, const QColor &color) noexcept;
 
 signals:
     void reloadRequested(int pageno);
@@ -272,7 +274,7 @@ private:
 
     struct CachedAnnotation
     {
-        fz_rect rect; // page space
+        fz_rect rect; // for non-highlight annotations
         enum pdf_annot_type type;
         QColor color;
         QString text;

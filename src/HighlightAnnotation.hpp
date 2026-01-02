@@ -5,12 +5,16 @@
 #include <QBrush>
 #include <QGraphicsItem>
 #include <QGraphicsRectItem>
+#include <QGraphicsScene>
 #include <QGraphicsSceneContextMenuEvent>
 #include <QGuiApplication>
 #include <QMenu>
 #include <QObject>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPen>
+#include <QPolygonF>
+#include <qgraphicsitem.h>
 
 class HighlightAnnotation : public Annotation
 {
@@ -32,11 +36,6 @@ protected:
 
             QGraphicsItem::mousePressEvent(e);
         }
-    }
-
-    QRectF boundingRect() const override
-    {
-        return m_rect;
     }
 
     // void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override {
@@ -70,12 +69,21 @@ protected:
         e->accept();
     }
 
+    inline QRectF boundingRect() const override
+    {
+        return m_rect;
+    }
+
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
                QWidget *widget) override
     {
         Q_UNUSED(option);
         Q_UNUSED(widget);
         Q_UNUSED(painter);
+
+        // painter->setPen(m_pen);
+        // painter->setBrush(m_brush);
+        // painter->drawRect(m_rect);
     }
 
 private:

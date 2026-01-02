@@ -2,8 +2,6 @@
 
 #include "BrowseLinkItem.hpp"
 #include "HighlightAnnotation.hpp"
-#include "PopupAnnotation.hpp"
-#include "RectAnnotation.hpp"
 #include "commands/TextHighlightAnnotationCommand.hpp"
 #include "mupdf/fitz/display-list.h"
 #include "mupdf/fitz/document.h"
@@ -14,6 +12,7 @@
 #include <pthread.h>
 #include <qbytearrayview.h>
 #include <qstyle.h>
+#include <qtextformat.h>
 
 /**
  * @brief Clean up image data when the last copy of the QImage is destoryed.
@@ -220,24 +219,36 @@ Model::buildPageCache(int pageno) noexcept
             ca.index   = index;
             ca.opacity = pdf_annot_opacity(ctx, annot);
 
+            if (fz_is_infinite_rect(ca.rect) || fz_is_empty_rect(ca.rect))
+                continue;
+
             switch (ca.type)
             {
                 case PDF_ANNOT_TEXT:
+                {
                     pdf_annot_color(ctx, annot, nullptr, color);
                     ca.color = QColor::fromRgbF(color[0], color[1], color[2],
                                                 ca.opacity);
                     ca.text  = pdf_annot_contents(ctx, annot);
-                    break;
+                }
+                break;
 
                 case PDF_ANNOT_SQUARE:
+                {
                     pdf_annot_interior_color(ctx, annot, nullptr, color);
                     ca.color = QColor::fromRgbF(color[0], color[1], color[2],
                                                 ca.opacity);
-                    break;
+                }
+                break;
 
                 case PDF_ANNOT_HIGHLIGHT:
-                    ca.color = Qt::transparent;
-                    break;
+                {
+                    pdf_annot_color(ctx, annot, nullptr, color);
+                    ca.color = QColor::fromRgbF(color[0], color[1], color[2],
+                                                ca.opacity);
+                }
+
+                break;
 
                 default:
                     continue;
@@ -695,14 +706,15 @@ Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
     float physicalY = pixelPos.y() * m_dpr;
 
     // 5. Reverse Step 5: ADD the bbox origin
-    // Move from the pixmap-local (0,0) back to the transformed coordinate space
+    // Move from the pixmap-local (0,0) back to the transformed coordinate
+    // space
     fz_point p;
     p.x = physicalX + bbox.x0;
     p.y = physicalY + bbox.y0;
 
     // 6. Reverse Step 2: Invert the transformation matrix
-    // This takes the point from transformed (scaled/rotated) space back to PDF
-    // points
+    // This takes the point from transformed (scaled/rotated) space back to
+    // PDF points
     fz_matrix inv_transform = fz_invert_matrix(transform);
     p                       = fz_transform_point(p, inv_transform);
 
@@ -835,10 +847,6 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     fz_pixmap *pix{nullptr};
     fz_device *dev{nullptr};
 
-    auto cleanup = [&]() -> void
-    {
-    };
-
     fz_try(ctx)
     {
         fz_matrix transform = fz_transform_page(bounds, job.zoom, job.rotation);
@@ -901,9 +909,10 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         {
             if (link.uri.isEmpty())
                 continue;
-            fz_rect r = fz_transform_rect(link.rect, transform);
-            QRectF qtRect(r.x0 / job.dpr, r.y0 / job.dpr,
-                          (r.x1 - r.x0) / job.dpr, (r.y1 - r.y0) / job.dpr);
+            fz_rect r         = fz_transform_rect(link.rect, transform);
+            const float scale = m_inv_dpr;
+            QRectF qtRect(r.x0 * scale, r.y0 * scale, (r.x1 - r.x0) * scale,
+                          (r.y1 - r.y0) * scale);
 
             BrowseLinkItem *item = new BrowseLinkItem(
                 qtRect, link.uri, link.type, m_link_show_boundary);
@@ -929,37 +938,35 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
                 result.links.push_back(item);
         }
 
+        int index = 0;
         for (const auto &annot : annotations)
         {
-            fz_rect r = fz_transform_rect(annot.rect, transform);
-
-            QRectF qtRect(r.x0 / job.dpr, r.y0 / job.dpr,
-                          (r.x1 - r.x0) / job.dpr, (r.y1 - r.y0) / job.dpr);
-
             Annotation *annot_item = nullptr;
-
             switch (annot.type)
             {
-                case PDF_ANNOT_TEXT:
-                    annot_item = new PopupAnnotation(qtRect, annot.text,
-                                                     annot.index, annot.color);
-                    break;
 
+                case PDF_ANNOT_TEXT:
                 case PDF_ANNOT_SQUARE:
-                    annot_item
-                        = new RectAnnotation(qtRect, annot.index, annot.color);
                     break;
 
                 case PDF_ANNOT_HIGHLIGHT:
-                    annot_item = new HighlightAnnotation(qtRect, annot.index,
-                                                         annot.color);
-                    break;
+                {
+                    fz_rect r = fz_transform_rect(annot.rect, transform);
+                    const float scale = m_inv_dpr;
+                    QRectF qtRect(r.x0 * scale, r.y0 * scale,
+                                  (r.x1 - r.x0) * scale, (r.y1 - r.y0) * scale);
+                    annot_item
+                        = new HighlightAnnotation(qtRect, index, annot.color);
+                }
+                break;
 
                 default:
-                    continue;
+                    break;
             }
 
-            result.annotations.push_back(annot_item);
+            if (annot_item)
+                result.annotations.push_back(annot_item);
+            ++index;
         }
     }
     fz_always(ctx)
@@ -1024,7 +1031,8 @@ Model::highlightTextSelection(int pageno, const QPointF &start,
     for (int i = 0; i < count; ++i)
         quads.push_back(hits[i]);
 
-    // // Create and push the command onto the undo stack for undo/redo support
+    // // Create and push the command onto the undo stack for undo/redo
+    // support
     m_undo_stack->push(new TextHighlightAnnotationCommand(
         this, pageno, std::move(quads), m_highlight_color));
 }
@@ -1517,12 +1525,14 @@ Model::buildTextCacheForPage(int pageno) noexcept
 //         fz_irect bbox       = fz_round_rect(transformed);
 
 //         fz_run_display_list(m_ctx, entry.display_list, (fz_device *)dev,
-//                             fz_identity, fz_rect_from_irect(bbox), nullptr);
+//                             fz_identity, fz_rect_from_irect(bbox),
+//                             nullptr);
 
 //         if (dev->img)
 //         {
 //             result = fz_get_pixmap_from_image(m_ctx, dev->img, nullptr,
-//                                               &transform, nullptr, nullptr);
+//                                               &transform, nullptr,
+//                                               nullptr);
 
 //             fz_drop_image(m_ctx, dev->img);
 //         }
@@ -1536,3 +1546,52 @@ Model::buildTextCacheForPage(int pageno) noexcept
 
 //     return result;
 // }
+
+void
+Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
+{
+    if (!m_pdf_doc)
+        return;
+
+    fz_try(m_ctx)
+    {
+        pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        pdf_annot *annot = pdf_first_annot(m_ctx, page);
+        int current      = 0;
+        while (annot && current < index)
+        {
+            annot = pdf_next_annot(m_ctx, annot);
+            ++current;
+        }
+
+        if (annot)
+        {
+            float rgb[3] = {color.redF(), color.greenF(), color.blueF()};
+            switch (pdf_annot_type(m_ctx, annot))
+            {
+                case PDF_ANNOT_SQUARE:
+                    pdf_set_annot_interior_color(m_ctx, annot, 3, rgb);
+                    break;
+                default:
+                    pdf_set_annot_color(m_ctx, annot, 3, rgb);
+                    break;
+            }
+            pdf_set_annot_opacity(m_ctx, annot, color.alphaF());
+            pdf_update_annot(m_ctx, annot);
+            pdf_update_page(m_ctx, page);
+        }
+
+        fz_drop_page(m_ctx, (fz_page *)page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "annotChangeColor failed:" << fz_caught_message(m_ctx);
+        return;
+    }
+
+    invalidatePageCache(pageno);
+    emit reloadRequested(pageno);
+}
