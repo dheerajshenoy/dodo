@@ -43,6 +43,7 @@ class DocumentView : public QWidget
 public:
     DocumentView(const QString &filepath, const Config &config,
                  QWidget *parent = nullptr) noexcept;
+    ~DocumentView() noexcept;
 
     enum class LayoutMode
     {
@@ -273,21 +274,6 @@ private:
         return m_selection_path_item->data(0).toInt();
     }
 
-    Model *m_model{nullptr};
-    GraphicsView *m_gview{nullptr};
-    GraphicsScene *m_gscene{nullptr};
-    Config m_config;
-    FitMode m_fit_mode{FitMode::None};
-    int m_pageno{-1};
-    float m_spacing{10.0f}, m_page_stride{0.0f}, m_page_x_offset{0.0f};
-    double m_target_zoom{1.0}, m_current_zoom{1.0}, m_rotation{0.0};
-    bool m_auto_resize{false}, m_auto_reload{false};
-    QScrollBar *m_hscroll{nullptr};
-    VerticalScrollBar *m_vscroll{nullptr};
-    QHash<int, GraphicsPixmapItem *> m_page_items_hash;
-    QHash<int, std::vector<BrowseLinkItem *>> m_page_links_hash;
-    QHash<int, std::vector<Annotation *>> m_page_annotations_hash;
-
     void setModified(bool state) noexcept;
     bool pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
                         GraphicsPixmapItem *&outPageItem) const noexcept;
@@ -332,16 +318,28 @@ private:
     void synctexLocateInDocument(const char *fileName, int line) noexcept;
 #endif
 
+    Model *m_model{nullptr};
+    GraphicsView *m_gview{nullptr};
+    GraphicsScene *m_gscene{nullptr};
+    Config m_config;
+    FitMode m_fit_mode{FitMode::None};
+    int m_pageno{-1};
+    float m_spacing{10.0f}, m_page_stride{0.0f}, m_page_x_offset{0.0f};
+    double m_target_zoom{1.0}, m_current_zoom{1.0}, m_rotation{0.0};
+    bool m_auto_resize{false}, m_auto_reload{false};
+    QScrollBar *m_hscroll{nullptr};
+    VerticalScrollBar *m_vscroll{nullptr};
+    QHash<int, GraphicsPixmapItem *> m_page_items_hash;
+    QHash<int, std::vector<BrowseLinkItem *>> m_page_links_hash;
+    QHash<int, std::vector<Annotation *>> m_page_annotations_hash;
     float m_old_y{0.0f};
     JumpMarker *m_jump_marker{nullptr};
     QTimer *m_scroll_page_update_timer{nullptr};
     PageLocation m_pending_jump{-1, 0, 0};
-
     int m_search_index{-1};
     QMap<int, std::vector<Model::SearchHit>> m_search_hits;
     std::vector<HitRef> m_search_hit_flat_refs;
     QHash<int, QGraphicsPathItem *> m_search_items;
-
     float m_preload_margin{1.0f};
     QPointF m_selection_start, m_selection_end;
     int m_last_selection_page{-1};

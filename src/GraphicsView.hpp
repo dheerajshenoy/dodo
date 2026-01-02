@@ -70,7 +70,8 @@ signals:
     void zoomInRequested();
     void zoomOutRequested();
     void contextMenuRequested(QPointF scenePos);
-    void scrollRequested(int delta);
+    void scrollHorizontalRequested(int delta);
+    void scrollVerticalRequested(int delta);
     void rightClickRequested(QPointF scenePos);
     void doubleClickRequested(QPointF scenePos);
     void tripleClickRequested(QPointF scenePos);
@@ -82,6 +83,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;
+    // bool viewportEvent(QEvent *event) override;
 
 private:
     QRect m_rect;
@@ -106,6 +108,18 @@ private:
     static constexpr double CLICK_DISTANCE_THRESHOLD = 5.0;
     QPoint m_lastMovePos;
     static constexpr int MOVE_EMIT_THRESHOLD_PX = 2;
+
+    // Gesture state
+    qreal m_lastPinchScale = 1.0;
+    qreal m_zoomAccum
+        = 0.0; // accumulate pinch/native zoom deltas to trigger steps
+    qreal m_scrollAccumY
+        = 0.0; // accumulate trackpad scroll to trigger page flips
+
+    static constexpr qreal ZOOM_STEP_TRIGGER
+        = 0.12; // ~12% “gesture energy” per step (tweak)
+    static constexpr qreal PAGE_SCROLL_TRIGGER
+        = 900.0; // pixels of trackpad scroll per page (tweak)
 
     // Utility
     QPointF scenePosFromEvent(QMouseEvent *event) const

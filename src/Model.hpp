@@ -131,6 +131,16 @@ public:
         return m_dpr;
     }
 
+    inline void setDPI(float dpi) noexcept
+    {
+        m_dpi = dpi;
+    }
+
+    inline float DPI() noexcept
+    {
+        return m_dpi;
+    }
+
     inline float invDPR() const noexcept
     {
         return m_inv_dpr;
@@ -159,6 +169,11 @@ public:
     inline float viewScale() const noexcept
     {
         return m_zoom * m_dpi / 72.0f;
+    }
+
+    inline void setLinkBoundary(bool state) noexcept
+    {
+        m_link_show_boundary = state;
     }
 
     inline float pageWidthPts() const noexcept
@@ -349,6 +364,7 @@ private:
     pdf_write_options m_pdf_write_options;
     int m_search_match_count{0};
     std::unordered_map<int, CachedTextPage> m_text_cache;
+    bool m_link_show_boundary{false};
 
     friend class TextHighlightAnnotationCommand; // for highlight annotation
     friend class DocumentView;

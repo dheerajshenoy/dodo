@@ -64,17 +64,76 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_gscene->addItem(m_jump_marker);
 
     m_gview->setAlignment(Qt::AlignCenter);
+    m_gview->setMode(m_config.behavior.initial_mode);
+    m_gview->setBackgroundBrush(QColor(m_config.ui.colors["background"]));
+    m_model->setDPI(m_config.rendering.dpi);
+    m_model->setAnnotRectColor(
+        QColor(m_config.ui.colors["annot_rect"]).toRgb());
+    m_model->setSelectionColor(m_config.ui.colors["selection"]);
+    m_model->setHighlightColor(m_config.ui.colors["highlight"]);
+    // m_model->setAntialiasingBits(m_config.rendering.antialiasing_bits);
+    m_model->undoStack()->setUndoLimit(m_config.behavior.undo_limit);
+
+    m_model->setInvertColor(m_config.behavior.invert_mode);
+    m_model->setLinkBoundary(m_config.ui.link_boundary);
+
+    // if (m_config.rendering.icc_color_profile)
+    //     m_model->enableICC();
+    // m_cache.setMaxCost(m_config.behavior.cache_pages);
 
     m_hscroll = m_gview->horizontalScrollBar();
     m_vscroll = new VerticalScrollBar(Qt::Vertical, this);
     m_gview->setVerticalScrollBar(m_vscroll);
 
-    setLayoutMode(LayoutMode::SINGLE);
+    if (!m_config.ui.vscrollbar_shown)
+        m_gview->setVerticalScrollBarPolicy(
+            Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
+
+    if (!m_config.ui.hscrollbar_shown)
+        m_gview->setHorizontalScrollBarPolicy(
+            Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
+
+    if (m_config.ui.layout == "single")
+        setLayoutMode(LayoutMode::SINGLE);
+    else if (m_config.ui.layout == "left-to-right")
+        setLayoutMode(LayoutMode::LEFT_TO_RIGHT);
+    else
+        setLayoutMode(LayoutMode::TOP_TO_BOTTOM);
+
     initConnections();
 
+    if (m_config.ui.initial_fit == "height")
+        setFitMode(FitMode::Height);
+    else if (m_config.ui.initial_fit == "width")
+        setFitMode(FitMode::Width);
+    else if (m_config.ui.initial_fit == "window")
+        setFitMode(FitMode::Window);
+    else
+        setFitMode(FitMode::None);
+
     QVBoxLayout *layout = new QVBoxLayout(this);
+    layout->setAlignment(Qt::AlignCenter);
     layout->setContentsMargins(0, 0, 0, 0);
+    this->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(m_gview);
+}
+
+DocumentView::~DocumentView() noexcept
+{
+    synctex_scanner_free(m_synctex_scanner);
+
+    clearDocumentItems();
+
+    m_gscene->removeItem(m_jump_marker);
+    m_gscene->removeItem(m_selection_path_item);
+    m_gscene->removeItem(m_current_search_hit_item);
+
+    delete m_jump_marker;
+    delete m_selection_path_item;
+    delete m_current_search_hit_item;
+}
+
+delete m_model;
 }
 
 // Get the size of the current page in scene coordinates
@@ -201,6 +260,10 @@ DocumentView::initConnections() noexcept
 
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
                 &DocumentView::renderVisiblePages);
+
+        connect(m_gview, &GraphicsView::scrollHorizontalRequested, this,
+                [&](int delta)
+        { m_hscroll->setValue(m_hscroll->value() + delta); });
     }
     else if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM)
     {
@@ -216,6 +279,10 @@ DocumentView::initConnections() noexcept
 
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
                 &DocumentView::renderVisiblePages);
+
+        connect(m_gview, &GraphicsView::scrollVerticalRequested, this,
+                [&](int delta)
+        { m_vscroll->setValue(m_vscroll->value() + delta); });
     }
     else if (m_layout_mode == LayoutMode::SINGLE)
     {

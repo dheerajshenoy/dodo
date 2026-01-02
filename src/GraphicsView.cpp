@@ -1,10 +1,13 @@
 #include "GraphicsView.hpp"
 
-#include <QGraphicsProxyWidget>
+#include <QGestureEvent>
 #include <QGuiApplication>
 #include <QLineF>
 #include <QMenu>
-#include <qgraphicsview.h>
+#include <QNativeGestureEvent>
+#include <QPinchGesture>
+#include <QScroller>
+#include <QSwipeGesture>
 
 GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
 {
@@ -15,6 +18,19 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
     setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
     setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing);
     setOptimizationFlag(QGraphicsView::DontSavePainterState);
+    setContentsMargins(0, 0, 0, 0);
+
+    // Enable gesture events on the viewport (important for QGraphicsView)
+    viewport()->setAttribute(Qt::WA_AcceptTouchEvents, true);
+
+    // Qt gesture framework (often touchscreens; sometimes trackpads depending
+    // on platform/plugin)
+    grabGesture(Qt::PinchGesture);
+    grabGesture(Qt::SwipeGesture);
+
+    // Optional: kinetic scrolling for touch (won’t harm trackpad, but mostly
+    // for touchscreen) QScroller::grabGesture(viewport(),
+    // QScroller::TouchGesture);
 
     if (!m_rubberBand)
         m_rubberBand = new QRubberBand(QRubberBand::Rectangle, this);
@@ -302,7 +318,8 @@ GraphicsView::wheelEvent(QWheelEvent *event)
         const int delta = !event->pixelDelta().isNull()
                               ? event->pixelDelta().y()
                               : event->angleDelta().y();
-        emit scrollRequested(delta);
+        if (delta > 0)
+            emit scrollVerticalRequested(delta);
         event->accept();
         return; // do NOT call base (prevents double scroll + extra work)
     }
@@ -316,3 +333,143 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *event)
     emit contextMenuRequested(mapToScene(event->pos()));
     event->accept();
 }
+
+// bool
+// GraphicsView::viewportEvent(QEvent *event)
+// {
+//     // 1) High-level Qt gestures (Pinch/Swipe)
+//     if (event->type() == QEvent::Gesture)
+//     {
+//         auto *ge = static_cast<QGestureEvent *>(event);
+
+//         // Pinch zoom (touchscreens; sometimes trackpads)
+//         if (QGesture *g = ge->gesture(Qt::PinchGesture))
+//         {
+//             auto *pinch = static_cast<QPinchGesture *>(g);
+
+//             if (pinch->state() == Qt::GestureStarted)
+//             {
+//                 m_lastPinchScale = pinch->scaleFactor();
+//                 m_zoomAccum      = 0.0;
+//             }
+//             else
+//             {
+//                 const qreal scaleNow = pinch->scaleFactor();
+//                 const qreal ratio    = (m_lastPinchScale > 0.0)
+//                                            ? (scaleNow / m_lastPinchScale)
+//                                            : 1.0;
+//                 m_lastPinchScale     = scaleNow;
+
+//                 // Convert multiplicative ratio into additive “energy”
+//                 // log(ratio) is symmetrical for in/out.
+//                 if (ratio > 0.0)
+//                     m_zoomAccum += std::log(ratio);
+
+//                 while (m_zoomAccum > ZOOM_STEP_TRIGGER)
+//                 {
+//                     emit zoomInRequested();
+//                     m_zoomAccum -= ZOOM_STEP_TRIGGER;
+//                 }
+//                 while (m_zoomAccum < -ZOOM_STEP_TRIGGER)
+//                 {
+//                     emit zoomOutRequested();
+//                     m_zoomAccum += ZOOM_STEP_TRIGGER;
+//                 }
+//             }
+
+//             ge->accept(pinch);
+//             return true;
+//         }
+
+//         // Swipe gesture (usually touch). Map it to page nav if you like.
+//         if (QGesture *g = ge->gesture(Qt::SwipeGesture))
+//         {
+//             auto *swipe = static_cast<QSwipeGesture *>(g);
+//             if (swipe->state() == Qt::GestureFinished)
+//             {
+//                 // You can choose Up/Down or Left/Right for pages.
+//                 // This example uses vertical swipe for pages:
+//                 // Left or right swipe could be used for horizontal page nav.
+//                 if (swipe->horizontalDirection() == QSwipeGesture::Left)
+//                     emit scrollHorizontalRequested(swipe->swipeAngle() > 0 ?
+//                     -1
+//                                                                            :
+//                                                                            1);
+//                 else if (swipe->horizontalDirection() ==
+//                 QSwipeGesture::Right)
+//                     emit scrollHorizontalRequested(
+//                         swipe->swipeAngle() > 0 ? 1 : -1);
+
+//                 if (swipe->verticalDirection() == QSwipeGesture::Up)
+//                     emit scrollVerticalRequested(swipe->swipeAngle() > 0 ? -1
+//                                                                          :
+//                                                                          1);
+//                 else if (swipe->verticalDirection() == QSwipeGesture::Down)
+//                     emit scrollVerticalRequested(swipe->swipeAngle() > 0 ? 1
+//                                                                          :
+//                                                                          -1);
+//             }
+
+//             ge->accept(swipe);
+//             return true;
+//         }
+
+//         return QGraphicsView::viewportEvent(event);
+//     }
+
+//     // 2) Native gestures (trackpads: macOS; sometimes Wayland/X11 depending
+//     on
+//     // Qt/platform)
+//     if (event->type() == QEvent::NativeGesture)
+//     {
+//         auto *ng = static_cast<QNativeGestureEvent *>(event);
+
+//         switch (ng->gestureType())
+//         {
+//                 // case QNativeGestureEvent::Type::Ge
+//                 // {
+//                 //     // Qt provides a value per event; treat it as small
+//                 //     deltas and
+//                 //     // accumulate. On many systems: positive => zoom in,
+//                 //     negative =>
+//                 //     // zoom out.
+//                 //     m_zoomAccum += ng->value();
+
+//                 //     while (m_zoomAccum > ZOOM_STEP_TRIGGER)
+//                 //     {
+//                 //         emit zoomInRequested();
+//                 //         m_zoomAccum -= ZOOM_STEP_TRIGGER;
+//                 //     }
+//                 //     while (m_zoomAccum < -ZOOM_STEP_TRIGGER)
+//                 //     {
+//                 //         emit zoomOutRequested();
+//                 //         m_zoomAccum += ZOOM_STEP_TRIGGER;
+//                 //     }
+
+//                 //     event->accept();
+//                 //     return true;
+//                 // }
+
+//                 // case QNativeGestureEvent::Swipe:
+//                 // {
+//                 //     // Some platforms provide swipe as native gesture.
+//                 //     // ng->value() is typically +/-1-ish; direction
+//                 mapping
+//                 //     varies. const qreal v = ng->value(); if (v > 0)
+//                 //         emit nextPageRequested();
+//                 //     else if (v < 0)
+//                 //         emit prevPageRequested();
+
+//                 //     event->accept();
+//                 //     return true;
+//                 // }
+
+//             default:
+//                 break;
+//         }
+
+//         return QGraphicsView::viewportEvent(event);
+//     }
+
+//     return QGraphicsView::viewportEvent(event);
+// }

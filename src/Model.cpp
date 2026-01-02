@@ -905,8 +905,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             QRectF qtRect(r.x0 / job.dpr, r.y0 / job.dpr,
                           (r.x1 - r.x0) / job.dpr, (r.y1 - r.y0) / job.dpr);
 
-            BrowseLinkItem *item
-                = new BrowseLinkItem(qtRect, link.uri, link.type);
+            BrowseLinkItem *item = new BrowseLinkItem(
+                qtRect, link.uri, link.type, m_link_show_boundary);
             item->setSourceLocation(BrowseLinkItem::PageLocation{
                 link.source_loc.x, link.source_loc.y, 0.0f});
 
