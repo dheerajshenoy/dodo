@@ -63,7 +63,7 @@ add_executable(${PROJECT_NAME}
     src/commands/DeleteAnnotationsCommand.hpp
     src/PopupAnnotation.hpp
     src/PlaceholderWidget.hpp
-    src/VerticalScrollBar.hpp
+    src/ScrollBar.hpp
 )
 
 qt_add_resources(RESOURCES resources.qrc)

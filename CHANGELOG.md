@@ -6,6 +6,7 @@
 - Link hinting mode for keyboard link navigation
 - Updated organized configuration settings (check config.toml)
 - Fix first page and last page offset in LEFT_TO_RIGHT and TOP_TO_BOTTOM layouts
+- Make scrollbar handle transparent to allow search hits marker visibility
 
 ### Bug Fixes
 
