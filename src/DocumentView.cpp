@@ -885,7 +885,6 @@ DocumentView::Search(const QString &term) noexcept
     qDebug() << "DocumentView::Search(): Searching for term:" << term;
 #endif
 
-    emit searchBarSpinnerShow(true);
     clearSearchHits();
     if (term.isEmpty())
     {
@@ -893,6 +892,7 @@ DocumentView::Search(const QString &term) noexcept
         return;
     }
 
+    emit searchBarSpinnerShow(true);
     // Check if term has atleast one uppercase letter
     bool caseSensitive = std::any_of(term.cbegin(), term.cend(),
                                      [](QChar c) { return c.isUpper(); });
