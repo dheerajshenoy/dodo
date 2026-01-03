@@ -327,10 +327,9 @@ GraphicsView::wheelEvent(QWheelEvent *event)
         return; // do NOT call base
     }
 
-    const int delta = !event->pixelDelta().isNull() ? event->pixelDelta().y()
-                                                    : event->angleDelta().y();
-    if (delta > 0)
-        emit scrollVerticalRequested(delta);
+    // const int delta = !event->pixelDelta().isNull() ? event->pixelDelta().y()
+    //                                                 :
+    //                                                 event->angleDelta().y();
 
     QGraphicsView::wheelEvent(event);
 }

@@ -354,10 +354,6 @@ DocumentView::initConnections() noexcept
 
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
                 &DocumentView::renderVisiblePages);
-
-        connect(m_gview, &GraphicsView::scrollHorizontalRequested, this,
-                [&](int delta)
-        { m_hscroll->setValue(m_hscroll->value() + delta); });
     }
     else if (m_layout_mode == LayoutMode::TOP_TO_BOTTOM)
     {
@@ -373,10 +369,6 @@ DocumentView::initConnections() noexcept
 
         connect(m_scroll_page_update_timer, &QTimer::timeout, this,
                 &DocumentView::renderVisiblePages);
-
-        connect(m_gview, &GraphicsView::scrollVerticalRequested, this,
-                [&](int delta)
-        { m_vscroll->setValue(m_vscroll->value() + delta); });
     }
     else if (m_layout_mode == LayoutMode::SINGLE)
     {

@@ -66,8 +66,6 @@ signals:
     void zoomInRequested();
     void zoomOutRequested();
     void contextMenuRequested(QPointF scenePos);
-    void scrollHorizontalRequested(int delta);
-    void scrollVerticalRequested(int delta);
     void rightClickRequested(QPointF scenePos);
     void doubleClickRequested(QPointF scenePos);
     void tripleClickRequested(QPointF scenePos);
