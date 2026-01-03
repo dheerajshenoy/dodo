@@ -46,6 +46,7 @@ add_executable(${PROJECT_NAME}
     src/SearchBar.cpp
     src/SaveSessionDialog.cpp
     src/utils.cpp
+    src/WaitingSpinnerWidget.cpp
 
     src/GraphicsPixmapItem.hpp
     src/BrowseLinkItem.hpp

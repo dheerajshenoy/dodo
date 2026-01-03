@@ -1974,6 +1974,9 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::currentPageChanged, m_panel,
             &Panel::setPageNo);
 
+    connect(docwidget, &DocumentView::searchBarSpinnerShow, m_search_bar,
+            &SearchBar::showSpinner);
+
     // Connect undo stack signals to update undo/redo menu actions
     QUndoStack *undoStack = docwidget->model()->undoStack();
     connect(undoStack, &QUndoStack::canUndoChanged, this,

@@ -8,6 +8,7 @@
 #include "PopupAnnotation.hpp"
 #include "PropertiesWidget.hpp"
 #include "RectAnnotation.hpp"
+#include "WaitingSpinnerWidget.hpp"
 
 #include <QClipboard>
 #include <QColorDialog>
@@ -46,6 +47,8 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_gview  = new GraphicsView(this);
     m_gscene = new GraphicsScene(m_gview);
     m_gview->setScene(m_gscene);
+
+    m_spinner = new WaitingSpinnerWidget(this);
 
     m_selection_path_item = m_gscene->addPath(QPainterPath());
     m_selection_path_item->setBrush(QBrush(m_config.ui.colors["selection"]));
@@ -213,7 +216,6 @@ DocumentView::open() noexcept
 #ifndef NDEBUG
     qDebug() << "DocumentView::open(): Opening file:" << m_model->filePath();
 #endif
-
     m_model->open();
     m_pageno = 0;
 
@@ -383,6 +385,7 @@ DocumentView::handleSearchResults(
              << results.size() << "pages with search hits.";
 #endif
 
+    emit searchBarSpinnerShow(false);
     // Clear previous search hits
     clearSearchHits();
 
@@ -727,6 +730,8 @@ DocumentView::setZoom(double factor) noexcept
     qDebug() << "DocumentView::setZoom(): Setting zoom to factor:" << factor;
 #endif
 
+    factor = std::clamp(factor, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
+
     m_target_zoom  = factor;
     m_current_zoom = factor;
     zoomHelper();
@@ -868,6 +873,7 @@ DocumentView::Search(const QString &term) noexcept
     qDebug() << "DocumentView::Search(): Searching for term:" << term;
 #endif
 
+    emit searchBarSpinnerShow(true);
     clearSearchHits();
     if (term.isEmpty())
     {
@@ -985,7 +991,8 @@ DocumentView::zoomHelper() noexcept
 void
 DocumentView::ZoomIn() noexcept
 {
-    m_target_zoom = m_current_zoom * 1.2;
+    m_target_zoom
+        = std::clamp(m_target_zoom * 1.2, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
     zoomHelper();
 }
 
@@ -993,7 +1000,8 @@ DocumentView::ZoomIn() noexcept
 void
 DocumentView::ZoomOut() noexcept
 {
-    m_target_zoom = m_current_zoom / 1.2;
+    m_target_zoom
+        = std::clamp(m_current_zoom / 1.2, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
     zoomHelper();
 }
 
@@ -1399,12 +1407,14 @@ DocumentView::YankSelection() noexcept
 void
 DocumentView::GotoFirstPage() noexcept
 {
+    addToHistory({m_pageno, 0, 0});
     GotoPage(0);
 }
 // Go to the last page
 void
 DocumentView::GotoLastPage() noexcept
 {
+    addToHistory({m_pageno, 0, 0});
     GotoPage(m_model->numPages() - 1);
 }
 

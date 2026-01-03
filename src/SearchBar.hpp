@@ -1,5 +1,7 @@
 #pragma once
 
+#include "WaitingSpinnerWidget.hpp"
+
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
@@ -21,6 +23,20 @@ public:
         m_searchInput->selectAll();
     }
 
+    inline void showSpinner(bool state) noexcept
+    {
+        if (state)
+        {
+            m_spinner->show();
+            m_spinner->start();
+        }
+        else
+        {
+            m_spinner->hide();
+            m_spinner->stop();
+        }
+    }
+
 private:
     QLabel *m_label;
     QLabel *m_searchSeparator{new QLabel("of")};
@@ -30,6 +46,7 @@ private:
     QPushButton *m_prevButton;
     QPushButton *m_nextButton;
     QPushButton *m_closeButton;
+    WaitingSpinnerWidget *m_spinner;
 
 protected:
     void showEvent(QShowEvent *event) override;

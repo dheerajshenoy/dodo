@@ -8,6 +8,7 @@
 #include "JumpMarker.hpp"
 #include "Model.hpp"
 #include "ScrollBar.hpp"
+#include "WaitingSpinnerWidget.hpp"
 
 #ifdef HAS_SYNCTEX
 extern "C"
@@ -36,6 +37,9 @@ extern "C"
 #define ZVALUE_LINK 1000
 #define ZVALUE_JUMP_MARKER 1100
 #define ZVALUE_SEARCH_HITS 1200
+
+#define MIN_ZOOM_FACTOR 0.5
+#define MAX_ZOOM_FACTOR 5.0
 
 #define CSTR(x) x.toStdString().c_str()
 
@@ -228,6 +232,7 @@ public:
     void setLayoutMode(const LayoutMode &mode) noexcept;
 
 signals:
+    void searchBarSpinnerShow(bool state);
     void pageChanged(int pageno);
     void zoomChanged(double factor);
     void fitModeChanged(FitMode mode);
@@ -350,6 +355,7 @@ private:
     bool m_is_modified{false};
     // fz_pixmap *m_hit_pixmap{nullptr};
     LayoutMode m_layout_mode{LayoutMode::TOP_TO_BOTTOM};
+    WaitingSpinnerWidget *m_spinner{nullptr};
 
 #ifdef HAS_SYNCTEX
     synctex_scanner_p m_synctex_scanner{nullptr};

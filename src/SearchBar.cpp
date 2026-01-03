@@ -6,6 +6,11 @@
 
 SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
 {
+    m_spinner = new WaitingSpinnerWidget(this, false, true);
+    m_spinner->setInnerRadius(5);
+
+    // Set color based on the current palette's text color
+    m_spinner->setColor(palette().color(QPalette::Text));
     m_label            = new QLabel("Search:", this);
     m_searchInput      = new QLineEdit(this);
     m_prevButton       = new QPushButton(this);
@@ -25,6 +30,7 @@ SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
     m_closeButton->setIcon(style()->standardIcon(QStyle::SP_DialogCloseButton));
 
     QHBoxLayout *layout = new QHBoxLayout(this);
+    layout->addWidget(m_spinner);
     layout->addWidget(m_label);
     layout->addWidget(m_searchInput, 1);
     layout->addWidget(m_searchIndexLabel);

@@ -9,6 +9,7 @@
 #include "utils.hpp"
 
 #include <QtConcurrent/QtConcurrent>
+#include <algorithm>
 #include <pthread.h>
 #include <qbytearrayview.h>
 #include <qstyle.h>
@@ -104,6 +105,7 @@ Model::open() noexcept
         m_page_count = fz_count_pages(m_ctx, m_doc);
         m_success    = true;
         cachePageDimension();
+
         for (int pageno = 0; pageno < m_page_count; ++pageno)
             buildPageCache(pageno);
     }
@@ -1343,26 +1345,28 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
 void
 Model::search(const QString &term, bool caseSensitive) noexcept
 {
-    QMap<int, std::vector<Model::SearchHit>> results;
-    m_search_match_count = 0;
-
-    if (term.isEmpty())
+    QFuture<void> result = QtConcurrent::run([this, term, caseSensitive]()
     {
-        emit searchResultsReady(results);
-        return;
-    }
+        QMap<int, std::vector<Model::SearchHit>> results;
+        m_search_match_count = 0;
 
-    for (int p = 0; p < m_page_count; ++p)
-    {
-        auto hits = searchHelper(p, term, caseSensitive);
-        if (!hits.empty())
+        if (term.isEmpty())
         {
-            m_search_match_count += hits.size();
-            results.insert(p, std::move(hits));
+            emit searchResultsReady(results);
+            return;
         }
-    }
 
-    emit searchResultsReady(results);
+        for (int p = 0; p < m_page_count; ++p)
+        {
+            auto hits = searchHelper(p, term, caseSensitive);
+            if (!hits.empty())
+            {
+                m_search_match_count += hits.size();
+                results.insert(p, std::move(hits));
+            }
+        }
+        emit searchResultsReady(results);
+    });
 }
 
 std::vector<Model::SearchHit>

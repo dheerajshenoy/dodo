@@ -7,6 +7,11 @@
 - Updated organized configuration settings (check config.toml)
 - Fix first page and last page offset in LEFT_TO_RIGHT and TOP_TO_BOTTOM layouts
 - Make scrollbar handle transparent to allow search hits marker visibility
+- Show placeholder page when pages are loading
+- Use queue for managing threads while rendering instead of spawning threads for each render request
+- Make searching asynchronous to avoid UI blocking on large documents
+- Add min and max zoom levels
+- Add Link Keyboard hinting mode
 
 ### Bug Fixes
 
