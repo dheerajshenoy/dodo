@@ -31,7 +31,7 @@ class Model : public QObject
 {
     Q_OBJECT
 public:
-    Model(const QString &filepath) noexcept;
+    Model(QObject *parent = nullptr) noexcept;
     ~Model() noexcept;
 
     struct LinkInfo
@@ -223,7 +223,8 @@ public:
     fz_outline *getOutline() noexcept;
     bool followLink(const LinkInfo &info) noexcept;
     bool reloadDocument() noexcept;
-    void open() noexcept;
+    void openAsync(const QString &filePath,
+                   const QString &password = {}) noexcept;
     void close() noexcept;
     void cleanup() noexcept;
     bool decrypt() noexcept;
@@ -259,6 +260,8 @@ public:
     void annotChangeColor(int pageno, int index, const QColor &color) noexcept;
 
 signals:
+    void openFileFailed();
+    void openFileFinished();
     void reloadRequested(int pageno);
     void
     searchResultsReady(const QMap<int, std::vector<Model::SearchHit>> &results);
@@ -353,8 +356,10 @@ private:
     fz_context *m_ctx{nullptr};
     fz_document *m_doc{nullptr};
     pdf_document *m_pdf_doc{nullptr};
-    float m_popup_color[4], m_highlight_color[4], m_selection_color[4],
-        m_annot_rect_color[4];
+    float m_popup_color[4]{1.0f, 1.0f, 0.8f, 0.8f},
+        m_highlight_color[4]{1.0f, 1.0f, 0.0f, 0.5f},
+        m_selection_color[4]{0.0f, 0.0f, 1.0f, 0.3f},
+        m_annot_rect_color[4]{1.0f, 0.0f, 0.0f, 0.5f};
 
     QUndoStack *m_undo_stack{nullptr};
     bool m_success{false};
@@ -368,7 +373,7 @@ private:
     mutable std::recursive_mutex m_page_cache_mutex;
     std::mutex m_doc_mutex;
     QFuture<PageRenderResult> m_render_future;
-    pdf_write_options m_pdf_write_options;
+    pdf_write_options m_pdf_write_options{pdf_default_write_options};
     int m_search_match_count{0};
     std::unordered_map<int, CachedTextPage> m_text_cache;
     bool m_link_show_boundary{false};

@@ -64,6 +64,7 @@ dodo::construct() noexcept
     populateRecentFiles();
     setMinimumSize(600, 400);
     initConnections();
+    updateUiEnabledState();
     this->show();
 }
 
@@ -107,7 +108,7 @@ dodo::initMenubar() noexcept
     m_actionSessionLoad
         = sessionMenu->addAction("Load", this, [&]() { LoadSession(); });
 
-    m_actionSessionSaveAs->setEnabled(!m_session_name.isEmpty());
+    m_actionSessionSaveAs->setEnabled(false);
 
     m_actionCloseFile = fileMenu->addAction(
         QString("Close File\t%1").arg(m_config.shortcuts["close_file"]), this,
@@ -794,13 +795,15 @@ dodo::updateUiEnabledState() noexcept
     m_actionFileProperties->setEnabled(hasOpenedFile);
     m_actionCloseFile->setEnabled(hasOpenedFile);
     m_fitMenu->setEnabled(hasOpenedFile);
-    m_actionToggleOutline->setEnabled(hasOpenedFile);
+    // m_actionToggleOutline->setEnabled(hasOpenedFile);
     m_actionInvertColor->setEnabled(hasOpenedFile);
     m_actionSaveFile->setEnabled(hasOpenedFile);
     m_actionSaveAsFile->setEnabled(hasOpenedFile);
     m_actionPrevLocation->setEnabled(hasOpenedFile);
     m_actionEncrypt->setEnabled(hasOpenedFile);
     m_actionDecrypt->setEnabled(hasOpenedFile);
+    m_actionSessionSave->setEnabled(hasOpenedFile);
+    m_actionSessionSaveAs->setEnabled(!m_session_name.isEmpty());
     updateSelectionModeActions();
 }
 
@@ -1011,7 +1014,6 @@ dodo::openLastVisitedFile() noexcept
     const QVector<RecentFileEntry> &entries = m_recent_files_store.entries();
     if (entries.isEmpty())
         return;
-    }
 
     const RecentFileEntry &entry = entries.first();
     if (QFile::exists(entry.file_path))
@@ -1339,63 +1341,63 @@ dodo::OpenFile(const QString &filePath) noexcept
     DocumentView *docwidget = new DocumentView(fp, m_config, m_tab_widget);
     int index               = m_tab_widget->addTab(docwidget, fp);
     m_tab_widget->setCurrentIndex(index);
-    docwidget->setDPR(m_dpr);
-    initTabConnections(docwidget);
 
+    // if (docwidget->passwordRequired())
+    // {
+    //     QString password;
+    //     do
+    //     {
+    //         bool ok;
+    //         password = QInputDialog::getText(
+    //             this, "Password Required",
+    //             QString("Enter the password to open %1").arg(fp),
+    //             QLineEdit::Password, "", &ok);
+    //         if (ok && !password.isEmpty())
+    //         {
+    //             if (docwidget->authenticate(password))
+    //                 break;
+    //             else
+    //             {
+    //                 QMessageBox::warning(
+    //                     this, "Incorrect Password",
+    //                     "The password you entered is incorrect. Please try "
+    //                     "again.");
+    //             }
+    //         }
+    //         else
+    //         {
+    //             docwidget->deleteLater();
+    //             delete docwidget;
+    //             return false;
+    //         }
+    //     } while (true);
+    // }
     connect(docwidget, &DocumentView::openFileFinished, this,
-            [this, &docwidget, fp]()
+            [this](DocumentView *doc)
     {
-        if (!docwidget->fileOpenedSuccessfully())
-        {
-            docwidget->deleteLater();
-            delete docwidget;
-            QMessageBox::warning(this, "Open File",
-                                 QString("Failed to open %1").arg(fp));
-            return false;
-        }
-
-        m_outline_widget->setOutline(m_doc ? m_doc->model()->getOutline()
-                                           : nullptr);
-
-        return true;
+        qDebug() << "DD";
+        const QString filePath = doc->filePath();
+        doc->setDPR(m_dpr);
+        initTabConnections(doc);
+        m_outline_widget->setOutline(doc->model()->getOutline());
+        m_path_tab_map[filePath] = doc;
+        // Record in history
+        const int page = doc->pageNo() + 1;
+        insertFileToDB(filePath, page > 0 ? page : 1);
+        if (m_config.ui.outline.visible)
+            m_outline_widget->show();
     });
 
-    if (docwidget->passwordRequired())
+    connect(docwidget, &DocumentView::openFileFailed, this,
+            [this](DocumentView *doc)
     {
-        QString password;
-        do
-        {
-            bool ok;
-            password = QInputDialog::getText(
-                this, "Password Required",
-                QString("Enter the password to open %1").arg(fp),
-                QLineEdit::Password, "", &ok);
-            if (ok && !password.isEmpty())
-            {
-                if (docwidget->authenticate(password))
-                    break;
-                else
-                {
-                    QMessageBox::warning(
-                        this, "Incorrect Password",
-                        "The password you entered is incorrect. Please try "
-                        "again.");
-                }
-            }
-            else
-            {
-                docwidget->deleteLater();
-                delete docwidget;
-                return false;
-            }
-        } while (true);
-    }
+        // Only use deleteLater() for async cleanup
+        doc->deleteLater();
+        QMessageBox::warning(this, "Open File",
+                             QString("Failed to open %1").arg(doc->filePath()));
+    });
 
-    docwidget->open();
-
-    if (m_config.ui.outline.visible)
-        m_outline_widget->setVisible(m_config.ui.outline.visible);
-    m_path_tab_map[fp] = docwidget;
+    docwidget->openAsync(filePath);
 
     return true;
 }
@@ -2786,7 +2788,7 @@ dodo::openSessionFromArray(const QJsonArray &sessionArray) noexcept
         const int fitMode       = entry["fit_mode"].toInt();
         const bool invert       = entry["invert_color"].toBool();
 
-        DocumentView *view = new DocumentView(filePath, m_config, m_tab_widget);
+        DocumentView *view = new DocumentView(m_config, m_tab_widget);
         if (invert)
             view->setInvertColor(true);
         view->GotoPage(page);

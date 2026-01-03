@@ -49,8 +49,7 @@ class DocumentView : public QWidget
 {
     Q_OBJECT
 public:
-    DocumentView(const QString &filepath, const Config &config,
-                 QWidget *parent = nullptr) noexcept;
+    DocumentView(const Config &config, QWidget *parent = nullptr) noexcept;
     ~DocumentView() noexcept;
 
     enum class LayoutMode
@@ -184,7 +183,8 @@ public:
     void FollowLink(const Model::LinkInfo &info) noexcept;
 
     void setInvertColor(bool invert) noexcept;
-    void open() noexcept;
+    void openAsync(const QString &filePath,
+                   const QString &password = {}) noexcept;
     bool EncryptDocument() noexcept;
     bool DecryptDocument() noexcept;
     void ReselectLastTextSelection() noexcept;
@@ -234,6 +234,8 @@ public:
     void setLayoutMode(const LayoutMode &mode) noexcept;
 
 signals:
+    void openFileFailed(DocumentView *doc);
+    void openFileFinished(DocumentView *doc);
     void searchBarSpinnerShow(bool state);
     void pageChanged(int pageno);
     void zoomChanged(double factor);
@@ -249,7 +251,6 @@ signals:
     void highlightColorChanged(const QColor &color);
     void autoResizeActionUpdate(bool state);
     void currentPageChanged(int pageno);
-    void openFileFinished();
 
 public slots:
     void handleTextSelection(const QPointF &start, const QPointF &end) noexcept;
@@ -278,6 +279,7 @@ private:
         return m_selection_path_item->data(0).toInt();
     }
 
+    void setupUI() noexcept;
     void setModified(bool state) noexcept;
     bool pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
                         GraphicsPixmapItem *&outPageItem) const noexcept;

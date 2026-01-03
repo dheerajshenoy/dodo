@@ -35,16 +35,46 @@
 #include <qpolygon.h>
 #include <qstyle.h>
 
-DocumentView::DocumentView(const QString &filepath, const Config &config,
-                           QWidget *parent) noexcept
+DocumentView::DocumentView(const Config &config, QWidget *parent) noexcept
     : QWidget(parent), m_config(config)
 {
 #ifndef NDEBUG
-    qDebug() << "DocumentView::DocumentView(): Initializing DocumentView for"
-             << filepath;
+    qDebug() << "DocumentView::DocumentView(): Initializing DocumentView";
 #endif
-    m_model = new Model(filepath);
+    m_model = new Model(this);
+    connect(m_model, &Model::openFileFinished, this,
+            &DocumentView::handleOpenFileFinished);
+    connect(m_model, &Model::openFileFailed, this,
+            [this]() { emit openFileFailed(this); });
 
+    setupUI();
+
+#ifdef HAS_SYNCTEX
+    initSynctex();
+#endif
+}
+
+DocumentView::~DocumentView() noexcept
+{
+#ifdef HAS_SYNCTEX
+    synctex_scanner_free(m_synctex_scanner);
+#endif
+    clearDocumentItems();
+
+    m_model->cleanup();
+
+    m_gscene->removeItem(m_jump_marker);
+    m_gscene->removeItem(m_selection_path_item);
+    m_gscene->removeItem(m_current_search_hit_item);
+
+    delete m_jump_marker;
+    delete m_selection_path_item;
+    delete m_current_search_hit_item;
+}
+
+void
+DocumentView::setupUI() noexcept
+{
     m_gview  = new GraphicsView(this);
     m_gscene = new GraphicsScene(m_gview);
     m_gview->setScene(m_gscene);
@@ -62,10 +92,6 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_current_search_hit_item->setBrush(m_config.ui.colors["search_index"]);
     m_current_search_hit_item->setPen(Qt::NoPen);
     m_current_search_hit_item->setZValue(ZVALUE_SEARCH_HITS + 1);
-
-#ifdef HAS_SYNCTEX
-    initSynctex();
-#endif
 
     m_hq_render_timer = new QTimer(this);
     m_hq_render_timer->setInterval(200);
@@ -117,25 +143,6 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     layout->setContentsMargins(0, 0, 0, 0);
     this->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(m_gview);
-}
-
-DocumentView::~DocumentView() noexcept
-{
-#ifdef HAS_SYNCTEX
-    synctex_scanner_free(m_synctex_scanner);
-#endif
-    clearDocumentItems();
-
-    m_model->cleanup();
-    delete m_model;
-
-    m_gscene->removeItem(m_jump_marker);
-    m_gscene->removeItem(m_selection_path_item);
-    m_gscene->removeItem(m_current_search_hit_item);
-
-    delete m_jump_marker;
-    delete m_selection_path_item;
-    delete m_current_search_hit_item;
 }
 
 // Get the size of the current page in scene coordinates
@@ -206,25 +213,14 @@ DocumentView::initSynctex() noexcept
 #endif
 
 void
-DocumentView::open() noexcept
+DocumentView::openAsync(const QString &filePath,
+                        const QString &password) noexcept
 {
 #ifndef NDEBUG
-    qDebug() << "DocumentView::open(): Opening file:" << m_model->filePath();
+    qDebug() << "DocumentView::openAsync(): Opening file:"
+             << m_model->filePath();
 #endif
-    m_spinner->start();
-    m_spinner->show();
-    // Run the heavy open in background
-    auto future = QtConcurrent::run([model = m_model]() -> void
-    {
-        // IMPORTANT: do NOT touch QWidget / scene / pixmaps here.
-        // Only pure model/PDF work.
-        model->open();
-    });
-
-    connect(&m_open_file_watcher, &QFutureWatcher<void>::finished, this,
-            [this]() { handleOpenFileFinished(); });
-
-    m_open_file_watcher.setFuture(future);
+    m_model->openAsync(filePath, password);
 }
 
 void
@@ -253,8 +249,9 @@ DocumentView::handleOpenFileFinished() noexcept
         setLayoutMode(LayoutMode::TOP_TO_BOTTOM);
 
     initConnections();
-
-    emit openFileFinished();
+    qDebug()
+        << "DocumentView::handleOpenFileFinished(): File opened successfully.";
+    emit openFileFinished(this);
 }
 
 void
@@ -265,11 +262,7 @@ DocumentView::resetConnections() noexcept
         << "DocumentView::resetConnections(): Clearing existing connections";
 #endif
 
-    // 1. Disconnect all signals originating FROM this DocumentView instance
-    // to any other objects.
-    this->disconnect();
-
-    // 2. Disconnect specific objects that signal INTO this DocumentView
+    // 1. Disconnect specific objects that signal INTO this DocumentView
     if (m_model)
     {
         m_model->disconnect(this);

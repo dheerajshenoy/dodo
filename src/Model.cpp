@@ -48,7 +48,7 @@ mupdf_unlock_mutex(void *user, int lock)
     m[lock].unlock();
 }
 
-Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
+Model::Model(QObject *parent) noexcept : QObject(parent)
 {
     // initialize each mutex
     m_fz_locks.user   = mupdf_mutexes.data();
@@ -56,21 +56,39 @@ Model::Model(const QString &filepath) noexcept : m_filepath(filepath)
     m_fz_locks.unlock = mupdf_unlock_mutex;
     m_ctx = fz_new_context(nullptr, &m_fz_locks, FZ_STORE_UNLIMITED);
     fz_register_document_handlers(m_ctx);
-    m_doc = fz_open_document(m_ctx, CSTR(m_filepath));
-    if (!m_doc)
-    {
-        m_success = false;
-        return;
-    }
+    m_colorspace = fz_device_rgb(m_ctx);
     m_undo_stack = new QUndoStack();
 }
 
 void
 Model::cleanup() noexcept
 {
-    fz_drop_outline(m_ctx, m_outline);
-    pdf_drop_document(m_ctx, m_pdf_doc);
-    fz_drop_document(m_ctx, m_doc);
+    if (!m_ctx)
+    {
+        m_outline = nullptr;
+        m_pdf_doc = nullptr;
+        m_doc     = nullptr;
+        m_page_cache.clear();
+        m_stext_page_cache.clear();
+        m_text_cache.clear();
+        return;
+    }
+
+    if (m_outline)
+    {
+        fz_drop_outline(m_ctx, m_outline);
+        m_outline = nullptr;
+    }
+    if (m_pdf_doc)
+    {
+        pdf_drop_document(m_ctx, m_pdf_doc);
+        m_pdf_doc = nullptr;
+    }
+    if (m_doc)
+    {
+        fz_drop_document(m_ctx, m_doc);
+        m_doc = nullptr;
+    }
 
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
@@ -81,7 +99,6 @@ Model::cleanup() noexcept
     }
     m_stext_page_cache.clear();
     m_text_cache.clear();
-    fz_drop_document(m_ctx, m_doc);
 }
 
 Model::~Model() noexcept
@@ -91,43 +108,48 @@ Model::~Model() noexcept
 }
 
 void
-Model::open() noexcept
+Model::openAsync(const QString &filePath, const QString &password) noexcept
 {
-    m_colorspace = fz_device_rgb(m_ctx);
-    if (!m_ctx)
+    QFuture<void> _ = QtConcurrent::run([this, filePath, password]()
     {
-        m_success = false;
-        return;
-    }
-    fz_try(m_ctx)
-    {
-        m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
-        m_page_count = fz_count_pages(m_ctx, m_doc);
-        m_success    = true;
-        cachePageDimension();
+        if (!m_ctx)
+        {
+            emit openFileFailed();
+            m_success = false;
+            return;
+        }
+        m_doc = fz_open_document(m_ctx, CSTR(filePath));
+        if (!m_doc)
+        {
+            emit openFileFailed();
+            m_success = false;
+            return;
+        }
+        fz_try(m_ctx)
+        {
+            m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
+            m_page_count = fz_count_pages(m_ctx, m_doc);
+            m_success    = true;
+            cachePageDimension();
 
-        for (int pageno = 0; pageno < m_page_count; ++pageno)
-            buildPageCache(pageno);
-    }
-    fz_catch(m_ctx)
-    {
-        fz_drop_context(m_ctx);
-        m_ctx     = nullptr;
-        m_success = false;
-        return;
-    }
+            for (int pageno = 0; pageno < m_page_count; ++pageno)
+                buildPageCache(pageno);
+        }
+        fz_catch(m_ctx)
+        {
+            fz_drop_context(m_ctx);
+            m_ctx     = nullptr;
+            m_success = false;
+            emit openFileFailed();
+            return;
+        }
 
-    m_highlight_color[0] = 1.0f; // Red
-    m_highlight_color[1] = 1.0f; // Green
-    m_highlight_color[2] = 0.0f; // Blue
-    m_highlight_color[3] = 0.5f; // Alpha (translucent yellow)
-
-    m_annot_rect_color[0] = 1.0f;
-    m_annot_rect_color[1] = 0.0f;
-    m_annot_rect_color[2] = 0.0f;
-    m_annot_rect_color[3] = 0.5f;
-
-    m_pdf_write_options = pdf_default_write_options;
+        QMetaObject::invokeMethod(this, [this, filePath]()
+        {
+            m_filepath = filePath;
+            emit openFileFinished();
+        }, Qt::QueuedConnection);
+    });
 }
 
 void
@@ -387,32 +409,35 @@ bool
 Model::reloadDocument() noexcept
 {
     // Lock to prevent concurrent access (if multithreaded)
-    std::lock_guard<std::mutex> lock(m_doc_mutex);
+    // std::lock_guard<std::mutex> lock(m_doc_mutex);
 
     // Drop text page cache
-    clear_fz_stext_page_cache();
+    // clear_fz_stext_page_cache();
 
     // Drop display lists / page cache entries
-    {
-        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-        for (auto &[_, entry] : m_page_cache)
-            fz_drop_display_list(m_ctx, entry.display_list);
-        m_page_cache.clear();
-    }
+    // {
+    //     std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+    //     for (auto &[_, entry] : m_page_cache)
+    //         fz_drop_display_list(m_ctx, entry.display_list);
+    //     m_page_cache.clear();
+    // }
 
-    fz_drop_outline(m_ctx, m_outline);
-    pdf_drop_document(m_ctx, m_pdf_doc);
-    fz_drop_document(m_ctx, m_doc);
+    // fz_drop_outline(m_ctx, m_outline);
+    // pdf_drop_document(m_ctx, m_pdf_doc);
+    // fz_drop_document(m_ctx, m_doc);
     // fz_drop_context(m_ctx);
-    m_pdf_doc = nullptr;
-    m_doc     = nullptr;
-    m_outline = nullptr;
-    m_success = false;
+    // m_pdf_doc = nullptr;
+    // m_doc     = nullptr;
+    // m_outline = nullptr;
+    // m_success = false;
     // m_ctx        = nullptr;
-    m_page_count = 0;
+    // m_page_count = 0;
 
     // Reopen the document
-    open(); // ensure open() sets m_doc, m_pdf_doc, m_success
+    // openAsync(m_filepath,
+    //           password); // ensure open() sets m_doc, m_pdf_doc, m_success
+
+    qDebug() << "Reloading document is not yet implemented.";
 
     return m_success;
 }
