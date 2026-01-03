@@ -1372,11 +1372,12 @@ dodo::OpenFile(const QString &filePath) noexcept
 
     DocumentView *docwidget = new DocumentView(fp, m_config, m_tab_widget);
     int index               = m_tab_widget->addTab(docwidget, fp);
-    initTabConnections(docwidget);
     m_tab_widget->setCurrentIndex(index);
+    docwidget->setDPR(m_dpr);
+    initTabConnections(docwidget);
 
     connect(docwidget, &DocumentView::openFileFinished, this,
-            [this, docwidget, fp]()
+            [this, &docwidget, fp]()
     {
         if (!docwidget->fileOpenedSuccessfully())
         {
@@ -1387,15 +1388,9 @@ dodo::OpenFile(const QString &filePath) noexcept
             return false;
         }
 
-        docwidget->setDPR(m_dpr);
-
         m_outline_widget->setOutline(m_doc ? m_doc->model()->getOutline()
                                            : nullptr);
 
-        m_path_tab_map[fp] = docwidget;
-
-        if (m_config.ui.outline.visible)
-            m_outline_widget->setVisible(m_config.ui.outline.visible);
         return true;
     });
 
@@ -1431,6 +1426,10 @@ dodo::OpenFile(const QString &filePath) noexcept
     }
 
     docwidget->open();
+
+    if (m_config.ui.outline.visible)
+        m_outline_widget->setVisible(m_config.ui.outline.visible);
+    m_path_tab_map[fp] = docwidget;
 
     return true;
 }

@@ -111,15 +111,6 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
         m_gview->setHorizontalScrollBarPolicy(
             Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
 
-    if (m_config.ui.layout.mode == "single")
-        setLayoutMode(LayoutMode::SINGLE);
-    else if (m_config.ui.layout.mode == "left_to_right")
-        setLayoutMode(LayoutMode::LEFT_TO_RIGHT);
-    else
-        setLayoutMode(LayoutMode::TOP_TO_BOTTOM);
-
-    initConnections();
-
     m_auto_resize       = m_config.ui.layout.auto_resize;
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setAlignment(Qt::AlignCenter);
@@ -239,6 +230,9 @@ DocumentView::open() noexcept
 void
 DocumentView::handleOpenFileFinished() noexcept
 {
+    m_spinner->stop();
+    m_spinner->hide();
+
     m_pageno = 0;
 
     if (m_config.ui.layout.initial_fit == "height")
@@ -251,8 +245,14 @@ DocumentView::handleOpenFileFinished() noexcept
         setFitMode(FitMode::None);
     cachePageStride();
 
-    m_spinner->stop();
-    m_spinner->hide();
+    if (m_config.ui.layout.mode == "single")
+        setLayoutMode(LayoutMode::SINGLE);
+    else if (m_config.ui.layout.mode == "left_to_right")
+        setLayoutMode(LayoutMode::LEFT_TO_RIGHT);
+    else
+        setLayoutMode(LayoutMode::TOP_TO_BOTTOM);
+
+    initConnections();
 
     emit openFileFinished();
 }
