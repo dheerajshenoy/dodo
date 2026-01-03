@@ -9,9 +9,10 @@
 - Make scrollbar handle transparent to allow search hits marker visibility
 - Show placeholder page when pages are loading
 - Use queue for managing threads while rendering instead of spawning threads for each render request
-- Make searching asynchronous to avoid UI blocking on large documents
+- Make asynchronous to avoid UI blocking on large documents
 - Add min and max zoom levels
 - Add Link Keyboard hinting mode
+- Show loading spinner when loading huge documents
 
 ### Bug Fixes
 

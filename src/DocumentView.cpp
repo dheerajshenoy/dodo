@@ -24,6 +24,7 @@
 #include <QTextCursor>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <QtConcurrent/QtConcurrent>
 #include <algorithm>
 #include <cmath>
 #include <qdebug.h>
@@ -49,6 +50,8 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_gview->setScene(m_gscene);
 
     m_spinner = new WaitingSpinnerWidget(this);
+    m_spinner->setInnerRadius(5.0);
+    m_spinner->setColor(palette().color(QPalette::Text));
 
     m_selection_path_item = m_gscene->addPath(QPainterPath());
     m_selection_path_item->setBrush(QBrush(m_config.ui.colors["selection"]));
@@ -90,6 +93,7 @@ DocumentView::DocumentView(const QString &filepath, const Config &config,
     m_model->setInvertColor(m_config.behavior.invert_mode);
     m_model->setLinkBoundary(m_config.ui.links.boundary);
 
+    setAutoReload(m_config.behavior.auto_reload);
     // if (m_config.rendering.icc_color_profile)
     //     m_model->enableICC();
     // m_cache.setMaxCost(m_config.behavior.cache_pages);
@@ -216,7 +220,25 @@ DocumentView::open() noexcept
 #ifndef NDEBUG
     qDebug() << "DocumentView::open(): Opening file:" << m_model->filePath();
 #endif
-    m_model->open();
+    m_spinner->start();
+    m_spinner->show();
+    // Run the heavy open in background
+    auto future = QtConcurrent::run([model = m_model]() -> void
+    {
+        // IMPORTANT: do NOT touch QWidget / scene / pixmaps here.
+        // Only pure model/PDF work.
+        model->open();
+    });
+
+    connect(&m_open_file_watcher, &QFutureWatcher<void>::finished, this,
+            [this]() { handleOpenFileFinished(); });
+
+    m_open_file_watcher.setFuture(future);
+}
+
+void
+DocumentView::handleOpenFileFinished() noexcept
+{
     m_pageno = 0;
 
     if (m_config.ui.layout.initial_fit == "height")
@@ -228,6 +250,11 @@ DocumentView::open() noexcept
     else
         setFitMode(FitMode::None);
     cachePageStride();
+
+    m_spinner->stop();
+    m_spinner->hide();
+
+    emit openFileFinished();
 }
 
 void
@@ -991,6 +1018,9 @@ DocumentView::zoomHelper() noexcept
 void
 DocumentView::ZoomIn() noexcept
 {
+    if (m_target_zoom >= MAX_ZOOM_FACTOR)
+        return;
+
     m_target_zoom
         = std::clamp(m_target_zoom * 1.2, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
     zoomHelper();
@@ -1000,6 +1030,9 @@ DocumentView::ZoomIn() noexcept
 void
 DocumentView::ZoomOut() noexcept
 {
+    if (m_target_zoom <= MIN_ZOOM_FACTOR)
+        return;
+
     m_target_zoom
         = std::clamp(m_current_zoom / 1.2, MIN_ZOOM_FACTOR, MAX_ZOOM_FACTOR);
     zoomHelper();

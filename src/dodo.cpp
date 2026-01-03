@@ -1352,7 +1352,7 @@ dodo::OpenFile(const QString &filePath) noexcept
         fp = QDir::current().absoluteFilePath(fp);
 
     // Switch to already opened filepath, if it's open.
-    auto it = m_path_tab_map.find(filePath);
+    auto it = m_path_tab_map.find(fp);
     if (it != m_path_tab_map.end())
     {
         int existingIndex = m_tab_widget->indexOf(it.value());
@@ -1371,6 +1371,34 @@ dodo::OpenFile(const QString &filePath) noexcept
     }
 
     DocumentView *docwidget = new DocumentView(fp, m_config, m_tab_widget);
+    int index               = m_tab_widget->addTab(docwidget, fp);
+    initTabConnections(docwidget);
+    m_tab_widget->setCurrentIndex(index);
+
+    connect(docwidget, &DocumentView::openFileFinished, this,
+            [this, docwidget, fp]()
+    {
+        if (!docwidget->fileOpenedSuccessfully())
+        {
+            docwidget->deleteLater();
+            delete docwidget;
+            QMessageBox::warning(this, "Open File",
+                                 QString("Failed to open %1").arg(fp));
+            return false;
+        }
+
+        docwidget->setDPR(m_dpr);
+
+        m_outline_widget->setOutline(m_doc ? m_doc->model()->getOutline()
+                                           : nullptr);
+
+        m_path_tab_map[fp] = docwidget;
+
+        if (m_config.ui.outline.visible)
+            m_outline_widget->setVisible(m_config.ui.outline.visible);
+        return true;
+    });
+
     if (docwidget->passwordRequired())
     {
         QString password;
@@ -1404,29 +1432,6 @@ dodo::OpenFile(const QString &filePath) noexcept
 
     docwidget->open();
 
-    docwidget->setAutoReload(m_config.behavior.auto_reload);
-
-    if (!docwidget->fileOpenedSuccessfully())
-    {
-        docwidget->deleteLater();
-        delete docwidget;
-        QMessageBox::warning(this, "Open File",
-                             QString("Failed to open %1").arg(fp));
-        return false;
-    }
-
-    docwidget->setDPR(m_dpr);
-    initTabConnections(docwidget);
-    int index = m_tab_widget->addTab(docwidget, fp);
-    m_tab_widget->setCurrentIndex(index);
-
-    m_outline_widget->setOutline(m_doc ? m_doc->model()->getOutline()
-                                       : nullptr);
-
-    m_path_tab_map[filePath] = docwidget;
-
-    if (m_config.ui.outline.visible)
-        m_outline_widget->setVisible(m_config.ui.outline.visible);
     return true;
 }
 

@@ -10,6 +10,8 @@
 #include "ScrollBar.hpp"
 #include "WaitingSpinnerWidget.hpp"
 
+#include <QFutureWatcher>
+
 #ifdef HAS_SYNCTEX
 extern "C"
 {
@@ -247,6 +249,7 @@ signals:
     void highlightColorChanged(const QColor &color);
     void autoResizeActionUpdate(bool state);
     void currentPageChanged(int pageno);
+    void openFileFinished();
 
 public slots:
     void handleTextSelection(const QPointF &start, const QPointF &end) noexcept;
@@ -256,6 +259,7 @@ public slots:
 #ifdef HAS_SYNCTEX
     void handleSynctexJumpRequested(const QPointF &scenePos) noexcept;
 #endif
+    void handleOpenFileFinished() noexcept;
 
 protected:
     void handleContextMenuRequested(const QPointF &scenePos) noexcept;
@@ -356,6 +360,7 @@ private:
     // fz_pixmap *m_hit_pixmap{nullptr};
     LayoutMode m_layout_mode{LayoutMode::TOP_TO_BOTTOM};
     WaitingSpinnerWidget *m_spinner{nullptr};
+    QFutureWatcher<void> m_open_file_watcher;
 
 #ifdef HAS_SYNCTEX
     synctex_scanner_p m_synctex_scanner{nullptr};
