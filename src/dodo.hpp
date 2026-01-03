@@ -6,6 +6,7 @@
 #include "OutlineWidget.hpp"
 #include "Panel.hpp"
 #include "PropertiesWidget.hpp"
+#include "RecentFilesStore.hpp"
 #include "SearchBar.hpp"
 #include "ShortcutsWidget.hpp"
 #include "StartupWidget.hpp"
@@ -16,15 +17,16 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QDir>
+#include <QFile>
 #include <QFileSystemWatcher>
 #include <QInputDialog>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QKeySequence>
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QShortcut>
-#include <QSqlDatabase>
-#include <QSqlError>
-#include <QSqlQuery>
 #include <QStackedLayout>
 #include <QStackedWidget>
 #include <QStandardPaths>
@@ -249,7 +251,8 @@ private:
     QVBoxLayout *m_layout = {nullptr};
     QMap<QString, std::function<void(const QStringList &args)>> m_actionMap;
     QClipboard *m_clipboard = QGuiApplication::clipboard();
-    QSqlDatabase m_last_pages_db;
+    RecentFilesStore m_recent_files_store;
+    QString m_recent_files_path;
     QString m_session_name;
     QFileSystemWatcher *m_config_watcher{nullptr};
     QMap<QString, DocumentView *> m_path_tab_map;

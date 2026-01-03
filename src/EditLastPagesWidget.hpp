@@ -1,35 +1,21 @@
 #pragma once
 
+#include "RecentFilesModel.hpp"
+#include "RecentFilesStore.hpp"
+
 #include <QDialog>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QSqlDatabase>
-#include <QSqlTableModel>
+#include <QString>
 #include <QTableView>
 #include <QVBoxLayout>
-
-class MySqlTableModel : public QSqlTableModel
-{
-public:
-    using QSqlTableModel::QSqlTableModel; // inherit constructors
-
-    Qt::ItemFlags flags(const QModelIndex &index) const override
-    {
-        // First column (column 0) non-editable
-        if (index.column() == 0)
-        {
-            return QSqlTableModel::flags(index) & ~Qt::ItemIsEditable;
-        }
-        return QSqlTableModel::flags(index);
-    }
-};
 
 class EditLastPagesWidget : public QDialog
 {
 public:
-    EditLastPagesWidget(const QSqlDatabase &db, QWidget *parent = nullptr);
+    EditLastPagesWidget(RecentFilesStore *store, QWidget *parent = nullptr);
 
 private:
     void autoRemoveFiles() noexcept;
@@ -37,9 +23,9 @@ private:
     void revertChanges() noexcept;
     void deleteRows() noexcept;
 
-    MySqlTableModel *m_model{nullptr};
+    RecentFilesModel *m_model{nullptr};
     QTableView *m_tableView{new QTableView()};
-    QSqlDatabase m_db;
+    RecentFilesStore *m_store{nullptr};
 
     QPushButton *m_autoremove_btn;
     QPushButton *m_revert_changes_btn;

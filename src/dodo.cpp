@@ -43,10 +43,7 @@ dodo::dodo(const QString &sessionName, const QJsonArray &sessionArray) noexcept
 }
 
 // Destructor for `dodo` class
-dodo::~dodo() noexcept
-{
-    m_last_pages_db.close();
-}
+dodo::~dodo() noexcept {}
 
 // On-demand construction of `dodo` (for use with argparse)
 void
@@ -365,22 +362,14 @@ dodo::initMenubar() noexcept
         &dodo::ShowKeybindings);
 }
 
-// Initialize the `last_pages_db` related stuff
+// Initialize the recent files store
 void
 dodo::initDB() noexcept
 {
-    m_last_pages_db = QSqlDatabase::addDatabase("QSQLITE");
-    m_last_pages_db.setDatabaseName(m_config_dir.filePath("last_pages.db"));
-    m_last_pages_db.open();
-
-    QSqlQuery query;
-
-    // FIXME: Maybe add some unique hashing so that this works even when you
-    // move a file
-    query.exec("CREATE TABLE IF NOT EXISTS last_visited ("
-               "file_path TEXT PRIMARY KEY, "
-               "page_number INTEGER, "
-               "last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+    m_recent_files_path = m_config_dir.filePath("last_pages.json");
+    m_recent_files_store.setFilePath(m_recent_files_path);
+    if (!m_recent_files_store.load())
+        qWarning() << "Failed to load recent files store";
 }
 
 // Initialize the default settings in case the config
@@ -952,7 +941,7 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 }
 
 // Populates the `QMenu` for recent files with
-// recent files entries from the database
+// recent files entries from the store
 void
 dodo::populateRecentFiles() noexcept
 {
@@ -963,32 +952,20 @@ dodo::populateRecentFiles() noexcept
     }
 
     m_recentFilesMenu->clear();
-    QSqlQuery query;
-    if (query.exec("SELECT file_path, page_number, last_accessed "
-                   "FROM last_visited "
-                   "ORDER BY last_accessed DESC"))
+    for (const RecentFileEntry &entry : m_recent_files_store.entries())
     {
-        while (query.next())
+        if (entry.file_path.isEmpty())
+            continue;
+        const QString path  = entry.file_path;
+        const int page      = entry.page_number;
+        QAction *fileAction = new QAction(path, m_recentFilesMenu);
+        connect(fileAction, &QAction::triggered, this, [&, path, page]()
         {
-            QString path = query.value(0).toString();
-            if (path.isEmpty())
-                continue;
-            int page = query.value(1).toInt();
-            // QDateTime accessed = query.value(2).toDateTime();
-            QAction *fileAction = new QAction(path, m_recentFilesMenu);
-            connect(fileAction, &QAction::triggered, this, [&, path, page]()
-            {
-                OpenFile(path);
-                gotoPage(page);
-            });
+            OpenFile(path);
+            gotoPage(page);
+        });
 
-            m_recentFilesMenu->addAction(fileAction);
-        }
-    }
-    else
-    {
-        qWarning() << "Failed to query recent files:"
-                   << query.lastError().text();
+        m_recentFilesMenu->addAction(fileAction);
     }
 
     if (m_recentFilesMenu->isEmpty())
@@ -997,23 +974,23 @@ dodo::populateRecentFiles() noexcept
         m_recentFilesMenu->setEnabled(true);
 }
 
-// Opens a widget that allows to edit the `last_pages_db`
+// Opens a widget that allows to edit the recent files
 // entries
 void
 dodo::editLastPages() noexcept
 {
-    if (!m_config.behavior.remember_last_visited
-        || (!m_last_pages_db.isOpen() && !m_last_pages_db.isValid()))
+    if (!m_config.behavior.remember_last_visited)
     {
         QMessageBox::information(
             this, "Edit Last Pages",
-            "Couldn't find the database of last pages. Maybe "
+            "Couldn't find the recent files data. Maybe "
             "`remember_last_visited` option is turned off in the config "
             "file");
         return;
     }
 
-    EditLastPagesWidget *elpw = new EditLastPagesWidget(m_last_pages_db, this);
+    EditLastPagesWidget *elpw
+        = new EditLastPagesWidget(&m_recent_files_store, this);
     elpw->show();
     connect(elpw, &EditLastPagesWidget::finished, this,
             &dodo::populateRecentFiles);
@@ -1031,29 +1008,16 @@ dodo::ShowKeybindings() noexcept
 void
 dodo::openLastVisitedFile() noexcept
 {
-    if (!m_last_pages_db.isOpen() || !m_last_pages_db.isValid())
-        return;
-
-    QSqlQuery q;
-    q.prepare("SELECT file_path, page_number FROM last_visited ORDER BY "
-              "last_accessed DESC");
-
-    if (!q.exec())
-    {
-        qWarning() << "DB Error: " << q.lastError().text();
+    const QVector<RecentFileEntry> &entries = m_recent_files_store.entries();
+    if (entries.isEmpty())
         return;
     }
 
-    if (q.next())
+    const RecentFileEntry &entry = entries.first();
+    if (QFile::exists(entry.file_path))
     {
-        QString last_visited_file = q.value(0).toString();
-        int pageno                = q.value(1).toInt();
-
-        if (QFile::exists(last_visited_file))
-        {
-            OpenFile(last_visited_file);
-            gotoPage(pageno);
-        }
+        OpenFile(entry.file_path);
+        gotoPage(entry.page_number);
     }
 }
 
@@ -1359,6 +1323,8 @@ dodo::OpenFile(const QString &filePath) noexcept
         if (existingIndex != -1)
         {
             m_tab_widget->setCurrentIndex(existingIndex);
+            const int page = it.value()->pageNo() + 1;
+            insertFileToDB(fp, page > 0 ? page : 1);
             return true;
         }
     }
@@ -2038,31 +2004,15 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
             &dodo::insertFileToDB);
 }
 
-// Insert file to DB when tab is closed to track
+// Insert file to store when tab is closed to track
 // recent files
 void
 dodo::insertFileToDB(const QString &fname, int pageno) noexcept
 {
-    if (!m_last_pages_db.isValid() || !m_last_pages_db.isOpen())
-        return;
-
     const QDateTime now = QDateTime::currentDateTime();
-    QSqlQuery q(m_last_pages_db);
-    q.prepare("UPDATE last_visited SET page_number = ?, last_accessed = ? "
-              "WHERE file_path = ?");
-    q.bindValue(0, pageno);
-    q.bindValue(1, now);
-    q.bindValue(2, fname);
-
-    if (!q.exec() || q.numRowsAffected() == 0)
-    {
-        q.prepare("INSERT INTO last_visited (file_path, page_number, "
-                  "last_accessed) VALUES (?, ?, ?)");
-        q.bindValue(0, fname);
-        q.bindValue(1, pageno);
-        q.bindValue(2, now);
-        q.exec();
-    }
+    m_recent_files_store.upsert(fname, pageno, now);
+    if (!m_recent_files_store.save())
+        qWarning() << "Failed to save recent files store";
 }
 
 // Update the menu actions based on the current document state
@@ -2377,7 +2327,7 @@ dodo::showStartupWidget() noexcept
         return;
     }
 
-    m_startup_widget = new StartupWidget(m_last_pages_db, m_tab_widget);
+    m_startup_widget = new StartupWidget(&m_recent_files_store, m_tab_widget);
     connect(m_startup_widget, &StartupWidget::openFileRequested, this,
             [this](const QString &filepath, int pageno)
     {
@@ -2550,32 +2500,18 @@ dodo::initActionMap() noexcept
 
 #undef ACTION_NO_ARGS
 
-// Trims the recent files DB (if it exists) to `num_recent_files` number of
-// files
+// Trims the recent files store to `num_recent_files` number of files
 void
 dodo::trimRecentFilesDatabase() noexcept
 {
-    // If no DB is loaded, return from this function
     // If num_recent_files config entry has negative value,
     // retain all the recent files
-    if (!m_last_pages_db.isValid() || m_config.behavior.num_recent_files < 0)
+    if (m_config.behavior.num_recent_files < 0)
         return;
 
-    QSqlQuery query;
-    const QString trimQuery = QString("DELETE FROM last_visited "
-                                      "WHERE file_path NOT IN ("
-                                      "    SELECT file_path "
-                                      "    FROM last_visited "
-                                      "    ORDER BY last_accessed DESC "
-                                      "    LIMIT %1"
-                                      ")")
-                                  .arg(m_config.behavior.num_recent_files);
-
-    if (!query.exec(trimQuery))
-    {
-        qWarning() << "Failed to trim recent files:"
-                   << query.lastError().text();
-    }
+    m_recent_files_store.trim(m_config.behavior.num_recent_files);
+    if (!m_recent_files_store.save())
+        qWarning() << "Failed to trim recent files store";
 }
 
 // Sets the DPR of the current document

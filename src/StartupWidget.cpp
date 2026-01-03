@@ -3,10 +3,11 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMimeData>
+#include <QRegularExpression>
 #include <QSortFilterProxyModel>
 
-StartupWidget::StartupWidget(const QSqlDatabase &db, QWidget *parent)
-    : QWidget(parent), m_db(db)
+StartupWidget::StartupWidget(RecentFilesStore *store, QWidget *parent)
+    : QWidget(parent), m_store(store)
 {
     setAcceptDrops(false);
     QVBoxLayout *layout  = new QVBoxLayout(this);
@@ -28,32 +29,20 @@ StartupWidget::StartupWidget(const QSqlDatabase &db, QWidget *parent)
 
     setProperty("tabRole", "startup");
 
-    QSqlQuery query(m_db);
-
-    if (!query.exec("SELECT file_path, page_number, last_accessed FROM "
-                    "last_visited ORDER BY last_accessed DESC"))
-    {
-        qWarning() << "Query failed:" << query.lastError().text();
-        return;
-    }
-
-    m_model = new HomePathModel(this, db);
-    m_model->setTable("last_visited");
-    m_model->select();
+    m_model = new RecentFilesModel(this);
+    m_model->setDisplayHomePath(true);
+    if (m_store)
+        m_model->setEntries(m_store->entries());
+    else
+        m_model->setEntries({});
     m_table_view->setEditTriggers(QAbstractItemView::NoEditTriggers);
-
-    m_model->setHeaderData(m_model->fieldIndex("file_path"), Qt::Horizontal,
-                           "File");
-    // m_model->setHeaderData(m_model->fieldIndex("last_accessed"),
-    // Qt::Horizontal, tr("Last Visited"));
-
-    m_model->setSort(m_model->fieldIndex("last_accessed"), Qt::DescendingOrder);
-    m_model->select();
 
     QSortFilterProxyModel *proxy = new QSortFilterProxyModel(this);
     proxy->setSourceModel(m_model);
     proxy->setFilterKeyColumn(0); // Filter by title
     proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
+    proxy->setSortCaseSensitivity(Qt::CaseInsensitive);
+    proxy->sort(RecentFilesModel::LastAccessed, Qt::DescendingOrder);
 
     proxy->setFilterRegularExpression(
         QRegularExpression(".*", QRegularExpression::CaseInsensitiveOption));
@@ -86,16 +75,10 @@ StartupWidget::StartupWidget(const QSqlDatabase &db, QWidget *parent)
         if (!index.isValid())
             return;
 
-        QString file_path
-            = proxy
-                  ->data(proxy->index(index.row(),
-                                      m_model->fieldIndex("file_path")))
-                  .toString();
-        int page_number
-            = proxy
-                  ->data(proxy->index(index.row(),
-                                      m_model->fieldIndex("page_number")))
-                  .toInt();
+        const QModelIndex sourceIndex = proxy->mapToSource(index);
+        const RecentFileEntry entry   = m_model->entryAt(sourceIndex.row());
+        const QString file_path       = entry.file_path;
+        const int page_number         = entry.page_number;
         emit openFileRequested(file_path, page_number);
     });
 }

@@ -1,18 +1,17 @@
 #include "EditLastPagesWidget.hpp"
 
 #include <QFile>
+#include <algorithm>
 
-EditLastPagesWidget::EditLastPagesWidget(const QSqlDatabase &db,
+EditLastPagesWidget::EditLastPagesWidget(RecentFilesStore *store,
                                          QWidget *parent)
-    : QDialog(parent), m_db(db)
+    : QDialog(parent), m_store(store)
 {
-    m_model = new MySqlTableModel(this, db);
-    m_model->setTable("last_visited");
-    m_model->setEditStrategy(QSqlTableModel::OnManualSubmit);
-    m_model->select();
-    m_model->setHeaderData(0, Qt::Horizontal, tr("File Path"));
-    m_model->setHeaderData(1, Qt::Horizontal, tr("Page"));
-    m_model->setHeaderData(2, Qt::Horizontal, tr("Last Visited"));
+    m_model = new RecentFilesModel(this);
+    if (m_store)
+        m_model->setEntries(m_store->entries());
+    else
+        m_model->setEntries({});
 
     m_autoremove_btn     = new QPushButton("Remove unfound files");
     m_revert_changes_btn = new QPushButton("Revert Changes");
@@ -68,7 +67,19 @@ EditLastPagesWidget::initConnections() noexcept
         auto confirm = QMessageBox::question(
             this, "Apply Changes", "Do you want to apply the changes ?");
         if (confirm == QMessageBox::Yes)
-            m_model->submitAll();
+        {
+            if (m_store)
+            {
+                m_store->setEntries(m_model->entries());
+                if (!m_store->save())
+                {
+                    QMessageBox::warning(this, "Apply Changes",
+                                         "Failed to save recent files");
+                    return;
+                }
+            }
+            m_model->markClean();
+        }
     });
 
     connect(m_close_btn, &QPushButton::clicked, this,
