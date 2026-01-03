@@ -170,6 +170,18 @@ public:
         return m_auto_resize;
     }
 
+    inline void Undo() noexcept
+    {
+        if (m_model && m_model->undoStack()->canUndo())
+            m_model->undoStack()->undo();
+    }
+
+    inline void Redo() noexcept
+    {
+        if (m_model && m_model->undoStack()->canRedo())
+            m_model->undoStack()->redo();
+    }
+
     inline double zoom() noexcept
     {
         return m_current_zoom;

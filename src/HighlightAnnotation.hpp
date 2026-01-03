@@ -60,7 +60,7 @@ protected:
 
         connect(deleteAction, &QAction::triggered, this,
                 [this]() { emit annotDeleteRequested(m_index); });
-        connect(changeColorAction, &QAction::triggered, this,
+        connect(changeColorAction, &QAction::triggered,
                 [this]() { emit annotColorChangeRequested(m_index); });
 
         menu.addAction(deleteAction);
