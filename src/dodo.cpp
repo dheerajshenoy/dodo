@@ -1338,9 +1338,8 @@ dodo::OpenFile(const QString &filePath) noexcept
         return false;
     }
 
-    DocumentView *docwidget = new DocumentView(fp, m_config, m_tab_widget);
+    DocumentView *docwidget = new DocumentView(m_config, m_tab_widget);
     int index               = m_tab_widget->addTab(docwidget, fp);
-    m_tab_widget->setCurrentIndex(index);
 
     // if (docwidget->passwordRequired())
     // {
@@ -1375,7 +1374,6 @@ dodo::OpenFile(const QString &filePath) noexcept
     connect(docwidget, &DocumentView::openFileFinished, this,
             [this](DocumentView *doc)
     {
-        qDebug() << "DD";
         const QString filePath = doc->filePath();
         doc->setDPR(m_dpr);
         initTabConnections(doc);
@@ -1386,6 +1384,7 @@ dodo::OpenFile(const QString &filePath) noexcept
         insertFileToDB(filePath, page > 0 ? page : 1);
         if (m_config.ui.outline.visible)
             m_outline_widget->show();
+        updatePanel();
     });
 
     connect(docwidget, &DocumentView::openFileFailed, this,
@@ -1397,7 +1396,7 @@ dodo::OpenFile(const QString &filePath) noexcept
                              QString("Failed to open %1").arg(doc->filePath()));
     });
 
-    docwidget->openAsync(filePath);
+    docwidget->openAsync(fp);
 
     return true;
 }
@@ -1590,7 +1589,6 @@ dodo::TextHighlightCurrentSelection() noexcept
 void
 dodo::initConnections() noexcept
 {
-
     connect(m_panel, &Panel::modeColorChangeRequested, this,
             [&](GraphicsView::Mode mode) { modeColorChangeRequested(mode); });
 
@@ -2070,6 +2068,10 @@ dodo::updatePanel() noexcept
 {
     if (m_doc)
     {
+#ifndef NDEBUG
+        qDebug() << "dodo::updatePanel() Updating panel for document:"
+                 << m_doc->fileName();
+#endif
         Model *model = m_doc->model();
         if (!model)
             return;

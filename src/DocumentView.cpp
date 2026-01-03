@@ -220,6 +220,8 @@ DocumentView::openAsync(const QString &filePath,
     qDebug() << "DocumentView::openAsync(): Opening file:"
              << m_model->filePath();
 #endif
+    m_spinner->start();
+    m_spinner->show();
     m_model->openAsync(filePath, password);
 }
 
@@ -249,8 +251,6 @@ DocumentView::handleOpenFileFinished() noexcept
         setLayoutMode(LayoutMode::TOP_TO_BOTTOM);
 
     initConnections();
-    qDebug()
-        << "DocumentView::handleOpenFileFinished(): File opened successfully.";
     emit openFileFinished(this);
 }
 
