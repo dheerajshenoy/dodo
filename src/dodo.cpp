@@ -1282,7 +1282,8 @@ dodo::OpenFile(DocumentView *view) noexcept
 
 // Opens a file given the file path
 bool
-dodo::OpenFile(const QString &filePath) noexcept
+dodo::OpenFile(const QString &filePath,
+               const std::function<void()> &callback) noexcept
 {
     if (filePath.isEmpty())
     {
@@ -1372,7 +1373,7 @@ dodo::OpenFile(const QString &filePath) noexcept
     //     } while (true);
     // }
     connect(docwidget, &DocumentView::openFileFinished, this,
-            [this](DocumentView *doc)
+            [this, callback](DocumentView *doc)
     {
         const QString filePath = doc->filePath();
         doc->setDPR(m_dpr);
@@ -1385,6 +1386,9 @@ dodo::OpenFile(const QString &filePath) noexcept
         if (m_config.ui.outline.visible)
             m_outline_widget->show();
         updatePanel();
+
+        if (callback)
+            callback();
     });
 
     connect(docwidget, &DocumentView::openFileFailed, this,
@@ -2333,16 +2337,15 @@ dodo::showStartupWidget() noexcept
 
     m_startup_widget = new StartupWidget(&m_recent_files_store, m_tab_widget);
     connect(m_startup_widget, &StartupWidget::openFileRequested, this,
-            [this](const QString &filepath, int pageno)
+            [this](const QString &path, int page)
     {
-        bool opened = OpenFile(filepath);
-        if (!opened)
-            return;
-        gotoPage(pageno);
-
-        int index = m_tab_widget->indexOf(m_startup_widget);
-        if (index != -1)
-            m_tab_widget->tabCloseRequested(index);
+        OpenFile(path, [this, page]()
+        {
+            gotoPage(page);
+            int index = m_tab_widget->indexOf(m_startup_widget);
+            if (index != -1)
+                m_tab_widget->tabCloseRequested(index);
+        });
     });
     int index = m_tab_widget->addTab(m_startup_widget, "Startup");
     m_tab_widget->setCurrentIndex(index);

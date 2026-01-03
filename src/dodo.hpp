@@ -109,7 +109,8 @@ private:
     void OpenContainingFolder() noexcept;
     void OpenFiles(const std::vector<std::string> &files) noexcept;
     void OpenFiles(const QList<QString> &files) noexcept;
-    bool OpenFile(const QString &filename = QString()) noexcept;
+    bool OpenFile(const QString &filename               = QString(),
+                  const std::function<void()> &callback = {}) noexcept;
     void PrevPage() noexcept;
     void FirstPage() noexcept;
     void ToggleTextHighlight() noexcept;
