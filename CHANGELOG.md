@@ -13,6 +13,7 @@
 - Add min and max zoom levels
 - Add Link Keyboard hinting mode
 - Show loading spinner when loading huge documents
+- Add rotation support
 
 ### Bug Fixes
 

@@ -2258,7 +2258,7 @@ dodo::writeSessionToFile(const QString &sessionName) noexcept
         entry["current_page"] = doc->pageNo() + 1;
         entry["zoom"]         = doc->zoom();
         entry["invert_color"] = doc->invertColor();
-        entry["rotation"]     = doc->rotation();
+        entry["rotation"]     = doc->model()->rotation();
         entry["fit_mode"]     = static_cast<int>(doc->fitMode());
 
         sessionArray.append(entry);

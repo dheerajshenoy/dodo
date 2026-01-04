@@ -87,3 +87,9 @@ charEqual(uint32_t a, uint32_t b, bool caseSensitive)
 
     return fz_tolower(a) == fz_tolower(b);
 }
+
+static inline double
+deg2rad(double deg) noexcept
+{
+    return deg * (3.14159265358979323846 / 180.0);
+}

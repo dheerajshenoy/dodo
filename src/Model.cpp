@@ -536,65 +536,115 @@ Model::cachePageDimension() noexcept
 }
 
 std::vector<QPolygonF>
-Model::computeTextSelectionQuad(int pageno, const QPointF &start,
-                                const QPointF &end) noexcept
+Model::computeTextSelectionQuad(int pageno, const QPointF &devStart,
+                                const QPointF &devEnd) noexcept
 {
-    std::vector<QPolygonF> quads;
-    constexpr int MAX_HITS = 1000;
-    fz_quad hits[MAX_HITS];
-    int count;
+    std::vector<QPolygonF> out;
 
-    fz_point a = {static_cast<float>(start.x()), static_cast<float>(start.y())};
-    fz_point b = {static_cast<float>(end.x()), static_cast<float>(end.y())};
+    constexpr int MAX_HITS = 1024;
+    thread_local std::array<fz_quad, MAX_HITS> hits;
 
-    fz_stext_page *text_page;
+    // --- Build page<->device transforms EXACTLY like rendering
+    // (scale+rotate+translate-to-(0,0)) ---
     const float scale = m_zoom * (m_dpi / 72.0f);
-    fz_matrix ctm     = fz_scale(1 / scale, 1 / scale);
-    a                 = fz_transform_point(a, ctm);
-    b                 = fz_transform_point(b, ctm);
+
+    fz_rect page_bounds;
+    fz_page *page_for_bounds = nullptr;
+
+    fz_try(m_ctx)
+    {
+        page_for_bounds = fz_load_page(m_ctx, m_doc, pageno);
+        page_bounds     = fz_bound_page(m_ctx, page_for_bounds);
+    }
+    fz_always(m_ctx)
+    {
+        if (page_for_bounds)
+            fz_drop_page(m_ctx, page_for_bounds);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Selection failed (bounds):" << fz_caught_message(m_ctx);
+        return out;
+    }
+
+    // page -> device
+    fz_matrix page_to_dev = fz_scale(scale, scale);
+    page_to_dev           = fz_pre_rotate(page_to_dev, m_rotation);
+
+    // translate so the rendered pixmap's top-left is (0,0)
+    const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
+    page_to_dev
+        = fz_concat(page_to_dev, fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+
+    // device -> page
+    const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
+
+    // Convert input device points -> page points for MuPDF selection functions
+    fz_point a = {float(devStart.x()), float(devStart.y())};
+    fz_point b = {float(devEnd.x()), float(devEnd.y())};
+
+    a = fz_transform_point(a, dev_to_page);
+    b = fz_transform_point(b, dev_to_page);
 
     m_selection_start = a;
     m_selection_end   = b;
 
+    // --- Get (or build) stext page and compute highlight quads in PAGE space
+    // ---
+    fz_stext_page *text_page = nullptr;
+    fz_page *page            = nullptr;
+    int count                = 0;
+
     fz_try(m_ctx)
     {
-        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
-        if (m_stext_page_cache.contains(pageno))
+        auto it = m_stext_page_cache.find(pageno);
+        if (it != m_stext_page_cache.end())
         {
-            text_page = m_stext_page_cache[pageno];
+            text_page = it->second;
         }
         else
         {
+            page      = fz_load_page(m_ctx, m_doc, pageno);
             text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-            m_stext_page_cache[pageno] = text_page;
+            m_stext_page_cache.emplace(pageno, text_page);
         }
-        // text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
 
         fz_snap_selection(m_ctx, text_page, &a, &b, FZ_SELECT_CHARS);
-        count = fz_highlight_selection(m_ctx, text_page, a, b, hits, MAX_HITS);
+        count = fz_highlight_selection(m_ctx, text_page, a, b, hits.data(),
+                                       MAX_HITS);
     }
     fz_always(m_ctx)
     {
-        // fz_drop_stext_page(m_ctx, text_page);
+        if (page)
+            fz_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {
-        qWarning() << "Selection failed";
-        return quads;
+        qWarning() << "Selection failed:" << fz_caught_message(m_ctx);
+        return out;
     }
+
+    out.reserve(count);
+
+    // Helper: PAGE -> DEVICE (pixmap coords)
+    auto toDev = [&](const fz_point &p0) -> QPointF
+    {
+        const fz_point p = fz_transform_point(p0, page_to_dev);
+        return QPointF(p.x, p.y);
+    };
 
     for (int i = 0; i < count; ++i)
     {
         const fz_quad &q = hits[i];
+
         QPolygonF poly;
-        poly << QPointF(q.ll.x * scale, q.ll.y * scale)
-             << QPointF(q.lr.x * scale, q.lr.y * scale)
-             << QPointF(q.ur.x * scale, q.ur.y * scale)
-             << QPointF(q.ul.x * scale, q.ul.y * scale);
-        quads.push_back(poly);
+        poly.reserve(4);
+        poly << toDev(q.ll) << toDev(q.lr) << toDev(q.ur) << toDev(q.ul);
+
+        out.push_back(std::move(poly));
     }
 
-    return quads;
+    return out;
 }
 
 std::string
@@ -1097,7 +1147,6 @@ Model::addHighlightAnnotation(int pageno, const std::vector<fz_quad> &quads,
         objNums.push_back(pdf_to_num(m_ctx, obj));
 
         pdf_drop_annot(m_ctx, annot);
-        // Drop the page we loaded (not the Model's internal page)
         pdf_drop_page(m_ctx, page);
 
         {

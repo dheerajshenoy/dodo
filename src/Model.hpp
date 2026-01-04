@@ -86,6 +86,30 @@ public:
         fz_pixmap *pix;
     };
 
+    inline void setRotation(float angle) noexcept
+    {
+        m_rotation = angle;
+    }
+
+    inline float rotation() const noexcept
+    {
+        return m_rotation;
+    }
+
+    inline void rotateClock() noexcept
+    {
+        m_rotation += 90;
+        if (m_rotation >= 360)
+            m_rotation = 0;
+    }
+
+    inline void rotateAnticlock() noexcept
+    {
+        m_rotation -= 90;
+        if (m_rotation < 0)
+            m_rotation = 270;
+    }
+
     inline float zoom() const noexcept
     {
         return m_zoom;

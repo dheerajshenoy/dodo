@@ -9,6 +9,7 @@
 #include "PropertiesWidget.hpp"
 #include "RectAnnotation.hpp"
 #include "WaitingSpinnerWidget.hpp"
+#include "utils.hpp"
 
 #include <QClipboard>
 #include <QColorDialog>
@@ -155,7 +156,8 @@ DocumentView::currentPageSceneSize() const noexcept
     double h
         = (m_model->pageHeightPts() / 72.0) * m_model->DPI() * m_current_zoom;
 
-    const int rot = static_cast<int>(std::fmod(std::abs(m_rotation), 360.0));
+    const int rot
+        = static_cast<int>(std::fmod(std::abs(m_model->rotation()), 360.0));
     if (rot == 90 || rot == 270)
         std::swap(w, h);
 
@@ -574,15 +576,6 @@ DocumentView::handleTextSelection(const QPointF &start,
     const std::vector<QPolygonF> quads
         = m_model->computeTextSelectionQuad(pageIndex, pageStart, pageEnd);
 
-    // 3. Batch all polygons into ONE path
-    QPainterPath path;
-    for (const QPolygonF &poly : quads)
-    {
-        // We map to scene here, or better yet, make pageItem the parent
-        // of m_selection_path_item once to avoid mapping every frame.
-        path.addPolygon(pageItem->mapToScene(poly));
-    }
-
     updateSelectionPath(pageIndex, quads);
 }
 
@@ -622,18 +615,32 @@ DocumentView::updateSelectionPath(int pageno,
 void
 DocumentView::RotateClock() noexcept
 {
-    m_rotation += 90;
-    if (m_rotation >= 360)
-        m_rotation = 0;
+    m_model->rotateClock();
+    rotateHelper();
 }
 
 // Rotate page anticlockwise
 void
 DocumentView::RotateAnticlock() noexcept
 {
-    m_rotation -= 90;
-    if (m_rotation < 0)
-        m_rotation = 270;
+    m_model->rotateAnticlock();
+    rotateHelper();
+}
+
+void
+DocumentView::rotateHelper() noexcept
+{
+    cachePageStride();
+    const std::set<int> &trackedPages = getVisiblePages();
+    for (int pageno : trackedPages)
+    {
+        m_model->invalidatePageCache(pageno);
+        clearLinksForPage(pageno);
+        clearAnnotationsForPage(pageno);
+        clearSearchItemsForPage(pageno);
+    }
+
+    renderVisiblePages();
 }
 
 // Cycle to the next fit mode
@@ -1664,18 +1671,29 @@ DocumentView::cachePageStride() noexcept
 {
     const double spacingScene = m_spacing * m_current_zoom;
 
+    double w
+        = (m_model->pageWidthPts() / 72.0) * m_model->DPI() * m_current_zoom;
+    double h
+        = (m_model->pageHeightPts() / 72.0) * m_model->DPI() * m_current_zoom;
+
+    double rot = static_cast<double>(m_model->rotation());
+    // rot += m_model->pageRotationDeg(); // if applicable
+
+    rot = std::fmod(rot, 360.0);
+    if (rot < 0)
+        rot += 360.0;
+
+    const double t = deg2rad(rot);
+    const double c = std::abs(std::cos(t));
+    const double s = std::abs(std::sin(t));
+
+    const double bboxW = w * c + h * s;
+    const double bboxH = w * s + h * c;
+
     if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
-    {
-        const double pageWidthScene = (m_model->pageWidthPts() / 72.0)
-                                      * m_model->DPI() * m_current_zoom;
-        m_page_stride = pageWidthScene + spacingScene;
-    }
+        m_page_stride = bboxW + spacingScene;
     else
-    {
-        const double pageHeightScene = (m_model->pageHeightPts() / 72.0)
-                                       * m_model->DPI() * m_current_zoom;
-        m_page_stride = pageHeightScene + spacingScene;
-    }
+        m_page_stride = bboxH + spacingScene;
 
     m_preload_margin = m_page_stride;
     if (m_config.behavior.cache_pages > 0)
