@@ -1746,9 +1746,8 @@ dodo::closeEvent(QCloseEvent *e)
             = qobject_cast<DocumentView *>(m_tab_widget->widget(i));
         if (doc)
         {
-            Model *model = doc->model();
             // Unsaved Changes
-            if (model->hasUnsavedChanges())
+            if (doc->isModified())
             {
                 int ret = QMessageBox::warning(
                     this, "Unsaved Changes",
@@ -1766,13 +1765,7 @@ dodo::closeEvent(QCloseEvent *e)
                 }
                 else if (ret == QMessageBox::Save)
                 {
-                    if (!model->SaveChanges())
-                    {
-                        QMessageBox::critical(this, "Save Failed",
-                                              "Could not save the file.");
-                        e->ignore();
-                        return;
-                    }
+                    doc->SaveFile();
                 }
             }
         }

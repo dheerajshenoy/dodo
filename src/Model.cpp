@@ -231,16 +231,15 @@ Model::buildPageCache(int pageno) noexcept
     pdf_page *pdfPage = pdf_page_from_fz_page(ctx, page);
     if (pdfPage)
     {
-        int index = 0;
         float color[3];
 
         for (pdf_annot *annot = pdf_first_annot(ctx, pdfPage); annot;
-             annot            = pdf_next_annot(ctx, annot), ++index)
+             annot            = pdf_next_annot(ctx, annot))
         {
             CachedAnnotation ca;
             ca.rect    = pdf_bound_annot(ctx, annot);
             ca.type    = pdf_annot_type(ctx, annot);
-            ca.index   = index;
+            ca.index   = pdf_to_num(ctx, pdf_annot_obj(ctx, annot));
             ca.opacity = pdf_annot_opacity(ctx, annot);
 
             if (fz_is_infinite_rect(ca.rect) || fz_is_empty_rect(ca.rect))
@@ -1015,7 +1014,6 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
                 result.links.push_back(item);
         }
 
-        int index = 0;
         for (const auto &annot : annotations)
         {
             Annotation *annot_item = nullptr;
@@ -1032,8 +1030,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
                     const float scale = m_inv_dpr;
                     QRectF qtRect(r.x0 * scale, r.y0 * scale,
                                   (r.x1 - r.x0) * scale, (r.y1 - r.y0) * scale);
-                    annot_item
-                        = new HighlightAnnotation(qtRect, index, annot.color);
+                    annot_item = new HighlightAnnotation(qtRect, annot.index,
+                                                         annot.color);
                 }
                 break;
 
@@ -1043,7 +1041,6 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
             if (annot_item)
                 result.annotations.push_back(annot_item);
-            ++index;
         }
     }
     fz_always(ctx)
@@ -1110,15 +1107,15 @@ Model::highlightTextSelection(int pageno, const QPointF &start,
 
     // // Create and push the command onto the undo stack for undo/redo
     // support
-    m_undo_stack->push(new TextHighlightAnnotationCommand(
-        this, pageno, std::move(quads), m_highlight_color));
+    m_undo_stack->push(
+        new TextHighlightAnnotationCommand(this, pageno, std::move(quads)));
 }
 
-std::vector<int>
-Model::addHighlightAnnotation(int pageno, const std::vector<fz_quad> &quads,
-                              const float color[4]) noexcept
+int
+Model::addHighlightAnnotation(const int pageno,
+                              const std::vector<fz_quad> &quads) noexcept
 {
-    std::vector<int> objNums;
+    int objNum{-1};
 
     fz_try(m_ctx)
     {
@@ -1132,19 +1129,21 @@ Model::addHighlightAnnotation(int pageno, const std::vector<fz_quad> &quads,
         // This looks better visually for multi-line selections
         pdf_annot *annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_HIGHLIGHT);
         if (!annot)
-            return objNums;
+            return objNum;
 
         if (quads.empty())
-            return objNums;
+            return objNum;
+
         pdf_set_annot_quad_points(m_ctx, annot, quads.size(), &quads[0]);
-        pdf_set_annot_color(m_ctx, annot, 3, color);
-        pdf_set_annot_opacity(m_ctx, annot, color[3]);
+        pdf_set_annot_color(m_ctx, annot, 3, m_highlight_color);
+        pdf_set_annot_opacity(m_ctx, annot, m_highlight_color[3]);
         pdf_update_annot(m_ctx, annot);
         pdf_update_page(m_ctx, page);
 
         // Store the object number for later undo
         pdf_obj *obj = pdf_annot_obj(m_ctx, annot);
-        objNums.push_back(pdf_to_num(m_ctx, obj));
+        if (obj)
+            objNum = pdf_to_num(m_ctx, obj);
 
         pdf_drop_annot(m_ctx, annot);
         pdf_drop_page(m_ctx, page);
@@ -1167,45 +1166,72 @@ Model::addHighlightAnnotation(int pageno, const std::vector<fz_quad> &quads,
         qWarning() << "Redo failed:" << fz_caught_message(m_ctx);
     }
 
-    return objNums;
+#ifndef NDEBUG
+    qDebug() << "Adding highlight annotation on page" << pageno
+             << " Quad count:" << quads.size() << " ObjNum:" << objNum;
+#endif
+    return objNum;
 }
 
 void
-Model::removeHighlightAnnotation(int pageno,
-                                 const std::vector<int> &objNums) noexcept
+Model::removeAnnotations(int pageno, const std::vector<int> &objNums) noexcept
 {
+    if (objNums.empty())
+        return;
+
+    // Build fast lookup set
+    std::unordered_set<int> to_delete;
+    to_delete.reserve(objNums.size());
+    for (int n : objNums)
+        to_delete.insert(n);
+
     fz_try(m_ctx)
     {
-        // Load the specific page for this annotation
         pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-        // Delete all annotations that were created by this command
-        // We need to delete them one at a time, re-finding each by objNum
-        // since the list changes after each deletion
-        for (int objNum : objNums)
+        bool changed = false;
+
+        // Safe iteration pattern: grab next before deleting current
+        for (pdf_annot *a = pdf_first_annot(m_ctx, page); a;)
         {
-            pdf_annot *annot = pdf_first_annot(m_ctx, page);
-            while (annot)
+            pdf_annot *next = pdf_next_annot(m_ctx, a);
+
+            pdf_obj *obj  = pdf_annot_obj(m_ctx, a);
+            const int num = obj ? pdf_to_num(m_ctx, obj) : 0;
+
+            if (num != 0 && to_delete.find(num) != to_delete.end())
             {
-                pdf_obj *obj = pdf_annot_obj(m_ctx, annot);
-                if (pdf_to_num(m_ctx, obj) == objNum)
-                {
-                    pdf_delete_annot(m_ctx, page, annot);
-                    pdf_update_page(m_ctx, page);
-                    break;
-                }
-                annot = pdf_next_annot(m_ctx, annot);
+                pdf_delete_annot(m_ctx, page, a);
+                changed = true;
             }
+
+            a = next;
         }
 
-        // Drop the page we loaded (not the Model's internal page)
-        fz_drop_page(m_ctx, (fz_page *)page);
+        if (changed)
+        {
+#ifndef NDEBUG
+            qDebug() << "Removed annotations on page" << pageno
+                     << " Count:" << objNums.size();
+#endif
+            // Update once
+            pdf_update_page(m_ctx, page);
+
+            invalidatePageCache(pageno);
+            emit reloadRequested(pageno);
+            // Optional (depends on your saving flow):
+            // pdf_document *doc = m_pdf_doc;
+            // pdf_write_options opts = ...;
+            // pdf_save_document(m_ctx, doc, path, &opts);
+        }
+
+        pdf_drop_page(m_ctx, page); // prefer this if available in your MuPDF
     }
     fz_catch(m_ctx)
     {
-        qWarning() << "Undo failed:" << fz_caught_message(m_ctx);
+        qWarning() << "removeAnnotations failed:" << fz_caught_message(m_ctx);
     }
 }
 

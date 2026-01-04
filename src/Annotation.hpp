@@ -25,9 +25,9 @@ public:
                        const QStyleOptionGraphicsItem *option, QWidget *widget);
 
 signals:
-    void annotDeleteRequested(int index);
-    void annotColorChangeRequested(int index);
-    void annotSelectRequested(int index);
+    void annotDeleteRequested();
+    void annotColorChangeRequested();
+    void annotSelectRequested();
 
 protected:
     int m_index{-1};

@@ -58,10 +58,10 @@ protected:
         QAction *deleteAction      = new QAction("Delete");
         QAction *changeColorAction = new QAction("Change Color");
 
-        connect(deleteAction, &QAction::triggered, this,
-                [this]() { emit annotDeleteRequested(m_index); });
+        connect(deleteAction, &QAction::triggered,
+                [this]() { emit annotDeleteRequested(); });
         connect(changeColorAction, &QAction::triggered,
-                [this]() { emit annotColorChangeRequested(m_index); });
+                [this]() { emit annotColorChangeRequested(); });
 
         menu.addAction(deleteAction);
         menu.addAction(changeColorAction);

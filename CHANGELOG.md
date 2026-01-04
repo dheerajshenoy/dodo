@@ -14,6 +14,8 @@
 - Add Link Keyboard hinting mode
 - Show loading spinner when loading huge documents
 - Add rotation support
+- Fix annotation deleting
+- Fix panel name modified status not updating properly
 
 ### Bug Fixes
 

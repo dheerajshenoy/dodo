@@ -1278,7 +1278,11 @@ DocumentView::FileProperties() noexcept
 void
 DocumentView::SaveFile() noexcept
 {
-    if (!m_model->SaveChanges())
+    if (m_model->SaveChanges())
+    {
+        setModified(false);
+    }
+    else
     {
         QMessageBox::critical(
             this, "Saving failed",
@@ -2296,28 +2300,30 @@ DocumentView::renderAnnotations(
         annot->setPos(
             pageItem->pos()); // Annotations are relative to page origin
         m_gscene->addItem(annot);
-        m_page_annotations_hash[pageno].push_back(
-            annot); // Store them so we can actually delete them
 
-        connect(annot, &Annotation::annotDeleteRequested, [&](int index)
+        connect(annot, &Annotation::annotDeleteRequested,
+                [this, annot, pageno]()
         {
-            m_model->removeHighlightAnnotation(pageno, {index});
+            m_model->removeAnnotations(pageno, {annot->index()});
             setModified(true);
         });
 
         connect(annot, &Annotation::annotColorChangeRequested,
-                [this, annot, pageno](int index)
+                [this, annot, pageno]()
         {
             auto color = QColorDialog::getColor(
                 annot->data(3).value<QColor>(), this, "Highlight Color",
                 QColorDialog::ColorDialogOption::ShowAlphaChannel);
             if (color.isValid())
             {
-                m_model->annotChangeColor(pageno, index, color);
+                m_model->annotChangeColor(pageno, annot->index(), color);
                 annot->setData(3, color);
                 setModified(true);
             }
         });
+
+        m_page_annotations_hash[pageno].push_back(
+            annot); // Store them so we can actually delete them
     }
 }
 
@@ -2329,32 +2335,40 @@ DocumentView::setModified(bool modified) noexcept
 
     m_is_modified = modified;
 
-    QString title     = m_config.ui.window.title_format;
-    QString panelName = m_model->filePath();
+    QString title = m_config.ui.window.title_format;
+    QString fileName;
+    if (m_config.ui.window.full_file_path_in_panel)
+        fileName = filePath();
+    else
+        fileName = this->fileName();
 
     if (modified)
     {
         if (!title.endsWith("*"))
             title.append("*");
-        if (!panelName.endsWith("*"))
-            panelName.append("*");
+        if (!fileName.endsWith("*"))
+            fileName.append("*");
     }
     else
     {
         if (title.endsWith("*"))
             title.chop(1);
-        if (panelName.endsWith("*"))
-            panelName.chop(1);
+        if (fileName.endsWith("*"))
+            fileName.chop(1);
     }
 
-    title = title.arg(fileName());
-    emit panelNameChanged(panelName);
+    title = title.arg(this->fileName());
+
+    emit panelNameChanged(fileName);
     this->setWindowTitle(title);
 }
 
 void
 DocumentView::reloadPage(int pageno) noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "DocumentView::reloadPage(): Reloading page:" << pageno;
+#endif
     removePageItem(pageno);
     requestPageRender(pageno);
 }

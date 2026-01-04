@@ -39,7 +39,7 @@ public:
 
         if (event->button() == Qt::LeftButton)
         {
-            emit annotSelectRequested(m_index);
+            emit annotSelectRequested();
         }
 
         event->accept();

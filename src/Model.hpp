@@ -370,11 +370,10 @@ private:
     bool m_invert_color{false};
 
     void buildPageCache(int pageno) noexcept;
-    std::vector<int> addHighlightAnnotation(int pageno,
-                                            const std::vector<fz_quad> &quads,
-                                            const float color[4]) noexcept;
-    void removeHighlightAnnotation(int pageno,
-                                   const std::vector<int> &objNums) noexcept;
+    int addHighlightAnnotation(const int pageno,
+                               const std::vector<fz_quad> &quads) noexcept;
+    void removeAnnotations(const int pageno,
+                           const std::vector<int> &objNums) noexcept;
     void buildTextCacheForPage(int pageno) noexcept;
 
     fz_context *m_ctx{nullptr};

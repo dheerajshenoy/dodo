@@ -187,6 +187,11 @@ public:
         return m_current_zoom;
     }
 
+    inline bool isModified() const noexcept
+    {
+        return m_is_modified;
+    }
+
     void FollowLink(const Model::LinkInfo &info) noexcept;
 
     void setInvertColor(bool invert) noexcept;
