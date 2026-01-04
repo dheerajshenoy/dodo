@@ -81,9 +81,9 @@ protected:
         Q_UNUSED(widget);
         Q_UNUSED(painter);
 
-        // painter->setPen(m_pen);
+        painter->setPen(m_pen);
         // painter->setBrush(m_brush);
-        // painter->drawRect(m_rect);
+        painter->drawRect(m_rect);
     }
 
 private:

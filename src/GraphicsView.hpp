@@ -19,6 +19,7 @@ public:
         AnnotRect,
         AnnotPopup,
         AnnotPen,
+        None,
         COUNT
     };
 
@@ -49,6 +50,16 @@ public:
     {
         return static_cast<Mode>((static_cast<int>(m_mode) + 1)
                                  % static_cast<int>(Mode::COUNT));
+    }
+
+    inline void setDefaultMode(Mode mode) noexcept
+    {
+        m_default_mode = mode;
+    }
+
+    inline Mode getDefaultMode() const noexcept
+    {
+        return m_default_mode;
     }
 
 signals:
@@ -89,6 +100,7 @@ private:
     bool m_dragging{false};
     bool m_ignore_next_release{false};
     Mode m_mode{Mode::TextSelection};
+    Mode m_default_mode{Mode::None};
 
     QRubberBand *m_rubberBand{nullptr};
     int m_drag_threshold{50};

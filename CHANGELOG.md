@@ -16,6 +16,7 @@
 - Add rotation support
 - Fix annotation deleting
 - Fix panel name modified status not updating properly
+- Fix annotation select at point and rectangle selection
 
 ### Bug Fixes
 

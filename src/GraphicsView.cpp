@@ -48,9 +48,7 @@ GraphicsView::setMode(Mode mode) noexcept
         case Mode::RegionSelection:
         case Mode::AnnotRect:
             if (m_rubberBand)
-            {
                 m_rubberBand->hide();
-            }
             break;
 
         case Mode::TextSelection:
@@ -97,7 +95,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
     }
 
     // Multi-click tracking (avoid QLineF sqrt)
-    if (event->button() == Qt::LeftButton)
+    if (m_mode == Mode::TextSelection && event->button() == Qt::LeftButton)
     {
         const bool timerOk = m_clickTimer.isValid()
                              && m_clickTimer.elapsed() < MULTI_CLICK_INTERVAL;

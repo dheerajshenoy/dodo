@@ -1982,9 +1982,6 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::totalPageCountChanged, m_panel,
             &Panel::setTotalPageCount);
 
-    connect(docwidget, &DocumentView::selectionModeChanged, m_panel,
-            &Panel::setMode);
-
     connect(docwidget, &DocumentView::highlightColorChanged, m_panel,
             &Panel::setHighlightColor);
 

@@ -329,7 +329,6 @@ DocumentView::initConnections() noexcept
     // m_current_zoom,
     //                                      m_rotation);
     // });
-
     connect(m_model, &Model::searchResultsReady, this,
             &DocumentView::handleSearchResults);
 
@@ -370,6 +369,19 @@ DocumentView::initConnections() noexcept
         connect(m_hq_render_timer, &QTimer::timeout, this,
                 &DocumentView::renderPage);
     }
+
+    connect(m_gview,
+            QOverload<const QRectF &>::of(&GraphicsView::annotSelectRequested),
+            this, [this](const QRectF &sceneRect)
+    { handleAnnotSelectRequested(sceneRect); });
+
+    connect(m_gview,
+            QOverload<const QPointF &>::of(&GraphicsView::annotSelectRequested),
+            this, [this](const QPointF &scenePos)
+    { handleAnnotSelectRequested(scenePos); });
+
+    connect(m_gview, &GraphicsView::annotSelectClearRequested, this,
+            &DocumentView::handleAnnotSelectClearRequested);
 
     connect(m_gview, &GraphicsView::textSelectionDeletionRequested, this,
             &DocumentView::ClearTextSelection);
@@ -1326,30 +1338,61 @@ DocumentView::ToggleAutoResize() noexcept
 void
 DocumentView::ToggleTextHighlight() noexcept
 {
+    const auto newMode = (m_gview->mode() == GraphicsView::Mode::TextHighlight)
+                             ? m_gview->getDefaultMode()
+                             : GraphicsView::Mode::TextHighlight;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
 }
 
 // Toggle region selection mode
 void
 DocumentView::ToggleRegionSelect() noexcept
 {
+    const auto newMode
+        = (m_gview->mode() == GraphicsView::Mode::RegionSelection)
+              ? m_gview->getDefaultMode()
+              : GraphicsView::Mode::RegionSelection;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
 }
 
 // Toggle annotation rectangle mode
 void
 DocumentView::ToggleAnnotRect() noexcept
 {
+    const auto newMode = (m_gview->mode() == GraphicsView::Mode::AnnotRect)
+                             ? m_gview->getDefaultMode()
+                             : GraphicsView::Mode::AnnotRect;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
 }
 
 // Toggle annotation selection mode
 void
 DocumentView::ToggleAnnotSelect() noexcept
 {
+    const auto newMode = (m_gview->mode() == GraphicsView::Mode::AnnotSelect)
+                             ? m_gview->getDefaultMode()
+                             : GraphicsView::Mode::AnnotSelect;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
 }
 
 // Toggle annotation popup mode
 void
 DocumentView::ToggleAnnotPopup() noexcept
 {
+    const auto newMode = (m_gview->mode() == GraphicsView::Mode::AnnotPopup)
+                             ? m_gview->getDefaultMode()
+                             : GraphicsView::Mode::AnnotPopup;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
 }
 
 // Highlight the current text selection
@@ -1866,11 +1909,10 @@ DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
 
         case GraphicsView::Mode::AnnotSelect:
         {
-            // if (!m_annot_selection_present)
+            // if (!m_gview->annotSelectionExists())
             //     return;
-            // addAction("Delete Annotations",
-            // &DocumentView::deleteKeyAction); addAction("Change color",
-            // &DocumentView::annotChangeColor);
+            addAction("Delete Annotations", []() { /* TODO */ });
+            addAction("Change color", []() { /* TODO */ });
         }
         break;
 
@@ -2592,4 +2634,112 @@ DocumentView::setInvertColor(bool invert) noexcept
     {
         renderVisiblePages();
     }
+}
+
+void
+DocumentView::handleAnnotSelectClearRequested() noexcept
+{
+    for (auto it = m_page_annotations_hash.begin();
+         it != m_page_annotations_hash.end(); ++it)
+    {
+        const auto &annotations = it.value();
+        for (auto *annot : annotations)
+        {
+            if (!annot)
+                continue;
+
+            annot->select(Qt::NoPen);
+        }
+    }
+}
+
+void
+DocumentView::handleAnnotSelectRequested(const QRectF &sceneRect) noexcept
+{
+    int pageno;
+    GraphicsPixmapItem *pageItem;
+    if (!pageAtScenePos(sceneRect.center(), pageno, pageItem))
+        return;
+
+    const QRectF pageLocalRect
+        = pageItem->mapFromScene(sceneRect).boundingRect();
+
+    const QRectF annotSearchRect = pageLocalRect;
+
+    const auto annotsInArea = annotationsInArea(pageno, annotSearchRect);
+    if (annotsInArea.empty())
+        return;
+
+    for (auto *annot : annotsInArea)
+        annot->select(Qt::black);
+}
+
+void
+DocumentView::handleAnnotSelectRequested(const QPointF &scenePos) noexcept
+{
+    int pageno;
+    GraphicsPixmapItem *pageItem;
+    if (!pageAtScenePos(scenePos, pageno, pageItem))
+        return;
+
+    const QPointF searchPos = pageItem->mapFromScene(scenePos);
+    const auto annotAtPoint = annotationAtPoint(pageno, searchPos);
+
+    if (!annotAtPoint)
+        return;
+
+    annotAtPoint->select(Qt::black);
+}
+
+std::vector<Annotation *>
+DocumentView::annotationsInArea(int pageno, const QRectF &area) noexcept
+{
+    std::vector<Annotation *> annotsInArea;
+    if (!m_page_annotations_hash.contains(pageno))
+        return annotsInArea;
+
+    const auto &annotations = m_page_annotations_hash[pageno];
+    for (auto *annot : annotations)
+    {
+        if (!annot)
+            continue;
+
+        if (area.intersects(annot->boundingRect()))
+        {
+            annotsInArea.push_back(annot);
+        }
+    }
+#ifndef NDEBUG
+    qDebug() << "DocumentView::annotationsInArea(): Found"
+             << annotsInArea.size() << "annotations in area:" << area
+             << "on page:" << pageno;
+#endif
+    return annotsInArea;
+}
+
+Annotation *
+DocumentView::annotationAtPoint(int pageno, const QPointF &point) noexcept
+{
+    Annotation *foundAnnot{nullptr};
+    if (!m_page_annotations_hash.contains(pageno))
+        return foundAnnot;
+
+    const auto &annotations = m_page_annotations_hash[pageno];
+    for (auto *annot : annotations)
+    {
+        if (!annot)
+            continue;
+
+        if (annot->boundingRect().contains(point))
+        {
+            foundAnnot = annot;
+            break;
+        }
+    }
+#ifndef NDEBUG
+    qDebug() << "DocumentView::annotationAtPoint(): Searching for annotation "
+             << "at point:" << point << "on page:" << pageno;
+#endif
+
+    return foundAnnot;
 }

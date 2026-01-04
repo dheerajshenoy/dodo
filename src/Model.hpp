@@ -263,7 +263,6 @@ public:
     bool SaveAs(const QString &newFilePath) noexcept;
     QPointF toPixelSpace(int pageno, fz_point pt) const noexcept;
     fz_point toPDFSpace(int pageno, QPointF pt) const noexcept;
-
     void cachePageDimension() noexcept;
 
     std::vector<QPolygonF>

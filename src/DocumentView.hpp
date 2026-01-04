@@ -269,6 +269,10 @@ public slots:
     void handleClickSelection(int clickType, const QPointF &scenePos) noexcept;
     void handleSearchResults(
         const QMap<int, std::vector<Model::SearchHit>> &results) noexcept;
+    void handleAnnotSelectRequested(const QRectF &area) noexcept;
+    void handleAnnotSelectRequested(const QPointF &area) noexcept;
+    void handleAnnotSelectClearRequested() noexcept;
+
 #ifdef HAS_SYNCTEX
     void handleSynctexJumpRequested(const QPointF &scenePos) noexcept;
 #endif
@@ -334,6 +338,9 @@ private:
     void centerOnPage(int pageno) noexcept;
     QSizeF currentPageSceneSize() const noexcept;
     void addToHistory(const PageLocation &location) noexcept;
+    std::vector<Annotation *> annotationsInArea(int pageno,
+                                                const QRectF &area) noexcept;
+    Annotation *annotationAtPoint(int pageno, const QPointF &point) noexcept;
 
 #ifdef HAS_SYNCTEX
     void initSynctex() noexcept;
