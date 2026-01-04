@@ -167,6 +167,7 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
                 const QPointF scenePos = mapToScene(event->pos());
                 m_mousePressPos        = scenePos;
                 m_selection_start      = scenePos;
+                m_lastMovePos          = event->pos();
                 m_selecting            = true;
 
                 event->accept();
@@ -198,10 +199,10 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
         m_lastMovePos = event->pos();
 
         const QPointF scenePos = mapToScene(event->pos());
-        if (m_mode == Mode::TextSelection)
+        if (m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
             emit textSelectionRequested(m_selection_start, scenePos);
-        else
-            emit textHighlightRequested(m_selection_start, scenePos);
+        // else
+        //     emit textHighlightRequested(m_selection_start, scenePos);
 
         event->accept();
         return; // handled
@@ -271,7 +272,10 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
         else
         {
             if (isDrag)
+            {
+                emit textSelectionRequested(m_selection_start, scenePos);
                 emit textHighlightRequested(m_selection_start, scenePos);
+            }
         }
 
         m_dragging = false;

@@ -372,6 +372,9 @@ DocumentView::initConnections() noexcept
                 &DocumentView::renderPage);
     }
 
+    /* Graphics View Signals */
+    connect(m_gview, &GraphicsView::textHighlightRequested, this,
+            &DocumentView::handleTextHighlightRequested);
     connect(m_gview,
             QOverload<const QRectF &>::of(&GraphicsView::annotSelectRequested),
             this, [this](const QRectF &sceneRect)
@@ -565,6 +568,26 @@ DocumentView::synctexLocateInDocument(const char *texFileName,
     QProcess::startDetached(editor, args);
 }
 #endif
+
+void
+DocumentView::handleTextHighlightRequested() noexcept
+{
+    if (m_selection_start.isNull())
+        return;
+
+    // 1. Get the page index where the selection happened
+    int pageIndex = m_selection_path_item->data(0).toInt();
+
+    // 2. Find the corresponding PageItem in the scene
+    GraphicsPixmapItem *pageItem = m_page_items_hash.value(pageIndex, nullptr);
+    if (!pageItem)
+        return;
+
+    m_model->highlightTextSelection(pageIndex, m_selection_start,
+                                    m_selection_end);
+
+    setModified(true);
+}
 
 // Handle text selection from GraphicsView
 void
@@ -1468,6 +1491,8 @@ DocumentView::ClearTextSelection() noexcept
         m_selection_path_item->hide();
         m_selection_path_item->setData(0, -1);
     }
+    m_selection_start = QPointF();
+    m_selection_end   = QPointF();
     m_model->clear_fz_stext_page_cache(); // clear cached text pages
 }
 

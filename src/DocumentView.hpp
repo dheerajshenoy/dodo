@@ -266,6 +266,7 @@ signals:
     void currentPageChanged(int pageno);
 
 public slots:
+    void handleTextHighlightRequested() noexcept;
     void handleTextSelection(const QPointF &start, const QPointF &end) noexcept;
     void handleClickSelection(int clickType, const QPointF &scenePos) noexcept;
     void handleSearchResults(
