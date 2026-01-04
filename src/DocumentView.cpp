@@ -39,9 +39,11 @@
 DocumentView::DocumentView(const Config &config, QWidget *parent) noexcept
     : QWidget(parent), m_config(config)
 {
+
 #ifndef NDEBUG
     qDebug() << "DocumentView::DocumentView(): Initializing DocumentView";
 #endif
+
     m_model = new Model(this);
     connect(m_model, &Model::openFileFinished, this,
             &DocumentView::handleOpenFileFinished);
@@ -49,7 +51,6 @@ DocumentView::DocumentView(const Config &config, QWidget *parent) noexcept
             [this]() { emit openFileFailed(this); });
 
     setupUI();
-
 #ifdef HAS_SYNCTEX
     initSynctex();
 #endif
@@ -107,6 +108,7 @@ DocumentView::setupUI() noexcept
     m_gscene->addItem(m_jump_marker);
 
     m_gview->setAlignment(Qt::AlignCenter);
+    m_gview->setDefaultMode(m_config.behavior.initial_mode);
     m_gview->setMode(m_config.behavior.initial_mode);
     m_gview->setBackgroundBrush(QColor(m_config.ui.colors["background"]));
     m_model->setDPI(m_config.rendering.dpi);
@@ -472,7 +474,7 @@ DocumentView::handleClickSelection(int clickType,
 
     // Map to page-local coordinates
     const QPointF pagePos = pageItem->mapFromScene(scenePos);
-    fz_point pdfPos       = m_model->toPDFSpace(pageIndex, pagePos);
+    fz_point pdfPos{float(pagePos.x()), float(pagePos.y())};
 
     std::vector<QPolygonF> quads;
 
@@ -517,7 +519,7 @@ DocumentView::handleSynctexJumpRequested(const QPointF &scenePos) noexcept
 
         // Map to page-local coordinates
         const QPointF pagePos = pageItem->mapFromScene(scenePos);
-        fz_point pdfPos       = m_model->toPDFSpace(pageIndex, pagePos);
+        fz_point pdfPos{float(pagePos.x()), float(pagePos.y())};
 
         if (synctex_edit_query(m_synctex_scanner, pageIndex + 1, pdfPos.x,
                                pdfPos.y)
@@ -1341,6 +1343,17 @@ DocumentView::ToggleTextHighlight() noexcept
     const auto newMode = (m_gview->mode() == GraphicsView::Mode::TextHighlight)
                              ? m_gview->getDefaultMode()
                              : GraphicsView::Mode::TextHighlight;
+
+    m_gview->setMode(newMode);
+    emit selectionModeChanged(newMode);
+}
+
+void
+DocumentView::ToggleTextSelection() noexcept
+{
+    const auto newMode = (m_gview->mode() == GraphicsView::Mode::TextSelection)
+                             ? m_gview->getDefaultMode()
+                             : GraphicsView::Mode::TextSelection;
 
     m_gview->setMode(newMode);
     emit selectionModeChanged(newMode);
@@ -2225,7 +2238,6 @@ DocumentView::renderLinks(int pageno,
         return;
 
     clearLinksForPage(pageno);
-
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
 
     for (auto *link : links)
@@ -2327,20 +2339,21 @@ DocumentView::renderLinks(int pageno,
 
 void
 DocumentView::renderAnnotations(
-    int pageno, const std::vector<Annotation *> &annotations) noexcept
+    const int pageno, const std::vector<Annotation *> &annotations) noexcept
 {
     if (m_page_annotations_hash.contains(pageno))
         return;
 
     clearAnnotationsForPage(pageno);
-
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
+    if (!pageItem)
+        return;
+
     for (const auto &annot : annotations)
     {
         // annot_item->setOpacity(0.0);
         annot->setZValue(ZVALUE_ANNOTATION);
-        annot->setPos(
-            pageItem->pos()); // Annotations are relative to page origin
+        annot->setPos(pageItem->pos());
         m_gscene->addItem(annot);
 
         connect(annot, &Annotation::annotDeleteRequested,
@@ -2364,8 +2377,7 @@ DocumentView::renderAnnotations(
             }
         });
 
-        m_page_annotations_hash[pageno].push_back(
-            annot); // Store them so we can actually delete them
+        m_page_annotations_hash[pageno].push_back(annot);
     }
 }
 
@@ -2376,7 +2388,6 @@ DocumentView::setModified(bool modified) noexcept
         return;
 
     m_is_modified = modified;
-
     QString title = m_config.ui.window.title_format;
     QString fileName;
     if (m_config.ui.window.full_file_path_in_panel)
@@ -2561,7 +2572,6 @@ DocumentView::renderSearchHitsInScrollbar() noexcept
         }
 
         default:
-            // No scrollbars in other modes
             break;
     }
 }
@@ -2589,9 +2599,7 @@ DocumentView::ReselectLastTextSelection() noexcept
 
     // Re-apply the selection path item
     if (m_selection_path_item)
-    {
         m_selection_path_item->show();
-    }
 }
 
 void
@@ -2627,18 +2635,20 @@ DocumentView::setInvertColor(bool invert) noexcept
 {
     m_model->setInvertColor(invert);
     if (m_layout_mode == LayoutMode::SINGLE)
-    {
         renderPage();
-    }
     else
-    {
         renderVisiblePages();
-    }
 }
 
 void
 DocumentView::handleAnnotSelectClearRequested() noexcept
 {
+
+#ifndef NDEBUG
+    qDebug() << "DocumentView::handleAnnotSelectClearRequested(): Clearing "
+             << "all annotation selections.";
+#endif
+
     for (auto it = m_page_annotations_hash.begin();
          it != m_page_annotations_hash.end(); ++it)
     {
@@ -2648,7 +2658,8 @@ DocumentView::handleAnnotSelectClearRequested() noexcept
             if (!annot)
                 continue;
 
-            annot->select(Qt::NoPen);
+            annot->restoreBrushPen();
+            annot->setSelected(false);
         }
     }
 }

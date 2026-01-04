@@ -260,7 +260,7 @@ dodo::initMenubar() noexcept
     modeActionGroup->addAction(m_actionRegionSelect);
 
     m_actionTextSelect = m_modeMenu->addAction(QString("Text Selection"), this,
-                                               &dodo::TextSelectionMode);
+                                               &dodo::ToggleTextSelection);
     m_actionTextSelect->setCheckable(true);
     modeActionGroup->addAction(m_actionTextSelect);
 
@@ -681,10 +681,11 @@ dodo::initKeybinds() noexcept
     addShortcut("b", [this]() { GotoPage(); });
     addShortcut("f", [this]() { VisitLinkKB(); });
     addShortcut("Ctrl+s", [this]() { SaveFile(); });
-    addShortcut("1", [this]() { ToggleTextHighlight(); });
-    addShortcut("2", [this]() { ToggleAnnotRect(); });
-    addShortcut("3", [this]() { ToggleAnnotSelect(); });
-    addShortcut("4", [this]() { ToggleAnnotPopup(); });
+    addShortcut("1", [this]() { ToggleTextSelection(); });
+    addShortcut("2", [this]() { ToggleTextHighlight(); });
+    addShortcut("3", [this]() { ToggleAnnotRect(); });
+    addShortcut("4", [this]() { ToggleAnnotSelect(); });
+    addShortcut("5", [this]() { ToggleAnnotPopup(); });
     addShortcut("/", [this]() { ToggleSearchBar(); });
     addShortcut("t", [this]() { ShowOutline(); });
     addShortcut("n", [this]() { NextHit(); });
@@ -1227,12 +1228,6 @@ dodo::FitNone() noexcept
 }
 
 void
-dodo::TextSelectionMode() noexcept
-{
-    // TODO: Implement `TextSelectionMode`
-}
-
-void
 dodo::RegionSelectionMode() noexcept
 {
     // TODO: Implement `RegionSelectionMode`
@@ -1502,6 +1497,14 @@ dodo::ToggleTextHighlight() noexcept
 {
     if (m_doc)
         m_doc->ToggleTextHighlight();
+}
+
+// Toggle text selection mode
+void
+dodo::ToggleTextSelection() noexcept
+{
+    if (m_doc)
+        m_doc->ToggleTextSelection();
 }
 
 // Toggle rectangle annotation mode
@@ -2454,6 +2457,7 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("region_select_mode", ToggleRegionSelect),
         ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
         ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
+        ACTION_NO_ARGS("text_select_mode", ToggleTextSelection),
         ACTION_NO_ARGS("text_highlight_mode", ToggleTextHighlight),
         ACTION_NO_ARGS("annot_rect_mode", ToggleAnnotRect),
         ACTION_NO_ARGS("fullscreen", ToggleFullscreen),

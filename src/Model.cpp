@@ -10,6 +10,7 @@
 
 #include <QtConcurrent/QtConcurrent>
 #include <algorithm>
+#include <array>
 #include <pthread.h>
 #include <qbytearrayview.h>
 #include <qstyle.h>
@@ -1250,196 +1251,295 @@ Model::invalidatePageCache(int pageno) noexcept
 std::vector<QPolygonF>
 Model::selectWordAt(int pageno, fz_point pt) noexcept
 {
-    std::vector<QPolygonF> quads;
+    std::vector<QPolygonF> out;
 
-    constexpr int MAX_HITS = 1000;
-    fz_quad hits[MAX_HITS];
-    int count;
+    constexpr int MAX_HITS = 1024;
+    thread_local std::array<fz_quad, MAX_HITS> hits;
 
-    // Find the word at this location
-    fz_point wordStart = pt;
-    fz_point wordEnd   = pt;
-
-    fz_stext_page *text_page;
     const float scale = m_zoom * (m_dpi / 72.0f);
-    fz_matrix ctm     = fz_scale(1 / scale, 1 / scale);
-    pt                = fz_transform_point(pt, ctm);
+
+    fz_rect page_bounds{};
+    fz_page *page_for_bounds = nullptr;
 
     fz_try(m_ctx)
     {
-        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        page_for_bounds = fz_load_page(m_ctx, m_doc, pageno);
+        page_bounds     = fz_bound_page(m_ctx, page_for_bounds);
+    }
+    fz_always(m_ctx)
+    {
+        if (page_for_bounds)
+            fz_drop_page(m_ctx, page_for_bounds);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Selection failed (bounds):" << fz_caught_message(m_ctx);
+        return out;
+    }
+
+    fz_matrix page_to_dev    = fz_scale(scale, scale);
+    page_to_dev              = fz_pre_rotate(page_to_dev, m_rotation);
+    const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
+    page_to_dev
+        = fz_concat(page_to_dev, fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+    const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
+
+    fz_point a = pt;
+    fz_point b = pt;
+    a          = fz_transform_point(a, dev_to_page);
+    b          = fz_transform_point(b, dev_to_page);
+
+    fz_stext_page *text_page{nullptr};
+    fz_page *page{nullptr};
+    int count = 0;
+
+    fz_try(m_ctx)
+    {
         if (m_stext_page_cache.contains(pageno))
         {
             text_page = m_stext_page_cache[pageno];
         }
         else
         {
+            page      = fz_load_page(m_ctx, m_doc, pageno);
             text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
             m_stext_page_cache[pageno] = text_page;
         }
-        // text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
 
-        fz_snap_selection(m_ctx, text_page, &wordStart, &wordEnd,
-                          FZ_SELECT_WORDS);
-        count = fz_highlight_selection(m_ctx, text_page, wordStart, wordEnd,
-                                       hits, MAX_HITS);
-
-        m_selection_start = fz_transform_point(wordStart, ctm);
-        m_selection_end   = fz_transform_point(wordEnd, ctm);
+        fz_snap_selection(m_ctx, text_page, &a, &b, FZ_SELECT_WORDS);
+        count = fz_highlight_selection(m_ctx, text_page, a, b, hits.data(),
+                                       MAX_HITS);
+        m_selection_start = a;
+        m_selection_end   = b;
     }
     fz_always(m_ctx)
     {
-        // fz_drop_stext_page(m_ctx, text_page);
+        if (page)
+            fz_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {
         qWarning() << "Selection failed";
-        return quads;
+        return out;
     }
+
+    out.reserve(count);
+    auto toDev = [&](const fz_point &p0) -> QPointF
+    {
+        const fz_point p = fz_transform_point(p0, page_to_dev);
+        return QPointF(p.x, p.y);
+    };
 
     for (int i = 0; i < count; ++i)
     {
         const fz_quad &q = hits[i];
         QPolygonF poly;
-        poly << QPointF(q.ll.x * scale, q.ll.y * scale)
-             << QPointF(q.lr.x * scale, q.lr.y * scale)
-             << QPointF(q.ur.x * scale, q.ur.y * scale)
-             << QPointF(q.ul.x * scale, q.ul.y * scale);
-        quads.push_back(poly);
+        poly.reserve(4);
+        poly << toDev(q.ll) << toDev(q.lr) << toDev(q.ur) << toDev(q.ul);
+        out.push_back(std::move(poly));
     }
 
-    return quads;
+    return out;
 }
 
 std::vector<QPolygonF>
 Model::selectLineAt(int pageno, fz_point pt) noexcept
 {
-    std::vector<QPolygonF> quads;
+    std::vector<QPolygonF> out;
 
-    constexpr int MAX_HITS = 1000;
-    fz_quad hits[MAX_HITS];
-    int count;
+    constexpr int MAX_HITS = 1024;
+    thread_local std::array<fz_quad, MAX_HITS> hits;
 
-    // Find the word at this location
-    fz_point lineStart = pt;
-    fz_point lineEnd   = pt;
-
-    fz_stext_page *text_page;
     const float scale = m_zoom * (m_dpi / 72.0f);
-    fz_matrix ctm     = fz_scale(1 / scale, 1 / scale);
-    pt                = fz_transform_point(pt, ctm);
+
+    fz_rect page_bounds{};
+    fz_page *page_for_bounds = nullptr;
 
     fz_try(m_ctx)
     {
-        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        page_for_bounds = fz_load_page(m_ctx, m_doc, pageno);
+        page_bounds     = fz_bound_page(m_ctx, page_for_bounds);
+    }
+    fz_always(m_ctx)
+    {
+        if (page_for_bounds)
+            fz_drop_page(m_ctx, page_for_bounds);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Selection failed (bounds):" << fz_caught_message(m_ctx);
+        return out;
+    }
+
+    fz_matrix page_to_dev    = fz_scale(scale, scale);
+    page_to_dev              = fz_pre_rotate(page_to_dev, m_rotation);
+    const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
+    page_to_dev
+        = fz_concat(page_to_dev, fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+    const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
+
+    fz_point a = pt;
+    fz_point b = pt;
+    a          = fz_transform_point(a, dev_to_page);
+    b          = fz_transform_point(b, dev_to_page);
+
+    fz_stext_page *text_page{nullptr};
+    fz_page *page{nullptr};
+    int count = 0;
+
+    fz_try(m_ctx)
+    {
         if (m_stext_page_cache.contains(pageno))
         {
             text_page = m_stext_page_cache[pageno];
         }
         else
         {
+            page      = fz_load_page(m_ctx, m_doc, pageno);
             text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
             m_stext_page_cache[pageno] = text_page;
         }
-        // text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
 
-        fz_snap_selection(m_ctx, text_page, &lineStart, &lineEnd,
-                          FZ_SELECT_LINES);
-        count = fz_highlight_selection(m_ctx, text_page, lineStart, lineEnd,
-                                       hits, MAX_HITS);
-        m_selection_start = fz_transform_point(lineStart, ctm);
-        m_selection_end   = fz_transform_point(lineEnd, ctm);
+        fz_snap_selection(m_ctx, text_page, &a, &b, FZ_SELECT_LINES);
+        count = fz_highlight_selection(m_ctx, text_page, a, b, hits.data(),
+                                       MAX_HITS);
+        m_selection_start = a;
+        m_selection_end   = b;
     }
     fz_always(m_ctx)
     {
-        // fz_drop_stext_page(m_ctx, text_page);
+        if (page)
+            fz_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {
         qWarning() << "Selection failed";
-        return quads;
+        return out;
     }
+
+    out.reserve(count);
+    auto toDev = [&](const fz_point &p0) -> QPointF
+    {
+        const fz_point p = fz_transform_point(p0, page_to_dev);
+        return QPointF(p.x, p.y);
+    };
 
     for (int i = 0; i < count; ++i)
     {
         const fz_quad &q = hits[i];
         QPolygonF poly;
-        poly << QPointF(q.ll.x * scale, q.ll.y * scale)
-             << QPointF(q.lr.x * scale, q.lr.y * scale)
-             << QPointF(q.ur.x * scale, q.ur.y * scale)
-             << QPointF(q.ul.x * scale, q.ul.y * scale);
-        quads.push_back(poly);
+        poly.reserve(4);
+        poly << toDev(q.ll) << toDev(q.lr) << toDev(q.ur) << toDev(q.ul);
+        out.push_back(std::move(poly));
     }
 
-    return quads;
+    return out;
 }
 
 std::vector<QPolygonF>
 Model::selectParagraphAt(int pageno, fz_point pt) noexcept
 {
-    std::vector<QPolygonF> quads;
+    std::vector<QPolygonF> out;
+
+    constexpr int MAX_HITS = 1024;
+    thread_local std::array<fz_quad, MAX_HITS> hits;
+
     const float scale = m_zoom * (m_dpi / 72.0f);
-    fz_matrix ctm     = fz_scale(1 / scale, 1 / scale);
-    pt                = fz_transform_point(pt, ctm);
+
+    fz_rect page_bounds{};
+    fz_page *page_for_bounds = nullptr;
 
     fz_try(m_ctx)
     {
-        fz_stext_page *text_page;
-        fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+        page_for_bounds = fz_load_page(m_ctx, m_doc, pageno);
+        page_bounds     = fz_bound_page(m_ctx, page_for_bounds);
+    }
+    fz_always(m_ctx)
+    {
+        if (page_for_bounds)
+            fz_drop_page(m_ctx, page_for_bounds);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Selection failed (bounds):" << fz_caught_message(m_ctx);
+        return out;
+    }
+
+    fz_matrix page_to_dev    = fz_scale(scale, scale);
+    page_to_dev              = fz_pre_rotate(page_to_dev, m_rotation);
+    const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
+    page_to_dev
+        = fz_concat(page_to_dev, fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+    const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
+
+    fz_point page_pt = fz_transform_point(pt, dev_to_page);
+
+    fz_stext_page *text_page{nullptr};
+    fz_page *page{nullptr};
+
+    fz_try(m_ctx)
+    {
         if (m_stext_page_cache.contains(pageno))
         {
             text_page = m_stext_page_cache[pageno];
         }
         else
         {
+            page      = fz_load_page(m_ctx, m_doc, pageno);
             text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
             m_stext_page_cache[pageno] = text_page;
         }
-        // Find the block (paragraph) containing this point
+
         for (fz_stext_block *block = text_page->first_block; block;
              block                 = block->next)
         {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
                 continue;
 
-            // Check if point is within this block's bounding box
-            if (pt.x >= block->bbox.x0 && pt.x <= block->bbox.x1
-                && pt.y >= block->bbox.y0 && pt.y <= block->bbox.y1)
+            if (page_pt.x >= block->bbox.x0 && page_pt.x <= block->bbox.x1
+                && page_pt.y >= block->bbox.y0 && page_pt.y <= block->bbox.y1)
             {
-                // Select entire block by using first and last character
-                // positions
                 fz_point blockStart = {block->bbox.x0, block->bbox.y0};
                 fz_point blockEnd   = {block->bbox.x1, block->bbox.y1};
 
-                constexpr int MAX_HITS = 1000;
-                fz_quad hits[MAX_HITS];
-                int count = fz_highlight_selection(m_ctx, text_page, blockStart,
-                                                   blockEnd, hits, MAX_HITS);
+                int count
+                    = fz_highlight_selection(m_ctx, text_page, blockStart,
+                                             blockEnd, hits.data(), MAX_HITS);
 
+                auto toDev = [&](const fz_point &p0) -> QPointF
+                {
+                    const fz_point p = fz_transform_point(p0, page_to_dev);
+                    return QPointF(p.x, p.y);
+                };
+
+                out.reserve(count);
                 for (int i = 0; i < count; ++i)
                 {
                     const fz_quad &q = hits[i];
                     QPolygonF poly;
-                    poly << QPointF(q.ll.x * scale, q.ll.y * scale)
-                         << QPointF(q.lr.x * scale, q.lr.y * scale)
-                         << QPointF(q.ur.x * scale, q.ur.y * scale)
-                         << QPointF(q.ul.x * scale, q.ul.y * scale);
-                    quads.push_back(poly);
+                    poly.reserve(4);
+                    poly << toDev(q.ll) << toDev(q.lr) << toDev(q.ur)
+                         << toDev(q.ul);
+                    out.push_back(std::move(poly));
                 }
 
-                // Store snapped selection bounds
-                m_selection_start = fz_transform_point(blockStart, ctm);
-                m_selection_end   = fz_transform_point(blockEnd, ctm);
+                m_selection_start = blockStart;
+                m_selection_end   = blockEnd;
                 break;
             }
         }
+    }
+    fz_always(m_ctx)
+    {
+        if (page)
+            fz_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {
         qWarning() << "Quadruple-click paragraph selection failed";
     }
 
-    return quads;
+    return out;
 }
 
 void

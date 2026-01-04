@@ -17,6 +17,8 @@
 - Fix annotation deleting
 - Fix panel name modified status not updating properly
 - Fix annotation select at point and rectangle selection
+- Fix highlight annotation rendering issues
+- Fix highlight annotation coordinate mismatch
 
 ### Bug Fixes
 

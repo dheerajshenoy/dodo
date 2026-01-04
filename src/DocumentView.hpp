@@ -237,6 +237,7 @@ public:
     void ToggleAnnotRect() noexcept;
     void ToggleAnnotSelect() noexcept;
     void ToggleAnnotPopup() noexcept;
+    void ToggleTextSelection() noexcept;
     void GoBackHistory() noexcept;
     void TextHighlightCurrentSelection() noexcept;
     void ClearKBHintsOverlay() noexcept;
@@ -310,7 +311,7 @@ private:
     void renderPageFromImage(int pageno, const QImage &image) noexcept;
     void renderLinks(int pageno,
                      const std::vector<BrowseLinkItem *> &links) noexcept;
-    void renderAnnotations(int pageno,
+    void renderAnnotations(const int pageno,
                            const std::vector<Annotation *> &annots) noexcept;
     void buildFlatSearchHitIndex() noexcept;
     void removeUnusedPageItems(const std::set<int> &visiblePages) noexcept;

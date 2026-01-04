@@ -113,6 +113,7 @@ private:
                   const std::function<void()> &callback = {}) noexcept;
     void PrevPage() noexcept;
     void FirstPage() noexcept;
+    void ToggleTextSelection() noexcept;
     void ToggleTextHighlight() noexcept;
     void ToggleRegionSelect() noexcept;
     void ToggleAnnotRect() noexcept;

@@ -36,6 +36,7 @@ public:
     void redo() override
     {
         m_objNum = m_model->addHighlightAnnotation(m_pageno, m_quads);
+        emit m_model->reloadRequested(m_pageno);
     }
 
 private:
