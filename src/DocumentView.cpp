@@ -840,7 +840,6 @@ DocumentView::GotoLocation(const PageLocation &targetLocation) noexcept
     }
 
     m_jump_marker->showAt(scenePos.x(), scenePos.y());
-    centerOnPage(m_pending_jump.pageno);
     m_pending_jump = {-1, 0, 0};
 }
 
@@ -2001,9 +2000,12 @@ DocumentView::updateCurrentHitHighlight() noexcept
     if (m_current_search_hit_item->path() != path)
     {
         m_current_search_hit_item->setPath(path);
-    }
 
-    // m_current_search_hit_item->setPath(path);
+        // Center on the current hit in the view
+        const QRectF hitBounds  = path.boundingRect();
+        const QPointF hitCenter = hitBounds.center();
+        m_gview->centerOn(hitCenter);
+    }
 }
 
 void
