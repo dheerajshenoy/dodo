@@ -333,6 +333,7 @@ private:
     void resetConnections() noexcept;
     const std::set<int> &getVisiblePages() noexcept;
     void invalidateVisiblePagesCache() noexcept;
+    void handleDeferredResize() noexcept;
     void removePageItem(int pageno) noexcept;
     void createAndAddPlaceholderPageItem(int pageno) noexcept;
     void renderSearchHitsForPage(int pageno) noexcept;
@@ -372,6 +373,7 @@ private:
     float m_old_y{0.0f};
     JumpMarker *m_jump_marker{nullptr};
     QTimer *m_scroll_page_update_timer{nullptr};
+    QTimer *m_resize_timer{nullptr};
     PageLocation m_pending_jump{-1, 0, 0};
     int m_search_index{-1};
     QMap<int, std::vector<Model::SearchHit>> m_search_hits;

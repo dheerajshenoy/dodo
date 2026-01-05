@@ -103,6 +103,12 @@ DocumentView::setupUI() noexcept
     m_scroll_page_update_timer->setInterval(100);
     m_scroll_page_update_timer->setSingleShot(true);
 
+    m_resize_timer = new QTimer(this);
+    m_resize_timer->setInterval(150);
+    m_resize_timer->setSingleShot(true);
+    connect(m_resize_timer, &QTimer::timeout, this,
+            &DocumentView::handleDeferredResize);
+
     m_jump_marker = new JumpMarker(m_config.ui.colors["jump_marker"]);
     m_jump_marker->setZValue(ZVALUE_JUMP_MARKER);
     m_gscene->addItem(m_jump_marker);
@@ -1841,6 +1847,15 @@ void
 DocumentView::resizeEvent(QResizeEvent *event)
 {
     invalidateVisiblePagesCache();
+    if (m_resize_timer)
+        m_resize_timer->start();
+
+    QWidget::resizeEvent(event);
+}
+
+void
+DocumentView::handleDeferredResize() noexcept
+{
     clearDocumentItems();
     if (m_layout_mode == LayoutMode::SINGLE)
         renderPage();
@@ -1852,8 +1867,6 @@ DocumentView::resizeEvent(QResizeEvent *event)
         setFitMode(m_fit_mode);
         fitModeChanged(m_fit_mode);
     }
-
-    QWidget::resizeEvent(event);
 }
 
 void
