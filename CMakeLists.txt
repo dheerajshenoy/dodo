@@ -47,6 +47,8 @@ add_executable(${PROJECT_NAME}
     src/RecentFilesModel.cpp
     src/SearchBar.cpp
     src/SaveSessionDialog.cpp
+    src/FloatingOverlayWidget.cpp
+    src/HighlightSearchWidget.cpp
     src/utils.cpp
     src/WaitingSpinnerWidget.cpp
 
@@ -56,6 +58,8 @@ add_executable(${PROJECT_NAME}
     src/OutlineModel.hpp
     src/ElidableLabel.hpp
     src/HighlightAnnotation.hpp
+    src/FloatingOverlayWidget.hpp
+    src/HighlightSearchWidget.hpp
     src/EditLastPagesWidget.hpp
     src/RecentFilesStore.hpp
     src/RecentFilesModel.hpp

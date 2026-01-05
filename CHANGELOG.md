@@ -3,6 +3,12 @@
 ## 0.5.3
 
 - Change cursor when selecting or highlighting text
+- Searchable text highlights
+- Outline widget and Search Highlight widget types - "dialog", "side_panel", "overlay" (configurable in settings)
+    - UI
+        `[ui.outline]` - `type=<value>` where value = `dialog`, `side_panel`, `overlay`
+        `[ui.search_highlight]` - `type=<value>` where value = `dialog`, `side_panel`, `overlay`
+
 
 ### Bug Fixes
 

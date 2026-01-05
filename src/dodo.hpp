@@ -2,6 +2,8 @@
 
 #include "Config.hpp"
 #include "DocumentView.hpp"
+#include "FloatingOverlayWidget.hpp"
+#include "HighlightSearchWidget.hpp"
 #include "MessageBar.hpp"
 #include "OutlineWidget.hpp"
 #include "Panel.hpp"
@@ -84,6 +86,7 @@ private:
     void TextHighlightCurrentSelection() noexcept;
     void ShowKeybindings() noexcept;
     void ToggleSearchBar() noexcept;
+    void ShowHighlightSearch() noexcept;
     void ToggleFocusMode() noexcept;
     void ToggleMenubar() noexcept;
     void ToggleTabBar() noexcept;
@@ -137,6 +140,7 @@ private:
     void ZoomReset() noexcept;
     void GotoPage() noexcept;
     void GotoLocation(int pageno, float x, float y) noexcept;
+    void GotoLocation(const DocumentView::PageLocation &loc) noexcept;
     void gotoPage(int pageno) noexcept;
     void LoadSession(QString name = QString()) noexcept;
     void SaveSession() noexcept;
@@ -173,6 +177,7 @@ private:
     void setSessionName(const QString &name) noexcept;
     void openSessionFromArray(const QJsonArray &sessionArray) noexcept;
     void modeColorChangeRequested(const GraphicsView::Mode mode) noexcept;
+    void handleEscapeKeyPressed() noexcept;
 
     QDir m_config_dir, m_session_dir;
     Panel *m_panel{nullptr};
@@ -228,6 +233,10 @@ private:
     QAction *m_actionSessionLoad{nullptr};
     QAction *m_actionSessionSave{nullptr};
     QAction *m_actionSessionSaveAs{nullptr};
+    QAction *m_actionHighlightSearch{nullptr};
+    QTabWidget *m_side_panel_tabs{nullptr};
+    FloatingOverlayWidget *m_outline_overlay{nullptr};
+    FloatingOverlayWidget *m_highlight_overlay{nullptr};
 
     OutlineWidget *m_outline_widget{nullptr};
 
@@ -261,4 +270,5 @@ private:
     QMap<QString, DocumentView *> m_path_tab_map;
     MessageBar *m_message_bar;
     SearchBar *m_search_bar;
+    HighlightSearchWidget *m_highlight_search_widget{nullptr};
 };

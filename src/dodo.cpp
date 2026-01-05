@@ -4,6 +4,7 @@
 #include "DocumentView.hpp"
 #include "EditLastPagesWidget.hpp"
 #include "GraphicsView.hpp"
+#include "HighlightSearchWidget.hpp"
 #include "SaveSessionDialog.hpp"
 #include "SearchBar.hpp"
 #include "StartupWidget.hpp"
@@ -143,6 +144,9 @@ dodo::initMenubar() noexcept
     m_actionZoomOut = m_viewMenu->addAction(
         QString("Zoom Out\t%1").arg(m_config.shortcuts["zoom_out"]), this,
         &dodo::ZoomOut);
+
+    m_actionHighlightSearch = m_viewMenu->addAction("Search Highlights", this,
+                                                    &dodo::ShowHighlightSearch);
 
     m_viewMenu->addSeparator();
 
@@ -379,12 +383,18 @@ dodo::initDB() noexcept
 void
 dodo::initDefaults() noexcept
 {
-    m_config.ui.markers.jump_marker            = true;
-    m_config.ui.window.full_file_path_in_panel = false;
-    m_config.ui.zoom.level                     = 1.0f;
-    m_config.ui.outline.visible                = false;
-    m_config.ui.window.title_format            = QStringLiteral("%1 - dodo");
-    m_config.ui.link_hints.size                = 0.5f;
+    m_config.ui.markers.jump_marker             = true;
+    m_config.ui.window.full_file_path_in_panel  = false;
+    m_config.ui.zoom.level                      = 1.0f;
+    m_config.ui.outline.visible                 = false;
+    m_config.ui.window.title_format             = QStringLiteral("%1 - dodo");
+    m_config.ui.link_hints.size                 = 0.5f;
+    m_config.ui.highlight_search.visible        = false;
+    m_config.ui.highlight_search.as_side_panel  = false;
+    m_config.ui.highlight_search.type           = "dialog";
+    m_config.ui.highlight_search.panel_position = "right";
+    m_config.ui.highlight_search.panel_width    = 300;
+    m_config.ui.outline.type                    = "side_panel";
 
     m_config.ui.colors[QStringLiteral("search_index")]
         = QStringLiteral("#3daee944");
@@ -513,9 +523,31 @@ dodo::initConfig() noexcept
     m_config.ui.outline.visible = ui_outline["visible"].value_or(false);
     m_config.ui.outline.as_side_panel
         = ui_outline["as_side_panel"].value_or(true);
+    m_config.ui.outline.type = ui_outline["type"].value_or("");
+    if (m_config.ui.outline.type.isEmpty())
+        m_config.ui.outline.type
+            = m_config.ui.outline.as_side_panel ? "side_panel" : "dialog";
     m_config.ui.outline.panel_position
         = ui_outline["panel_position"].value_or("left");
     m_config.ui.outline.panel_width = ui_outline["panel_width"].value_or(300);
+
+    auto ui_highlight_search = ui["highlight_search"];
+    m_config.ui.highlight_search.visible
+        = ui_highlight_search["visible"].value_or(false);
+    m_config.ui.highlight_search.as_side_panel
+        = ui_highlight_search["as_side_panel"].value_or(false);
+    m_config.ui.highlight_search.type
+        = ui_highlight_search["type"].value_or("");
+    if (m_config.ui.highlight_search.type.isEmpty())
+    {
+        m_config.ui.highlight_search.type
+            = m_config.ui.highlight_search.as_side_panel ? "side_panel"
+                                                         : "dialog";
+    }
+    m_config.ui.highlight_search.panel_position
+        = ui_highlight_search["panel_position"].value_or("right");
+    m_config.ui.highlight_search.panel_width
+        = ui_highlight_search["panel_width"].value_or(300);
 
     auto colors = toml["colors"];
 
@@ -801,7 +833,9 @@ dodo::initGui() noexcept
     m_message_bar = new MessageBar(this);
     m_message_bar->setVisible(false);
 
-    m_outline_widget = new OutlineWidget(this);
+    m_outline_widget          = new OutlineWidget(this);
+    m_highlight_search_widget = new HighlightSearchWidget(this);
+    m_highlight_search_widget->setVisible(false);
 
     widget->setLayout(m_layout);
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -811,28 +845,53 @@ dodo::initGui() noexcept
     m_menuBar = this->menuBar(); // initialize here so that the config
                                  // visibility works
 
-    if (m_config.ui.outline.as_side_panel)
+    const bool outlineSide = (m_config.ui.outline.type == "side_panel");
+    const bool highlightSide
+        = (m_config.ui.highlight_search.type == "side_panel");
+    if (outlineSide || highlightSide)
     {
-        QSplitter *splitter    = new QSplitter(Qt::Horizontal, this);
-        const bool outlineLeft = m_config.ui.outline.panel_position != "right";
-        if (outlineLeft)
+        QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
+        QWidget *sidePanel  = nullptr;
+        bool panelLeft      = true;
+        int panelWidth      = 300;
+
+        if (outlineSide && highlightSide)
         {
-            splitter->addWidget(m_outline_widget);
+            m_side_panel_tabs = new QTabWidget(this);
+            m_side_panel_tabs->addTab(m_outline_widget, "Outline");
+            m_side_panel_tabs->addTab(m_highlight_search_widget, "Highlights");
+            sidePanel  = m_side_panel_tabs;
+            panelLeft  = m_config.ui.outline.panel_position != "right";
+            panelWidth = m_config.ui.outline.panel_width;
+        }
+        else if (outlineSide)
+        {
+            sidePanel  = m_outline_widget;
+            panelLeft  = m_config.ui.outline.panel_position != "right";
+            panelWidth = m_config.ui.outline.panel_width;
+        }
+        else
+        {
+            sidePanel  = m_highlight_search_widget;
+            panelLeft  = m_config.ui.highlight_search.panel_position != "right";
+            panelWidth = m_config.ui.highlight_search.panel_width;
+        }
+
+        if (panelLeft)
+        {
+            splitter->addWidget(sidePanel);
             splitter->addWidget(m_tab_widget);
             splitter->setStretchFactor(0, 0);
             splitter->setStretchFactor(1, 1);
-            splitter->setSizes(
-                {m_config.ui.outline.panel_width,
-                 this->width() - m_config.ui.outline.panel_width});
+            splitter->setSizes({panelWidth, this->width() - panelWidth});
         }
         else
         {
             splitter->addWidget(m_tab_widget);
-            splitter->addWidget(m_outline_widget);
+            splitter->addWidget(sidePanel);
             splitter->setStretchFactor(0, 1);
             splitter->setStretchFactor(1, 0);
-            splitter->setSizes({this->width() - m_config.ui.outline.panel_width,
-                                m_config.ui.outline.panel_width});
+            splitter->setSizes({this->width() - panelWidth, panelWidth});
         }
         splitter->setFrameShape(QFrame::NoFrame);
         splitter->setFrameShadow(QFrame::Plain);
@@ -840,13 +899,43 @@ dodo::initGui() noexcept
         splitter->setContentsMargins(0, 0, 0, 0);
         splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
         m_layout->addWidget(splitter, 1);
+
+        if (highlightSide)
+            m_highlight_search_widget->setWindowFlags(Qt::Widget);
     }
     else
     {
         m_layout->addWidget(m_tab_widget, 1);
-        // Make the outline a popup panel
+    }
+
+    if (!outlineSide && m_config.ui.outline.type == "overlay")
+    {
+        m_outline_overlay = new FloatingOverlayWidget(this);
+        m_outline_overlay->setContentWidget(m_outline_widget);
+        connect(m_outline_overlay, &FloatingOverlayWidget::overlayHidden, this,
+                [this]()
+        {
+            if (m_actionToggleOutline)
+                m_actionToggleOutline->setChecked(false);
+        });
+    }
+    else if (!outlineSide)
+    {
         m_outline_widget->setWindowFlags(Qt::Dialog);
         m_outline_widget->setWindowModality(Qt::NonModal);
+    }
+
+    if (!highlightSide && m_config.ui.highlight_search.type == "overlay")
+    {
+        m_highlight_overlay = new FloatingOverlayWidget(this);
+        m_highlight_overlay->setContentWidget(m_highlight_search_widget);
+        connect(m_highlight_overlay, &FloatingOverlayWidget::overlayHidden,
+                this, [this]() { m_highlight_search_widget->hide(); });
+    }
+    else if (!highlightSide)
+    {
+        m_highlight_search_widget->setWindowFlags(Qt::Dialog);
+        m_highlight_search_widget->setWindowModality(Qt::NonModal);
     }
 }
 
@@ -860,6 +949,7 @@ dodo::updateUiEnabledState() noexcept
     m_actionOpenContainingFolder->setEnabled(hasOpenedFile);
     m_actionZoomIn->setEnabled(hasOpenedFile);
     m_actionZoomOut->setEnabled(hasOpenedFile);
+    m_actionHighlightSearch->setEnabled(hasOpenedFile);
     m_actionGotoPage->setEnabled(hasOpenedFile);
     m_actionFirstPage->setEnabled(hasOpenedFile);
     m_actionPrevPage->setEnabled(hasOpenedFile);
@@ -1175,6 +1265,13 @@ dodo::GotoLocation(int pageno, float x, float y) noexcept
 {
     if (m_doc)
         m_doc->GotoLocation({pageno - 1, x, y});
+}
+
+void
+dodo::GotoLocation(const DocumentView::PageLocation &loc) noexcept
+{
+    if (m_doc)
+        m_doc->GotoLocation(loc);
 }
 
 // Goes to the next search hit
@@ -1544,14 +1641,20 @@ dodo::ToggleAutoResize() noexcept
 void
 dodo::ShowOutline() noexcept
 {
-    if (m_outline_widget->isVisible())
+    QWidget *target = m_outline_widget;
+    if (m_config.ui.outline.type == "overlay" && m_outline_overlay)
+        target = m_outline_overlay;
+
+    if (target->isVisible())
     {
-        m_outline_widget->hide();
+        target->hide();
         m_actionToggleOutline->setChecked(false);
     }
     else
     {
-        m_outline_widget->show();
+        target->show();
+        target->raise();
+        target->activateWindow();
         m_actionToggleOutline->setChecked(true);
     }
 }
@@ -1754,7 +1857,19 @@ dodo::initConnections() noexcept
             &dodo::updatePageNavigationActions);
 
     connect(m_outline_widget, &OutlineWidget::jumpToLocationRequested, this,
-            &dodo::GotoLocation);
+            [this](int page, const QPointF &pos) // page returned is 1-based
+    {
+        m_doc->addToHistory(m_doc->CurrentLocation());
+        GotoLocation({page - 1, (float)pos.x(), (float)pos.y()});
+    });
+
+    connect(m_highlight_search_widget,
+            &HighlightSearchWidget::gotoLocationRequested, this,
+            [this](int page, const QPointF &pos) // page returned is 0-based
+    {
+        m_doc->addToHistory(m_doc->CurrentLocation());
+        GotoLocation({page, (float)pos.x(), (float)pos.y()});
+    });
 }
 
 // Handle when the file name is changed
@@ -1776,6 +1891,10 @@ dodo::handleCurrentTabChanged(int index) noexcept
         updateUiEnabledState();
         updatePanel();
         this->setWindowTitle("");
+        if (m_highlight_overlay)
+            m_highlight_overlay->hide();
+        if (m_highlight_search_widget)
+            m_highlight_search_widget->hide();
         return;
     }
 
@@ -1786,6 +1905,10 @@ dodo::handleCurrentTabChanged(int index) noexcept
         m_doc = nullptr;
         updateActionsAndStuffForSystemTabs();
         this->setWindowTitle("Startup");
+        if (m_highlight_overlay)
+            m_highlight_overlay->hide();
+        if (m_highlight_search_widget)
+            m_highlight_search_widget->hide();
         return;
     }
 
@@ -1794,6 +1917,10 @@ dodo::handleCurrentTabChanged(int index) noexcept
         m_doc = nullptr;
         updateActionsAndStuffForSystemTabs();
         this->setWindowTitle("Welcome");
+        if (m_highlight_overlay)
+            m_highlight_overlay->hide();
+        if (m_highlight_search_widget)
+            m_highlight_search_widget->hide();
         return;
     }
 
@@ -1805,6 +1932,36 @@ dodo::handleCurrentTabChanged(int index) noexcept
 
     m_outline_widget->setOutline(m_doc ? m_doc->model()->getOutline()
                                        : nullptr);
+
+    if (m_highlight_search_widget)
+    {
+        if (m_doc)
+        {
+            m_highlight_search_widget->setModel(m_doc->model());
+            if (m_config.ui.highlight_search.type == "overlay"
+                && m_highlight_overlay)
+            {
+                m_highlight_overlay->setVisible(
+                    m_config.ui.highlight_search.visible);
+                if (m_highlight_overlay->isVisible())
+                    m_highlight_search_widget->refresh();
+            }
+            else
+            {
+                m_highlight_search_widget->setVisible(
+                    m_config.ui.highlight_search.visible);
+                if (m_highlight_search_widget->isVisible())
+                    m_highlight_search_widget->refresh();
+            }
+        }
+        else
+        {
+            if (m_highlight_overlay)
+                m_highlight_overlay->hide();
+            m_highlight_search_widget->hide();
+            m_highlight_search_widget->setModel(nullptr);
+        }
+    }
 
     this->setWindowTitle(m_doc->windowTitle());
 }
@@ -1873,17 +2030,16 @@ dodo::eventFilter(QObject *object, QEvent *event)
     {
         switch (type)
         {
-            case QEvent::KeyPress:
+            case QEvent::KeyRelease:
             {
                 QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
                 switch (keyEvent->key())
                 {
                     case Qt::Key_Escape:
-                        m_currentHintInput.clear();
-                        m_doc->ClearKBHintsOverlay();
-                        m_link_hint_map.clear();
-                        m_link_hint_mode = false;
+                        handleEscapeKeyPressed();
                         return true;
+                        break;
+
                     case Qt::Key_Backspace:
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
                         m_currentHintInput.removeLast();
@@ -2780,7 +2936,24 @@ dodo::updateGUIFromConfig() noexcept
     else if (m_config.ui.tabs.bar_position == "right")
         m_tab_widget->setTabPosition(QTabWidget::East);
 
-    m_outline_widget->setVisible(m_config.ui.outline.visible);
+    if (m_config.ui.outline.type == "overlay" && m_outline_overlay)
+    {
+        m_outline_overlay->setVisible(m_config.ui.outline.visible);
+    }
+    else
+    {
+        m_outline_widget->setVisible(m_config.ui.outline.visible);
+    }
+
+    if (m_config.ui.highlight_search.type == "overlay" && m_highlight_overlay)
+    {
+        m_highlight_overlay->setVisible(m_config.ui.highlight_search.visible);
+    }
+    else
+    {
+        m_highlight_search_widget->setVisible(
+            m_config.ui.highlight_search.visible);
+    }
 
     m_layout->addWidget(m_search_bar);
     m_layout->addWidget(m_message_bar);
@@ -2842,6 +3015,26 @@ dodo::ToggleSearchBar() noexcept
     {
         m_search_bar->setVisible(!m_search_bar->isVisible());
     }
+}
+
+void
+dodo::ShowHighlightSearch() noexcept
+{
+    if (!m_doc)
+        return;
+
+    m_highlight_search_widget->setModel(m_doc->model());
+    if (m_config.ui.highlight_search.type == "side_panel" && m_side_panel_tabs)
+        m_side_panel_tabs->setCurrentWidget(m_highlight_search_widget);
+
+    QWidget *target = m_highlight_search_widget;
+    if (m_config.ui.highlight_search.type == "overlay" && m_highlight_overlay)
+        target = m_highlight_overlay;
+
+    target->show();
+    target->raise();
+    target->activateWindow();
+    m_highlight_search_widget->refresh();
 }
 
 void
@@ -2909,4 +3102,21 @@ dodo::SetLayoutMode(DocumentView::LayoutMode mode) noexcept
 {
     if (m_doc)
         m_doc->setLayoutMode(mode);
+}
+
+// Handle Escape key press for the entire application
+void
+dodo::handleEscapeKeyPressed() noexcept
+{
+    if (m_link_hint_mode)
+    {
+        m_currentHintInput.clear();
+        m_doc->ClearKBHintsOverlay();
+        m_link_hint_map.clear();
+        m_link_hint_mode = false;
+    }
+
+#ifndef NDEBUG
+    qDebug() << "Escape key pressed handled";
+#endif
 }

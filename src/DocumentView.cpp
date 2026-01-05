@@ -839,21 +839,11 @@ DocumentView::GotoLocation(const PageLocation &targetLocation) noexcept
 
     if (m_layout_mode == LayoutMode::SINGLE)
     {
-        // 1. Ensure correct page is shown
         if (m_pageno != targetLocation.pageno)
             GotoPage(targetLocation.pageno);
-
-        // 2. Scroll inside the page (top by default)
-        // Since history stores no y, go to top
-        m_vscroll->setValue(m_vscroll->minimum());
-
-        // Optional: horizontal reset
-        m_hscroll->setValue(m_hscroll->minimum());
     }
-    else
-    {
-        m_gview->centerOn(scenePos);
-    }
+
+    m_gview->centerOn(scenePos);
 
     m_jump_marker->showAt(scenePos.x(), scenePos.y());
     m_pending_jump = {-1, 0, 0};
@@ -2821,4 +2811,20 @@ DocumentView::annotationAtPoint(int pageno, const QPointF &point) noexcept
 #endif
 
     return foundAnnot;
+}
+
+// Returns the current location in the document
+DocumentView::PageLocation
+DocumentView::CurrentLocation() noexcept
+{
+    int pageno;
+    GraphicsPixmapItem *pageItem;
+    QPointF sceneCenter = m_gview->mapToScene(
+        m_gview->viewport()->width() / 2, m_gview->viewport()->height() / 2);
+
+    if (!pageAtScenePos(sceneCenter, pageno, pageItem))
+        return {-1, 0, 0};
+
+    QPointF pageLocalPos = pageItem->mapFromScene(sceneCenter);
+    return {pageno, (float)pageLocalPos.x(), (float)pageLocalPos.y()};
 }

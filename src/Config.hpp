@@ -75,9 +75,19 @@ struct Config
         {
             bool visible{false};
             bool as_side_panel{true};
+            QString type{"side_panel"};
             QString panel_position{"left"};
             int panel_width{300};
         } outline{};
+
+        struct highlight_search
+        {
+            bool visible{false};
+            bool as_side_panel{false};
+            QString type{"dialog"};
+            QString panel_position{"right"};
+            int panel_width{300};
+        } highlight_search{};
 
         QHash<QString, QColor> colors{};
     };

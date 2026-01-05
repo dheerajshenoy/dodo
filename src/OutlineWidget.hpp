@@ -94,7 +94,7 @@ public:
     {
         QVBoxLayout *layout = new QVBoxLayout(this);
         searchEdit->setPlaceholderText("Search Outline");
-        searchEdit->setFocusPolicy(Qt::ClickFocus);
+        searchEdit->setFocusPolicy(Qt::StrongFocus);
         layout->addWidget(searchEdit);
         setContentsMargins(0, 0, 0, 0);
         layout->setContentsMargins(0, 0, 0, 0);
@@ -113,7 +113,7 @@ public:
             const QPointF location = index.siblingAtColumn(0)
                                          .data(OutlineModel::TargetLocationRole)
                                          .toPointF();
-            emit jumpToLocationRequested(page, location.x(), location.y());
+            emit jumpToLocationRequested(page, location);
         });
 
         layout->addWidget(m_tree);
@@ -138,6 +138,8 @@ public:
         m_tree->setAnimated(true);
         m_tree->setModel(proxy);
         m_tree->setFrameShape(QFrame::NoFrame);
+
+        QWidget::setTabOrder(searchEdit, m_tree);
     }
 
     bool isSidePanel() const noexcept
@@ -163,8 +165,14 @@ public:
         }
     }
 
+    void focusSearchInput() noexcept
+    {
+        searchEdit->setFocus();
+        searchEdit->selectAll();
+    }
+
 signals:
-    void jumpToLocationRequested(int pageno, float x, float y);
+    void jumpToLocationRequested(int pageno, const QPointF &pos);
 
 private:
     QTreeView *m_tree{nullptr};
@@ -173,7 +181,13 @@ private:
     bool m_is_side_panel{true};
 
 protected:
-    void keyPressEvent(QKeyEvent *e) override
+    void showEvent(QShowEvent *event) override
+    {
+        QWidget::showEvent(event);
+        focusSearchInput();
+    }
+
+    void keyReleaseEvent(QKeyEvent *e) override
     {
         if (e->key() == Qt::Key_Escape)
             e->ignore();

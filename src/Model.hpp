@@ -52,6 +52,12 @@ public:
         int index;    // Index of the hit in the page
     };
 
+    struct HighlightText
+    {
+        int page;
+        QString text;
+        fz_quad quad;
+    };
     struct EncryptInfo
     {
         QString user_password;
@@ -280,6 +286,8 @@ public:
     void search(const QString &term, bool caseSensitive = false) noexcept;
     std::vector<Model::SearchHit> searchHelper(int pageno, const QString &term,
                                                bool caseSensitive) noexcept;
+    std::vector<HighlightText> collectHighlightTexts(bool groupByLine
+                                                     = true) noexcept;
     void annotChangeColor(int pageno, int index, const QColor &color) noexcept;
 
 signals:

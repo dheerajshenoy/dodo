@@ -245,6 +245,8 @@ public:
     void NextFitMode() noexcept;
     void resizeEvent(QResizeEvent *event) override;
     void setLayoutMode(const LayoutMode &mode) noexcept;
+    void addToHistory(const PageLocation &location) noexcept;
+    PageLocation CurrentLocation() noexcept;
 
 signals:
     void openFileFailed(DocumentView *doc);
@@ -341,7 +343,6 @@ private:
     void updateSelectionPath(int pageno, std::vector<QPolygonF> quads) noexcept;
     void centerOnPage(int pageno) noexcept;
     QSizeF currentPageSceneSize() const noexcept;
-    void addToHistory(const PageLocation &location) noexcept;
     std::vector<Annotation *> annotationsInArea(int pageno,
                                                 const QRectF &area) noexcept;
     Annotation *annotationAtPoint(int pageno, const QPointF &point) noexcept;

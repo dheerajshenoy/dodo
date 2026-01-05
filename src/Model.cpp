@@ -1639,6 +1639,102 @@ Model::searchHelper(int pageno, const QString &term,
     return results;
 }
 
+std::vector<Model::HighlightText>
+Model::collectHighlightTexts(bool groupByLine) noexcept
+{
+    std::vector<HighlightText> results;
+
+    if (!m_ctx || !m_doc || !m_pdf_doc)
+        return results;
+
+    for (int pageno = 0; pageno < m_page_count; ++pageno)
+    {
+        pdf_page *pdfPage = nullptr;
+
+        fz_try(m_ctx)
+        {
+            pdfPage = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+            if (!pdfPage)
+                fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+            fz_stext_page *text_page = nullptr;
+            if (m_stext_page_cache.contains(pageno))
+            {
+                text_page = m_stext_page_cache[pageno];
+            }
+            else
+            {
+                fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+                if (page)
+                {
+                    text_page
+                        = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+                    m_stext_page_cache[pageno] = text_page;
+                    fz_drop_page(m_ctx, page);
+                }
+            }
+
+            if (!text_page)
+                continue;
+
+            for (pdf_annot *annot = pdf_first_annot(m_ctx, pdfPage); annot;
+                 annot            = pdf_next_annot(m_ctx, annot))
+            {
+                if (pdf_annot_type(m_ctx, annot) != PDF_ANNOT_HIGHLIGHT)
+                    continue;
+
+                const int quad_count = pdf_annot_quad_point_count(m_ctx, annot);
+                if (quad_count <= 0)
+                    continue;
+
+                std::vector<fz_quad> quads;
+                quads.reserve(quad_count);
+                for (int i = 0; i < quad_count; ++i)
+                    quads.push_back(pdf_annot_quad_point(m_ctx, annot, i));
+
+                std::vector<fz_quad> line_quads;
+                if (groupByLine)
+                    line_quads = merge_quads_by_line(quads);
+                else
+                    line_quads = merged_quads_from_quads(quads);
+
+                for (const fz_quad &q : line_quads)
+                {
+                    fz_rect rect = fz_rect_from_quad(q);
+                    if (fz_is_infinite_rect(rect) || fz_is_empty_rect(rect))
+                        continue;
+
+                    const fz_point a{rect.x0, rect.y0};
+                    const fz_point b{rect.x1, rect.y1};
+                    char *selection_text
+                        = fz_copy_selection(m_ctx, text_page, a, b, 0);
+                    if (!selection_text)
+                        continue;
+
+                    QString text = QString::fromUtf8(selection_text).trimmed();
+                    fz_free(m_ctx, selection_text);
+
+                    if (text.isEmpty())
+                        continue;
+
+                    results.push_back({pageno, text, q});
+                }
+            }
+        }
+        fz_always(m_ctx)
+        {
+            if (pdfPage)
+                pdf_drop_page(m_ctx, pdfPage);
+        }
+        fz_catch(m_ctx)
+        {
+            qWarning() << "Failed to collect highlight text on page" << pageno;
+        }
+    }
+
+    return results;
+}
+
 void
 Model::buildTextCacheForPage(int pageno) noexcept
 {
