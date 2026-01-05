@@ -858,7 +858,7 @@ void
 dodo::ShowAbout() noexcept
 {
     AboutDialog *abw = new AboutDialog(this);
-    abw->setAppInfo(__DODO_VERSION, "A fast, unintrusive pdf reader");
+    abw->setAppInfo(__DODO_VERSION, "A clean, efficient PDF reader with zero distractions.");
     abw->show();
 }
 
