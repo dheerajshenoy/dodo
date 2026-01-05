@@ -35,6 +35,12 @@ streamlined interface and robust functionality with minimal resource usage.
 ### Home screen
 <img src="./images/home.png" alt="dodo home screen" width="800"/>
 
+### Scrolling View
+<img src="./images/Scrolling.gif" alt="Scrolling" width="800"/>
+
+### Layouts
+<img src="./images/Layouts.gif" alt="Layouts" width="800"/>
+
 ### File opened + outline panel
 <img src="./images/dodo.png" alt="dodo in action" width="800"/>
 
