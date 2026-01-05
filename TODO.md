@@ -53,3 +53,4 @@
 - [ ] Startup Page widget not respecting fit mode from config
 - [ ] Fix right click context menu position on high DPI displays
 - [ ] Scroll to specific position and center it in the viewport
+- [ ] Don't add history location if the page number is same as current
