@@ -127,6 +127,8 @@ DocumentView::setupUI() noexcept
 
     m_model->setInvertColor(m_config.behavior.invert_mode);
     m_model->setLinkBoundary(m_config.ui.links.boundary);
+    m_model->setDetectUrlLinks(m_config.ui.links.detect_urls);
+    m_model->setUrlLinkRegex(m_config.ui.links.url_regex);
 
     setAutoReload(m_config.behavior.auto_reload);
     // if (m_config.rendering.icc_color_profile)

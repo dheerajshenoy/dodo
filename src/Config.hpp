@@ -54,6 +54,8 @@ struct Config
         struct links
         {
             bool boundary{false};
+            bool detect_urls{false};
+            QString url_regex{R"((https?://|www\.)[^\s<>()\"']+)"};
         } links{};
 
         struct link_hints

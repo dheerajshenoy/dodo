@@ -8,8 +8,11 @@
     - UI
         `[ui.outline]` - `type=<value>` where value = `dialog`, `side_panel`, `overlay`
         `[ui.search_highlight]` - `type=<value>` where value = `dialog`, `side_panel`, `overlay`
-
-
+- Detection of non-link URL pdf object in the PDF and making them clickable links (optional, configurable in settings)
+- [ui.links]
+    - `detect_urls` - Enable/Disable non-link URL detection and linkification
+    - `url_regex` - Custom regex for URL detection (default is a standard URL regex)
+    
 ### Bug Fixes
 
 - Fix context menu not showing at the right position

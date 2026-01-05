@@ -9,6 +9,7 @@
 #include <QFuture>
 #include <QPixmap>
 #include <QRectF>
+#include <QRegularExpression>
 #include <QString>
 #include <QUndoStack>
 #include <unordered_map>
@@ -212,6 +213,13 @@ public:
         m_link_show_boundary = state;
     }
 
+    inline void setDetectUrlLinks(bool state) noexcept
+    {
+        m_detect_url_links = state;
+    }
+
+    void setUrlLinkRegex(const QString &pattern) noexcept;
+
     inline float pageWidthPts() const noexcept
     {
         return m_page_width_pts;
@@ -407,6 +415,8 @@ private:
     int m_search_match_count{0};
     std::unordered_map<int, CachedTextPage> m_text_cache;
     bool m_link_show_boundary{false};
+    bool m_detect_url_links{false};
+    QRegularExpression m_url_link_re;
 
     friend class TextHighlightAnnotationCommand; // for highlight annotation
     friend class DocumentView;

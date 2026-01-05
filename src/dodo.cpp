@@ -383,13 +383,15 @@ dodo::initDB() noexcept
 void
 dodo::initDefaults() noexcept
 {
-    m_config.ui.markers.jump_marker             = true;
-    m_config.ui.window.full_file_path_in_panel  = false;
-    m_config.ui.zoom.level                      = 1.0f;
-    m_config.ui.outline.visible                 = false;
-    m_config.ui.window.title_format             = QStringLiteral("%1 - dodo");
-    m_config.ui.link_hints.size                 = 0.5f;
-    m_config.ui.highlight_search.visible        = false;
+    m_config.ui.markers.jump_marker            = true;
+    m_config.ui.window.full_file_path_in_panel = false;
+    m_config.ui.zoom.level                     = 1.0f;
+    m_config.ui.outline.visible                = false;
+    m_config.ui.window.title_format            = QStringLiteral("%1 - dodo");
+    m_config.ui.link_hints.size                = 0.5f;
+    m_config.ui.links.detect_urls              = false;
+    m_config.ui.links.url_regex          = R"((https?://|www\.)[^\s<>()\"']+)";
+    m_config.ui.highlight_search.visible = false;
     m_config.ui.highlight_search.as_side_panel  = false;
     m_config.ui.highlight_search.type           = "dialog";
     m_config.ui.highlight_search.panel_position = "right";
@@ -506,9 +508,13 @@ dodo::initConfig() noexcept
     auto ui_markers                 = ui["markers"];
     m_config.ui.markers.jump_marker = ui_markers["jump_marker"].value_or(true);
 
-    auto ui_links               = ui["links"];
-    auto ui_link_hints          = ui["link_hints"];
-    m_config.ui.links.boundary  = ui_links["boundary"].value_or(false);
+    auto ui_links                 = ui["links"];
+    auto ui_link_hints            = ui["link_hints"];
+    m_config.ui.links.boundary    = ui_links["boundary"].value_or(false);
+    m_config.ui.links.detect_urls = ui_links["detect_urls"].value_or(false);
+    m_config.ui.links.url_regex
+        = QString::fromStdString(ui_links["url_regex"].value_or(
+            std::string(R"((https?://|www\.)[^\s<>()\"']+)")));
     m_config.ui.link_hints.size = ui_link_hints["size"].value_or(0.5f);
 
     auto ui_tabs                  = ui["tabs"];

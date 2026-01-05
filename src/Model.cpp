@@ -13,6 +13,7 @@
 #include <array>
 #include <pthread.h>
 #include <qbytearrayview.h>
+#include <qregularexpression.h>
 #include <qstyle.h>
 #include <qtextformat.h>
 
@@ -59,6 +60,7 @@ Model::Model(QObject *parent) noexcept : QObject(parent)
     fz_register_document_handlers(m_ctx);
     m_colorspace = fz_device_rgb(m_ctx);
     m_undo_stack = new QUndoStack();
+    setUrlLinkRegex(QString::fromUtf8(R"((https?://|www\.)[^\s<>()\"']+)"));
 }
 
 void
@@ -923,6 +925,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     fz_link *head{nullptr};
     fz_pixmap *pix{nullptr};
     fz_device *dev{nullptr};
+    fz_page *text_page{nullptr};
+    fz_stext_page *stext_page{nullptr};
 
     fz_try(ctx)
     {
@@ -1015,6 +1019,101 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
                 result.links.push_back(item);
         }
 
+        if (m_detect_url_links)
+        {
+            text_page = fz_load_page(ctx, m_doc, job.pageno);
+            if (text_page)
+                stext_page
+                    = fz_new_stext_page_from_page(ctx, text_page, nullptr);
+
+            if (stext_page)
+            {
+                const QRegularExpression urlRe = m_url_link_re;
+
+                auto hasIntersectingLink = [&](const fz_rect &r) -> bool
+                {
+                    for (const auto &link : links)
+                    {
+                        const fz_rect lr = link.rect;
+                        if (r.x1 < lr.x0 || r.x0 > lr.x1 || r.y1 < lr.y0
+                            || r.y0 > lr.y1)
+                            continue;
+                        return true;
+                    }
+                    return false;
+                };
+
+                for (fz_stext_block *b = stext_page->first_block; b;
+                     b                 = b->next)
+                {
+                    if (b->type != FZ_STEXT_BLOCK_TEXT)
+                        continue;
+
+                    for (fz_stext_line *line = b->u.t.first_line; line;
+                         line                = line->next)
+                    {
+                        QString lineText;
+                        lineText.reserve(256);
+                        for (fz_stext_char *ch = line->first_char; ch;
+                             ch                = ch->next)
+                        {
+                            lineText.append(QChar::fromUcs4(ch->c));
+                        }
+
+                        if (lineText.isEmpty())
+                            continue;
+
+                        QRegularExpressionMatchIterator it
+                            = urlRe.globalMatch(lineText);
+                        while (it.hasNext())
+                        {
+                            QRegularExpressionMatch match = it.next();
+                            int start = match.capturedStart();
+                            int len   = match.capturedLength();
+                            if (start < 0 || len <= 0)
+                                continue;
+
+                            QString raw = match.captured();
+                            while (
+                                !raw.isEmpty()
+                                && QString(".,;:!?)\"'").contains(raw.back()))
+                            {
+                                raw.chop(1);
+                                --len;
+                            }
+
+                            if (raw.isEmpty() || len <= 0)
+                                continue;
+
+                            fz_quad q = getQuadForSubstring(line, start, len);
+                            fz_rect r = fz_rect_from_quad(q);
+                            if (fz_is_empty_rect(r))
+                                continue;
+
+                            if (hasIntersectingLink(r))
+                                continue;
+
+                            QString uri = raw;
+                            if (uri.startsWith("www."))
+                                uri.prepend("https://");
+
+                            fz_rect tr        = fz_transform_rect(r, transform);
+                            const float scale = m_inv_dpr;
+                            QRectF qtRect(tr.x0 * scale, tr.y0 * scale,
+                                          (tr.x1 - tr.x0) * scale,
+                                          (tr.y1 - tr.y0) * scale);
+
+                            BrowseLinkItem *item = new BrowseLinkItem(
+                                qtRect, uri, BrowseLinkItem::LinkType::External,
+                                m_link_show_boundary);
+                            if (item)
+                                result.links.push_back(item);
+                        }
+                    }
+                }
+            }
+        }
+
         for (const auto &annot : annotations)
         {
             Annotation *annot_item = nullptr;
@@ -1050,6 +1149,10 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         fz_drop_device(ctx, dev);
         fz_drop_link(ctx, head);
         fz_drop_display_list(ctx, dlist);
+        if (stext_page)
+            fz_drop_stext_page(ctx, stext_page);
+        if (text_page)
+            fz_drop_page(ctx, text_page);
     }
     fz_catch(ctx)
     {
@@ -1172,6 +1275,22 @@ Model::addHighlightAnnotation(const int pageno,
              << " Quad count:" << quads.size() << " ObjNum:" << objNum;
 #endif
     return objNum;
+}
+
+void
+Model::setUrlLinkRegex(const QString &pattern) noexcept
+{
+    const QString defaultPattern
+        = QString::fromUtf8(R"((https?://|www\.)[^\s<>()\"']+)");
+    const QString effectivePattern
+        = pattern.isEmpty() ? defaultPattern : pattern;
+    QRegularExpression re(effectivePattern);
+    if (!re.isValid())
+    {
+        qWarning() << "Invalid url_regex:" << re.errorString();
+        re = QRegularExpression(defaultPattern);
+    }
+    m_url_link_re = re;
 }
 
 void
