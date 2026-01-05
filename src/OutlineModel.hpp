@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QFont>
 #include <QStandardItemModel>
 #include <mupdf/fitz.h>
 
@@ -25,38 +26,49 @@ public:
         struct StackItem
         {
             fz_outline *node;
-            QStandardItem *parent;
+            int depth;
         };
 
         StackItem stack[256];
         int sp = 0;
 
-        fz_outline *current       = root;
-        QStandardItem *parentItem = invisibleRootItem();
+        fz_outline *current = root;
+        int depth           = 0;
 
         while (current || sp > 0)
         {
             while (current)
             {
-                QStandardItem *titleItem = new QStandardItem(QString::fromUtf8(
-                    current->title ? current->title : "<no title>"));
+                const bool isHeading = current->down != nullptr;
+                QString titleText    = QString::fromUtf8(
+                    current->title ? current->title : "<no title>");
+                if (depth > 0)
+                    titleText.prepend(QString(depth * 2, ' '));
+
+                QStandardItem *titleItem = new QStandardItem(titleText);
                 QStandardItem *pageItem  = new QStandardItem(
                     QString::number(current->page.page + 1));
 
                 titleItem->setData(QPointF{current->x, current->y},
                                    TargetLocationRole);
 
-                // Add row under the correct parent
-                parentItem->appendRow({titleItem, pageItem});
+                if (isHeading)
+                {
+                    QFont font = titleItem->font();
+                    font.setBold(true);
+                    titleItem->setFont(font);
+                }
+
+                invisibleRootItem()->appendRow({titleItem, pageItem});
 
                 if (current->down)
                 {
                     if (current->next)
                     {
-                        stack[sp++] = {current->next, parentItem};
+                        stack[sp++] = {current->next, depth};
                     }
-                    parentItem = titleItem; // new parent for children
-                    current    = current->down;
+                    depth += 1;
+                    current = current->down;
                 }
                 else
                 {
@@ -68,7 +80,7 @@ public:
             {
                 StackItem s = stack[--sp];
                 current     = s.node;
-                parentItem  = s.parent;
+                depth       = s.depth;
             }
         }
     }

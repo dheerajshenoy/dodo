@@ -103,6 +103,9 @@ public:
         m_tree->setSelectionBehavior(
             QAbstractItemView::SelectionBehavior::SelectRows);
         m_tree->setSelectionMode(QAbstractItemView::SingleSelection);
+        m_tree->setRootIsDecorated(false);
+        m_tree->setItemsExpandable(false);
+        m_tree->setIndentation(0);
 
         // m_tree->verticalHeader()->setVisible(false);
 
