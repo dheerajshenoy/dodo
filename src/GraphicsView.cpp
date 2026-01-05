@@ -342,7 +342,7 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *event)
     QGraphicsView::contextMenuEvent(event);
     if (!event->isAccepted())
     {
-        emit contextMenuRequested(event->pos());
+        emit contextMenuRequested(event->globalPos());
         event->accept();
     }
 }

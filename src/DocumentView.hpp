@@ -281,7 +281,7 @@ public slots:
     void handleOpenFileFinished() noexcept;
 
 protected:
-    void handleContextMenuRequested(const QPointF &scenePos) noexcept;
+    void handleContextMenuRequested(const QPoint &globalPos) noexcept;
 
 private:
     struct HitRef

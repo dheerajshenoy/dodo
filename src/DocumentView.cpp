@@ -237,6 +237,15 @@ DocumentView::handleOpenFileFinished() noexcept
 
     m_pageno = 0;
 
+    if (m_config.ui.layout.mode == "single")
+        setLayoutMode(LayoutMode::SINGLE);
+    else if (m_config.ui.layout.mode == "left_to_right")
+        setLayoutMode(LayoutMode::LEFT_TO_RIGHT);
+    else
+        setLayoutMode(LayoutMode::TOP_TO_BOTTOM);
+
+    initConnections();
+
     if (m_config.ui.layout.initial_fit == "height")
         setFitMode(FitMode::Height);
     else if (m_config.ui.layout.initial_fit == "width")
@@ -247,14 +256,6 @@ DocumentView::handleOpenFileFinished() noexcept
         setFitMode(FitMode::None);
     cachePageStride();
 
-    if (m_config.ui.layout.mode == "single")
-        setLayoutMode(LayoutMode::SINGLE);
-    else if (m_config.ui.layout.mode == "left_to_right")
-        setLayoutMode(LayoutMode::LEFT_TO_RIGHT);
-    else
-        setLayoutMode(LayoutMode::TOP_TO_BOTTOM);
-
-    initConnections();
     emit openFileFinished(this);
 }
 
@@ -723,7 +724,7 @@ DocumentView::setFitMode(FitMode mode) noexcept
             // current DPI We do NOT multiply by DPR here because viewWidth is
             // already logical.
             const double logicalPageWidth
-                = m_model->pageWidthPts() * (m_model->DPI() / 72.0);
+                = m_model->pageWidthPts() * m_model->viewScale();
 
             // The new zoom is simply the ratio of available space to the page
             // size
@@ -741,7 +742,7 @@ DocumentView::setFitMode(FitMode mode) noexcept
 
             // Same logic for height
             const double logicalPageHeight
-                = m_model->pageHeightPts() * (m_model->DPI() / 72.0);
+                = m_model->pageHeightPts() * m_model->viewScale();
 
             const double newZoom
                 = static_cast<double>(viewHeight) / logicalPageHeight;
@@ -757,9 +758,9 @@ DocumentView::setFitMode(FitMode mode) noexcept
             const int viewHeight = m_gview->viewport()->height();
 
             const double logicalPageWidth
-                = m_model->pageWidthPts() * (m_model->DPI() / 72.0);
+                = m_model->pageWidthPts() * m_model->viewScale();
             const double logicalPageHeight
-                = m_model->pageHeightPts() * (m_model->DPI() / 72.0);
+                = m_model->pageHeightPts() * m_model->viewScale();
 
             const double zoomX
                 = static_cast<double>(viewWidth) / logicalPageWidth;
@@ -1913,16 +1914,15 @@ DocumentView::clearVisibleAnnotations() noexcept
 }
 
 void
-DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
+DocumentView::handleContextMenuRequested(const QPoint &globalPos) noexcept
 {
 
 #ifndef NDEBUG
     qDebug() << "DocumentView::handleContextMenuRequested(): Context menu "
-             << "requested at scene position:" << scenePos;
+             << "requested at global position:" << globalPos;
 #endif
 
     QMenu *menu = new QMenu(this);
-    menu->move(scenePos.x(), scenePos.y());
 
     auto addAction = [this, &menu](const QString &text, const auto &slot)
     {
@@ -1967,7 +1967,7 @@ DocumentView::handleContextMenuRequested(const QPointF &scenePos) noexcept
         default:
             break;
     }
-    menu->show();
+    menu->popup(globalPos);
 }
 
 void

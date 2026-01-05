@@ -1,5 +1,10 @@
 # dodo
 
+## 0.5.3
+
+- Fix context menu not showing at the right position
+
+
 ## 0.5.2
 
 - Add runtime layout switching
@@ -69,7 +74,7 @@
 - Huge rewrite of the rendering system
     - Asynchronous rendering
     - Improved performance
-    
+
 
 ### Bug Fixes
 - Fix annotation rendering issues
