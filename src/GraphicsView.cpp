@@ -41,6 +41,10 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
 void
 GraphicsView::updateCursorForMode() noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "GraphicsView::updateCursorForMode(): Updating cursor for "
+             << "mode:" << static_cast<int>(m_mode);
+#endif
     if (m_selecting
         && (m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight))
     {
