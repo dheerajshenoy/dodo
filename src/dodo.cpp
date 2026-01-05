@@ -59,6 +59,7 @@ dodo::construct() noexcept
     if (m_load_default_keybinding)
         initKeybinds();
     initMenubar();
+    warnShortcutConflicts();
     initDB();
     trimRecentFilesDatabase();
     populateRecentFiles();
@@ -657,6 +658,14 @@ dodo::initKeybinds() noexcept
     m_config.shortcuts[QStringLiteral("zoom_in")]    = QStringLiteral("+");
     m_config.shortcuts[QStringLiteral("zoom_out")]   = QStringLiteral("-");
     m_config.shortcuts[QStringLiteral("zoom_reset")] = QStringLiteral("0");
+    m_config.shortcuts[QStringLiteral("fit_width")]
+        = QStringLiteral("Ctrl+Shift+W");
+    m_config.shortcuts[QStringLiteral("fit_height")]
+        = QStringLiteral("Ctrl+Shift+H");
+    m_config.shortcuts[QStringLiteral("fit_window")]
+        = QStringLiteral("Ctrl+Shift+=");
+    m_config.shortcuts[QStringLiteral("auto_resize")]
+        = QStringLiteral("Ctrl+Shift+R");
     m_config.shortcuts[QStringLiteral("prev_location")]
         = QStringLiteral("Ctrl+o");
     m_config.shortcuts[QStringLiteral("open_file")]    = QStringLiteral("o");
@@ -703,10 +712,73 @@ dodo::initKeybinds() noexcept
     addShortcut("0", [this]() { ZoomReset(); });
     addShortcut("=", [this]() { ZoomIn(); });
     addShortcut("-", [this]() { ZoomOut(); });
+    addShortcut("Ctrl+Shift+W", [this]() { FitWidth(); });
+    addShortcut("Ctrl+Shift+H", [this]() { FitHeight(); });
+    addShortcut("Ctrl+Shift+=", [this]() { FitWindow(); });
+    addShortcut("Ctrl+Shift+R", [this]() { ToggleAutoResize(); });
     addShortcut("<", [this]() { RotateAnticlock(); });
     addShortcut(">", [this]() { RotateClock(); });
     addShortcut("u", [this]() { Undo(); });
     addShortcut("Ctrl+r", [this]() { Redo(); });
+}
+
+void
+dodo::warnShortcutConflicts() noexcept
+{
+    QHash<QString, QStringList> shortcutsByKey;
+    for (auto it = m_config.shortcuts.constBegin();
+         it != m_config.shortcuts.constEnd(); ++it)
+    {
+        const QString key = it.value().trimmed();
+        if (key.isEmpty())
+            continue;
+
+        const QKeySequence seq(key);
+        if (seq.isEmpty())
+            continue;
+
+        const QString normalized = seq.toString(QKeySequence::PortableText);
+        if (normalized.isEmpty())
+            continue;
+
+        shortcutsByKey[normalized].append(it.key());
+    }
+
+    QStringList conflicts;
+    for (auto it = shortcutsByKey.constBegin(); it != shortcutsByKey.constEnd();
+         ++it)
+    {
+        if (it.value().size() < 2)
+            continue;
+
+        QString keyDisplay
+            = QKeySequence(it.key()).toString(QKeySequence::NativeText);
+        if (keyDisplay.isEmpty())
+            keyDisplay = it.key();
+
+        const QString actions = it.value().join(", ");
+        conflicts.append(QString("%1 -> %2").arg(keyDisplay, actions));
+    }
+
+    if (conflicts.isEmpty())
+        return;
+
+    const int maxItems = 3;
+    QString message;
+    if (conflicts.size() <= maxItems)
+    {
+        message = QString("Shortcut conflict(s): %1").arg(conflicts.join("; "));
+    }
+    else
+    {
+        message = QString("Shortcut conflict(s): %1; and %2 more")
+                      .arg(conflicts.mid(0, maxItems).join("; "))
+                      .arg(conflicts.size() - maxItems);
+    }
+
+    qWarning() << message;
+    if (m_message_bar)
+        m_message_bar->showMessage(message, 6.0f);
 }
 
 // Initialize the GUI related Stuff
@@ -818,7 +890,11 @@ dodo::setupKeybinding(const QString &action, const QString &key) noexcept
         return;
 
     QShortcut *shortcut = new QShortcut(QKeySequence(key), this);
-    connect(shortcut, &QShortcut::activated, this, [=]() { it.value()({}); });
+    connect(shortcut, &QShortcut::activated, [it]() { it.value()({}); });
+
+#ifndef NDEBUG
+    qDebug() << "Keybinding set:" << action << "->" << key;
+#endif
 
     m_config.shortcuts[action] = key;
 }
@@ -858,7 +934,8 @@ void
 dodo::ShowAbout() noexcept
 {
     AboutDialog *abw = new AboutDialog(this);
-    abw->setAppInfo(__DODO_VERSION, "A clean, efficient PDF reader with zero distractions.");
+    abw->setAppInfo(__DODO_VERSION,
+                    "A clean, efficient PDF reader with zero distractions.");
     abw->show();
 }
 

@@ -58,6 +58,7 @@ private:
     void initGui() noexcept;
     void initConfig() noexcept;
     void initKeybinds() noexcept;
+    void warnShortcutConflicts() noexcept;
     void setupKeybinding(const QString &action, const QString &key) noexcept;
     void populateRecentFiles() noexcept;
     void updateUiEnabledState() noexcept;
