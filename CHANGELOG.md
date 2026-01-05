@@ -20,7 +20,7 @@
 - Fix startup Page widget not respecting fit mode from config
 - Fix scrolling to specific position and center it in the viewport
 - Fix zoom changing the viewport position unexpectedly
-
+- Show highlight search overlay properly
 
 ## 0.5.2
 

@@ -3038,6 +3038,7 @@ dodo::ShowHighlightSearch() noexcept
     if (m_config.ui.highlight_search.type == "overlay" && m_highlight_overlay)
         target = m_highlight_overlay;
 
+    m_highlight_search_widget->show();
     target->show();
     target->raise();
     target->activateWindow();

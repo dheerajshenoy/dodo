@@ -30,6 +30,7 @@
     - [X] Highlight
     - [X] Rectangle
     - [X] Popup
+- [X] Non PDF-link URL objects detection and handling
     
 - [ ] Undo/Redo operations
   - [ ] Rect Annotation
@@ -39,7 +40,6 @@
 - [ ] Synctex highlight line
 - [ ] Telescope like search with preview
 - [ ] Popup Annotation edit support
-- [ ] Printing support
 - [ ] Fix popup z value issue
 - [ ] Easy reference paper search
 - [ ] Reference previewer
@@ -55,4 +55,3 @@
 - [ ] Two page side-by-side view mode
 - [ ] Two selected page view mode
 - [ ] Implement LRU caching for pages and other resources
-- [ ] Non PDF-link URL objects detection and handling

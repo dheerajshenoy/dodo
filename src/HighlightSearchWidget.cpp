@@ -8,6 +8,7 @@
 HighlightSearchWidget::HighlightSearchWidget(QWidget *parent) : QWidget(parent)
 {
     setWindowTitle("Highlight Search");
+    setMinimumSize(640, 420);
 
     m_spinner = new WaitingSpinnerWidget(this, false, true);
     m_spinner->setInnerRadius(5);
@@ -16,7 +17,8 @@ HighlightSearchWidget::HighlightSearchWidget(QWidget *parent) : QWidget(parent)
     QLabel *title  = new QLabel("Highlights", this);
     m_filter_input = new QLineEdit(this);
     m_filter_input->setPlaceholderText("Filter highlights");
-    m_list           = new QListWidget(this);
+    m_list = new QListWidget(this);
+    m_list->setMinimumHeight(220);
     m_count_label    = new QLabel("0 results", this);
     m_refresh_button = new QPushButton("Refresh", this);
     m_close_button   = new QPushButton("Close", this);
