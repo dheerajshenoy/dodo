@@ -52,3 +52,4 @@
 - [ ] Implement LRU caching for pages and other resources
 - [ ] Startup Page widget not respecting fit mode from config
 - [ ] Fix right click context menu position on high DPI displays
+- [ ] Scroll to specific position and center it in the viewport
