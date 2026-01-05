@@ -22,9 +22,12 @@
 - [X] Fix unsaved changes being asked multiple times
 - [X] Ask overwrite on session save
 - [X] Session exit update page numbers
-- [ ] Annotation export
+- [X] Annotation export
+    - [X] Highlight
+    - [X] Rectangle
+    - [X] Popup
 - [ ] Undo/Redo operations
-  - [X] Rect Annotation
+  - [ ] Rect Annotation
   - [X] Text Highlight Annotation
   - [X] Delete Annotation
   - [ ] Popup Annotation
@@ -47,3 +50,4 @@
 - [ ] Two page side-by-side view mode
 - [ ] Two selected page view mode
 - [ ] Implement LRU caching for pages and other resources
+- [ ] Startup Page widget not respecting fit mode from config
