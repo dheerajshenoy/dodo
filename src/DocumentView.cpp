@@ -173,6 +173,7 @@ DocumentView::setLayoutMode(const LayoutMode &mode) noexcept
         return;
 
     m_layout_mode = mode;
+    invalidateVisiblePagesCache();
 
     initConnections();
     // Reset view state
@@ -246,15 +247,24 @@ DocumentView::handleOpenFileFinished() noexcept
 
     initConnections();
 
+    FitMode initialFit = FitMode::None;
     if (m_config.ui.layout.initial_fit == "height")
-        setFitMode(FitMode::Height);
+        initialFit = FitMode::Height;
     else if (m_config.ui.layout.initial_fit == "width")
-        setFitMode(FitMode::Width);
+        initialFit = FitMode::Width;
     else if (m_config.ui.layout.initial_fit == "window")
-        setFitMode(FitMode::Window);
+        initialFit = FitMode::Window;
+
+    m_fit_mode = initialFit;
+    if (isVisible())
+    {
+        setFitMode(initialFit);
+        m_deferred_fit = false;
+    }
     else
-        setFitMode(FitMode::None);
-    cachePageStride();
+    {
+        m_deferred_fit = true;
+    }
 
     emit openFileFinished(this);
 }
@@ -344,6 +354,9 @@ DocumentView::initConnections() noexcept
                 static_cast<void (QTimer::*)()>(&QTimer::start));
 
         connect(m_hscroll, &QScrollBar::valueChanged, this,
+                &DocumentView::invalidateVisiblePagesCache);
+
+        connect(m_hscroll, &QScrollBar::valueChanged, this,
                 &DocumentView::updateCurrentPage);
 
         connect(m_hq_render_timer, &QTimer::timeout, this,
@@ -357,6 +370,9 @@ DocumentView::initConnections() noexcept
         connect(m_vscroll, &QScrollBar::valueChanged,
                 m_scroll_page_update_timer,
                 static_cast<void (QTimer::*)()>(&QTimer::start));
+
+        connect(m_vscroll, &QScrollBar::valueChanged, this,
+                &DocumentView::invalidateVisiblePagesCache);
 
         connect(m_vscroll, &QScrollBar::valueChanged, this,
                 &DocumentView::updateCurrentPage);
@@ -852,6 +868,7 @@ DocumentView::GotoPage(int pageno) noexcept
         return;
 
     m_pageno = pageno;
+    invalidateVisiblePagesCache();
     emit currentPageChanged(pageno + 1);
 
     if (m_layout_mode == LayoutMode::SINGLE)
@@ -1547,13 +1564,19 @@ DocumentView::GoBackHistory() noexcept
 }
 
 // Get the list of currently visible pages
-std::set<int>
+const std::set<int> &
 DocumentView::getVisiblePages() noexcept
 {
-    std::set<int> visiblePages;
+    if (!m_visible_pages_dirty)
+        return m_visible_pages_cache;
+
+    m_visible_pages_cache.clear();
 
     if (m_model->numPages() == 0)
-        return visiblePages;
+    {
+        m_visible_pages_dirty = false;
+        return m_visible_pages_cache;
+    }
 
 #ifndef NDEBUG
     qDebug() << "DocumentView::getVisiblePages(): Calculating visible pages";
@@ -1561,8 +1584,10 @@ DocumentView::getVisiblePages() noexcept
 
     if (m_layout_mode == LayoutMode::SINGLE)
     {
-        visiblePages.insert(std::clamp(m_pageno, 0, m_model->numPages() - 1));
-        return visiblePages;
+        m_visible_pages_cache.insert(
+            std::clamp(m_pageno, 0, m_model->numPages() - 1));
+        m_visible_pages_dirty = false;
+        return m_visible_pages_cache;
     }
 
     const QRectF visibleSceneRect
@@ -1590,9 +1615,16 @@ DocumentView::getVisiblePages() noexcept
     lastPage  = std::min(m_model->numPages() - 1, lastPage);
 
     for (int pageno = firstPage; pageno <= lastPage; ++pageno)
-        visiblePages.insert(pageno);
+        m_visible_pages_cache.insert(pageno);
 
-    return visiblePages;
+    m_visible_pages_dirty = false;
+    return m_visible_pages_cache;
+}
+
+void
+DocumentView::invalidateVisiblePagesCache() noexcept
+{
+    m_visible_pages_dirty = true;
 }
 
 // Clear links for a specific page
@@ -1776,6 +1808,8 @@ DocumentView::cachePageStride() noexcept
     m_preload_margin = m_page_stride;
     if (m_config.behavior.cache_pages > 0)
         m_preload_margin *= m_config.behavior.cache_pages;
+
+    invalidateVisiblePagesCache();
 }
 
 // Update the scene rect based on number of pages and page stride
@@ -1816,6 +1850,7 @@ DocumentView::updateSceneRect() noexcept
 void
 DocumentView::resizeEvent(QResizeEvent *event)
 {
+    invalidateVisiblePagesCache();
     clearDocumentItems();
     if (m_layout_mode == LayoutMode::SINGLE)
         renderPage();
@@ -1829,6 +1864,18 @@ DocumentView::resizeEvent(QResizeEvent *event)
     }
 
     QWidget::resizeEvent(event);
+}
+
+void
+DocumentView::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+
+    if (!m_deferred_fit)
+        return;
+
+    setFitMode(m_fit_mode);
+    m_deferred_fit = false;
 }
 
 // Check if a scene position is within any page item
@@ -2055,7 +2102,7 @@ DocumentView::updateCurrentPage() noexcept
 void
 DocumentView::ensureVisiblePagePlaceholders() noexcept
 {
-    const std::set<int> visiblePages = getVisiblePages();
+    const std::set<int> &visiblePages = getVisiblePages();
     for (int pageno : visiblePages)
         createAndAddPlaceholderPageItem(pageno);
 }
@@ -2063,6 +2110,7 @@ DocumentView::ensureVisiblePagePlaceholders() noexcept
 void
 DocumentView::clearDocumentItems() noexcept
 {
+    invalidateVisiblePagesCache();
     for (QGraphicsItem *item : m_gscene->items())
     {
         if (item != m_jump_marker && item != m_selection_path_item

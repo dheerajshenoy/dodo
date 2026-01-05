@@ -8,6 +8,8 @@
 
 - Fix context menu not showing at the right position
 - Fix fit width not working properly in some cases
+- Fix startup Page widget not respecting fit mode from config
+- Fix scrolling to specific position and center it in the viewport
 
 
 ## 0.5.2

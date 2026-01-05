@@ -282,6 +282,7 @@ public slots:
 
 protected:
     void handleContextMenuRequested(const QPoint &globalPos) noexcept;
+    void showEvent(QShowEvent *event) override;
 
 private:
     struct HitRef
@@ -328,7 +329,8 @@ private:
     void updateSceneRect() noexcept;
     void initConnections() noexcept;
     void resetConnections() noexcept;
-    std::set<int> getVisiblePages() noexcept;
+    const std::set<int> &getVisiblePages() noexcept;
+    void invalidateVisiblePagesCache() noexcept;
     void removePageItem(int pageno) noexcept;
     void createAndAddPlaceholderPageItem(int pageno) noexcept;
     void renderSearchHitsForPage(int pageno) noexcept;
@@ -385,6 +387,9 @@ private:
     LayoutMode m_layout_mode{LayoutMode::TOP_TO_BOTTOM};
     WaitingSpinnerWidget *m_spinner{nullptr};
     QFutureWatcher<void> m_open_file_watcher;
+    std::set<int> m_visible_pages_cache;
+    bool m_visible_pages_dirty{true};
+    bool m_deferred_fit{false};
 
 #ifdef HAS_SYNCTEX
     synctex_scanner_p m_synctex_scanner{nullptr};

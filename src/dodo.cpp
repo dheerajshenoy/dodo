@@ -1458,7 +1458,6 @@ dodo::OpenFile(const QString &filePath,
         if (m_config.ui.outline.visible)
             m_outline_widget->show();
         updatePanel();
-
         if (callback)
             callback();
     });
