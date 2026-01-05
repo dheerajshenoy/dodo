@@ -711,6 +711,19 @@ DocumentView::setFitMode(FitMode mode) noexcept
 
     m_fit_mode = mode;
 
+    const double baseW = (m_model->pageWidthPts() / 72.0) * m_model->DPI();
+    const double baseH = (m_model->pageHeightPts() / 72.0) * m_model->DPI();
+    double rot         = static_cast<double>(m_model->rotation());
+    rot                = std::fmod(rot, 360.0);
+    if (rot < 0)
+        rot += 360.0;
+
+    const double t     = deg2rad(rot);
+    const double c     = std::abs(std::cos(t));
+    const double s     = std::abs(std::sin(t));
+    const double bboxW = baseW * c + baseH * s;
+    const double bboxH = baseW * s + baseH * c;
+
     switch (mode)
     {
         case FitMode::None:
@@ -720,16 +733,8 @@ DocumentView::setFitMode(FitMode mode) noexcept
         {
             const int viewWidth = m_gview->viewport()->width();
 
-            // Calculate the 'base' width of the page in logical pixels at the
-            // current DPI We do NOT multiply by DPR here because viewWidth is
-            // already logical.
-            const double logicalPageWidth
-                = m_model->pageWidthPts() * m_model->viewScale();
-
-            // The new zoom is simply the ratio of available space to the page
-            // size
-            const double newZoom
-                = static_cast<double>(viewWidth) / logicalPageWidth;
+            // Calculate using the unzoomed page size so fit is absolute.
+            const double newZoom = static_cast<double>(viewWidth) / bboxW;
 
             setZoom(newZoom);
             renderVisiblePages();
@@ -740,12 +745,7 @@ DocumentView::setFitMode(FitMode mode) noexcept
         {
             const int viewHeight = m_gview->viewport()->height();
 
-            // Same logic for height
-            const double logicalPageHeight
-                = m_model->pageHeightPts() * m_model->viewScale();
-
-            const double newZoom
-                = static_cast<double>(viewHeight) / logicalPageHeight;
+            const double newZoom = static_cast<double>(viewHeight) / bboxH;
 
             setZoom(newZoom);
             renderVisiblePages();
@@ -757,15 +757,8 @@ DocumentView::setFitMode(FitMode mode) noexcept
             const int viewWidth  = m_gview->viewport()->width();
             const int viewHeight = m_gview->viewport()->height();
 
-            const double logicalPageWidth
-                = m_model->pageWidthPts() * m_model->viewScale();
-            const double logicalPageHeight
-                = m_model->pageHeightPts() * m_model->viewScale();
-
-            const double zoomX
-                = static_cast<double>(viewWidth) / logicalPageWidth;
-            const double zoomY
-                = static_cast<double>(viewHeight) / logicalPageHeight;
+            const double zoomX = static_cast<double>(viewWidth) / bboxW;
+            const double zoomY = static_cast<double>(viewHeight) / bboxH;
 
             const double newZoom = std::min(zoomX, zoomY);
 

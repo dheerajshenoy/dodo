@@ -2,7 +2,11 @@
 
 ## 0.5.3
 
+
+### Bug Fixes
+
 - Fix context menu not showing at the right position
+- Fix fit width not working properly in some cases
 
 
 ## 0.5.2
