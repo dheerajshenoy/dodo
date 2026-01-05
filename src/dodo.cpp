@@ -910,7 +910,7 @@ dodo::initGui() noexcept
 
     if (!outlineSide && m_config.ui.outline.type == "overlay")
     {
-        m_outline_overlay = new FloatingOverlayWidget(this);
+        m_outline_overlay = new FloatingOverlayWidget(m_tab_widget);
         m_outline_overlay->setContentWidget(m_outline_widget);
         connect(m_outline_overlay, &FloatingOverlayWidget::overlayHidden, this,
                 [this]()
@@ -927,7 +927,7 @@ dodo::initGui() noexcept
 
     if (!highlightSide && m_config.ui.highlight_search.type == "overlay")
     {
-        m_highlight_overlay = new FloatingOverlayWidget(this);
+        m_highlight_overlay = new FloatingOverlayWidget(m_tab_widget);
         m_highlight_overlay->setContentWidget(m_highlight_search_widget);
         connect(m_highlight_overlay, &FloatingOverlayWidget::overlayHidden,
                 this, [this]() { m_highlight_search_widget->hide(); });
@@ -1655,6 +1655,7 @@ dodo::ShowOutline() noexcept
         target->show();
         target->raise();
         target->activateWindow();
+        m_outline_widget->setFocus(Qt::OtherFocusReason);
         m_actionToggleOutline->setChecked(true);
     }
 }

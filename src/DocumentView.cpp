@@ -960,24 +960,30 @@ DocumentView::zoomHelper() noexcept
              << "to" << m_target_zoom;
 #endif
 
-    // Record the current center position in PDF coordinates before zooming
-    // int anchorPageIndex            = -1;
-    // GraphicsPixmapItem *anchorItem = nullptr;
-    // fz_point anchorPdfPos          = {0, 0};
-    // bool hasAnchor                 = false;
+    // Record the current center position as a fraction of the page pixmap.
+    int anchorPageIndex            = -1;
+    GraphicsPixmapItem *anchorItem = nullptr;
+    QPointF anchorFrac{0.0, 0.0};
+    bool hasAnchor = false;
 
-    // const QPointF centerScene
-    //     = m_gview->mapToScene(m_gview->viewport()->rect().center());
+    const QPointF centerScene
+        = m_gview->mapToScene(m_gview->viewport()->rect().center());
 
-    // if (pageAtScenePos(centerScene, anchorPageIndex, anchorItem))
-    // {
-    //     QPointF localPos = anchorItem->mapFromScene(centerScene);
-    //     anchorPdfPos     = m_model->toPDFSpace(anchorPageIndex, localPos);
-    //     hasAnchor        = true;
-    // }
+    if (pageAtScenePos(centerScene, anchorPageIndex, anchorItem))
+    {
+        const QPointF localPos = anchorItem->mapFromScene(centerScene);
+        const QPixmap pix      = anchorItem->pixmap();
+        if (!pix.isNull() && pix.width() > 0 && pix.height() > 0)
+        {
+            anchorFrac = QPointF(localPos.x() / pix.width(),
+                                 localPos.y() / pix.height());
+            hasAnchor  = true;
+        }
+    }
 
     m_current_zoom = m_target_zoom;
     cachePageStride();
+    updateSceneRect();
 
     const int targetPixelHeight = m_model->pageHeightPts() * m_model->DPR()
                                   * m_target_zoom * m_model->DPI() / 72.0;
@@ -1035,16 +1041,20 @@ DocumentView::zoomHelper() noexcept
 
     renderSearchHitsInScrollbar();
 
-    // Restore viewport to the same PDF position after zoom
-    // if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
-    // {
-    //     GraphicsPixmapItem *pageItem = m_page_items_hash[anchorPageIndex];
-    //     const QPointF restoredPixelPos
-    //         = m_model->toPixelSpace(anchorPageIndex, anchorPdfPos);
-    //     const QPointF restoredScenePos =
-    //     pageItem->mapToScene(restoredPixelPos);
-    //     m_gview->centerOn(restoredScenePos);
-    // }
+    // Restore viewport to the same relative point within the page.
+    if (hasAnchor && m_page_items_hash.contains(anchorPageIndex))
+    {
+        GraphicsPixmapItem *pageItem = m_page_items_hash[anchorPageIndex];
+        const QPixmap pix            = pageItem->pixmap();
+        if (!pix.isNull() && pix.width() > 0 && pix.height() > 0)
+        {
+            const QPointF restoredLocalPos(anchorFrac.x() * pix.width(),
+                                           anchorFrac.y() * pix.height());
+            const QPointF restoredScenePos
+                = pageItem->mapToScene(restoredLocalPos);
+            m_gview->centerOn(restoredScenePos);
+        }
+    }
 
     m_hq_render_timer->start();
 }
@@ -2674,23 +2684,6 @@ DocumentView::ReselectLastTextSelection() noexcept
 }
 
 void
-DocumentView::centerOnPage(int pageno) noexcept
-{
-    GraphicsPixmapItem *pageItem = m_page_items_hash.value(pageno, nullptr);
-    if (!pageItem)
-        return;
-
-#ifndef NDEBUG
-    qDebug() << "centerOnPage(): Centering on page:" << pageno;
-#endif
-
-    const QPointF localPos = QPointF(pageItem->boundingRect().width() / 2.0,
-                                     pageItem->boundingRect().height() / 2.0);
-    const QPointF scenePos = pageItem->mapToScene(localPos);
-    m_gview->centerOn(scenePos);
-}
-
-void
 DocumentView::addToHistory(const PageLocation &location) noexcept
 {
 #ifndef NDEBUG
@@ -2838,6 +2831,6 @@ DocumentView::CurrentLocation() noexcept
     if (!pageAtScenePos(sceneCenter, pageno, pageItem))
         return {-1, 0, 0};
 
-    QPointF pageLocalPos = pageItem->mapFromScene(sceneCenter);
+    const QPointF &pageLocalPos = pageItem->mapFromScene(sceneCenter);
     return {pageno, (float)pageLocalPos.x(), (float)pageLocalPos.y()};
 }

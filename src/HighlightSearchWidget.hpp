@@ -28,6 +28,9 @@ signals:
 private:
     void applyFilter() noexcept;
     void setLoading(bool state) noexcept;
+    void selectFirstItem() noexcept;
+    void moveSelection(int delta) noexcept;
+    void activateCurrentSelection() noexcept;
 
     QPointer<Model> m_model;
     QLineEdit *m_filter_input{nullptr};

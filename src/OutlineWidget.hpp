@@ -2,14 +2,16 @@
 
 #include "OutlineModel.hpp"
 
-#include <QDialog>
+#include <QFocusEvent>
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QShortcut>
 #include <QSortFilterProxyModel>
 #include <QStyledItemDelegate>
 #include <QTreeView>
 #include <QVBoxLayout>
+#include <algorithm>
 
 class RightAlignDelegate : public QStyledItemDelegate
 {
@@ -131,11 +133,35 @@ public:
         m_tree->setSelectionBehavior(QAbstractItemView::SelectRows);
 
         connect(searchEdit, &QLineEdit::textChanged, this,
-                [proxy](const QString &text)
+                [this, proxy](const QString &text)
         {
             proxy->setFilterRegularExpression(QRegularExpression(
                 text, QRegularExpression::CaseInsensitiveOption));
+            selectFirstItem();
         });
+
+        auto *activateShortcut
+            = new QShortcut(QKeySequence(Qt::Key_Return), this);
+        activateShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+        connect(activateShortcut, &QShortcut::activated, this,
+                [this]() { activateCurrentSelection(); });
+
+        auto *enterShortcut = new QShortcut(QKeySequence(Qt::Key_Enter), this);
+        enterShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+        connect(enterShortcut, &QShortcut::activated, this,
+                [this]() { activateCurrentSelection(); });
+
+        auto *nextShortcut
+            = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_N), this);
+        nextShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+        connect(nextShortcut, &QShortcut::activated, this,
+                [this]() { moveSelection(1); });
+
+        auto *prevShortcut
+            = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_P), this);
+        prevShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+        connect(prevShortcut, &QShortcut::activated, this,
+                [this]() { moveSelection(-1); });
 
         // m_tree->setItemDelegateForColumn(1, new RightAlignDelegate(this));
         m_tree->setAnimated(true);
@@ -161,6 +187,7 @@ public:
             m_tree->header()->setSectionResizeMode(
                 QHeaderView::ResizeToContents);
             // Store the location of target outline
+            selectFirstItem();
         }
         else
         {
@@ -174,6 +201,55 @@ public:
         searchEdit->selectAll();
     }
 
+    void selectFirstItem() noexcept
+    {
+        auto *proxy = qobject_cast<QSortFilterProxyModel *>(m_tree->model());
+        if (!proxy || proxy->rowCount() == 0)
+            return;
+
+        const QModelIndex first = proxy->index(0, 0);
+        if (!first.isValid())
+            return;
+
+        m_tree->setCurrentIndex(first);
+        m_tree->selectionModel()->select(first,
+                                         QItemSelectionModel::ClearAndSelect
+                                             | QItemSelectionModel::Rows);
+        m_tree->scrollTo(first);
+    }
+
+    void moveSelection(int delta) noexcept
+    {
+        auto *proxy = qobject_cast<QSortFilterProxyModel *>(m_tree->model());
+        if (!proxy || proxy->rowCount() == 0)
+            return;
+
+        const QModelIndex current = m_tree->currentIndex();
+        int row                   = current.isValid() ? current.row() : 0;
+        row = std::clamp(row + delta, 0, proxy->rowCount() - 1);
+
+        const QModelIndex next = proxy->index(row, 0);
+        if (!next.isValid())
+            return;
+
+        m_tree->setCurrentIndex(next);
+        m_tree->selectionModel()->select(next,
+                                         QItemSelectionModel::ClearAndSelect
+                                             | QItemSelectionModel::Rows);
+        m_tree->scrollTo(next);
+    }
+
+    void activateCurrentSelection() noexcept
+    {
+        const QModelIndex index = m_tree->currentIndex();
+        if (!index.isValid())
+            return;
+        const int page         = index.siblingAtColumn(1).data().toInt();
+        const QPointF location = index.siblingAtColumn(0)
+                                     .data(OutlineModel::TargetLocationRole)
+                                     .toPointF();
+        emit jumpToLocationRequested(page, location);
+    }
 signals:
     void jumpToLocationRequested(int pageno, const QPointF &pos);
 
@@ -184,10 +260,18 @@ private:
     bool m_is_side_panel{true};
 
 protected:
+    void focusInEvent(QFocusEvent *event) override
+    {
+        QWidget::focusInEvent(event);
+        searchEdit->setFocus();
+        searchEdit->selectAll();
+    }
+
     void showEvent(QShowEvent *event) override
     {
+        searchEdit->setFocus();
+        searchEdit->selectAll();
         QWidget::showEvent(event);
-        focusSearchInput();
     }
 
     void keyReleaseEvent(QKeyEvent *e) override

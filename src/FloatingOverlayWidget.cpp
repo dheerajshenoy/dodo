@@ -11,8 +11,7 @@ FloatingOverlayWidget::FloatingOverlayWidget(QWidget *parent) : QWidget(parent)
     setVisible(false);
     setAttribute(Qt::WA_StyledBackground, true);
     setAttribute(Qt::WA_TransparentForMouseEvents, false);
-    setWindowModality(Qt::ApplicationModal);
-    setWindowFlags(Qt::FramelessWindowHint);
+    setWindowFlags(Qt::Widget);
     setFocusPolicy(Qt::StrongFocus);
     if (parent)
     {

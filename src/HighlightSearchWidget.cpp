@@ -1,7 +1,9 @@
 #include "HighlightSearchWidget.hpp"
 
 #include <QHBoxLayout>
+#include <QShortcut>
 #include <QtConcurrent/QtConcurrent>
+#include <algorithm>
 
 HighlightSearchWidget::HighlightSearchWidget(QWidget *parent) : QWidget(parent)
 {
@@ -43,6 +45,12 @@ HighlightSearchWidget::HighlightSearchWidget(QWidget *parent) : QWidget(parent)
     connect(m_filter_input, &QLineEdit::textChanged, this,
             [this]() { applyFilter(); });
 
+    connect(m_filter_input, &QLineEdit::returnPressed, this, [this]()
+    {
+        activateCurrentSelection();
+        this->hide();
+    });
+
     connect(m_refresh_button, &QPushButton::clicked, this,
             [this]() { refresh(); });
 
@@ -52,6 +60,28 @@ HighlightSearchWidget::HighlightSearchWidget(QWidget *parent) : QWidget(parent)
     QWidget::setTabOrder(m_filter_input, m_list);
     QWidget::setTabOrder(m_list, m_refresh_button);
     QWidget::setTabOrder(m_refresh_button, m_close_button);
+
+    auto *nextShortcut
+        = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_N), this);
+    nextShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(nextShortcut, &QShortcut::activated, this,
+            [this]() { moveSelection(1); });
+
+    auto *prevShortcut
+        = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_P), this);
+    prevShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(prevShortcut, &QShortcut::activated, this,
+            [this]() { moveSelection(-1); });
+
+    auto *activateShortcut = new QShortcut(QKeySequence(Qt::Key_Return), this);
+    activateShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(activateShortcut, &QShortcut::activated, this,
+            [this]() { activateCurrentSelection(); });
+
+    auto *enterShortcut = new QShortcut(QKeySequence(Qt::Key_Enter), this);
+    enterShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(enterShortcut, &QShortcut::activated, this,
+            [this]() { activateCurrentSelection(); });
 
     connect(m_list, &QListWidget::itemDoubleClicked, this,
             [this](QListWidgetItem *item)
@@ -150,6 +180,7 @@ HighlightSearchWidget::applyFilter() noexcept
     }
 
     m_count_label->setText(QString("%1 results").arg(count));
+    selectFirstItem();
 }
 
 void
@@ -167,6 +198,42 @@ HighlightSearchWidget::setLoading(bool state) noexcept
         m_spinner->stop();
         m_refresh_button->setEnabled(true);
     }
+}
+
+void
+HighlightSearchWidget::selectFirstItem() noexcept
+{
+    if (m_list->count() == 0)
+        return;
+    m_list->setCurrentRow(0);
+    m_list->scrollToItem(m_list->currentItem());
+}
+
+void
+HighlightSearchWidget::moveSelection(int delta) noexcept
+{
+    const int count = m_list->count();
+    if (count == 0)
+        return;
+
+    int row = m_list->currentRow();
+    if (row < 0)
+        row = 0;
+
+    row = std::clamp(row + delta, 0, count - 1);
+    m_list->setCurrentRow(row);
+    m_list->scrollToItem(m_list->currentItem());
+}
+
+void
+HighlightSearchWidget::activateCurrentSelection() noexcept
+{
+    QListWidgetItem *item = m_list->currentItem();
+    if (!item)
+        return;
+    const int page    = item->data(Qt::UserRole).toInt();
+    const QPointF pos = item->data(Qt::UserRole + 1).toPointF();
+    emit gotoLocationRequested(page, pos);
 }
 
 void
