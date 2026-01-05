@@ -1,5 +1,8 @@
 # TODO
 - [X] Configurable page layout (single, left-right, continuous, facing etc.)
+- [X] Fix right click context menu position on high DPI displays
+- [X] Scroll to specific position and center it in the viewport
+- [X] Startup Page widget not respecting fit mode from config
 - [X] Encrypt PDF with password
 - [X] Reload document on request
 - [X] Double, triple and quadruple click to select word, line and paragraph respectively
@@ -27,6 +30,7 @@
     - [X] Highlight
     - [X] Rectangle
     - [X] Popup
+    
 - [ ] Undo/Redo operations
   - [ ] Rect Annotation
   - [X] Text Highlight Annotation
@@ -51,7 +55,4 @@
 - [ ] Two page side-by-side view mode
 - [ ] Two selected page view mode
 - [ ] Implement LRU caching for pages and other resources
-- [ ] Fix right click context menu position on high DPI displays
-- [X] Scroll to specific position and center it in the viewport
 - [ ] Non PDF-link URL objects detection and handling
-- [X] Startup Page widget not respecting fit mode from config
