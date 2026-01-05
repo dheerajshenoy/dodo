@@ -91,6 +91,8 @@ protected:
     // bool viewportEvent(QEvent *event) override;
 
 private:
+    void updateCursorForMode() noexcept;
+
     QRect m_rect;
     QPoint m_start;
     QPointF m_mousePressPos;

@@ -39,6 +39,20 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
 }
 
 void
+GraphicsView::updateCursorForMode() noexcept
+{
+    if (m_selecting
+        && (m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight))
+    {
+        setCursor(Qt::IBeamCursor);
+    }
+    else
+    {
+        unsetCursor();
+    }
+}
+
+void
 GraphicsView::setMode(Mode mode) noexcept
 {
     m_selecting = false;
@@ -65,6 +79,7 @@ GraphicsView::setMode(Mode mode) noexcept
     }
 
     m_mode = mode;
+    updateCursorForMode();
 }
 
 void
@@ -162,13 +177,12 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
         {
             if (event->button() == Qt::LeftButton)
             {
-                setCursor(
-                    Qt::IBeamCursor); // cheaper than global override cursor
+                m_selecting = true;
+                updateCursorForMode();
                 const QPointF scenePos = mapToScene(event->pos());
                 m_mousePressPos        = scenePos;
                 m_selection_start      = scenePos;
                 m_lastMovePos          = event->pos();
-                m_selecting            = true;
 
                 event->accept();
                 return; // handled
@@ -255,7 +269,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     // Text modes
     if (m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
     {
-        unsetCursor();
+        updateCursorForMode();
 
         const QPointF scenePos = mapToScene(event->pos());
         const int dist = (scenePos.toPoint() - m_mousePressPos.toPoint())

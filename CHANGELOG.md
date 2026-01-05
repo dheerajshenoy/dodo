@@ -2,6 +2,7 @@
 
 ## 0.5.3
 
+- Change cursor when selecting or highlighting text
 
 ### Bug Fixes
 
