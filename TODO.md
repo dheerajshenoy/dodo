@@ -51,3 +51,4 @@
 - [ ] Two selected page view mode
 - [ ] Implement LRU caching for pages and other resources
 - [ ] Startup Page widget not respecting fit mode from config
+- [ ] Fix right click context menu position on high DPI displays
