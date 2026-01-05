@@ -42,7 +42,10 @@ streamlined interface and robust functionality with minimal resource usage.
 <img src="./images/Layouts.gif" alt="Layouts" width="800"/>
 
 ### File opened + outline panel
-<img src="./images/dodo.png" alt="dodo in action" width="800"/>
+<img src="./images/dodo.png" alt="File + Outline" width="800"/>
+
+### Search Marker in Scrollbar
+<img src="./images/Search-Hits-Scrollbar.gif" alt="Search Hits in Scrollbar" width="800"/>
 
 ### Jump Marker feature in action
 <img src="./images/jump-marker.gif" alt="dodo jump marker feature" width="800"/>
