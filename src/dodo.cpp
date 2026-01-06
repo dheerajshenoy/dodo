@@ -226,6 +226,14 @@ dodo::initMenubar() noexcept
     m_actionToggleOutline->setCheckable(true);
     m_actionToggleOutline->setChecked(!m_outline_widget->isHidden());
 
+    m_actionToggleHighlightAnnotSearch = m_toggleMenu->addAction(
+        QString("Highlight Annotation Search\t%1")
+            .arg(m_config.shortcuts["highlight_annot_search"]),
+        this, &dodo::ShowHighlightSearch);
+    m_actionToggleHighlightAnnotSearch->setCheckable(true);
+    m_actionToggleHighlightAnnotSearch->setChecked(
+        !m_outline_widget->isHidden());
+
     m_actionToggleMenubar = m_toggleMenu->addAction(
         QString("Menubar\t%1").arg(m_config.shortcuts["toggle_menubar"]), this,
         &dodo::ToggleMenubar);
@@ -641,6 +649,8 @@ dodo::initConfig() noexcept
         m_config.behavior.initial_mode = initial_mode;
     }
 
+    m_config.behavior.confirm_on_quit
+        = behavior["confirm_on_quit"].value_or(true);
     m_config.behavior.undo_limit = behavior["undo_limit"].value_or(25);
     m_config.behavior.remember_last_visited
         = behavior["remember_last_visited"].value_or(true);
@@ -841,7 +851,6 @@ dodo::initGui() noexcept
 
     m_outline_widget          = new OutlineWidget(this);
     m_highlight_search_widget = new HighlightSearchWidget(this);
-    m_highlight_search_widget->setVisible(false);
 
     widget->setLayout(m_layout);
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -923,6 +932,7 @@ dodo::initGui() noexcept
         {
             if (m_actionToggleOutline)
                 m_actionToggleOutline->setChecked(false);
+            this->setFocus();
         });
     }
     else if (!outlineSide)
@@ -936,7 +946,12 @@ dodo::initGui() noexcept
         m_highlight_overlay = new FloatingOverlayWidget(m_tab_widget);
         m_highlight_overlay->setContentWidget(m_highlight_search_widget);
         connect(m_highlight_overlay, &FloatingOverlayWidget::overlayHidden,
-                this, [this]() { m_highlight_search_widget->hide(); });
+                this, [this]()
+        {
+            if (m_actionToggleOutline)
+                m_actionToggleOutline->setChecked(false);
+            this->setFocus();
+        });
     }
     else if (!highlightSide)
     {
@@ -1661,8 +1676,37 @@ dodo::ShowOutline() noexcept
         target->show();
         target->raise();
         target->activateWindow();
-        m_outline_widget->setFocus(Qt::OtherFocusReason);
         m_actionToggleOutline->setChecked(true);
+    }
+}
+
+// Show the highlight search panel
+void
+dodo::ShowHighlightSearch() noexcept
+{
+    if (!m_doc)
+        return;
+
+    m_highlight_search_widget->setModel(m_doc->model());
+    if (m_config.ui.highlight_search.type == "side_panel" && m_side_panel_tabs)
+        m_side_panel_tabs->setCurrentWidget(m_highlight_search_widget);
+
+    QWidget *target = m_highlight_search_widget;
+    if (m_config.ui.highlight_search.type == "overlay" && m_highlight_overlay)
+        target = m_highlight_overlay;
+
+    if (target->isVisible())
+    {
+        target->hide();
+        m_actionToggleHighlightAnnotSearch->setChecked(false);
+    }
+    else
+    {
+        target->show();
+        target->raise();
+        target->activateWindow();
+        m_actionToggleHighlightAnnotSearch->setChecked(true);
+        m_highlight_search_widget->refresh();
     }
 }
 
@@ -2013,6 +2057,20 @@ dodo::closeEvent(QCloseEvent *e)
             }
         }
     }
+
+    if (m_config.behavior.confirm_on_quit)
+    {
+        int ret = QMessageBox::question(
+            this, "Confirm Quit", "Are you sure you want to quit dodo?",
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+
+        if (ret == QMessageBox::No)
+        {
+            e->ignore();
+            return;
+        }
+    }
+
     e->accept();
 }
 
@@ -2675,6 +2733,7 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("link_hint_visit", VisitLinkKB),
         ACTION_NO_ARGS("link_hint_copy", CopyLinkKB),
         ACTION_NO_ARGS("outline", ShowOutline),
+        ACTION_NO_ARGS("highlight_annot_search", ShowHighlightSearch),
         ACTION_NO_ARGS("rotate_clock", RotateClock),
         ACTION_NO_ARGS("rotate_anticlock", RotateAnticlock),
         ACTION_NO_ARGS("prev_location", GoBackHistory),
@@ -3022,27 +3081,6 @@ dodo::ToggleSearchBar() noexcept
     {
         m_search_bar->setVisible(!m_search_bar->isVisible());
     }
-}
-
-void
-dodo::ShowHighlightSearch() noexcept
-{
-    if (!m_doc)
-        return;
-
-    m_highlight_search_widget->setModel(m_doc->model());
-    if (m_config.ui.highlight_search.type == "side_panel" && m_side_panel_tabs)
-        m_side_panel_tabs->setCurrentWidget(m_highlight_search_widget);
-
-    QWidget *target = m_highlight_search_widget;
-    if (m_config.ui.highlight_search.type == "overlay" && m_highlight_overlay)
-        target = m_highlight_overlay;
-
-    m_highlight_search_widget->show();
-    target->show();
-    target->raise();
-    target->activateWindow();
-    m_highlight_search_widget->refresh();
 }
 
 void

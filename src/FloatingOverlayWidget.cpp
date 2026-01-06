@@ -3,6 +3,7 @@
 #include <QHBoxLayout>
 #include <QKeySequence>
 #include <QShortcut>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <qnamespace.h>
 
@@ -98,14 +99,25 @@ FloatingOverlayWidget::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
     if (m_content)
-        m_content->setFocus(Qt::OtherFocusReason);
+    {
+        m_content->show();
+        m_content->activateWindow();
+        // QTimer::singleShot(0, this, [this]()
+        // {
+        //     if (m_content)
+        //         m_content->setFocus();
+        // });
+    }
 }
 
 void
 FloatingOverlayWidget::keyReleaseEvent(QKeyEvent *event)
 {
     if (event->key() == Qt::Key_Escape)
-        hide();
+    {
+        m_content->clearFocus();
+        close();
+    }
 }
 
 void

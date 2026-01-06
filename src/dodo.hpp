@@ -217,6 +217,7 @@ private:
     QAction *m_actionToggleMenubar{nullptr};
     QAction *m_actionTogglePanel{nullptr};
     QAction *m_actionToggleOutline{nullptr};
+    QAction *m_actionToggleHighlightAnnotSearch{nullptr};
     QAction *m_actionGotoPage{nullptr};
     QAction *m_actionFirstPage{nullptr};
     QAction *m_actionPrevPage{nullptr};

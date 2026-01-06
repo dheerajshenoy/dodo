@@ -10,18 +10,19 @@ HighlightSearchWidget::HighlightSearchWidget(QWidget *parent) : QWidget(parent)
     setWindowTitle("Highlight Search");
     setMinimumSize(640, 420);
 
-    m_spinner = new WaitingSpinnerWidget(this, false, true);
+    m_spinner = new WaitingSpinnerWidget(this, false, false);
     m_spinner->setInnerRadius(5);
     m_spinner->setColor(palette().color(QPalette::Text));
 
     QLabel *title  = new QLabel("Highlights", this);
     m_filter_input = new QLineEdit(this);
     m_filter_input->setPlaceholderText("Filter highlights");
+    m_filter_input->setFocusPolicy(Qt::StrongFocus);
     m_list = new QListWidget(this);
     m_list->setMinimumHeight(220);
     m_count_label    = new QLabel("0 results", this);
     m_refresh_button = new QPushButton("Refresh", this);
-    m_close_button   = new QPushButton("Close", this);
+    // m_close_button   = new QPushButton("Close", this);
 
     QVBoxLayout *layout = new QVBoxLayout(this);
 
@@ -41,7 +42,7 @@ HighlightSearchWidget::HighlightSearchWidget(QWidget *parent) : QWidget(parent)
     QHBoxLayout *footer = new QHBoxLayout();
     footer->addWidget(m_count_label);
     footer->addStretch();
-    footer->addWidget(m_close_button);
+    // footer->addWidget(m_close_button);
     layout->addLayout(footer);
 
     connect(m_filter_input, &QLineEdit::textChanged, this,
@@ -56,12 +57,12 @@ HighlightSearchWidget::HighlightSearchWidget(QWidget *parent) : QWidget(parent)
     connect(m_refresh_button, &QPushButton::clicked, this,
             [this]() { refresh(); });
 
-    connect(m_close_button, &QPushButton::clicked, this,
-            [this]() { this->hide(); });
+    // connect(m_close_button, &QPushButton::clicked, this,
+    //         [this]() { this->hide(); });
 
     QWidget::setTabOrder(m_filter_input, m_list);
     QWidget::setTabOrder(m_list, m_refresh_button);
-    QWidget::setTabOrder(m_refresh_button, m_close_button);
+    // QWidget::setTabOrder(m_refresh_button, m_close_button);
 
     auto *nextShortcut
         = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_N), this);
@@ -109,16 +110,6 @@ void
 HighlightSearchWidget::setModel(Model *model) noexcept
 {
     m_model = model;
-}
-
-void
-HighlightSearchWidget::focusFilterInput() noexcept
-{
-    if (m_filter_input)
-    {
-        m_filter_input->setFocus();
-        m_filter_input->selectAll();
-    }
 }
 
 void
@@ -242,16 +233,13 @@ void
 HighlightSearchWidget::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
-    focusFilterInput();
+    m_filter_input->setFocus();
+    m_filter_input->selectAll();
 }
 
 void
 HighlightSearchWidget::keyReleaseEvent(QKeyEvent *event)
 {
-    // if (event->key() == Qt::Key_Escape)
-    // {
-    //     this->hide();
-    // }
-
-    QWidget::keyReleaseEvent(event);
+    if (event->key() == Qt::Key_Escape)
+        event->ignore();
 }

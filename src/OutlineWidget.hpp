@@ -9,6 +9,7 @@
 #include <QShortcut>
 #include <QSortFilterProxyModel>
 #include <QStyledItemDelegate>
+#include <QTimer>
 #include <QTreeView>
 #include <QVBoxLayout>
 #include <algorithm>
@@ -195,12 +196,6 @@ public:
         }
     }
 
-    void focusSearchInput() noexcept
-    {
-        searchEdit->setFocus();
-        searchEdit->selectAll();
-    }
-
     void selectFirstItem() noexcept
     {
         auto *proxy = qobject_cast<QSortFilterProxyModel *>(m_tree->model());
@@ -260,18 +255,11 @@ private:
     bool m_is_side_panel{true};
 
 protected:
-    void focusInEvent(QFocusEvent *event) override
-    {
-        QWidget::focusInEvent(event);
-        searchEdit->setFocus();
-        searchEdit->selectAll();
-    }
-
     void showEvent(QShowEvent *event) override
     {
+        QWidget::showEvent(event);
         searchEdit->setFocus();
         searchEdit->selectAll();
-        QWidget::showEvent(event);
     }
 
     void keyReleaseEvent(QKeyEvent *e) override

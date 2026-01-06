@@ -120,6 +120,7 @@ struct Config
         int startpage_override{-1};
         GraphicsView::Mode initial_mode{GraphicsView::Mode::RegionSelection};
         QString synctex_editor_command{QString()};
+        bool confirm_on_quit{true};
     };
 
     ui ui{};
