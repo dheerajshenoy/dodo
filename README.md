@@ -1,6 +1,6 @@
 <p align="center">
     <img src="./resources/dodo2.png" height="200px" width="200px"/><br><br>
-<b><i>A fast and unintrusive PDF reader.</i></b>
+<b><i>Just another PDF reader, but it's not</i></b>
 </p>
 
 [![GitHub License](https://shields.io/badge/LICENSE-AGPL-3)](https://opensource.org/license/agpl-v3)
