@@ -3,12 +3,12 @@
 fullscreen = false
 menubar = false
 panel = true
-startup_tab = false
+startup_tab = true
 full_file_path_in_panel = false
 window_title = "{} - dodo" # '{}' replaced with base file name
 
 [ui.layout]
-mode = "left_to_right" # "single", "top_to_bottom", "left_to_right"
+mode = "top_to_bottom" # "single", "top_to_bottom", "left_to_right"
 initial_fit = "width" # "none", "width", "height", "window"
 auto_resize = false # fit document to window
 
@@ -20,15 +20,17 @@ factor = 1.25 # factor for zoom in/out
 drag_threshold = 100
 
 [ui.scrollbars]
-horizontal = true
-vertical = true
-search_hits = false # show/hide search hits on scrollbar
+horizontal = false
+vertical = false
+search_hits = true # show/hide search hits on scrollbar
 
 [ui.markers]
 jump_marker = true
 
 [ui.links]
 boundary = false # show link boundary box
+detect_urls = true # detect and create links for URLs in text that are not PDF link objects (http, https, mailto etc.)
+url_regex = "(https?://|www\\.)[^\\s<>()\\\"']+" # regex for URL detection (if detect_urls is true)
 
 [ui.link_hints]
 size = 0.25 # relative scale for link hint labels
@@ -43,9 +45,16 @@ bar_position = "bottom" # "top", "bottom", "left", "right"
 
 [ui.outline]
 visible = false
-as_side_panel = true
 panel_position = "left" # "left", "right"
+type = "overlay" # "overlay", "dialog", "side_panel"
 panel_width = 300
+
+[ui.highlight_search]
+visible = false
+panel_position = "right" # or "left"
+type = "overlay" # or "overlay", "dialog", "side_panel"
+panel_width = 300
+
 
 # ===== Colors (ARGB) =====
 [colors]
@@ -71,7 +80,8 @@ icc_color_profile = true
 
 # ===== Behavior =====
 [behavior]
-initial_mode = "text_select" # "region_select", "annot_rect", "annot_select", "text_select", "text_highlight"
+initial_mode = "text_select_mode" # { "region_select_mode", "annot_rect_mode", "annot_select_mode", "text_select_mode", "text_highlight_mode", "annot_popup_mode" }
+
 remember_last_visited = true
 page_history = 100
 confirm_on_quit = true
@@ -118,12 +128,13 @@ tab8 = "Alt+8"
 tab9 = "Alt+9"
 tab_next = "Ctrl+Period"
 tab_prev = "Ctrl+Comma"
-region_select_mode = "1"
-annot_rect_mode = "2"
-annot_edit_mode = "3"
-text_highlight_mode = "4"
-annot_pen_mode = "5"
-annot_popup_mode = "6"
+text_select_mode = "1"
+region_select_mode = "2"
+annot_rect_mode = "3"
+annot_edit_mode = "4"
+text_highlight_mode = "5"
+annot_pen_mode = "6"
+annot_popup_mode = "7"
 delete = "d"
 file_properties = "Ctrl+Shift+F"
 invert_color = "i"
