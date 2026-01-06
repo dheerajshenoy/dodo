@@ -453,17 +453,16 @@ DocumentView::handleSearchResults(
         return;
     }
 
-    m_search_hits  = results;
-    m_search_index = 0;
+    m_search_hits = results;
     buildFlatSearchHitIndex();
     renderVisiblePages();
     updateCurrentHitHighlight();
 
     if (m_config.ui.scrollbars.search_hits)
         renderSearchHitsInScrollbar();
-
-    emit searchIndexChanged(m_search_index);
     emit searchCountChanged(m_model->searchMatchesCount());
+
+    GotoHit(0);
 }
 
 void
