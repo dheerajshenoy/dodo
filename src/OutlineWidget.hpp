@@ -181,6 +181,7 @@ public:
     {
         if (outline)
         {
+            m_has_outline = true;
             m_model->loadFromOutline(outline);
             m_tree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
             m_tree->header()->setSectionResizeMode(
@@ -191,9 +192,20 @@ public:
             selectFirstItem();
         }
         else
-        {
-            m_model->clear();
-        }
+            clearOutline();
+    }
+
+    inline bool hasOutline() const noexcept
+    {
+        return m_has_outline;
+    }
+
+    void clearOutline() noexcept
+    {
+        m_tree->selectionModel()->clearSelection();
+        m_tree->setCurrentIndex(QModelIndex());
+        m_has_outline = false;
+        m_model->clear();
     }
 
     void selectFirstItem() noexcept
@@ -253,6 +265,7 @@ private:
     QLineEdit *searchEdit{new QLineEdit(this)};
     OutlineModel *m_model{new OutlineModel(this)};
     bool m_is_side_panel{true};
+    bool m_has_outline{false};
 
 protected:
     void showEvent(QShowEvent *event) override

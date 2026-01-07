@@ -1661,7 +1661,14 @@ dodo::ToggleAutoResize() noexcept
 void
 dodo::ShowOutline() noexcept
 {
+    if (!m_outline_widget->hasOutline())
+    {
+        QMessageBox::information(this, "Outline",
+                                 "This document has no outline.");
+        return;
+    }
     QWidget *target = m_outline_widget;
+
     if (m_config.ui.outline.type == "overlay" && m_outline_overlay)
         target = m_outline_overlay;
 
@@ -1880,7 +1887,7 @@ dodo::initConnections() noexcept
                 // Set the outline to nullptr if the closed tab was the
                 // current one
                 if (m_doc == doc)
-                    m_outline_widget->setOutline(nullptr);
+                    m_outline_widget->clearOutline();
                 doc->CloseFile();
             }
         }

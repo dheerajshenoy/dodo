@@ -12,7 +12,7 @@
 - [ui.links]
     - `detect_urls` - Enable/Disable non-link URL detection and linkification
     - `url_regex` - Custom regex for URL detection (default is a standard URL regex)
-- Fix double memory free crash on exit when there's more than one tab
+
     
 ### Bug Fixes
 
@@ -22,6 +22,8 @@
 - Fix scrolling to specific position and center it in the viewport
 - Fix zoom changing the viewport position unexpectedly
 - Show highlight search overlay properly
+- Fix double memory free crash on exit when there's more than one tab
+- Show information if no outline is present in the document instead of empty outline panel
 
 ## 0.5.2
 
