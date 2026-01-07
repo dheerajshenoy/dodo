@@ -48,7 +48,7 @@ streamlined interface and robust functionality with minimal resource usage.
 <img src="./images/Search-Hits-Scrollbar.gif" alt="Search Hits in Scrollbar" width="800"/>
 
 ### Jump Marker feature in action
-<img src="./images/jump-marker.gif" alt="dodo jump marker feature" width="800"/>
+<img src="./images/Jump-Marker.gif" alt="dodo jump marker feature" width="800"/>
 
 ### Synctex forward search from dodo to tex editor (Zed editor in this case)
 <img src="./images/synctex.gif" alt="dodo synctex forward search feature" width="800"/>
