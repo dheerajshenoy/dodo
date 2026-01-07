@@ -31,7 +31,7 @@
     - [X] Rectangle
     - [X] Popup
 - [X] Non PDF-link URL objects detection and handling
-    
+
 - [ ] Undo/Redo operations
   - [ ] Rect Annotation
   - [X] Text Highlight Annotation
@@ -55,3 +55,4 @@
 - [ ] Two page side-by-side view mode
 - [ ] Two selected page view mode
 - [ ] Implement LRU caching for pages and other resources
+- [ ] Undo/Redo change modified state

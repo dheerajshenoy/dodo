@@ -1531,6 +1531,7 @@ dodo::OpenFile(const QString &filePath,
     DocumentView *docwidget = new DocumentView(m_config, m_tab_widget);
     int index               = m_tab_widget->addTab(docwidget, fp);
 
+    // TODO: Handle password-protected files
     // if (docwidget->passwordRequired())
     // {
     //     QString password;
@@ -1562,18 +1563,30 @@ dodo::OpenFile(const QString &filePath,
     //     } while (true);
     // }
     connect(docwidget, &DocumentView::openFileFinished, this,
-            [this, callback](DocumentView *doc)
+            [this, callback, index](DocumentView *doc)
     {
         const QString filePath = doc->filePath();
         doc->setDPR(m_dpr);
         initTabConnections(doc);
-        m_outline_widget->setOutline(doc->model()->getOutline());
+        auto outline = doc->model()->getOutline();
+        if (outline)
+        {
+            m_outline_widget->setOutline(outline);
+            return;
+            if (m_config.ui.outline.visible)
+            {
+                m_outline_widget->show();
+            }
+        }
+
         m_path_tab_map[filePath] = doc;
+
         // Record in history
         const int page = doc->pageNo() + 1;
         insertFileToDB(filePath, page > 0 ? page : 1);
-        if (m_config.ui.outline.visible)
-            m_outline_widget->show();
+
+        m_tab_widget->setCurrentIndex(index);
+
         updatePanel();
         if (callback)
             callback();
