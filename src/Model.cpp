@@ -66,6 +66,27 @@ Model::Model(QObject *parent) noexcept : QObject(parent)
 void
 Model::cleanup() noexcept
 {
+
+    fz_drop_outline(m_ctx, m_outline);
+    m_outline = nullptr;
+
+    pdf_drop_document(m_ctx, m_pdf_doc);
+    m_pdf_doc = nullptr;
+
+    fz_drop_document(m_ctx, m_doc);
+    m_doc = nullptr;
+
+    {
+        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+        for (auto &[_, entry] : m_page_cache)
+            fz_drop_display_list(m_ctx, entry.display_list);
+
+        m_page_cache.clear();
+    }
+
+    m_stext_page_cache.clear();
+    m_text_cache.clear();
+
     if (!m_ctx)
     {
         m_outline = nullptr;
@@ -76,32 +97,6 @@ Model::cleanup() noexcept
         m_text_cache.clear();
         return;
     }
-
-    if (m_outline)
-    {
-        fz_drop_outline(m_ctx, m_outline);
-        m_outline = nullptr;
-    }
-    if (m_pdf_doc)
-    {
-        pdf_drop_document(m_ctx, m_pdf_doc);
-        m_pdf_doc = nullptr;
-    }
-    if (m_doc)
-    {
-        fz_drop_document(m_ctx, m_doc);
-        m_doc = nullptr;
-    }
-
-    {
-        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-        for (auto &[_, entry] : m_page_cache)
-            fz_drop_display_list(m_ctx, entry.display_list);
-
-        m_page_cache.clear();
-    }
-    m_stext_page_cache.clear();
-    m_text_cache.clear();
 }
 
 Model::~Model() noexcept

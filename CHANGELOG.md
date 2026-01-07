@@ -12,6 +12,7 @@
 - [ui.links]
     - `detect_urls` - Enable/Disable non-link URL detection and linkification
     - `url_regex` - Custom regex for URL detection (default is a standard URL regex)
+- Fix double memory free crash on exit when there's more than one tab
     
 ### Bug Fixes
 
