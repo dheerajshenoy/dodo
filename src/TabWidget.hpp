@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DraggableTabBar.hpp"
+
 #include <QContextMenuEvent>
 #include <QFontDatabase>
 #include <QMenu>
@@ -13,14 +15,32 @@ class TabWidget : public QTabWidget
 public:
     TabWidget(QWidget *parent = nullptr) : QTabWidget(parent)
     {
+        m_tab_bar = new DraggableTabBar(this);
+        setTabBar(m_tab_bar);
+
         setElideMode(Qt::TextElideMode::ElideRight);
         setDocumentMode(true);
         setMovable(true);
         setTabsClosable(true);
-        setAcceptDrops(false);
+        setAcceptDrops(true);
         setStyleSheet("border: 0");
         tabBar()->setDrawBase(false);
         setTabPosition(QTabWidget::TabPosition::North);
+
+        // Forward signals from the draggable tab bar
+        connect(m_tab_bar, &DraggableTabBar::tabDataRequested, this,
+                &TabWidget::tabDataRequested);
+        connect(m_tab_bar, &DraggableTabBar::tabDropReceived, this,
+                &TabWidget::tabDropReceived);
+        connect(m_tab_bar, &DraggableTabBar::tabDetached, this,
+                &TabWidget::tabDetached);
+        connect(m_tab_bar, &DraggableTabBar::tabDetachedToNewWindow, this,
+                &TabWidget::tabDetachedToNewWindow);
+    }
+
+    DraggableTabBar *draggableTabBar() const
+    {
+        return m_tab_bar;
     }
 
     int addTab(QWidget *page, const QString &title)
@@ -99,4 +119,11 @@ signals:
     void tabAdded(int index);
     void openInExplorerRequested(int index);
     void filePropertiesRequested(int index);
+    void tabDataRequested(int index, DraggableTabBar::TabData *outData);
+    void tabDropReceived(const DraggableTabBar::TabData &data);
+    void tabDetached(int index, const QPoint &globalPos);
+    void tabDetachedToNewWindow(int index, const DraggableTabBar::TabData &data);
+
+private:
+    DraggableTabBar *m_tab_bar{nullptr};
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DraggableTabBar.hpp"
 #include "Config.hpp"
 #include "DocumentView.hpp"
 #include "FloatingOverlayWidget.hpp"
@@ -38,6 +39,8 @@
 
 class dodo : public QMainWindow
 {
+    Q_OBJECT
+
 public:
     dodo() noexcept;
     dodo(const QString &sessionName,
@@ -71,6 +74,14 @@ private:
     void initActionMap() noexcept;
     void trimRecentFilesDatabase() noexcept;
     void reloadDocument() noexcept;
+
+    // Tab drag and drop handlers
+    void handleTabDataRequested(int index,
+                                DraggableTabBar::TabData *outData) noexcept;
+    void handleTabDropReceived(const DraggableTabBar::TabData &data) noexcept;
+    void handleTabDetached(int index, const QPoint &globalPos) noexcept;
+    void handleTabDetachedToNewWindow(int index,
+                                      const DraggableTabBar::TabData &data) noexcept;
 
     inline bool validTabIndex(int index) const noexcept
     {

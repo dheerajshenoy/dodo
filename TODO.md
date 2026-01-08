@@ -56,3 +56,4 @@
 - [ ] Two selected page view mode
 - [ ] Implement LRU caching for pages and other resources
 - [ ] Undo/Redo change modified state
+- [ ] Config option to always open in new window instead of tab

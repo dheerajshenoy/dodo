@@ -24,7 +24,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra")
 #Set flags for Release build
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-find_package(Qt6 COMPONENTS Gui Widgets Core Svg SvgWidgets Concurrent REQUIRED)
+find_package(Qt6 COMPONENTS Gui Widgets Core Svg SvgWidgets Concurrent)
+#OpenGLWidgets )
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(synctex QUIET synctex)
@@ -67,6 +68,7 @@ add_executable(${PROJECT_NAME}
     src/JumpMarker.hpp
     src/CircleLabel.hpp
     src/TabWidget.hpp
+    src/DraggableTabBar.hpp
     src/commands/RectAnnotationCommand.hpp
     src/commands/TextHighlightAnnotationCommand.hpp
     src/commands/DeleteAnnotationsCommand.hpp
@@ -89,7 +91,7 @@ if(synctex_FOUND)
     message(STATUS "Found SyncTex: ${synctex_VERSION}. Compiling with SyncTeX support.")
     target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_SYNCTEX=1)
     target_link_libraries(
-        ${PROJECT_NAME} Qt6::Widgets Qt6::Core Qt6::SvgWidgets Qt6::Concurrent
+        ${PROJECT_NAME} Qt6::Widgets Qt6::Core Qt6::SvgWidgets Qt6::Concurrent # Qt6::OpenGLWidgets
         ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
         ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
         synctex

@@ -1856,6 +1856,16 @@ dodo::initConnections() noexcept
     connect(m_tab_widget, &QTabWidget::currentChanged, this,
             &dodo::handleCurrentTabChanged);
 
+    // Tab drag and drop connections for cross-window tab transfer
+    connect(m_tab_widget, &TabWidget::tabDataRequested, this,
+            &dodo::handleTabDataRequested);
+    connect(m_tab_widget, &TabWidget::tabDropReceived, this,
+            &dodo::handleTabDropReceived);
+    connect(m_tab_widget, &TabWidget::tabDetached, this,
+            &dodo::handleTabDetached);
+    connect(m_tab_widget, &TabWidget::tabDetachedToNewWindow, this,
+            &dodo::handleTabDetachedToNewWindow);
+
     QWindow *win = window()->windowHandle();
 
     m_dpr = m_screen_dpr_map.value(QGuiApplication::primaryScreen()->name(),
@@ -2036,7 +2046,102 @@ dodo::handleCurrentTabChanged(int index) noexcept
     this->setWindowTitle(m_doc->windowTitle());
 }
 
-// Handle the close event to check for unsaved changes
+void
+dodo::handleTabDataRequested(int index,
+                             DraggableTabBar::TabData *outData) noexcept
+{
+    if (!validTabIndex(index))
+        return;
+
+    QWidget *widget = m_tab_widget->widget(index);
+    if (!widget)
+        return;
+
+    DocumentView *doc = qobject_cast<DocumentView *>(widget);
+    if (!doc)
+        return;
+
+    outData->filePath    = doc->filePath();
+    outData->currentPage = doc->pageNo() + 1;
+    outData->zoom        = doc->zoom();
+    outData->invertColor = doc->invertColor();
+    outData->rotation    = doc->model()->rotation();
+    outData->fitMode     = static_cast<int>(doc->fitMode());
+}
+
+void
+dodo::handleTabDropReceived(const DraggableTabBar::TabData &data) noexcept
+{
+    if (data.filePath.isEmpty())
+        return;
+
+    // Open the file and restore its state
+    OpenFile(data.filePath, [this, data]()
+    {
+        if (!m_doc)
+            return;
+
+        // Restore document state
+        m_doc->GotoPage(data.currentPage - 1);
+        m_doc->setZoom(data.zoom);
+        m_doc->setInvertColor(data.invertColor);
+
+        // Restore rotation
+        int currentRotation = m_doc->model()->rotation();
+        int targetRotation  = data.rotation;
+        while (currentRotation != targetRotation)
+        {
+            m_doc->RotateClock();
+            currentRotation = (currentRotation + 90) % 360;
+        }
+
+        // Restore fit mode
+        m_doc->setFitMode(static_cast<DocumentView::FitMode>(data.fitMode));
+        // updatePanel();
+    });
+}
+
+void
+dodo::handleTabDetached(int index, const QPoint &globalPos) noexcept
+{
+    Q_UNUSED(globalPos);
+
+    if (!validTabIndex(index))
+        return;
+
+    // Close the tab that was successfully moved to another window
+    m_tab_widget->tabCloseRequested(index);
+}
+
+void
+dodo::handleTabDetachedToNewWindow(
+    int index, const DraggableTabBar::TabData &data) noexcept
+{
+    if (!validTabIndex(index))
+        return;
+
+    if (data.filePath.isEmpty())
+        return;
+
+    // Spawn a new dodo process with the file
+    QStringList args;
+    args << data.filePath;
+    args << "-p" << QString::number(data.currentPage);
+
+    bool started = QProcess::startDetached(
+        QCoreApplication::applicationFilePath(), args);
+
+    if (started)
+    {
+        // Close the tab in this window
+        m_tab_widget->tabCloseRequested(index);
+    }
+    else
+    {
+        m_message_bar->showMessage("Failed to open tab in new window");
+    }
+}
+
 void
 dodo::closeEvent(QCloseEvent *e)
 {
@@ -2189,6 +2294,14 @@ dodo::eventFilter(QObject *object, QEvent *event)
                 { openInExplorerForIndex(index); });
                 menu.addAction("File Properties", this, [this, index]()
                 { filePropertiesForIndex(index); });
+                menu.addSeparator();
+                menu.addAction("Move Tab to New Window", this, [this, index]()
+                {
+                    DraggableTabBar::TabData data;
+                    handleTabDataRequested(index, &data);
+                    if (!data.filePath.isEmpty())
+                        handleTabDetachedToNewWindow(index, data);
+                });
                 menu.addAction("Close Tab", this, [this, index]()
                 { m_tab_widget->tabCloseRequested(index); });
 
@@ -3121,13 +3234,22 @@ dodo::openSessionFromArray(const QJsonArray &sessionArray) noexcept
         const int fitMode       = entry["fit_mode"].toInt();
         const bool invert       = entry["invert_color"].toBool();
 
-        DocumentView *view = new DocumentView(m_config, m_tab_widget);
-        if (invert)
-            view->setInvertColor(true);
-        view->GotoPage(page);
-        view->setZoom(zoom);
-        view->setFitMode(static_cast<DocumentView::FitMode>(fitMode));
-        OpenFile(view);
+        if (filePath.isEmpty())
+            continue;
+
+        // Use a lambda to capture session settings and apply them after file
+        // opens
+        OpenFile(filePath, [this, page, zoom, fitMode, invert]()
+        {
+            if (m_doc)
+            {
+                if (invert)
+                    m_doc->setInvertColor(true);
+                m_doc->setFitMode(static_cast<DocumentView::FitMode>(fitMode));
+                m_doc->setZoom(zoom);
+                m_doc->GotoPage(page);
+            }
+        });
     }
 }
 

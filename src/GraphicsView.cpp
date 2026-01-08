@@ -6,9 +6,11 @@
 #include <QLineF>
 #include <QMenu>
 #include <QNativeGestureEvent>
+// #include <QOpenGLWidget>
 #include <QPinchGesture>
 #include <QScroller>
 #include <QSwipeGesture>
+#include <qsurfaceformat.h>
 
 GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
 {
@@ -16,10 +18,16 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
     setResizeAnchor(QGraphicsView::AnchorViewCenter);
     setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
     setAcceptDrops(false);
-    setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
     setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing);
     setOptimizationFlag(QGraphicsView::DontSavePainterState);
     setContentsMargins(0, 0, 0, 0);
+
+    // QSurfaceFormat format;
+    // format.setSamples(4);
+    // QOpenGLWidget *glWidget = new QOpenGLWidget();
+    // glWidget->setFormat(format);
+    // setViewport(glWidget);
+    setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
 
     // Enable gesture events on the viewport (important for QGraphicsView)
     viewport()->setAttribute(Qt::WA_AcceptTouchEvents, true);
