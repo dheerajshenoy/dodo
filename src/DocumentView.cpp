@@ -2457,8 +2457,8 @@ DocumentView::renderAnnotations(
             if (color.isValid())
             {
                 m_model->annotChangeColor(pageno, annot->index(), color);
-                annot->setData(3, color);
                 setModified(true);
+                // requestPageRender(pageno);
             }
         });
 

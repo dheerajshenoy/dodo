@@ -1,9 +1,8 @@
 #include "Annotation.hpp"
 
 #include <QPainter>
-
 Annotation::Annotation(int index, const QColor &color, QGraphicsItem *parent)
-    : m_brush(color), QGraphicsItem(parent), m_index(index)
+    : QGraphicsItem(parent), m_index(index), m_brush(color)
 {
 
     setZValue(1000); // Above other annotations

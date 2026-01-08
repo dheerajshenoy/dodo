@@ -3,9 +3,11 @@
 #include "BrowseLinkItem.hpp"
 #include "HighlightAnnotation.hpp"
 #include "commands/TextHighlightAnnotationCommand.hpp"
+#include "mupdf/fitz/context.h"
 #include "mupdf/fitz/display-list.h"
 #include "mupdf/fitz/document.h"
 #include "mupdf/fitz/util.h"
+#include "mupdf/pdf/annot.h"
 #include "utils.hpp"
 
 #include <QtConcurrent/QtConcurrent>
@@ -56,7 +58,7 @@ Model::Model(QObject *parent) noexcept : QObject(parent)
     m_fz_locks.user   = mupdf_mutexes.data();
     m_fz_locks.lock   = mupdf_lock_mutex;
     m_fz_locks.unlock = mupdf_unlock_mutex;
-    m_ctx = fz_new_context(nullptr, &m_fz_locks, FZ_STORE_UNLIMITED);
+    m_ctx             = fz_new_context(nullptr, &m_fz_locks, FZ_STORE_DEFAULT);
     fz_register_document_handlers(m_ctx);
     m_colorspace = fz_device_rgb(m_ctx);
     m_undo_stack = new QUndoStack();
@@ -2075,38 +2077,51 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
+        // Find the annotation by its object number (stored as index)
         pdf_annot *annot = pdf_first_annot(m_ctx, page);
-        int current      = 0;
-        while (annot && current < index)
+        while (annot)
         {
+            if (pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot)) == index)
+                break;
             annot = pdf_next_annot(m_ctx, annot);
-            ++current;
         }
 
         if (annot)
         {
-            float rgb[3] = {color.redF(), color.greenF(), color.blueF()};
+            const float rgb[3] = {color.redF(), color.greenF(), color.blueF()};
             switch (pdf_annot_type(m_ctx, annot))
             {
                 case PDF_ANNOT_SQUARE:
                     pdf_set_annot_interior_color(m_ctx, annot, 3, rgb);
                     break;
-                default:
+
+                case PDF_ANNOT_HIGHLIGHT:
                     pdf_set_annot_color(m_ctx, annot, 3, rgb);
+                    break;
+
+                default:
                     break;
             }
             pdf_set_annot_opacity(m_ctx, annot, color.alphaF());
             pdf_update_annot(m_ctx, annot);
             pdf_update_page(m_ctx, page);
         }
+        else
+        {
+            qWarning() << "annotChangeColor: annotation not found, index:"
+                       << index;
+        }
 
-        fz_drop_page(m_ctx, (fz_page *)page);
+        pdf_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {
         qWarning() << "annotChangeColor failed:" << fz_caught_message(m_ctx);
         return;
     }
+
+    qDebug() << "Changed annotation color on page" << pageno
+             << " index:" << index << " color:" << color;
 
     invalidatePageCache(pageno);
     emit reloadRequested(pageno);
