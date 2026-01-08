@@ -82,6 +82,8 @@ Model::cleanup() noexcept
             fz_drop_display_list(m_ctx, entry.display_list);
 
         m_page_cache.clear();
+        m_page_lru_order.clear();
+        m_page_lru_map.clear();
     }
 
     m_stext_page_cache.clear();
@@ -93,6 +95,8 @@ Model::cleanup() noexcept
         m_pdf_doc = nullptr;
         m_doc     = nullptr;
         m_page_cache.clear();
+        m_page_lru_order.clear();
+        m_page_lru_map.clear();
         m_stext_page_cache.clear();
         m_text_cache.clear();
         return;
@@ -130,8 +134,8 @@ Model::openAsync(const QString &filePath, const QString &password) noexcept
             m_success    = true;
             cachePageDimension();
 
-            for (int pageno = 0; pageno < m_page_count; ++pageno)
-                buildPageCache(pageno);
+            // Lazy loading: don't pre-cache all pages
+            // Pages will be cached on-demand when rendered
         }
         fz_catch(m_ctx)
         {
@@ -158,13 +162,85 @@ Model::close() noexcept
 }
 
 void
+Model::clearPageCache() noexcept
+{
+    std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+    for (auto &[_, entry] : m_page_cache)
+        fz_drop_display_list(m_ctx, entry.display_list);
+
+    m_page_cache.clear();
+    m_page_lru_order.clear();
+    m_page_lru_map.clear();
+}
+
+void
+Model::ensurePageCached(int pageno) noexcept
+{
+    {
+        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+        auto it = m_page_cache.find(pageno);
+        if (it != m_page_cache.end())
+        {
+            // Page already cached, just update LRU
+            touchPageInLRU(pageno);
+            return;
+        }
+    }
+
+    // Not cached, build it
+    buildPageCache(pageno);
+}
+
+void
+Model::touchPageInLRU(int pageno) noexcept
+{
+    // Must be called with m_page_cache_mutex held
+    auto it = m_page_lru_map.find(pageno);
+    if (it != m_page_lru_map.end())
+    {
+        // Move to front (most recently used)
+        m_page_lru_order.erase(it->second);
+        m_page_lru_order.push_front(pageno);
+        it->second = m_page_lru_order.begin();
+    }
+}
+
+void
+Model::evictOldestPages() noexcept
+{
+    // Must be called with m_page_cache_mutex held
+    while (static_cast<int>(m_page_cache.size()) > m_page_cache_limit
+           && !m_page_lru_order.empty())
+    {
+        // Evict from back (least recently used)
+        int oldest_page = m_page_lru_order.back();
+        m_page_lru_order.pop_back();
+        m_page_lru_map.erase(oldest_page);
+
+        auto cache_it = m_page_cache.find(oldest_page);
+        if (cache_it != m_page_cache.end())
+        {
+            fz_drop_display_list(m_ctx, cache_it->second.display_list);
+            m_page_cache.erase(cache_it);
+        }
+
+#ifndef NDEBUG
+        qDebug() << "Model: Evicted page" << oldest_page << "from cache";
+#endif
+    }
+}
+
+void
 Model::buildPageCache(int pageno) noexcept
 {
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
         auto it = m_page_cache.find(pageno);
         if (it != m_page_cache.end())
+        {
+            touchPageInLRU(pageno);
             return;
+        }
     }
 
     PageCacheEntry entry;
@@ -289,6 +365,13 @@ Model::buildPageCache(int pageno) noexcept
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
         m_page_cache[pageno] = entry;
+
+        // Add to LRU tracking
+        m_page_lru_order.push_front(pageno);
+        m_page_lru_map[pageno] = m_page_lru_order.begin();
+
+        // Evict old pages if over limit
+        evictOldestPages();
     }
 }
 
@@ -847,6 +930,8 @@ Model::requestPageRender(
     const RenderJob &job,
     const std::function<void(PageRenderResult)> &callback) noexcept
 {
+    // Ensure page is cached before rendering (lazy loading)
+    ensurePageCached(job.pageno);
 
     m_render_future = QtConcurrent::run([this, job]() -> PageRenderResult
     { return renderPageWithExtrasAsync(job); });
@@ -1254,6 +1339,14 @@ Model::addHighlightAnnotation(const int pageno,
             {
                 fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
                 m_page_cache.erase(pageno);
+
+                // Also remove from LRU tracking
+                auto lru_it = m_page_lru_map.find(pageno);
+                if (lru_it != m_page_lru_map.end())
+                {
+                    m_page_lru_order.erase(lru_it->second);
+                    m_page_lru_map.erase(lru_it);
+                }
             }
         }
         // Build cache outside the lock to avoid holding it during expensive
@@ -1358,6 +1451,15 @@ Model::invalidatePageCache(int pageno) noexcept
     {
         fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
         m_page_cache.erase(pageno);
+
+        // Also remove from LRU tracking
+        auto lru_it = m_page_lru_map.find(pageno);
+        if (lru_it != m_page_lru_map.end())
+        {
+            m_page_lru_order.erase(lru_it->second);
+            m_page_lru_map.erase(lru_it);
+        }
+
         buildPageCache(pageno);
     }
 }

@@ -12,6 +12,7 @@
 #include <QRegularExpression>
 #include <QString>
 #include <QUndoStack>
+#include <list>
 #include <unordered_map>
 
 extern "C"
@@ -220,6 +221,31 @@ public:
 
     void setUrlLinkRegex(const QString &pattern) noexcept;
 
+    // Cache management
+    static constexpr int DEFAULT_PAGE_CACHE_LIMIT = 20;
+
+    inline void setPageCacheLimit(int limit) noexcept
+    {
+        m_page_cache_limit = limit > 0 ? limit : DEFAULT_PAGE_CACHE_LIMIT;
+    }
+
+    inline int pageCacheLimit() const noexcept
+    {
+        return m_page_cache_limit;
+    }
+
+    inline size_t pageCacheSize() const noexcept
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
+        return m_page_cache.size();
+    }
+
+    // Clear page cache to free memory (e.g., when tab becomes inactive)
+    void clearPageCache() noexcept;
+
+    // Ensure a page is cached (lazy loading)
+    void ensurePageCached(int pageno) noexcept;
+
     inline float pageWidthPts() const noexcept
     {
         return m_page_width_pts;
@@ -385,6 +411,8 @@ private:
     bool m_invert_color{false};
 
     void buildPageCache(int pageno) noexcept;
+    void touchPageInLRU(int pageno) noexcept;
+    void evictOldestPages() noexcept;
     int addHighlightAnnotation(const int pageno,
                                const std::vector<fz_quad> &quads) noexcept;
     void removeAnnotations(const int pageno,
@@ -409,6 +437,11 @@ private:
     std::unordered_map<int, fz_stext_page *> m_stext_page_cache;
     std::unordered_map<int, PageCacheEntry> m_page_cache;
     mutable std::recursive_mutex m_page_cache_mutex;
+
+    // LRU tracking for page cache eviction
+    std::list<int> m_page_lru_order; // front = most recently used
+    std::unordered_map<int, std::list<int>::iterator> m_page_lru_map;
+    int m_page_cache_limit{DEFAULT_PAGE_CACHE_LIMIT};
     std::mutex m_doc_mutex;
     QFuture<PageRenderResult> m_render_future;
     pdf_write_options m_pdf_write_options{pdf_default_write_options};

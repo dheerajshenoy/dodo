@@ -1,8 +1,8 @@
 #pragma once
 
-#include "DraggableTabBar.hpp"
 #include "Config.hpp"
 #include "DocumentView.hpp"
+#include "DraggableTabBar.hpp"
 #include "FloatingOverlayWidget.hpp"
 #include "HighlightSearchWidget.hpp"
 #include "MessageBar.hpp"
@@ -35,7 +35,7 @@
 #include <QStandardPaths>
 #include <QTabWidget>
 
-#define __DODO_VERSION "v0.5.2"
+#define __DODO_VERSION "v0.5.3"
 
 class dodo : public QMainWindow
 {
@@ -80,8 +80,9 @@ private:
                                 DraggableTabBar::TabData *outData) noexcept;
     void handleTabDropReceived(const DraggableTabBar::TabData &data) noexcept;
     void handleTabDetached(int index, const QPoint &globalPos) noexcept;
-    void handleTabDetachedToNewWindow(int index,
-                                      const DraggableTabBar::TabData &data) noexcept;
+    void
+    handleTabDetachedToNewWindow(int index,
+                                 const DraggableTabBar::TabData &data) noexcept;
 
     inline bool validTabIndex(int index) const noexcept
     {

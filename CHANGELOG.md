@@ -2,6 +2,11 @@
 
 ## 0.5.3
 
+- **Lazy loading for page cache**: Pages are now cached on-demand instead of all at once when opening a document. This significantly reduces memory usage and speeds up document opening for large PDFs.
+- **LRU cache eviction**: Page cache now uses Least Recently Used (LRU) eviction strategy to automatically free memory when the cache limit is reached.
+- **Configurable page cache limit**: New `cache_pages` option in `[behavior]` section to control maximum number of pages cached per document (default: 20).
+- **Optional cache clearing for inactive tabs**: New `clear_inactive_cache` option to automatically clear page cache when switching away from a tab, further reducing memory usage.
+- **Cross-window tab drag and drop**: Tabs can now be dragged between windows or detached to create new windows.
 - Change cursor when selecting or highlighting text
 - Searchable text highlights
 - Outline widget and Search Highlight widget types - "dialog", "side_panel", "overlay" (configurable in settings)
@@ -9,13 +14,19 @@
         `[ui.outline]` - `type=<value>` where value = `dialog`, `side_panel`, `overlay`
         `[ui.search_highlight]` - `type=<value>` where value = `dialog`, `side_panel`, `overlay`
 - Detection of non-link URL pdf object in the PDF and making them clickable links (optional, configurable in settings)
-- [ui.links]
-    - `detect_urls` - Enable/Disable non-link URL detection and linkification
-    - `url_regex` - Custom regex for URL detection (default is a standard URL regex)
+    - [ui.links]
+        - `detect_urls` - Enable/Disable non-link URL detection and linkification
+        - `url_regex` - Custom regex for URL detection (default is a standard URL regex)
 
+- New options in `[behavior]`:
+    - `cache_pages` (int): Maximum number of pages to keep cached per document. Default is `20`.
+    - `clear_inactive_cache` (bool): Clear page cache when switching away from a tab. Default is `false`.
     
 ### Bug Fixes
 
+- Fix session loading not opening files properly - files now load correctly with their saved state (page, zoom, fit mode, invert color)
+- Fix session page restoration using wrong page index (1-indexed vs 0-indexed)
+- Fix early return in `openFileFinished` callback that prevented the callback from being executed for documents with outlines
 - Fix context menu not showing at the right position
 - Fix fit width not working properly in some cases
 - Fix startup Page widget not respecting fit mode from config

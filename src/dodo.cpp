@@ -430,7 +430,8 @@ dodo::initDefaults() noexcept
     m_config.rendering.dpi = 300.0f;
     m_config.rendering.dpr
         = m_screen_dpr_map.value(QApplication::primaryScreen()->name(), 1.0f);
-    m_config.behavior.cache_pages = 10;
+    m_config.behavior.cache_pages          = 20;
+    m_config.behavior.clear_inactive_cache = false;
 
     m_config.behavior.undo_limit            = 25;
     m_config.behavior.remember_last_visited = true;
@@ -668,6 +669,9 @@ dodo::initConfig() noexcept
     m_config.behavior.recent_files = behavior["recent_files"].value_or(true);
     m_config.behavior.num_recent_files
         = behavior["num_recent_files"].value_or(10);
+    m_config.behavior.cache_pages = behavior["cache_pages"].value_or(20);
+    m_config.behavior.clear_inactive_cache
+        = behavior["clear_inactive_cache"].value_or(false);
 
     if (toml.contains("keybindings"))
     {
@@ -1965,6 +1969,12 @@ dodo::handleFileNameChanged(const QString &name) noexcept
 void
 dodo::handleCurrentTabChanged(int index) noexcept
 {
+    // Clear page cache for the previously active tab if configured
+    if (m_config.behavior.clear_inactive_cache && m_doc)
+    {
+        m_doc->model()->clearPageCache();
+    }
+
     if (index == -1)
     {
         m_panel->hidePageInfo(true);

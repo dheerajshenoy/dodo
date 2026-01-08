@@ -91,7 +91,6 @@ Rendering
 - `dpi` (float): document DPI used for rendering.
 - `dpr` (float or map): device pixel ratio. Use a float for a global value or a
   per-display map, e.g. `{ "eDP-1" = 1.25 }`.
-- `cache_pages` (int): number of pages to keep cached.
 - `antialiasing_bits` (int): `4` for good, `8` for high.
 - `icc_color_profile` (bool): apply ICC color profile.
 
@@ -111,6 +110,11 @@ Behavior
 - `num_recent_files` (int): size of recent files list.
 - `undo_limit` (int): max undo entries.
 - `synctex_editor_command` (string): SyncTeX editor command.
+- `cache_pages` (int): maximum number of pages to keep cached per document.
+  Uses lazy loading with LRU eviction. Default is `20`.
+- `clear_inactive_cache` (bool): clear page cache when switching away from a
+  tab. Reduces memory usage but may cause slight delay when switching back.
+  Default is `false`.
 - `page_nav_with_mouse` (bool, optional): navigate pages with mouse (commented
   out by default).
 

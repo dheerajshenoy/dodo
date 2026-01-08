@@ -129,6 +129,9 @@ DocumentView::setupUI() noexcept
     m_model->setLinkBoundary(m_config.ui.links.boundary);
     m_model->setDetectUrlLinks(m_config.ui.links.detect_urls);
     m_model->setUrlLinkRegex(m_config.ui.links.url_regex);
+    m_model->setPageCacheLimit(m_config.behavior.cache_pages > 0
+                                   ? m_config.behavior.cache_pages
+                                   : Model::DEFAULT_PAGE_CACHE_LIMIT);
 
     setAutoReload(m_config.behavior.auto_reload);
     // if (m_config.rendering.icc_color_profile)
