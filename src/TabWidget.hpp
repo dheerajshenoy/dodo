@@ -24,7 +24,6 @@ public:
         setTabsClosable(true);
         setAcceptDrops(true);
         setStyleSheet("border: 0");
-        tabBar()->setDrawBase(false);
         setTabPosition(QTabWidget::TabPosition::North);
 
         // Forward signals from the draggable tab bar

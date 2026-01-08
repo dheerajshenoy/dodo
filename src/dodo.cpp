@@ -19,6 +19,7 @@
 #include <QJsonObject>
 #include <QJsonParseError>
 #include <QMimeData>
+#include <QProcess>
 #include <QSplitter>
 #include <QStyleHints>
 #include <QWindow>
