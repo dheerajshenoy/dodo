@@ -1546,7 +1546,6 @@ dodo::OpenFile(const QString &filePath,
         if (outline)
         {
             m_outline_widget->setOutline(outline);
-            return;
             if (m_config.ui.outline.visible)
             {
                 m_outline_widget->show();

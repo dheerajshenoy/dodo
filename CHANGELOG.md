@@ -24,6 +24,8 @@
     
 ### Bug Fixes
 
+- Remove stray return causing panel update issues
+- Fix prompting for password protected documents
 - Fix session loading not opening files properly - files now load correctly with their saved state (page, zoom, fit mode, invert color)
 - Fix session page restoration using wrong page index (1-indexed vs 0-indexed)
 - Fix early return in `openFileFinished` callback that prevented the callback from being executed for documents with outlines
