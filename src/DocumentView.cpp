@@ -247,6 +247,27 @@ DocumentView::handleOpenFileFinished() noexcept
     m_spinner->stop();
     m_spinner->hide();
 
+    if (m_model->passwordRequired())
+    {
+        bool ok = false;
+        QString password;
+        while (true)
+        {
+            password = QInputDialog::getText(
+                this, "Open Document", "Enter password:", QLineEdit::Password,
+                QString(), &ok);
+            if (!ok)
+            {
+                emit openFileFailed(this);
+                return;
+            }
+            if (authenticate(password))
+                break;
+
+            QMessageBox::warning(this, "Open Document", "Incorrect password.");
+        }
+    }
+
     m_pageno = 0;
 
     if (m_config.ui.layout.mode == "single")

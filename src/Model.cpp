@@ -123,6 +123,7 @@ Model::openAsync(const QString &filePath, const QString &password) noexcept
             return;
         }
         m_doc = fz_open_document(m_ctx, CSTR(filePath));
+
         if (!m_doc)
         {
             emit openFileFailed();

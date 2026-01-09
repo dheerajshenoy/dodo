@@ -1536,37 +1536,6 @@ dodo::OpenFile(const QString &filePath,
     DocumentView *docwidget = new DocumentView(m_config, m_tab_widget);
     int index               = m_tab_widget->addTab(docwidget, fp);
 
-    // TODO: Handle password-protected files
-    // if (docwidget->passwordRequired())
-    // {
-    //     QString password;
-    //     do
-    //     {
-    //         bool ok;
-    //         password = QInputDialog::getText(
-    //             this, "Password Required",
-    //             QString("Enter the password to open %1").arg(fp),
-    //             QLineEdit::Password, "", &ok);
-    //         if (ok && !password.isEmpty())
-    //         {
-    //             if (docwidget->authenticate(password))
-    //                 break;
-    //             else
-    //             {
-    //                 QMessageBox::warning(
-    //                     this, "Incorrect Password",
-    //                     "The password you entered is incorrect. Please try "
-    //                     "again.");
-    //             }
-    //         }
-    //         else
-    //         {
-    //             docwidget->deleteLater();
-    //             delete docwidget;
-    //             return false;
-    //         }
-    //     } while (true);
-    // }
     connect(docwidget, &DocumentView::openFileFinished, this,
             [this, callback, index](DocumentView *doc)
     {
@@ -2136,8 +2105,8 @@ dodo::handleTabDetachedToNewWindow(
 
     // Spawn a new dodo process with the file
     QStringList args;
-    args << data.filePath;
     args << "-p" << QString::number(data.currentPage);
+    args << data.filePath;
 
     bool started = QProcess::startDetached(
         QCoreApplication::applicationFilePath(), args);
