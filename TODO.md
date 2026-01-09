@@ -57,3 +57,4 @@
 - [ ] Implement LRU caching for pages and other resources
 - [ ] Undo/Redo change modified state
 - [ ] Config option to always open in new window instead of tab
+- [ ] Handle unhandled exceptions and crashes gracefully
