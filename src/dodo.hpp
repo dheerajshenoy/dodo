@@ -118,7 +118,6 @@ private:
     void ShowOutline() noexcept;
     void InvertColor() noexcept;
     void TextSelectionMode() noexcept;
-    void RegionSelectionMode() noexcept;
     void GoBackHistory() noexcept;
     void LastPage() noexcept;
     void NextPage() noexcept;

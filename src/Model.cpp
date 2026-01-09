@@ -585,15 +585,6 @@ Model::SaveAs(const QString &newFilePath) noexcept
     return true;
 }
 
-bool
-Model::followLink(const LinkInfo &info) noexcept
-{
-    if (!m_doc)
-        return false;
-
-    // TODO
-}
-
 fz_outline *
 Model::getOutline() noexcept
 {

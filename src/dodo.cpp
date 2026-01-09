@@ -269,7 +269,7 @@ dodo::initMenubar() noexcept
     modeActionGroup->setExclusive(true);
 
     m_actionRegionSelect = m_modeMenu->addAction(
-        QString("Region Selection"), this, &dodo::RegionSelectionMode);
+        QString("Region Selection"), this, &dodo::ToggleRegionSelect);
     m_actionRegionSelect->setCheckable(true);
     modeActionGroup->addAction(m_actionRegionSelect);
 
@@ -1358,7 +1358,6 @@ dodo::ScrollDown() noexcept
 void
 dodo::RotateClock() noexcept
 {
-    // TODO:
     if (m_doc)
         m_doc->RotateClock();
 }
@@ -1367,7 +1366,6 @@ dodo::RotateClock() noexcept
 void
 dodo::RotateAnticlock() noexcept
 {
-    // TODO:
     if (m_doc)
         m_doc->RotateAnticlock();
 }
@@ -1423,13 +1421,8 @@ dodo::YankSelection() noexcept
 void
 dodo::FitNone() noexcept
 {
-    // TODO: Implement `FitNone`
-}
-
-void
-dodo::RegionSelectionMode() noexcept
-{
-    // TODO: Implement `RegionSelectionMode`
+    if (m_doc)
+        m_doc->setFitMode(DocumentView::FitMode::None);
 }
 
 // Opens multiple files given a list of file paths
@@ -2939,7 +2932,6 @@ dodo::setDPR(float dpr) noexcept
 void
 dodo::reloadDocument() noexcept
 {
-    // TODO: Fix this implementation
     if (m_doc)
         m_doc->model()->reloadDocument();
 }

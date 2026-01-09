@@ -285,7 +285,6 @@ public:
 
     std::vector<std::pair<QString, QString>> properties() noexcept;
     fz_outline *getOutline() noexcept;
-    bool followLink(const LinkInfo &info) noexcept;
     bool reloadDocument() noexcept;
     void openAsync(const QString &filePath,
                    const QString &password = {}) noexcept;
