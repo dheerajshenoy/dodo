@@ -20,14 +20,12 @@ signals:
     void overlayHidden();
 
 protected:
-    void resizeEvent(QResizeEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override;
     void showEvent(QShowEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
     void hideEvent(QHideEvent *event) override;
 
 private:
-    QWidget *m_dim{nullptr};
     QFrame *m_frame{nullptr};
     QWidget *m_content{nullptr};
 };

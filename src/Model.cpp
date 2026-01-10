@@ -84,8 +84,6 @@ Model::cleanup() noexcept
             fz_drop_display_list(m_ctx, entry.display_list);
 
         m_page_cache.clear();
-        m_page_lru_order.clear();
-        m_page_lru_map.clear();
     }
 
     m_stext_page_cache.clear();
@@ -97,8 +95,6 @@ Model::cleanup() noexcept
         m_pdf_doc = nullptr;
         m_doc     = nullptr;
         m_page_cache.clear();
-        m_page_lru_order.clear();
-        m_page_lru_map.clear();
         m_stext_page_cache.clear();
         m_text_cache.clear();
         return;
@@ -172,8 +168,6 @@ Model::clearPageCache() noexcept
         fz_drop_display_list(m_ctx, entry.display_list);
 
     m_page_cache.clear();
-    m_page_lru_order.clear();
-    m_page_lru_map.clear();
 }
 
 void
@@ -183,54 +177,11 @@ Model::ensurePageCached(int pageno) noexcept
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
         auto it = m_page_cache.find(pageno);
         if (it != m_page_cache.end())
-        {
-            // Page already cached, just update LRU
-            touchPageInLRU(pageno);
             return;
-        }
     }
 
     // Not cached, build it
     buildPageCache(pageno);
-}
-
-void
-Model::touchPageInLRU(int pageno) noexcept
-{
-    // Must be called with m_page_cache_mutex held
-    auto it = m_page_lru_map.find(pageno);
-    if (it != m_page_lru_map.end())
-    {
-        // Move to front (most recently used)
-        m_page_lru_order.erase(it->second);
-        m_page_lru_order.push_front(pageno);
-        it->second = m_page_lru_order.begin();
-    }
-}
-
-void
-Model::evictOldestPages() noexcept
-{
-    // Must be called with m_page_cache_mutex held
-    while (static_cast<int>(m_page_cache.size()) > m_page_cache_limit
-           && !m_page_lru_order.empty())
-    {
-        // Evict from back (least recently used)
-        int oldest_page = m_page_lru_order.back();
-        m_page_lru_order.pop_back();
-        m_page_lru_map.erase(oldest_page);
-
-        auto cache_it = m_page_cache.find(oldest_page);
-        if (cache_it != m_page_cache.end())
-        {
-            fz_drop_display_list(m_ctx, cache_it->second.display_list);
-            m_page_cache.erase(cache_it);
-        }
-
-#ifndef NDEBUG
-        qDebug() << "Model: Evicted page" << oldest_page << "from cache";
-#endif
-    }
 }
 
 void
@@ -240,141 +191,157 @@ Model::buildPageCache(int pageno) noexcept
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
         auto it = m_page_cache.find(pageno);
         if (it != m_page_cache.end())
-        {
-            touchPageInLRU(pageno);
             return;
-        }
     }
 
     PageCacheEntry entry;
 
     fz_context *ctx = m_ctx;
+    fz_page *page{nullptr};
+    fz_display_list *dlist{nullptr};
+    fz_device *list_dev{nullptr};
+    fz_link *head{nullptr};
+    fz_rect bounds{};
+    bool success{false};
 
-    fz_page *page = fz_load_page(ctx, m_doc, pageno);
-    if (!page)
+    fz_try(ctx)
     {
-        qDebug() << "Failed to load page";
+        page = fz_load_page(ctx, m_doc, pageno);
+        if (!page)
+            fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        bounds = fz_bound_page(ctx, page);
+
+        dlist    = fz_new_display_list(ctx, bounds);
+        list_dev = fz_new_list_device(ctx, dlist);
+
+        fz_run_page(ctx, page, list_dev, fz_identity, nullptr);
+
+        // Extract links and cache them
+        head = fz_load_links(ctx, page);
+        for (fz_link *link = head; link; link = link->next)
+        {
+            if (!link->uri)
+                continue;
+
+            CachedLink cl;
+            cl.rect = link->rect;
+            cl.uri  = QString::fromUtf8(link->uri);
+
+            // Store source location for all link types (where the link is
+            // located)
+            cl.source_loc.x = link->rect.x0;
+            cl.source_loc.y = link->rect.y0;
+
+            if (fz_is_external_link(ctx, link->uri))
+            {
+                cl.type = BrowseLinkItem::LinkType::External;
+            }
+            else if (cl.uri.startsWith("#page"))
+            {
+                float xp, yp;
+                fz_location loc
+                    = fz_resolve_link(ctx, m_doc, link->uri, &xp, &yp);
+                cl.type        = BrowseLinkItem::LinkType::Page;
+                cl.target_page = loc.page;
+            }
+            else
+            {
+                fz_link_dest dest = fz_resolve_link_dest(ctx, m_doc, link->uri);
+                cl.type           = BrowseLinkItem::LinkType::Location;
+                cl.target_page    = dest.loc.page;
+                cl.target_loc.x   = dest.x;
+                cl.target_loc.y   = dest.y;
+                cl.zoom           = dest.zoom;
+            }
+
+            entry.links.push_back(std::move(cl));
+        }
+
+        pdf_page *pdfPage = pdf_page_from_fz_page(ctx, page);
+        if (pdfPage)
+        {
+            float color[3];
+
+            for (pdf_annot *annot = pdf_first_annot(ctx, pdfPage); annot;
+                 annot            = pdf_next_annot(ctx, annot))
+            {
+                CachedAnnotation ca;
+                ca.rect    = pdf_bound_annot(ctx, annot);
+                ca.type    = pdf_annot_type(ctx, annot);
+                ca.index   = pdf_to_num(ctx, pdf_annot_obj(ctx, annot));
+                ca.opacity = pdf_annot_opacity(ctx, annot);
+
+                if (fz_is_infinite_rect(ca.rect) || fz_is_empty_rect(ca.rect))
+                    continue;
+
+                switch (ca.type)
+                {
+                    case PDF_ANNOT_TEXT:
+                    {
+                        pdf_annot_color(ctx, annot, nullptr, color);
+                        ca.color = QColor::fromRgbF(color[0], color[1],
+                                                    color[2], ca.opacity);
+                        ca.text  = pdf_annot_contents(ctx, annot);
+                    }
+                    break;
+
+                    case PDF_ANNOT_SQUARE:
+                    {
+                        pdf_annot_interior_color(ctx, annot, nullptr, color);
+                        ca.color = QColor::fromRgbF(color[0], color[1],
+                                                    color[2], ca.opacity);
+                    }
+                    break;
+
+                    case PDF_ANNOT_HIGHLIGHT:
+                    {
+                        pdf_annot_color(ctx, annot, nullptr, color);
+                        ca.color = QColor::fromRgbF(color[0], color[1],
+                                                    color[2], ca.opacity);
+                    }
+
+                    break;
+
+                    default:
+                        continue;
+                }
+
+                entry.annotations.push_back(std::move(ca));
+            }
+        }
+
+        entry.display_list = dlist;
+        entry.bounds       = bounds;
+        success            = true;
+    }
+    fz_always(ctx)
+    {
+        if (head)
+            fz_drop_link(ctx, head);
+        if (list_dev)
+        {
+            fz_close_device(ctx, list_dev);
+            fz_drop_device(ctx, list_dev);
+        }
+        if (page)
+            fz_drop_page(ctx, page);
+        if (!success && dlist)
+            fz_drop_display_list(ctx, dlist);
+    }
+    fz_catch(ctx)
+    {
+        qWarning() << "Failed to build page cache for page" << pageno << ":"
+                   << fz_caught_message(ctx);
         return;
     }
 
-    fz_rect bounds = fz_bound_page(ctx, page);
-
-    fz_display_list *dlist = fz_new_display_list(ctx, bounds);
-    fz_device *list_dev    = fz_new_list_device(ctx, dlist);
-
-    fz_run_page(ctx, page, list_dev, fz_identity, nullptr);
-
-    // Extract links and cache them
-    fz_link *head = fz_load_links(ctx, page);
-    for (fz_link *link = head; link; link = link->next)
-    {
-        if (!link->uri)
-            continue;
-
-        CachedLink cl;
-        cl.rect = link->rect;
-        cl.uri  = QString::fromUtf8(link->uri);
-
-        // Store source location for all link types (where the link is located)
-        cl.source_loc.x = link->rect.x0;
-        cl.source_loc.y = link->rect.y0;
-
-        if (fz_is_external_link(ctx, link->uri))
-        {
-            cl.type = BrowseLinkItem::LinkType::External;
-        }
-        else if (cl.uri.startsWith("#page"))
-        {
-            float xp, yp;
-            fz_location loc = fz_resolve_link(ctx, m_doc, link->uri, &xp, &yp);
-            cl.type         = BrowseLinkItem::LinkType::Page;
-            cl.target_page  = loc.page;
-        }
-        else
-        {
-            fz_link_dest dest = fz_resolve_link_dest(ctx, m_doc, link->uri);
-            cl.type           = BrowseLinkItem::LinkType::Location;
-            cl.target_page    = dest.loc.page;
-            cl.target_loc.x   = dest.x;
-            cl.target_loc.y   = dest.y;
-            cl.zoom           = dest.zoom;
-        }
-
-        entry.links.push_back(std::move(cl));
-    }
-
-    fz_drop_link(ctx, head);
-
-    pdf_page *pdfPage = pdf_page_from_fz_page(ctx, page);
-    if (pdfPage)
-    {
-        float color[3];
-
-        for (pdf_annot *annot = pdf_first_annot(ctx, pdfPage); annot;
-             annot            = pdf_next_annot(ctx, annot))
-        {
-            CachedAnnotation ca;
-            ca.rect    = pdf_bound_annot(ctx, annot);
-            ca.type    = pdf_annot_type(ctx, annot);
-            ca.index   = pdf_to_num(ctx, pdf_annot_obj(ctx, annot));
-            ca.opacity = pdf_annot_opacity(ctx, annot);
-
-            if (fz_is_infinite_rect(ca.rect) || fz_is_empty_rect(ca.rect))
-                continue;
-
-            switch (ca.type)
-            {
-                case PDF_ANNOT_TEXT:
-                {
-                    pdf_annot_color(ctx, annot, nullptr, color);
-                    ca.color = QColor::fromRgbF(color[0], color[1], color[2],
-                                                ca.opacity);
-                    ca.text  = pdf_annot_contents(ctx, annot);
-                }
-                break;
-
-                case PDF_ANNOT_SQUARE:
-                {
-                    pdf_annot_interior_color(ctx, annot, nullptr, color);
-                    ca.color = QColor::fromRgbF(color[0], color[1], color[2],
-                                                ca.opacity);
-                }
-                break;
-
-                case PDF_ANNOT_HIGHLIGHT:
-                {
-                    pdf_annot_color(ctx, annot, nullptr, color);
-                    ca.color = QColor::fromRgbF(color[0], color[1], color[2],
-                                                ca.opacity);
-                }
-
-                break;
-
-                default:
-                    continue;
-            }
-
-            entry.annotations.push_back(std::move(ca));
-        }
-    }
-
-    fz_close_device(ctx, list_dev);
-    fz_drop_device(ctx, list_dev);
-    fz_drop_page(ctx, page);
-
-    entry.display_list = dlist;
-    entry.bounds       = bounds;
+    if (!success)
+        return;
 
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
         m_page_cache[pageno] = entry;
-
-        // Add to LRU tracking
-        m_page_lru_order.push_front(pageno);
-        m_page_lru_map[pageno] = m_page_lru_order.begin();
-
-        // Evict old pages if over limit
-        evictOldestPages();
     }
 }
 
@@ -989,6 +956,13 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             return result;
         }
         const PageCacheEntry &entry = it->second;
+        if (!entry.display_list)
+        {
+            qWarning() << "Model::PageRenderResult() Missing display list for:"
+                       << job.pageno;
+            fz_drop_context(ctx);
+            return result;
+        }
         // Increment reference count so the display list stays valid
         dlist       = fz_keep_display_list(ctx, entry.display_list);
         bounds      = entry.bounds;
@@ -1069,28 +1043,29 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             QRectF qtRect(r.x0 * scale, r.y0 * scale, (r.x1 - r.x0) * scale,
                           (r.y1 - r.y0) * scale);
 
-            BrowseLinkItem *item = new BrowseLinkItem(
-                qtRect, link.uri, link.type, m_link_show_boundary);
-            item->setSourceLocation(BrowseLinkItem::PageLocation{
-                link.source_loc.x, link.source_loc.y, 0.0f});
+            RenderLink renderLink;
+            renderLink.rect       = qtRect;
+            renderLink.uri        = link.uri;
+            renderLink.type       = link.type;
+            renderLink.boundary   = m_link_show_boundary;
+            renderLink.source_loc = BrowseLinkItem::PageLocation{
+                link.source_loc.x, link.source_loc.y, 0.0f};
 
             if (link.type == BrowseLinkItem::LinkType::Page)
             {
-                item->setGotoPageNo(link.target_page);
+                renderLink.target_page = link.target_page;
             }
 
             if (link.type == BrowseLinkItem::LinkType::Location)
             {
-                item->setGotoPageNo(link.target_page);
-                // Set x, y to 0 if nan
-                item->setTargetLocation(BrowseLinkItem::PageLocation{
+                renderLink.target_page = link.target_page;
+                renderLink.target_loc  = BrowseLinkItem::PageLocation{
                     std::isnan(link.target_loc.x) ? 0 : link.target_loc.x,
                     std::isnan(link.target_loc.y) ? 0 : link.target_loc.y,
-                    link.zoom});
+                    link.zoom};
             }
 
-            if (item)
-                result.links.push_back(item);
+            result.links.push_back(std::move(renderLink));
         }
 
         if (m_detect_url_links)
@@ -1177,11 +1152,13 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
                                           (tr.x1 - tr.x0) * scale,
                                           (tr.y1 - tr.y0) * scale);
 
-                            BrowseLinkItem *item = new BrowseLinkItem(
-                                qtRect, uri, BrowseLinkItem::LinkType::External,
-                                m_link_show_boundary);
-                            if (item)
-                                result.links.push_back(item);
+                            RenderLink renderLink;
+                            renderLink.rect = qtRect;
+                            renderLink.uri  = uri;
+                            renderLink.type
+                                = BrowseLinkItem::LinkType::External;
+                            renderLink.boundary = m_link_show_boundary;
+                            result.links.push_back(std::move(renderLink));
                         }
                     }
                 }
@@ -1190,10 +1167,9 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
         for (const auto &annot : annotations)
         {
-            Annotation *annot_item = nullptr;
+            RenderAnnotation renderAnnot;
             switch (annot.type)
             {
-
                 case PDF_ANNOT_TEXT:
                 case PDF_ANNOT_SQUARE:
                     break;
@@ -1204,17 +1180,17 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
                     const float scale = m_inv_dpr;
                     QRectF qtRect(r.x0 * scale, r.y0 * scale,
                                   (r.x1 - r.x0) * scale, (r.y1 - r.y0) * scale);
-                    annot_item = new HighlightAnnotation(qtRect, annot.index,
-                                                         annot.color);
+                    renderAnnot.rect  = qtRect;
+                    renderAnnot.type  = annot.type;
+                    renderAnnot.index = annot.index;
+                    renderAnnot.color = annot.color;
+                    result.annotations.push_back(std::move(renderAnnot));
                 }
                 break;
 
                 default:
                     break;
             }
-
-            if (annot_item)
-                result.annotations.push_back(annot_item);
         }
     }
     fz_always(ctx)
@@ -1333,14 +1309,6 @@ Model::addHighlightAnnotation(const int pageno,
             {
                 fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
                 m_page_cache.erase(pageno);
-
-                // Also remove from LRU tracking
-                auto lru_it = m_page_lru_map.find(pageno);
-                if (lru_it != m_page_lru_map.end())
-                {
-                    m_page_lru_order.erase(lru_it->second);
-                    m_page_lru_map.erase(lru_it);
-                }
             }
         }
         // Build cache outside the lock to avoid holding it during expensive
@@ -1445,14 +1413,6 @@ Model::invalidatePageCache(int pageno) noexcept
     {
         fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
         m_page_cache.erase(pageno);
-
-        // Also remove from LRU tracking
-        auto lru_it = m_page_lru_map.find(pageno);
-        if (lru_it != m_page_lru_map.end())
-        {
-            m_page_lru_order.erase(lru_it->second);
-            m_page_lru_map.erase(lru_it);
-        }
 
         buildPageCache(pageno);
     }

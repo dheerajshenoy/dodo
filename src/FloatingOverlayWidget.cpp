@@ -9,7 +9,6 @@
 
 FloatingOverlayWidget::FloatingOverlayWidget(QWidget *parent) : QWidget(parent)
 {
-    setVisible(false);
     setAttribute(Qt::WA_StyledBackground, true);
     setAttribute(Qt::WA_TransparentForMouseEvents, false);
     setWindowFlags(Qt::Widget);
@@ -19,9 +18,6 @@ FloatingOverlayWidget::FloatingOverlayWidget(QWidget *parent) : QWidget(parent)
         setGeometry(parent->rect());
         parent->installEventFilter(this);
     }
-
-    m_dim = new QWidget(this);
-    m_dim->setStyleSheet("background-color: rgba(0, 0, 0, 120);");
 
     m_frame = new QFrame(this);
     m_frame->setFrameShape(QFrame::NoFrame);
@@ -47,7 +43,6 @@ FloatingOverlayWidget::FloatingOverlayWidget(QWidget *parent) : QWidget(parent)
     center_v->addLayout(center_h);
     center_v->addStretch();
 
-    root->addWidget(m_dim);
     root->addLayout(center_v);
 }
 
@@ -76,14 +71,6 @@ FloatingOverlayWidget::contentWidget() const noexcept
     return m_content;
 }
 
-void
-FloatingOverlayWidget::resizeEvent(QResizeEvent *event)
-{
-    QWidget::resizeEvent(event);
-    if (m_dim)
-        m_dim->setGeometry(rect());
-}
-
 bool
 FloatingOverlayWidget::eventFilter(QObject *watched, QEvent *event)
 {
@@ -102,11 +89,6 @@ FloatingOverlayWidget::showEvent(QShowEvent *event)
     {
         m_content->show();
         m_content->activateWindow();
-        // QTimer::singleShot(0, this, [this]()
-        // {
-        //     if (m_content)
-        //         m_content->setFocus();
-        // });
     }
 }
 

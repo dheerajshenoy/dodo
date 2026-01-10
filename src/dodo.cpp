@@ -1,8 +1,10 @@
 #include "dodo.hpp"
 
 #include "AboutDialog.hpp"
+#include "CommandPaletteWidget.hpp"
 #include "DocumentView.hpp"
 #include "EditLastPagesWidget.hpp"
+#include "FloatingOverlayWidget.hpp"
 #include "GraphicsView.hpp"
 #include "HighlightSearchWidget.hpp"
 #include "SaveSessionDialog.hpp"
@@ -23,6 +25,7 @@
 #include <QSplitter>
 #include <QStyleHints>
 #include <QWindow>
+#include <qobject.h>
 #include <variant>
 
 // Constructs the `dodo` class
@@ -372,9 +375,6 @@ dodo::initMenubar() noexcept
     m_actionAbout   = helpMenu->addAction(
         QString("About\t%1").arg(m_config.shortcuts["about"]), this,
         &dodo::ShowAbout);
-    helpMenu->addAction(
-        QString("Keybindings\t%1").arg(m_config.shortcuts["keybindings"]), this,
-        &dodo::ShowKeybindings);
 }
 
 // Initialize the recent files store
@@ -1002,11 +1002,11 @@ void
 dodo::setupKeybinding(const QString &action, const QString &key) noexcept
 {
     auto it = m_actionMap.find(action);
-    if (it == m_actionMap.end())
-        return;
-
-    QShortcut *shortcut = new QShortcut(QKeySequence(key), this);
-    connect(shortcut, &QShortcut::activated, [it]() { it.value()({}); });
+    if (it != m_actionMap.end())
+    {
+        QShortcut *shortcut = new QShortcut(QKeySequence(key), this);
+        connect(shortcut, &QShortcut::activated, [it]() { it.value()({}); });
+    }
 
 #ifndef NDEBUG
     qDebug() << "Keybinding set:" << action << "->" << key;
@@ -1190,14 +1190,6 @@ dodo::editLastPages() noexcept
     elpw->show();
     connect(elpw, &EditLastPagesWidget::finished, this,
             &dodo::populateRecentFiles);
-}
-
-// Opens a widget which shows the currently set keybindings
-void
-dodo::ShowKeybindings() noexcept
-{
-    ShortcutsWidget *widget = new ShortcutsWidget(m_config.shortcuts, this);
-    widget->show();
 }
 
 // Helper function to open last visited file
@@ -2817,6 +2809,7 @@ dodo::initActionMap() noexcept
     }},
 
         // Actions without arguments
+        ACTION_NO_ARGS("command", ToggleCommandPalette),
         ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
         ACTION_NO_ARGS("tab_next", NextTab),
         ACTION_NO_ARGS("encrypt", EncryptDocument),
@@ -2828,7 +2821,6 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("text_highlight_current_selection",
                        TextHighlightCurrentSelection),
         ACTION_NO_ARGS("toggle_tabs", ToggleTabBar),
-        ACTION_NO_ARGS("keybindings", ShowKeybindings),
         ACTION_NO_ARGS("save", SaveFile),
         ACTION_NO_ARGS("save_as", SaveAsFile),
         ACTION_NO_ARGS("yank", YankSelection),
@@ -3277,4 +3269,28 @@ dodo::handleEscapeKeyPressed() noexcept
 #ifndef NDEBUG
     qDebug() << "Escape key pressed handled";
 #endif
+}
+
+void
+dodo::ToggleCommandPalette() noexcept
+{
+
+    if (!m_command_palette_widget)
+    {
+
+        m_command_palette_widget
+            = new CommandPaletteWidget(m_config.shortcuts, this);
+        connect(m_command_palette_widget,
+                &CommandPaletteWidget::commandSelected, this,
+                [this](const QString &command, const QStringList &args)
+        {
+            m_actionMap[command](args);
+            m_command_palette_overlay->setVisible(false);
+        });
+        m_command_palette_overlay = new FloatingOverlayWidget(this);
+        m_command_palette_overlay->setContentWidget(m_command_palette_widget);
+    }
+
+    m_command_palette_overlay->setVisible(
+        !m_command_palette_overlay->isVisible());
 }

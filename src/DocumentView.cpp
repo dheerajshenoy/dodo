@@ -129,10 +129,6 @@ DocumentView::setupUI() noexcept
     m_model->setLinkBoundary(m_config.ui.links.boundary);
     m_model->setDetectUrlLinks(m_config.ui.links.detect_urls);
     m_model->setUrlLinkRegex(m_config.ui.links.url_regex);
-    m_model->setPageCacheLimit(m_config.behavior.cache_pages > 0
-                                   ? m_config.behavior.cache_pages
-                                   : Model::DEFAULT_PAGE_CACHE_LIMIT);
-
     setAutoReload(m_config.behavior.auto_reload);
     // if (m_config.rendering.icc_color_profile)
     //     m_model->enableICC();
@@ -2338,7 +2334,7 @@ DocumentView::createAndAddPageItem(int pageno, const QPixmap &pix) noexcept
 
 void
 DocumentView::renderLinks(int pageno,
-                          const std::vector<BrowseLinkItem *> &links) noexcept
+                          const std::vector<Model::RenderLink> &links) noexcept
 {
     if (m_page_links_hash.contains(pageno))
         return;
@@ -2346,14 +2342,27 @@ DocumentView::renderLinks(int pageno,
     clearLinksForPage(pageno);
     GraphicsPixmapItem *pageItem = m_page_items_hash[pageno];
 
-    for (auto *link : links)
+    for (const auto &link : links)
     {
-        switch (link->linkType())
+        auto *item
+            = new BrowseLinkItem(link.rect, link.uri, link.type, link.boundary);
+        item->setSourceLocation(link.source_loc);
+
+        if (link.type == BrowseLinkItem::LinkType::Page)
+            item->setGotoPageNo(link.target_page);
+
+        if (link.type == BrowseLinkItem::LinkType::Location)
+        {
+            item->setGotoPageNo(link.target_page);
+            item->setTargetLocation(link.target_loc);
+        }
+
+        switch (item->linkType())
         {
             case BrowseLinkItem::LinkType::FitH:
             {
                 connect(
-                    link, &BrowseLinkItem::horizontalFitRequested, this,
+                    item, &BrowseLinkItem::horizontalFitRequested, this,
                     [this](int pageno, const BrowseLinkItem::PageLocation &loc)
                 {
                     GotoLocation({pageno, loc.x, loc.y});
@@ -2365,7 +2374,7 @@ DocumentView::renderLinks(int pageno,
             case BrowseLinkItem::LinkType::FitV:
             {
                 connect(
-                    link, &BrowseLinkItem::verticalFitRequested, this,
+                    item, &BrowseLinkItem::verticalFitRequested, this,
                     [this](int pageno, const BrowseLinkItem::PageLocation &loc)
                 {
                     GotoLocation({pageno, loc.x, loc.y});
@@ -2376,7 +2385,7 @@ DocumentView::renderLinks(int pageno,
 
             case BrowseLinkItem::LinkType::Page:
             {
-                connect(link, &BrowseLinkItem::jumpToPageRequested, this,
+                connect(item, &BrowseLinkItem::jumpToPageRequested, this,
                         [this, pageno](int targetPageno,
                                        const BrowseLinkItem::PageLocation
                                            &sourceLocationOfLink)
@@ -2394,7 +2403,7 @@ DocumentView::renderLinks(int pageno,
             case BrowseLinkItem::LinkType::Location:
             {
 
-                connect(link, &BrowseLinkItem::jumpToLocationRequested, this,
+                connect(item, &BrowseLinkItem::jumpToLocationRequested, this,
                         [this, pageno](int targetPageno,
                                        const BrowseLinkItem::PageLocation
                                            &targetLocationOfLink,
@@ -2418,7 +2427,7 @@ DocumentView::renderLinks(int pageno,
                 break;
         }
 
-        connect(link, &BrowseLinkItem::linkCopyRequested, this,
+        connect(item, &BrowseLinkItem::linkCopyRequested, this,
                 [this](const QString &link)
         {
             if (link.startsWith("#"))
@@ -2434,18 +2443,18 @@ DocumentView::renderLinks(int pageno,
         });
         // Map link rect to scene coordinates
         const QRectF sceneRect
-            = pageItem->mapToScene(link->rect()).boundingRect();
-        link->setRect(sceneRect);
-        link->setZValue(ZVALUE_LINK);
-        m_gscene->addItem(link);
-        m_page_links_hash[pageno]
-            = links; // Store them so we can actually delete them later
+            = pageItem->mapToScene(item->rect()).boundingRect();
+        item->setRect(sceneRect);
+        item->setZValue(ZVALUE_LINK);
+        m_gscene->addItem(item);
+        m_page_links_hash[pageno].push_back(item);
     }
 }
 
 void
 DocumentView::renderAnnotations(
-    const int pageno, const std::vector<Annotation *> &annotations) noexcept
+    const int pageno,
+    const std::vector<Model::RenderAnnotation> &annotations) noexcept
 {
     if (m_page_annotations_hash.contains(pageno))
         return;
@@ -2457,33 +2466,46 @@ DocumentView::renderAnnotations(
 
     for (const auto &annot : annotations)
     {
-        // annot_item->setOpacity(0.0);
-        annot->setZValue(ZVALUE_ANNOTATION);
-        annot->setPos(pageItem->pos());
-        m_gscene->addItem(annot);
-
-        connect(annot, &Annotation::annotDeleteRequested,
-                [this, annot, pageno]()
+        Annotation *annot_item = nullptr;
+        switch (annot.type)
         {
-            m_model->removeAnnotations(pageno, {annot->index()});
+            case PDF_ANNOT_HIGHLIGHT:
+                annot_item = new HighlightAnnotation(annot.rect, annot.index,
+                                                     annot.color);
+                break;
+            default:
+                break;
+        }
+
+        if (!annot_item)
+            continue;
+
+        annot_item->setZValue(ZVALUE_ANNOTATION);
+        annot_item->setPos(pageItem->pos());
+        m_gscene->addItem(annot_item);
+
+        connect(annot_item, &Annotation::annotDeleteRequested,
+                [this, annot_item, pageno]()
+        {
+            m_model->removeAnnotations(pageno, {annot_item->index()});
             setModified(true);
         });
 
-        connect(annot, &Annotation::annotColorChangeRequested,
-                [this, annot, pageno]()
+        connect(annot_item, &Annotation::annotColorChangeRequested,
+                [this, annot_item, pageno]()
         {
             auto color = QColorDialog::getColor(
-                annot->data(3).value<QColor>(), this, "Highlight Color",
+                annot_item->data(3).value<QColor>(), this, "Highlight Color",
                 QColorDialog::ColorDialogOption::ShowAlphaChannel);
             if (color.isValid())
             {
-                m_model->annotChangeColor(pageno, annot->index(), color);
+                m_model->annotChangeColor(pageno, annot_item->index(), color);
                 setModified(true);
                 // requestPageRender(pageno);
             }
         });
 
-        m_page_annotations_hash[pageno].push_back(annot);
+        m_page_annotations_hash[pageno].push_back(annot_item);
     }
 }
 

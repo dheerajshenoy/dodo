@@ -314,9 +314,10 @@ private:
     void clearVisibleLinks() noexcept;
     void renderPageFromImage(int pageno, const QImage &image) noexcept;
     void renderLinks(int pageno,
-                     const std::vector<BrowseLinkItem *> &links) noexcept;
-    void renderAnnotations(const int pageno,
-                           const std::vector<Annotation *> &annots) noexcept;
+                     const std::vector<Model::RenderLink> &links) noexcept;
+    void renderAnnotations(
+        const int pageno,
+        const std::vector<Model::RenderAnnotation> &annots) noexcept;
     void buildFlatSearchHitIndex() noexcept;
     void removeUnusedPageItems(const std::set<int> &visiblePages) noexcept;
     void reloadPage(int pageno) noexcept;

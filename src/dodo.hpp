@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CommandPaletteWidget.hpp"
 #include "Config.hpp"
 #include "DocumentView.hpp"
 #include "DraggableTabBar.hpp"
@@ -11,7 +12,6 @@
 #include "PropertiesWidget.hpp"
 #include "RecentFilesStore.hpp"
 #include "SearchBar.hpp"
-#include "ShortcutsWidget.hpp"
 #include "StartupWidget.hpp"
 #include "TabWidget.hpp"
 #include "argparse.hpp"
@@ -40,6 +40,9 @@
 class dodo : public QMainWindow
 {
     Q_OBJECT
+
+    using DodoCommandHash
+        = QHash<QString, std::function<void(const QStringList &args)>>;
 
 public:
     dodo() noexcept;
@@ -96,7 +99,7 @@ private:
     void Redo() noexcept;
     void ShowAbout() noexcept;
     void TextHighlightCurrentSelection() noexcept;
-    void ShowKeybindings() noexcept;
+    void ToggleCommandPalette() noexcept;
     void ToggleSearchBar() noexcept;
     void ShowHighlightSearch() noexcept;
     void ToggleFocusMode() noexcept;
@@ -273,7 +276,7 @@ private:
     DocumentView *m_doc{nullptr};
     TabWidget *m_tab_widget{nullptr};
     QVBoxLayout *m_layout = {nullptr};
-    QMap<QString, std::function<void(const QStringList &args)>> m_actionMap;
+    DodoCommandHash m_actionMap;
     QClipboard *m_clipboard = QGuiApplication::clipboard();
     RecentFilesStore m_recent_files_store;
     QString m_recent_files_path;
@@ -283,4 +286,6 @@ private:
     MessageBar *m_message_bar;
     SearchBar *m_search_bar;
     HighlightSearchWidget *m_highlight_search_widget{nullptr};
+    CommandPaletteWidget *m_command_palette_widget{nullptr};
+    FloatingOverlayWidget *m_command_palette_overlay{nullptr};
 };

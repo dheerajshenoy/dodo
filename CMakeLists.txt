@@ -52,6 +52,7 @@ add_executable(${PROJECT_NAME}
     src/HighlightSearchWidget.cpp
     src/utils.cpp
     src/WaitingSpinnerWidget.cpp
+    src/CommandPaletteWidget.cpp
 
     src/GraphicsPixmapItem.hpp
     src/BrowseLinkItem.hpp
@@ -75,6 +76,7 @@ add_executable(${PROJECT_NAME}
     src/PopupAnnotation.hpp
     src/PlaceholderWidget.hpp
     src/ScrollBar.hpp
+    src/CommandPaletteWidget.hpp
 )
 
 qt_add_resources(RESOURCES resources.qrc)

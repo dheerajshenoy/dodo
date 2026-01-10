@@ -12,7 +12,6 @@
 #include <QRegularExpression>
 #include <QString>
 #include <QUndoStack>
-#include <list>
 #include <unordered_map>
 
 extern "C"
@@ -80,11 +79,33 @@ public:
         QString filepath; // path to PDF
     };
 
+    struct RenderLink
+    {
+        QRectF rect;
+        QString uri;
+        BrowseLinkItem::LinkType type{BrowseLinkItem::LinkType::External};
+        bool boundary{false};
+        int target_page{-1};
+        BrowseLinkItem::PageLocation target_loc{0, 0, 0};
+        BrowseLinkItem::PageLocation source_loc{0, 0, 0};
+    };
+
+    struct RenderAnnotation
+    {
+        QRectF rect;
+        enum pdf_annot_type type
+        {
+            PDF_ANNOT_HIGHLIGHT
+        };
+        QColor color;
+        int index{-1};
+    };
+
     struct PageRenderResult
     {
         QImage image;
-        std::vector<BrowseLinkItem *> links;
-        std::vector<Annotation *> annotations;
+        std::vector<RenderLink> links;
+        std::vector<RenderAnnotation> annotations;
     };
 
     // structure to carry the "Life Support" for the image memory
@@ -222,18 +243,6 @@ public:
     void setUrlLinkRegex(const QString &pattern) noexcept;
 
     // Cache management
-    static constexpr int DEFAULT_PAGE_CACHE_LIMIT = 20;
-
-    inline void setPageCacheLimit(int limit) noexcept
-    {
-        m_page_cache_limit = limit > 0 ? limit : DEFAULT_PAGE_CACHE_LIMIT;
-    }
-
-    inline int pageCacheLimit() const noexcept
-    {
-        return m_page_cache_limit;
-    }
-
     inline size_t pageCacheSize() const noexcept
     {
         std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
@@ -410,8 +419,6 @@ private:
     bool m_invert_color{false};
 
     void buildPageCache(int pageno) noexcept;
-    void touchPageInLRU(int pageno) noexcept;
-    void evictOldestPages() noexcept;
     int addHighlightAnnotation(const int pageno,
                                const std::vector<fz_quad> &quads) noexcept;
     void removeAnnotations(const int pageno,
@@ -437,10 +444,6 @@ private:
     std::unordered_map<int, PageCacheEntry> m_page_cache;
     mutable std::recursive_mutex m_page_cache_mutex;
 
-    // LRU tracking for page cache eviction
-    std::list<int> m_page_lru_order; // front = most recently used
-    std::unordered_map<int, std::list<int>::iterator> m_page_lru_map;
-    int m_page_cache_limit{DEFAULT_PAGE_CACHE_LIMIT};
     std::mutex m_doc_mutex;
     QFuture<PageRenderResult> m_render_future;
     pdf_write_options m_pdf_write_options{pdf_default_write_options};

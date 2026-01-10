@@ -2,10 +2,6 @@
 
 ## 0.5.3
 
-- **Lazy loading for page cache**: Pages are now cached on-demand instead of all at once when opening a document. This significantly reduces memory usage and speeds up document opening for large PDFs.
-- **LRU cache eviction**: Page cache now uses Least Recently Used (LRU) eviction strategy to automatically free memory when the cache limit is reached.
-- **Configurable page cache limit**: New `cache_pages` option in `[behavior]` section to control maximum number of pages cached per document (default: 20).
-- **Optional cache clearing for inactive tabs**: New `clear_inactive_cache` option to automatically clear page cache when switching away from a tab, further reducing memory usage.
 - **Cross-window tab drag and drop**: Tabs can now be dragged between windows or detached to create new windows.
 - Change cursor when selecting or highlighting text
 - Searchable text highlights
@@ -37,6 +33,7 @@
 - Show highlight search overlay properly
 - Fix double memory free crash on exit when there's more than one tab
 - Show information if no outline is present in the document instead of empty outline panel
+- Fix crash when rendering link/annotation items from background threads
 
 ## 0.5.2
 

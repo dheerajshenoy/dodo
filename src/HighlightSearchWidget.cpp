@@ -94,6 +94,7 @@ HighlightSearchWidget::HighlightSearchWidget(QWidget *parent) : QWidget(parent)
         const int page    = item->data(Qt::UserRole).toInt();
         const QPointF pos = item->data(Qt::UserRole + 1).toPointF();
         emit gotoLocationRequested(page, pos);
+        this->setVisible(false);
     });
 
     connect(&m_watcher,
@@ -227,6 +228,7 @@ HighlightSearchWidget::activateCurrentSelection() noexcept
     const int page    = item->data(Qt::UserRole).toInt();
     const QPointF pos = item->data(Qt::UserRole + 1).toPointF();
     emit gotoLocationRequested(page, pos);
+    this->setVisible(false);
 }
 
 void
