@@ -114,6 +114,7 @@ struct Config
         bool config_auto_reload{true};
         bool invert_mode{false};
         bool open_last_visited{false};
+        bool always_open_in_new_window{false};
         bool remember_last_visited{true};
         bool recent_files{true};
         int page_history_limit{5};

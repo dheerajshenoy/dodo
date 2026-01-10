@@ -656,8 +656,8 @@ dodo::initConfig() noexcept
     m_config.behavior.undo_limit = behavior["undo_limit"].value_or(25);
     m_config.behavior.remember_last_visited
         = behavior["remember_last_visited"].value_or(true);
-    m_config.behavior.open_last_visited
-        = behavior["open_last_visited"].value_or(false);
+    m_config.behavior.always_open_in_new_window
+        = behavior["always_open_in_new_window"].value_or(false);
     m_config.behavior.page_history_limit
         = behavior["page_history"].value_or(100);
     m_config.behavior.synctex_editor_command = QString::fromStdString(
@@ -1516,6 +1516,30 @@ dodo::OpenFile(const QString &filePath,
         QMessageBox::warning(this, "Open File",
                              QString("Unable to find %1").arg(fp));
         return false;
+    }
+
+    if (m_config.behavior.always_open_in_new_window)
+    {
+        bool has_document_tab = false;
+        for (int i = 0; i < m_tab_widget->count(); ++i)
+        {
+            if (qobject_cast<DocumentView *>(m_tab_widget->widget(i)))
+            {
+                has_document_tab = true;
+                break;
+            }
+        }
+
+        if (has_document_tab)
+        {
+            QStringList args;
+            args << fp;
+            bool started = QProcess::startDetached(
+                QCoreApplication::applicationFilePath(), args);
+            if (!started)
+                m_message_bar->showMessage("Failed to open file in new window");
+            return started;
+        }
     }
 
     DocumentView *docwidget = new DocumentView(m_config, m_tab_widget);

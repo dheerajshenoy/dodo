@@ -2,6 +2,8 @@
 
 ## 0.5.3
 
+### Features
+
 - **Cross-window tab drag and drop**: Tabs can now be dragged between windows or detached to create new windows.
 - Change cursor when selecting or highlighting text
 - Searchable text highlights
@@ -16,7 +18,8 @@
 
 - New options in `[behavior]`:
     - `cache_pages` (int): Maximum number of pages to keep cached per document. Default is `20`.
-    - `clear_inactive_cache` (bool): Clear page cache when switching away from a tab. Default is `false`.
+    - `always_open_in_new_window` (bool): If true, files will always open in a new window instead of a new tab. Default is `false`.
+    
     
 ### Bug Fixes
 
