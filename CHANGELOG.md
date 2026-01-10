@@ -4,6 +4,12 @@
 
 ### Features
 
+- **Region Selection context menu**
+    - Right click context menu when in region selection mode
+        - Copy text in region to clipboard
+        - Copy region as image to clipboard
+        - Save region as image to file
+        - Open region as image externally
 - **Cross-window tab drag and drop**: Tabs can now be dragged between windows or detached to create new windows.
 - Change cursor when selecting or highlighting text
 - Searchable text highlights

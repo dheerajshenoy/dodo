@@ -340,6 +340,8 @@ signals:
     searchResultsReady(const QMap<int, std::vector<Model::SearchHit>> &results);
 
 private:
+    std::string getTextInArea(const int pageno, const QPointF &start,
+                              const QPointF &end) noexcept;
     struct CachedLink
     {
         fz_rect rect; // page space

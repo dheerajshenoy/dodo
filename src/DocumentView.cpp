@@ -450,6 +450,9 @@ DocumentView::initConnections() noexcept
 
     connect(m_gview, &GraphicsView::contextMenuRequested, this,
             &DocumentView::handleContextMenuRequested);
+
+    connect(m_gview, &GraphicsView::regionSelectRequested, this,
+            &DocumentView::handleRegionSelectRequested);
 }
 
 void
@@ -1546,8 +1549,6 @@ DocumentView::YankSelection() noexcept
     const std::string text
         = m_model->getSelectedText(pageIndex, range.first, range.second);
     clipboard->setText(text.c_str());
-
-    // ClearTextSelection();
 }
 
 // Go to the first page
@@ -2880,4 +2881,253 @@ DocumentView::CurrentLocation() noexcept
 
     const QPointF &pageLocalPos = pageItem->mapFromScene(sceneCenter);
     return {pageno, (float)pageLocalPos.x(), (float)pageLocalPos.y()};
+}
+
+namespace
+{
+bool
+mapRegionToPageRects(const QRectF &area, GraphicsPixmapItem *pageItem,
+                     QRectF &outLogical, QRect &outPixels) noexcept
+{
+    if (!pageItem)
+        return false;
+
+    const QRectF pageRect = pageItem->mapFromScene(area).boundingRect();
+    const qreal dpr       = pageItem->pixmap().devicePixelRatio();
+    const QSize pixSize   = pageItem->pixmap().size();
+    const QRectF logicalBounds(
+        QPointF(0.0, 0.0),
+        QSizeF(pixSize.width() / dpr, pixSize.height() / dpr));
+
+    outLogical = pageRect.intersected(logicalBounds);
+    if (outLogical.isEmpty())
+        return false;
+
+    const QRectF pixelRect(outLogical.x() * dpr, outLogical.y() * dpr,
+                           outLogical.width() * dpr, outLogical.height() * dpr);
+    const QRectF pixmapBounds(QPointF(0.0, 0.0), QSizeF(pixSize));
+    const QRectF clippedPixels = pixelRect.intersected(pixmapBounds);
+    if (clippedPixels.isEmpty())
+        return false;
+
+    outPixels = clippedPixels.toRect();
+    return true;
+}
+} // namespace
+
+void
+DocumentView::CopyTextFromRegion(const QRectF &area) noexcept
+{
+    int pageno;
+    GraphicsPixmapItem *pageItem;
+    if (!pageAtScenePos(area.center(), pageno, pageItem))
+        return;
+
+    // 🔴 CRITICAL FIX: map to page-local coordinates
+    const QPointF pageStart = pageItem->mapFromScene(area.topLeft());
+    const QPointF pageEnd   = pageItem->mapFromScene(area.bottomRight());
+
+    const std::string text = m_model->getTextInArea(pageno, pageStart, pageEnd);
+
+    QClipboard *clip = QApplication::clipboard();
+    clip->setText(QString::fromStdString(text));
+}
+
+void
+DocumentView::CopyRegionAsImage(const QRectF &area) noexcept
+{
+    int pageno;
+    GraphicsPixmapItem *pageItem;
+
+    if (!pageAtScenePos(area.center(), pageno, pageItem))
+        return;
+
+    QRectF pageRect;
+    QRect pixelRect;
+    if (!mapRegionToPageRects(area, pageItem, pageRect, pixelRect))
+        return;
+    const QImage img = pageItem->pixmap().copy(pixelRect).toImage();
+
+    if (!img.isNull())
+    {
+        QClipboard *clip = QApplication::clipboard();
+        clip->setImage(img);
+    }
+}
+
+void
+DocumentView::SaveRegionAsImage(const QRectF &area) noexcept
+{
+
+    int pageno;
+    GraphicsPixmapItem *pageItem;
+
+    if (!pageAtScenePos(area.center(), pageno, pageItem))
+        return;
+
+    QRectF pageRect;
+    QRect pixelRect;
+    if (!mapRegionToPageRects(area, pageItem, pageRect, pixelRect))
+        return;
+    const QImage img = pageItem->pixmap().copy(pixelRect).toImage();
+
+    if (img.isNull())
+        return;
+
+    QFileDialog fd(this);
+    const QString fileName
+        = fd.getSaveFileName(this, "Save Image", "",
+                             "PNG Image (*.png), "
+                             "JPEG Image (*.jpg *.jpeg), "
+                             "BMP Image (*.bmp);; All Files (*)");
+    if (fileName.isEmpty())
+        return;
+    QString format;
+    if (fileName.endsWith(".png", Qt::CaseInsensitive))
+        format = "PNG";
+    else if (fileName.endsWith(".jpg", Qt::CaseInsensitive)
+             || fileName.endsWith(".jpeg", Qt::CaseInsensitive))
+        format = "JPEG";
+    else if (fileName.endsWith(".bmp", Qt::CaseInsensitive))
+        format = "BMP";
+    else
+        format = "PNG"; // Default to PNG
+    img.save(fileName, format.toStdString().c_str());
+}
+
+void
+DocumentView::OpenRegionInExternalViewer(const QRectF &area) noexcept
+{
+    int pageno;
+    GraphicsPixmapItem *pageItem;
+
+    if (!pageAtScenePos(area.center(), pageno, pageItem))
+        return;
+
+    QRectF pageRect;
+    QRect pixelRect;
+    if (!mapRegionToPageRects(area, pageItem, pageRect, pixelRect))
+        return;
+    openImageInExternalViewer(pageItem->pixmap().copy(pixelRect).toImage());
+}
+
+void
+DocumentView::openImageInExternalViewer(const QImage &img) noexcept
+{
+    if (img.isNull())
+        return;
+
+    // Save to a temporary file
+    QTemporaryFile tempFile;
+    tempFile.setAutoRemove(true);
+    if (!tempFile.open())
+        return;
+
+    img.save(&tempFile, "PNG");
+    tempFile.close();
+
+    QDesktopServices::openUrl(QUrl::fromLocalFile(tempFile.fileName()));
+}
+
+void
+DocumentView::setAutoReload(bool state) noexcept
+{
+    m_auto_reload          = state;
+    const QString filepath = m_model->filePath();
+    if (m_auto_reload)
+    {
+        if (!m_file_watcher)
+            m_file_watcher = new QFileSystemWatcher(this);
+
+        if (!m_file_watcher->files().contains(filepath))
+            m_file_watcher->addPath(filepath);
+
+        connect(m_file_watcher, &QFileSystemWatcher::fileChanged, this,
+                &DocumentView::onFileReloadRequested, Qt::UniqueConnection);
+    }
+    else
+    {
+        if (m_file_watcher)
+        {
+            m_file_watcher->removePath(filepath);
+            m_file_watcher->deleteLater();
+            m_file_watcher = nullptr;
+        }
+    }
+}
+
+bool
+DocumentView::waitUntilReadableAsync() noexcept
+{
+    const QString filepath = m_model->filePath();
+    QFileInfo a(filepath);
+    if (!a.exists() || a.size() == 0)
+        return false;
+
+    QThread::msleep(80);
+
+    QFileInfo b(filepath);
+    return b.exists() && a.size() == b.size();
+}
+
+void
+DocumentView::onFileReloadRequested(const QString &path) noexcept
+{
+    if (path != m_model->filePath())
+        return;
+
+    tryReloadLater(0);
+}
+
+void
+DocumentView::tryReloadLater(int attempt) noexcept
+{
+    if (attempt > 15) // ~15 * 100ms = 1.5s
+        return;       // give up
+
+    if (waitUntilReadableAsync())
+    {
+        if (!m_model->reloadDocument())
+        {
+            QMessageBox::warning(this, "Auto-reload failed",
+                                 "Could not reload the document.");
+            return;
+        }
+        else
+        {
+            requestPageRender(m_pageno);
+            initSynctex();
+        }
+
+        const QString &filepath = m_model->filePath();
+        // IMPORTANT: file may have been removed and replaced → watcher loses it
+        if (m_file_watcher && !m_file_watcher->files().contains(filepath))
+            m_file_watcher->addPath(filepath);
+
+        return;
+    }
+
+    QTimer::singleShot(100, this,
+                       [this, attempt]() { tryReloadLater(attempt + 1); });
+}
+
+void
+DocumentView::handleRegionSelectRequested(const QRectF &area) noexcept
+{
+    QMenu *menu = new QMenu(this);
+    connect(menu, &QMenu::aboutToHide, this, [this, menu]()
+    {
+        m_gview->clearRubberBand();
+        menu->deleteLater();
+    });
+    menu->addAction("Copy Region as Image",
+                    [this, area]() { CopyRegionAsImage(area); });
+    menu->addAction("Save Region as Image",
+                    [this, area]() { SaveRegionAsImage(area); });
+    menu->addAction("Open Region in external viewer",
+                    [this, area]() { OpenRegionInExternalViewer(area); });
+    menu->addAction("Copy Text from Region",
+                    [this, area]() { CopyTextFromRegion(area); });
+
+    menu->popup(QCursor::pos());
 }

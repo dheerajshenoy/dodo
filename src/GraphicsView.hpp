@@ -62,6 +62,8 @@ public:
         return m_default_mode;
     }
 
+    void clearRubberBand() noexcept;
+
 signals:
     void highlightDrawn(const QRectF &sceneRect);
     void textSelectionRequested(const QPointF &a, const QPointF &b);

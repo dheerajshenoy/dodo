@@ -47,6 +47,15 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
 }
 
 void
+GraphicsView::clearRubberBand() noexcept
+{
+    if (!m_rubberBand)
+        return;
+    m_rubberBand->hide();
+    m_rect = QRect();
+}
+
+void
 GraphicsView::updateCursorForMode() noexcept
 {
 #ifndef NDEBUG
@@ -313,7 +322,11 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
     if (m_mode == Mode::RegionSelection || m_mode == Mode::AnnotRect
         || m_mode == Mode::AnnotSelect)
     {
-        m_rubberBand->hide();
+        const QRectF sceneRect  = mapToScene(m_rect).boundingRect();
+        const bool hasSelection = m_dragging && !sceneRect.isEmpty();
+
+        if (m_mode != Mode::RegionSelection || !hasSelection)
+            clearRubberBand();
 
         if (!m_dragging && m_mode == Mode::AnnotSelect)
         {
@@ -321,8 +334,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
         }
         else
         {
-            const QRectF sceneRect = mapToScene(m_rect).boundingRect();
-            if (!sceneRect.isEmpty())
+            if (hasSelection)
             {
                 if (m_mode == Mode::RegionSelection)
                     emit regionSelectRequested(sceneRect);

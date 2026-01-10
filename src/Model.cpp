@@ -18,6 +18,7 @@
 #include <qregularexpression.h>
 #include <qstyle.h>
 #include <qtextformat.h>
+#include <ranges>
 
 /**
  * @brief Clean up image data when the last copy of the QImage is destoryed.
@@ -587,7 +588,7 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &devStart,
 
     // --- Build page<->device transforms EXACTLY like rendering
     // (scale+rotate+translate-to-(0,0)) ---
-    const float scale = m_zoom * (m_dpi / 72.0f);
+    const float scale = viewScale();
 
     fz_rect page_bounds;
     fz_page *page_for_bounds = nullptr;
@@ -811,7 +812,7 @@ Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
     fz_rect bounds = fz_bound_page(m_ctx, page);
 
     // 2. Re-create the same transform used in rendering
-    const float scale   = m_zoom * m_dpi * m_dpr;
+    const float scale   = viewScale();
     fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
 
     // 3. Get the bbox (to find the origin shift)
@@ -820,8 +821,8 @@ Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
 
     // 4. Reverse Step 6: Adjust for Qt's Device Pixel Ratio
     // Map from logical Qt coordinates back to physical pixel coordinates
-    float physicalX = pixelPos.x() * m_dpr;
-    float physicalY = pixelPos.y() * m_dpr;
+    float physicalX = pixelPos.x();
+    float physicalY = pixelPos.y();
 
     // 5. Reverse Step 5: ADD the bbox origin
     // Move from the pixmap-local (0,0) back to the transformed coordinate
@@ -1426,7 +1427,7 @@ Model::selectWordAt(int pageno, fz_point pt) noexcept
     constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
 
-    const float scale = m_zoom * (m_dpi / 72.0f);
+    const float scale = viewScale();
 
     fz_rect page_bounds{};
     fz_page *page_for_bounds = nullptr;
@@ -1520,7 +1521,7 @@ Model::selectLineAt(int pageno, fz_point pt) noexcept
     constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
 
-    const float scale = m_zoom * (m_dpi / 72.0f);
+    const float scale = viewScale();
 
     fz_rect page_bounds{};
     fz_page *page_for_bounds = nullptr;
@@ -1614,7 +1615,7 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
     constexpr int MAX_HITS = 1024;
     thread_local std::array<fz_quad, MAX_HITS> hits;
 
-    const float scale = m_zoom * (m_dpi / 72.0f);
+    const float scale = viewScale();
 
     fz_rect page_bounds{};
     fz_page *page_for_bounds = nullptr;
@@ -2077,4 +2078,96 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
 
     invalidatePageCache(pageno);
     emit reloadRequested(pageno);
+}
+
+std::string
+Model::getTextInArea(const int pageno, const QPointF &start,
+                     const QPointF &end) noexcept
+{
+    std::string result;
+    const QRectF deviceRect = QRectF(start, end).normalized();
+    if (deviceRect.isEmpty())
+        return result;
+
+    const float scale = m_zoom * (m_dpi / 72.0f);
+
+    fz_rect page_bounds{};
+    fz_page *page_for_bounds = nullptr;
+
+    fz_try(m_ctx)
+    {
+        page_for_bounds = fz_load_page(m_ctx, m_doc, pageno);
+        page_bounds     = fz_bound_page(m_ctx, page_for_bounds);
+    }
+    fz_always(m_ctx)
+    {
+        if (page_for_bounds)
+            fz_drop_page(m_ctx, page_for_bounds);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "getTextInArea failed (bounds):"
+                   << fz_caught_message(m_ctx);
+        return result;
+    }
+
+    fz_matrix page_to_dev    = fz_scale(scale, scale);
+    page_to_dev              = fz_pre_rotate(page_to_dev, m_rotation);
+    const fz_rect dev_bounds = fz_transform_rect(page_bounds, page_to_dev);
+    page_to_dev
+        = fz_concat(page_to_dev, fz_translate(-dev_bounds.x0, -dev_bounds.y0));
+    const fz_matrix dev_to_page = fz_invert_matrix(page_to_dev);
+
+    fz_point p1 = {float(deviceRect.left()), float(deviceRect.top())};
+    fz_point p2 = {float(deviceRect.right()), float(deviceRect.top())};
+    fz_point p3 = {float(deviceRect.right()), float(deviceRect.bottom())};
+    fz_point p4 = {float(deviceRect.left()), float(deviceRect.bottom())};
+
+    p1 = fz_transform_point(p1, dev_to_page);
+    p2 = fz_transform_point(p2, dev_to_page);
+    p3 = fz_transform_point(p3, dev_to_page);
+    p4 = fz_transform_point(p4, dev_to_page);
+
+    const float min_x = std::min(std::min(p1.x, p2.x), std::min(p3.x, p4.x));
+    const float min_y = std::min(std::min(p1.y, p2.y), std::min(p3.y, p4.y));
+    const float max_x = std::max(std::max(p1.x, p2.x), std::max(p3.x, p4.x));
+    const float max_y = std::max(std::max(p1.y, p2.y), std::max(p3.y, p4.y));
+
+    const fz_rect rect = {min_x, min_y, max_x, max_y};
+
+    fz_page *page{nullptr};
+    fz_stext_page *text_page{nullptr};
+    char *selection_text{nullptr};
+
+    fz_try(m_ctx)
+    {
+        if (m_stext_page_cache.contains(pageno))
+        {
+            text_page = m_stext_page_cache[pageno];
+        }
+        else
+        {
+            page      = fz_load_page(m_ctx, m_doc, pageno);
+            text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+            m_stext_page_cache[pageno] = text_page;
+        }
+
+        selection_text = fz_copy_rectangle(m_ctx, text_page, rect, 0);
+    }
+    fz_always(m_ctx)
+    {
+        if (selection_text)
+        {
+            result = std::string(selection_text);
+            fz_free(m_ctx, selection_text);
+        }
+        if (page)
+            fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "getTextInArea failed:" << fz_caught_message(m_ctx);
+    }
+
+    return result;
 }

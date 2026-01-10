@@ -22,6 +22,7 @@ extern "C"
 #endif
 
 #include <QFileInfo>
+#include <QFileSystemWatcher>
 #include <QGraphicsItem>
 #include <QHash>
 #include <QQueue>
@@ -143,11 +144,6 @@ public:
     inline bool invertColor() const noexcept
     {
         return m_model->invertColor();
-    }
-
-    inline void setAutoReload(bool state) noexcept
-    {
-        m_auto_reload = state;
     }
 
     inline bool fileOpenedSuccessfully() const noexcept
@@ -276,6 +272,7 @@ public slots:
     void handleAnnotSelectRequested(const QRectF &area) noexcept;
     void handleAnnotSelectRequested(const QPointF &area) noexcept;
     void handleAnnotSelectClearRequested() noexcept;
+    void handleRegionSelectRequested(const QRectF &area) noexcept;
 
 #ifdef HAS_SYNCTEX
     void handleSynctexJumpRequested(const QPointF &scenePos) noexcept;
@@ -299,6 +296,15 @@ private:
             return -1;
         return m_selection_path_item->data(0).toInt();
     }
+
+    void CopyTextFromRegion(const QRectF &area) noexcept;
+    void CopyRegionAsImage(const QRectF &area) noexcept;
+    void SaveRegionAsImage(const QRectF &area) noexcept;
+    void OpenRegionInExternalViewer(const QRectF &area) noexcept;
+    void setAutoReload(bool state) noexcept;
+    bool waitUntilReadableAsync() noexcept;
+    void onFileReloadRequested(const QString &path) noexcept;
+    void tryReloadLater(int attempt) noexcept;
 
     void setupUI() noexcept;
     void setModified(bool state) noexcept;
@@ -347,6 +353,7 @@ private:
     std::vector<Annotation *> annotationsInArea(int pageno,
                                                 const QRectF &area) noexcept;
     Annotation *annotationAtPoint(int pageno, const QPointF &point) noexcept;
+    void openImageInExternalViewer(const QImage &image) noexcept;
 
 #ifdef HAS_SYNCTEX
     void initSynctex() noexcept;
@@ -393,6 +400,7 @@ private:
     std::set<int> m_visible_pages_cache;
     bool m_visible_pages_dirty{true};
     bool m_deferred_fit{false};
+    QFileSystemWatcher *m_file_watcher{nullptr};
 
 #ifdef HAS_SYNCTEX
     synctex_scanner_p m_synctex_scanner{nullptr};
