@@ -1429,11 +1429,13 @@ dodo::VisitLinkKB() noexcept
 {
     if (m_doc)
     {
+        m_currentHintInput.clear();
         m_link_hint_map = m_doc->LinkKB();
         if (!m_link_hint_map.isEmpty())
         {
             m_link_hint_current_mode = LinkHintMode::Visit;
             m_link_hint_mode         = true;
+            m_doc->UpdateKBHintsOverlay(m_currentHintInput);
         }
     }
 }
@@ -1445,11 +1447,13 @@ dodo::CopyLinkKB() noexcept
 {
     if (m_doc)
     {
+        m_currentHintInput.clear();
         m_link_hint_map = m_doc->LinkKB();
         if (!m_link_hint_map.isEmpty())
         {
-            m_link_hint_current_mode = LinkHintMode::Visit;
+            m_link_hint_current_mode = LinkHintMode::Copy;
             m_link_hint_mode         = true;
+            m_doc->UpdateKBHintsOverlay(m_currentHintInput);
         }
     }
 }
@@ -1481,7 +1485,6 @@ dodo::FitNone() noexcept
 void
 dodo::OpenFiles(const std::vector<std::string> &files) noexcept
 {
-    // QString working_dir = QDir::currentPath();
     for (const std::string &s : files)
         OpenFile(QString::fromStdString(s));
 }
@@ -1538,7 +1541,7 @@ dodo::OpenFile(const QString &filePath,
         }
         else
         {
-            return OpenFile(files.first());
+            return OpenFile(files.first(), callback);
         }
     }
 
@@ -2267,7 +2270,7 @@ dodo::eventFilter(QObject *object, QEvent *event)
     {
         switch (type)
         {
-            case QEvent::KeyRelease:
+            case QEvent::KeyPress:
             {
                 QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
                 switch (keyEvent->key())
@@ -2284,12 +2287,34 @@ dodo::eventFilter(QObject *object, QEvent *event)
                         if (!m_currentHintInput.isEmpty())
                             m_currentHintInput.chop(1);
 #endif
+                        if (m_doc)
+                            m_doc->UpdateKBHintsOverlay(m_currentHintInput);
                         return true;
                     default:
                         break;
                 }
 
-                m_currentHintInput += keyEvent->text();
+                QString text = keyEvent->text();
+                if (text.isEmpty())
+                {
+                    const int key = keyEvent->key();
+                    if (key >= Qt::Key_0 && key <= Qt::Key_9)
+                        text = QString(QChar('0' + (key - Qt::Key_0)));
+                }
+
+                bool appended = false;
+                if (text.size() == 1 && text.at(0).isDigit())
+                {
+                    m_currentHintInput += text;
+                    appended = true;
+                }
+
+                if (!appended)
+                    return true;
+
+                if (m_doc)
+                    m_doc->UpdateKBHintsOverlay(m_currentHintInput);
+
                 int num = m_currentHintInput.toInt();
                 auto it = m_link_hint_map.find(num);
                 if (it != m_link_hint_map.end())
@@ -2956,6 +2981,7 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("show_startup", showStartupWidget),
         ACTION_NO_ARGS("first_tab", FirstTab),
         ACTION_NO_ARGS("last_tab", LastTab),
+        ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
         ACTION_NO_ARGS("reselect_last_selection", ReselectLastTextSelection),
 
         {"layout_single", [this](const QStringList &)

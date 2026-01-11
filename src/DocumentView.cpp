@@ -1514,6 +1514,23 @@ DocumentView::ClearKBHintsOverlay() noexcept
     }
 }
 
+void
+DocumentView::UpdateKBHintsOverlay(const QString &input) noexcept
+{
+    if (!m_gscene)
+        return;
+
+    const auto items = m_gscene->items();
+    for (auto *item : items)
+    {
+        if (!item)
+            continue;
+
+        if (auto *hintItem = qgraphicsitem_cast<LinkHint *>(item))
+            hintItem->setInputPrefix(input);
+    }
+}
+
 // Clear the current text selection
 void
 DocumentView::ClearTextSelection() noexcept

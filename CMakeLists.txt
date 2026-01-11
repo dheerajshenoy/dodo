@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(dodo VERSION 0.5.2 LANGUAGES CXX)
 
-
 option(ENABLE_LLM_SUPPORT "Enable LLM support for advanced features" OFF)
 
 if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
@@ -118,22 +117,18 @@ target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 if(synctex_FOUND)
     message(STATUS "Found SyncTex: ${synctex_VERSION}. Compiling with SyncTeX support.")
     target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_SYNCTEX=1)
-
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-        Qt6::Widgets Qt6::Core Qt6::SvgWidgets Qt6::Concurrent
-        ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
-        ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
-        synctex
-    )
+    target_link_libraries(${PROJECT_NAME} PRIVATE synctex)
 else()
-    message(FATAL_ERROR "SyncTex not found. If you want SyncTex support please install it and compile again.")
-
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-        Qt6::Widgets Qt6::Core Qt6::SvgWidgets Qt6::Concurrent
-        ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
-        ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
-    )
+    message(FATAL_ERROR "SyncTex not found")
 endif()
+
+
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    Qt6::Widgets Qt6::Core Qt6::SvgWidgets Qt6::Concurrent
+    ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
+    ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
+)
 
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)

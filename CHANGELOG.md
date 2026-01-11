@@ -42,6 +42,7 @@
     
 ### Bug Fixes
 
+- Add visual feedback to current keypress in the link hinting mode
 - Remove stray return causing panel update issues
 - Fix prompting for password protected documents
 - Fix session loading not opening files properly - files now load correctly with their saved state (page, zoom, fit mode, invert color)

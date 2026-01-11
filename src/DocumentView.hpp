@@ -237,6 +237,7 @@ public:
     void GoBackHistory() noexcept;
     void TextHighlightCurrentSelection() noexcept;
     void ClearKBHintsOverlay() noexcept;
+    void UpdateKBHintsOverlay(const QString &input) noexcept;
     void NextSelectionMode() noexcept;
     void NextFitMode() noexcept;
     void resizeEvent(QResizeEvent *event) override;
