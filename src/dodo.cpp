@@ -2918,7 +2918,7 @@ dodo::initActionMap() noexcept
     }},
 
         // Actions without arguments
-        ACTION_NO_ARGS("command", ToggleCommandPalette),
+        ACTION_NO_ARGS("command_palette", ToggleCommandPalette),
         ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
         ACTION_NO_ARGS("tab_next", NextTab),
         ACTION_NO_ARGS("encrypt", EncryptDocument),

@@ -1,10 +1,3 @@
-# ===== LLM Configuration =====
-# Works only if compiled with LLM support
-[llm]
-provider = "ollama"
-model = "llama3.2:3b"
-max_tokens = 512
-
 # ===== UI =====
 [ui.window]
 fullscreen = false
@@ -20,7 +13,7 @@ height = 400
 width = 600
 
 [ui.llm_widget]
-visible = true
+visible = false
 panel_width = 400
 
 [ui.layout]
@@ -37,7 +30,7 @@ drag_threshold = 100
 
 [ui.scrollbars]
 horizontal = false
-vertical = false
+vertical = true
 search_hits = true # show/hide search hits on scrollbar
 
 [ui.markers]
@@ -109,9 +102,17 @@ undo_limit = 25
 synctex_editor_command = "zeditor %f:+%l"
 # page_nav_with_mouse = true
 
+# ===== LLM Configuration =====
+# Works only if compiled with LLM support
+[llm]
+provider = "ollama"
+model = "llama3.2:3b"
+max_tokens = 512
+
+
 # ===== Shortcuts =====
 [keybindings]
-command = "Ctrl+Shift+P"
+command_palette = "Ctrl+Shift+P"
 open_file = "o"
 close_file = "Ctrl+w"
 link_hint_visit = "f"
@@ -180,3 +181,4 @@ highlight_annot_search = "Alt+Shift+H"
 # Completion navigation
 completion_next = "Ctrl+n"
 completion_prev = "Ctrl+p"
+toggle_llm_widget = "Ctrl+Shift+L"
