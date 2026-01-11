@@ -2691,7 +2691,6 @@ DocumentView::renderSearchHitsInScrollbar() noexcept
 
                 search_markers_pos.push_back(pageTopInScene + yOffsetInScene);
             }
-            qDebug() << "Search markers (vertical):" << search_markers_pos;
             m_vscroll->setSearchMarkers(search_markers_pos);
             break;
         }

@@ -102,7 +102,6 @@ HttpStreamClient::handleDataReceived(const std::string &data) noexcept
 {
     m_buffer.append(data);
     size_t pos = 0;
-    qDebug() << "Buffer received:" << QString::fromStdString(m_buffer);
     while ((pos = m_buffer.find('\n')) != std::string::npos)
     {
         std::string line = m_buffer.substr(0, pos);

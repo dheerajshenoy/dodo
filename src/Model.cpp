@@ -2073,9 +2073,6 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
         return;
     }
 
-    qDebug() << "Changed annotation color on page" << pageno
-             << " index:" << index << " color:" << color;
-
     invalidatePageCache(pageno);
     emit reloadRequested(pageno);
 }
