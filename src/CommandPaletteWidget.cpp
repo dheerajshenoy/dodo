@@ -9,6 +9,7 @@
 #include <QShortcut>
 #include <QStyledItemDelegate>
 #include <QVBoxLayout>
+#include <algorithm>
 
 class CommandItemDelegate final : public QStyledItemDelegate
 {
@@ -177,6 +178,10 @@ CommandModel::CommandModel(const QHash<QString, QString> &commands,
             {it.key(),
              it.value()}); // Description and shortcut can be filled later
     }
+
+    std::sort(m_commands.begin(), m_commands.end(),
+              [](const CommandEntry &a, const CommandEntry &b)
+    { return a.name.toLower() < b.name.toLower(); });
 }
 
 int
