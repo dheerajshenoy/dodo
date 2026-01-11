@@ -28,6 +28,41 @@
 #include <qobject.h>
 #include <variant>
 
+namespace
+{
+QColor
+parseConfigColor(const QString &value, const QColor &fallback)
+{
+    QString hex = value.trimmed();
+    if (hex.isEmpty())
+        return fallback;
+    if (hex.startsWith('#'))
+        hex.remove(0, 1);
+    if (hex.size() != 6 && hex.size() != 8)
+        return fallback;
+
+    bool ok = true;
+    int r   = hex.mid(0, 2).toInt(&ok, 16);
+    if (!ok)
+        return fallback;
+    int g = hex.mid(2, 2).toInt(&ok, 16);
+    if (!ok)
+        return fallback;
+    int b = hex.mid(4, 2).toInt(&ok, 16);
+    if (!ok)
+        return fallback;
+    int a = 255;
+    if (hex.size() == 8)
+    {
+        a = hex.mid(6, 2).toInt(&ok, 16);
+        if (!ok)
+            return fallback;
+    }
+
+    return QColor(r, g, b, a);
+}
+} // namespace
+
 // Constructs the `dodo` class
 dodo::dodo() noexcept
 {
@@ -400,6 +435,7 @@ dodo::initDB() noexcept
 void
 dodo::initDefaults() noexcept
 {
+    const QColor transparent(0, 0, 0, 0);
     m_config.ui.markers.jump_marker            = true;
     m_config.ui.window.full_file_path_in_panel = false;
     m_config.ui.zoom.level                     = 1.0f;
@@ -416,24 +452,25 @@ dodo::initDefaults() noexcept
     m_config.ui.outline.type                    = "side_panel";
 
     m_config.ui.colors[QStringLiteral("search_index")]
-        = QStringLiteral("#3daee944");
+        = parseConfigColor(QStringLiteral("#3daee944"), transparent);
     m_config.ui.colors[QStringLiteral("search_match")]
-        = QStringLiteral("#55FF8844");
-    m_config.ui.colors[QStringLiteral("accent")] = QStringLiteral("#FF500044");
+        = parseConfigColor(QStringLiteral("#55FF8844"), transparent);
+    m_config.ui.colors[QStringLiteral("accent")]
+        = parseConfigColor(QStringLiteral("#FF500044"), transparent);
     m_config.ui.colors[QStringLiteral("background")]
-        = QStringLiteral("#00000000");
+        = parseConfigColor(QStringLiteral("#00000000"), transparent);
     m_config.ui.colors[QStringLiteral("link_hint_fg")]
-        = QStringLiteral("#000000");
+        = parseConfigColor(QStringLiteral("#000000"), transparent);
     m_config.ui.colors[QStringLiteral("link_hint_bg")]
-        = QStringLiteral("#FFFF00");
+        = parseConfigColor(QStringLiteral("#FFFF00"), transparent);
     m_config.ui.colors[QStringLiteral("highlight")]
-        = QStringLiteral("#55FFFF00");
+        = parseConfigColor(QStringLiteral("#55FFFF00"), transparent);
     m_config.ui.colors[QStringLiteral("selection")]
-        = QStringLiteral("#55000055");
+        = parseConfigColor(QStringLiteral("#55000055"), transparent);
     m_config.ui.colors[QStringLiteral("jump_marker")]
-        = QStringLiteral("#FFFF0000");
+        = parseConfigColor(QStringLiteral("#FFFF0000"), transparent);
     m_config.ui.colors[QStringLiteral("annot_rect")]
-        = QStringLiteral("#55FF0000");
+        = parseConfigColor(QStringLiteral("#55FF0000"), transparent);
 
     m_config.rendering.dpi = 300.0f;
     m_config.rendering.dpr
@@ -605,22 +642,58 @@ dodo::initConfig() noexcept
 
     auto colors = toml["colors"];
 
-    m_config.ui.colors["search_index"]
-        = colors["search_index"].value_or("#3daee944");
-    m_config.ui.colors["search_match"]
-        = colors["search_match"].value_or("#FFFF8844");
-    m_config.ui.colors["accent"]     = colors["accent"].value_or("#FF500044");
-    m_config.ui.colors["background"] = colors["background"].value_or("#FFFFFF");
-    m_config.ui.colors["link_hint_fg"]
-        = colors["link_hint_fg"].value_or("#000000");
-    m_config.ui.colors["link_hint_bg"]
-        = colors["link_hint_bg"].value_or("#FFFF00");
-    m_config.ui.colors["highlight"] = colors["highlight"].value_or("#55FFFF00");
-    m_config.ui.colors["selection"] = colors["selection"].value_or("#550000FF");
-    m_config.ui.colors["jump_marker"]
-        = colors["jump_marker"].value_or("#FFFF0000");
-    m_config.ui.colors["annot_rect"]
-        = colors["annot_rect"].value_or("#55FF0000");
+    const QColor transparent(0, 0, 0, 0);
+    const QColor default_search_index
+        = parseConfigColor(QStringLiteral("#3daee944"), transparent);
+    const QColor default_search_match
+        = parseConfigColor(QStringLiteral("#FFFF8844"), transparent);
+    const QColor default_accent
+        = parseConfigColor(QStringLiteral("#FF500044"), transparent);
+    const QColor default_background
+        = parseConfigColor(QStringLiteral("#FFFFFF"), transparent);
+    const QColor default_link_hint_fg
+        = parseConfigColor(QStringLiteral("#000000"), transparent);
+    const QColor default_link_hint_bg
+        = parseConfigColor(QStringLiteral("#FFFF00"), transparent);
+    const QColor default_highlight
+        = parseConfigColor(QStringLiteral("#55FFFF00"), transparent);
+    const QColor default_selection
+        = parseConfigColor(QStringLiteral("#550000FF"), transparent);
+    const QColor default_jump_marker
+        = parseConfigColor(QStringLiteral("#FFFF0000"), transparent);
+    const QColor default_annot_rect
+        = parseConfigColor(QStringLiteral("#55FF0000"), transparent);
+
+    m_config.ui.colors["search_index"] = parseConfigColor(
+        QString::fromStdString(colors["search_index"].value_or("#3daee944")),
+        default_search_index);
+    m_config.ui.colors["search_match"] = parseConfigColor(
+        QString::fromStdString(colors["search_match"].value_or("#FFFF8844")),
+        default_search_match);
+    m_config.ui.colors["accent"] = parseConfigColor(
+        QString::fromStdString(colors["accent"].value_or("#FF500044")),
+        default_accent);
+    m_config.ui.colors["background"] = parseConfigColor(
+        QString::fromStdString(colors["background"].value_or("#FFFFFF")),
+        default_background);
+    m_config.ui.colors["link_hint_fg"] = parseConfigColor(
+        QString::fromStdString(colors["link_hint_fg"].value_or("#000000")),
+        default_link_hint_fg);
+    m_config.ui.colors["link_hint_bg"] = parseConfigColor(
+        QString::fromStdString(colors["link_hint_bg"].value_or("#FFFF00")),
+        default_link_hint_bg);
+    m_config.ui.colors["highlight"] = parseConfigColor(
+        QString::fromStdString(colors["highlight"].value_or("#55FFFF00")),
+        default_highlight);
+    m_config.ui.colors["selection"] = parseConfigColor(
+        QString::fromStdString(colors["selection"].value_or("#550000FF")),
+        default_selection);
+    m_config.ui.colors["jump_marker"] = parseConfigColor(
+        QString::fromStdString(colors["jump_marker"].value_or("#FFFF0000")),
+        default_jump_marker);
+    m_config.ui.colors["annot_rect"] = parseConfigColor(
+        QString::fromStdString(colors["annot_rect"].value_or("#55FF0000")),
+        default_annot_rect);
 
     auto rendering = toml["rendering"];
 

@@ -65,7 +65,7 @@ type = "overlay" # or "overlay", "dialog", "side_panel"
 panel_width = 300
 
 
-# ===== Colors (ARGB) =====
+# ===== Colors (RGBA) =====
 [colors]
 accent = "#3daee9FF"
 background = "#00000000"

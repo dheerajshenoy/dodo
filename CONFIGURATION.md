@@ -15,7 +15,7 @@ Quick start
 General notes:
 - Boolean values use `true`/`false`.
 - Enums are listed in quotes.
-- Colors are ARGB hex strings (alpha first), e.g. `#FF0000FF`.
+- Colors are RGBA hex strings (alpha last), e.g. `#FF0000FF`.
 
 LLM (optional)
 --------------
@@ -96,7 +96,7 @@ UI
 Colors
 ------
 
-`[colors]` values are ARGB hex strings.
+`[colors]` values are RGBA hex strings.
 - `accent`: accent color.
 - `background`: background color.
 - `search_match`: active search match highlight.
