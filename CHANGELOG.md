@@ -31,6 +31,9 @@
     - [ui.links]
         - `detect_urls` - Enable/Disable non-link URL detection and linkification
         - `url_regex` - Custom regex for URL detection (default is a standard URL regex)
+- Command palette improvements
+    - Sort commands alphabetically
+    - Right-align shortcuts and optionally hide them (`[ui.command_palette].show_shortcuts`)
 
 - New options in `[behavior]`:
     - `cache_pages` (int): Maximum number of pages to keep cached per document. Default is `20`.
