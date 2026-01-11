@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Config.hpp"
+
 #include <QLineEdit>
 #include <QTableView>
 #include <QWidget>
@@ -33,7 +35,7 @@ class CommandPaletteWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit CommandPaletteWidget(const QHash<QString, QString> &shortcutMap,
+    explicit CommandPaletteWidget(const Config &config,
                                   QWidget *parent = nullptr) noexcept;
     void selectFirstItem() noexcept;
 
@@ -45,6 +47,8 @@ signals:
                          const QStringList &args = {});
 
 private:
+    Config m_config;
+    void initGui() noexcept;
     void initConnections() noexcept;
     QLineEdit *m_input_line{nullptr};
     QTableView *m_command_table{nullptr};

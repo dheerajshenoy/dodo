@@ -91,6 +91,16 @@ struct Config
             int panel_width{300};
         } highlight_search{};
 
+        struct command_palette
+        {
+            int width{500};
+            int height{300};
+            QString placeholder_text{"Type a command..."};
+            bool vscrollbar{true};
+            bool show_shortcuts{true};
+            bool show_grid{false};
+        } command_palette{};
+
 #ifdef ENABLE_LLM_SUPPORT
         struct llm_widget
         {

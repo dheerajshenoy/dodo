@@ -14,7 +14,11 @@
 class CommandItemDelegate final : public QStyledItemDelegate
 {
 public:
-    using QStyledItemDelegate::QStyledItemDelegate;
+    CommandItemDelegate(QObject *parent    = nullptr,
+                        bool showShortcuts = true) noexcept
+        : QStyledItemDelegate(parent), m_showShortcuts(showShortcuts)
+    {
+    }
 
     void paint(QPainter *painter, const QStyleOptionViewItem &option,
                const QModelIndex &index) const override
@@ -27,10 +31,7 @@ public:
         style->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, painter,
                              opt.widget);
 
-        const QString name     = index.data(Qt::DisplayRole).toString();
-        const QString shortcut = index.data(Qt::UserRole).toString();
-        const QString shortcutText
-            = shortcut.isEmpty() ? QString() : QString("(%1)").arg(shortcut);
+        const QString name = index.data(Qt::DisplayRole).toString();
 
         painter->save();
         painter->setFont(opt.font);
@@ -39,15 +40,25 @@ public:
         const QRect textRect = opt.rect.adjusted(8, 0, -8, 0);
         const QFontMetrics fm(opt.font);
 
-        if (shortcutText.isEmpty())
+        if (!m_showShortcuts)
         {
             painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, name);
             painter->restore();
             return;
         }
 
+        const QString shortcut = index.data(Qt::UserRole).toString();
+        const QString shortcutText
+            = shortcut.isEmpty() ? QString() : QString("(%1)").arg(shortcut);
+        if (shortcutText.isEmpty())
+        {
+            painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, name);
+            painter->restore();
+            return;
+        }
         const int shortcutWidth = fm.horizontalAdvance(shortcutText);
-        const int spacing       = fm.horizontalAdvance(QStringLiteral("  "));
+
+        const int spacing = fm.horizontalAdvance(QStringLiteral("  "));
         const int nameWidth
             = qMax(0, textRect.width() - shortcutWidth - spacing);
         const QRect nameRect(textRect.left(), textRect.top(), nameWidth,
@@ -65,18 +76,32 @@ public:
                           shortcutText);
         painter->restore();
     }
+
+private:
+    bool m_showShortcuts{true};
 };
 
 // ---- CommandPaletteWidget Implementation ----
 
-CommandPaletteWidget::CommandPaletteWidget(
-    const QHash<QString, QString> &commandHash, QWidget *parent) noexcept
-    : QWidget(parent)
+CommandPaletteWidget::CommandPaletteWidget(const Config &config,
+                                           QWidget *parent) noexcept
+    : QWidget(parent), m_config(config)
+{
+    initGui();
+    initConnections();
+    selectFirstItem();
+}
+
+void
+CommandPaletteWidget::initGui() noexcept
 {
     m_command_table = new QTableView(this);
     m_command_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_command_model = new CommandModel(commandHash, this);
+    m_command_table->horizontalHeader()->setStretchLastSection(true);
+    m_command_model = new CommandModel(m_config.shortcuts, this);
     m_proxy_model   = new QSortFilterProxyModel(this);
+    m_proxy_model->setFilterCaseSensitivity(Qt::CaseInsensitive);
+    m_proxy_model->setFilterKeyColumn(0); // Filter on command name
     m_proxy_model->setSourceModel(m_command_model);
     m_command_table->setModel(m_proxy_model);
     m_command_table->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -84,18 +109,21 @@ CommandPaletteWidget::CommandPaletteWidget(
     m_command_table->horizontalHeader()->setVisible(false);
     m_command_table->verticalHeader()->setVisible(false);
 
-    m_command_table->horizontalHeader()->setStretchLastSection(true);
-    m_command_table->horizontalHeader()->setSectionResizeMode(
-        QHeaderView::ResizeToContents);
-    m_command_table->setShowGrid(false);
-    m_command_table->setGridStyle(Qt::NoPen);
+    if (m_config.ui.command_palette.show_grid)
+        m_command_table->setShowGrid(true);
+    else
+        m_command_table->setGridStyle(Qt::NoPen);
     m_command_table->setContentsMargins(0, 0, 0, 0);
     m_command_table->setFrameStyle(QFrame::NoFrame);
-    m_command_table->setItemDelegate(new CommandItemDelegate(m_command_table));
-    this->setMinimumSize(500, 300);
+    m_command_table->setItemDelegate(new CommandItemDelegate(
+        m_command_table, m_config.ui.command_palette.show_shortcuts));
+
+    this->setMinimumSize(m_config.ui.command_palette.width,
+                         m_config.ui.command_palette.height);
 
     m_input_line = new QLineEdit(this);
-    m_input_line->setPlaceholderText("Type a command...");
+    m_input_line->setPlaceholderText(
+        m_config.ui.command_palette.placeholder_text);
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -105,9 +133,6 @@ CommandPaletteWidget::CommandPaletteWidget(
     layout->addWidget(m_command_table);
 
     this->setLayout(layout);
-
-    initConnections();
-    selectFirstItem();
 }
 
 void
@@ -162,8 +187,40 @@ CommandPaletteWidget::initConnections() noexcept
         emit commandSelected(commandName, args);
     });
 
-    auto *escShortcut = new QShortcut(QKeySequence(Qt::Key_Escape), this);
-    escShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+    auto *downShortcut = new QShortcut(QKeySequence(Qt::Key_Down), this);
+    auto *upShortcut   = new QShortcut(QKeySequence(Qt::Key_Up), this);
+
+    connect(downShortcut, &QShortcut::activated, this, [this]()
+    {
+        QModelIndex current = m_command_table->currentIndex();
+        if (!current.isValid())
+            return;
+        int nextRow = current.row() + 1;
+        if (nextRow >= m_proxy_model->rowCount())
+            nextRow = 0; // Wrap around
+        const QModelIndex nextIndex = m_proxy_model->index(nextRow, 0);
+        m_command_table->setCurrentIndex(nextIndex);
+        m_command_table->selectionModel()->select(
+            nextIndex,
+            QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+        m_command_table->scrollTo(nextIndex);
+    });
+
+    connect(upShortcut, &QShortcut::activated, this, [this]()
+    {
+        QModelIndex current = m_command_table->currentIndex();
+        if (!current.isValid())
+            return;
+        int prevRow = current.row() - 1;
+        if (prevRow < 0)
+            prevRow = m_proxy_model->rowCount() - 1; // Wrap around
+        const QModelIndex prevIndex = m_proxy_model->index(prevRow, 0);
+        m_command_table->setCurrentIndex(prevIndex);
+        m_command_table->selectionModel()->select(
+            prevIndex,
+            QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+        m_command_table->scrollTo(prevIndex);
+    });
 }
 
 // ---- CommandModel Implementation ----

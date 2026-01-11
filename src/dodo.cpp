@@ -523,6 +523,20 @@ dodo::initConfig() noexcept
     m_config.ui.scrollbars.search_hits
         = ui_scrollbars["search_hits"].value_or(true);
 
+    auto command_palette = ui["command_palette"];
+    m_config.ui.command_palette.height
+        = command_palette["height"].value_or(300);
+    m_config.ui.command_palette.width = command_palette["width"].value_or(500);
+    m_config.ui.command_palette.placeholder_text
+        = QString::fromStdString(command_palette["placeholder_text"].value_or(
+            std::string("Type a command...")));
+    m_config.ui.command_palette.vscrollbar
+        = command_palette["vscrollbar"].value_or(true);
+    m_config.ui.command_palette.show_grid
+        = command_palette["show_grid"].value_or(false);
+    m_config.ui.command_palette.show_shortcuts
+        = command_palette["show_shortcuts"].value_or(true);
+
     auto ui_markers                 = ui["markers"];
     m_config.ui.markers.jump_marker = ui_markers["jump_marker"].value_or(true);
 
@@ -3348,8 +3362,7 @@ dodo::ToggleCommandPalette() noexcept
     if (!m_command_palette_widget)
     {
 
-        m_command_palette_widget
-            = new CommandPaletteWidget(m_config.shortcuts, this);
+        m_command_palette_widget = new CommandPaletteWidget(m_config, this);
         connect(m_command_palette_widget,
                 &CommandPaletteWidget::commandSelected, this,
                 [this](const QString &command, const QStringList &args)
