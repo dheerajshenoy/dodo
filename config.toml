@@ -1,3 +1,10 @@
+# ===== LLM Configuration =====
+# Works only if compiled with LLM support
+[llm]
+provider = "ollama"
+model = "llama3.2:3b"
+max_tokens = 512
+
 # ===== UI =====
 [ui.window]
 fullscreen = false
@@ -6,6 +13,15 @@ panel = true
 startup_tab = true
 full_file_path_in_panel = false
 window_title = "{} - dodo" # '{}' replaced with base file name
+
+[ui.command_palette]
+show_shortcuts = false
+height = 400
+width = 600
+
+[ui.llm_widget]
+visible = true
+panel_width = 400
 
 [ui.layout]
 mode = "top_to_bottom" # "single", "top_to_bottom", "left_to_right"
@@ -74,17 +90,17 @@ annot_popup = "#FFFFFFAA"
 [rendering]
 dpi = 72.0
 dpr = { "eDP-1" = 1.25, "DP-5" = 1.0, "DP-7" = 1.0 } # float or map
-cache_pages = 10
+cache_pages = 4
 antialiasing_bits = 8 # 4=good, 8=high
 icc_color_profile = true
 
 # ===== Behavior =====
 [behavior]
 initial_mode = "text_select_mode" # { "region_select_mode", "annot_rect_mode", "annot_select_mode", "text_select_mode", "text_highlight_mode", "annot_popup_mode" }
-
+always_open_in_new_window = true
 remember_last_visited = true
 page_history = 100
-confirm_on_quit = true
+confirm_on_quit = false
 invert_mode = false
 auto_reload = true
 recent_files = true
@@ -95,6 +111,7 @@ synctex_editor_command = "zeditor %f:+%l"
 
 # ===== Shortcuts =====
 [keybindings]
+command = "Ctrl+Shift+P"
 open_file = "o"
 close_file = "Ctrl+w"
 link_hint_visit = "f"
@@ -158,3 +175,8 @@ undo = "u"
 redo = "Ctrl+R"
 toggle_focus_mode = "Ctrl+Space"
 reselect_last_selection = "g,v"
+highlight_annot_search = "Alt+Shift+H"
+
+# Completion navigation
+completion_next = "Ctrl+n"
+completion_prev = "Ctrl+p"

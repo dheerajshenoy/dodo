@@ -4,10 +4,26 @@ Configuration
 This document describes the settings available in `config.toml`. The values
 shown here reflect the current defaults.
 
+Quick start
+-----------
+
+1. Open `config.toml` in a text editor.
+2. Change the settings you care about.
+3. Save the file and restart dodo (or reload the config if your build supports
+   auto-reload).
+
 General notes:
 - Boolean values use `true`/`false`.
 - Enums are listed in quotes.
 - Colors are ARGB hex strings (alpha first), e.g. `#FF0000FF`.
+
+LLM (optional)
+--------------
+
+`[llm]` (only used if compiled with LLM support)
+- `provider` (string): LLM provider name (e.g. `"ollama"`).
+- `model` (string): model name or identifier.
+- `max_tokens` (int): maximum tokens in generated responses.
 
 UI
 --
@@ -18,7 +34,16 @@ UI
 - `panel` (bool): show the side panel.
 - `startup_tab` (bool): show the startup tab.
 - `full_file_path_in_panel` (bool): show full file paths in panel.
-- `window_title` (string): title format; `{}` is replaced with base filename.
+- `window_title` (string): window title format; `{}` is replaced with base filename.
+
+`[ui.command_palette]`
+- `show_shortcuts` (bool): show keyboard shortcuts in the command palette.
+- `height` (int): command palette height in pixels.
+- `width` (int): command palette width in pixels.
+
+`[ui.llm_widget]`
+- `visible` (bool): show LLM widget by default.
+- `panel_width` (int): LLM panel width in pixels.
 
 `[ui.layout]`
 - `mode` (enum): `"single"`, `"top_to_bottom"`, `"left_to_right"`.
@@ -91,6 +116,7 @@ Rendering
 - `dpi` (float): document DPI used for rendering.
 - `dpr` (float or map): device pixel ratio. Use a float for a global value or a
   per-display map, e.g. `{ "eDP-1" = 1.25 }`.
+- `cache_pages` (int): maximum number of pages to keep cached per document.
 - `antialiasing_bits` (int): `4` for good, `8` for high.
 - `icc_color_profile` (bool): apply ICC color profile.
 
@@ -101,8 +127,9 @@ Behavior
 - `initial_mode` (enum): `"region_select_mode"`, `"annot_rect_mode"`,
   `"annot_select_mode"`, `"text_select_mode"`, `"text_highlight_mode"`,
   `"annot_popup_mode"`.
+- `always_open_in_new_window` (bool): always open files in a new window.
 - `remember_last_visited` (bool): reopen last visited document.
-- `page_history` (int): number of page history entries.
+- `page_history` (int): number of page history entries to keep.
 - `confirm_on_quit` (bool): confirm before quitting.
 - `invert_mode` (bool): start in inverted colors mode.
 - `auto_reload` (bool): auto-reload files on change.
@@ -110,11 +137,6 @@ Behavior
 - `num_recent_files` (int): size of recent files list.
 - `undo_limit` (int): max undo entries.
 - `synctex_editor_command` (string): SyncTeX editor command.
-- `cache_pages` (int): maximum number of pages to keep cached per document.
-  Uses lazy loading with LRU eviction. Default is `20`.
-- `clear_inactive_cache` (bool): clear page cache when switching away from a
-  tab. Reduces memory usage but may cause slight delay when switching back.
-  Default is `false`.
 - `page_nav_with_mouse` (bool, optional): navigate pages with mouse (commented
   out by default).
 
@@ -125,6 +147,7 @@ Keybindings
 `Ctrl+S`, `Shift+N`, `Alt+1`, `F11`, or comma-separated sequences like `g,g`.
 
 Action list:
+- `command`
 - `open_file`
 - `close_file`
 - `link_hint_visit`
@@ -188,3 +211,6 @@ Action list:
 - `redo`
 - `toggle_focus_mode`
 - `reselect_last_selection`
+- `highlight_annot_search`
+- `completion_next`
+- `completion_prev`
