@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
 project(dodo VERSION 0.5.2 LANGUAGES CXX)
 
-if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+
+option(ENABLE_LLM_SUPPORT "Enable LLM support for advanced features" OFF)
+
+if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type")
 endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
@@ -24,7 +27,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra")
 #Set flags for Release build
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-find_package(Qt6 COMPONENTS Gui Widgets Core Svg SvgWidgets Concurrent)
+find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Svg SvgWidgets Concurrent)
 #OpenGLWidgets )
 find_package(PkgConfig REQUIRED)
 
@@ -77,7 +80,31 @@ add_executable(${PROJECT_NAME}
     src/PlaceholderWidget.hpp
     src/ScrollBar.hpp
     src/CommandPaletteWidget.hpp
+
 )
+
+
+if (ENABLE_LLM_SUPPORT)
+    message(STATUS "LLM support enabled.")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_LLM_SUPPORT=1)
+
+    target_sources(${PROJECT_NAME} PRIVATE
+        src/llm/http/HttpStreamClient.cpp
+        src/llm/LLMWidget.cpp
+        src/llm/providers/LLMProvider.cpp
+        src/llm/providers/ollama/OllamaProvider.cpp
+    )
+
+    find_package(CURL REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE CURL::libcurl)
+
+    target_include_directories(${PROJECT_NAME} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/llm
+    )
+else()
+    message(STATUS "LLM support disabled.")
+endif()
+
 
 qt_add_resources(RESOURCES resources.qrc)
 
@@ -88,20 +115,21 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 
-
 if(synctex_FOUND)
     message(STATUS "Found SyncTex: ${synctex_VERSION}. Compiling with SyncTeX support.")
     target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_SYNCTEX=1)
-    target_link_libraries(
-        ${PROJECT_NAME} Qt6::Widgets Qt6::Core Qt6::SvgWidgets Qt6::Concurrent # Qt6::OpenGLWidgets
+
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        Qt6::Widgets Qt6::Core Qt6::SvgWidgets Qt6::Concurrent
         ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
         ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
         synctex
     )
 else()
     message(FATAL_ERROR "SyncTex not found. If you want SyncTex support please install it and compile again.")
-    target_link_libraries(
-        ${PROJECT_NAME} Qt6::Widgets Qt6::Core Qt6::SvgWidgets Qt6::Concurrent
+
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        Qt6::Widgets Qt6::Core Qt6::SvgWidgets Qt6::Concurrent
         ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
         ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
     )

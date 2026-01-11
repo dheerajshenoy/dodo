@@ -16,6 +16,10 @@
 #include "TabWidget.hpp"
 #include "argparse.hpp"
 
+#ifdef ENABLE_LLM_SUPPORT
+#include "llm/LLMWidget.hpp"
+#endif
+
 #include <QActionGroup>
 #include <QApplication>
 #include <QClipboard>
@@ -99,6 +103,11 @@ private:
     void Redo() noexcept;
     void ShowAbout() noexcept;
     void TextHighlightCurrentSelection() noexcept;
+
+#ifdef ENABLE_LLM_SUPPORT
+    void ToggleLLMWidget() noexcept;
+#endif
+
     void ToggleCommandPalette() noexcept;
     void ToggleSearchBar() noexcept;
     void ShowHighlightSearch() noexcept;
@@ -249,6 +258,11 @@ private:
     QAction *m_actionSessionSave{nullptr};
     QAction *m_actionSessionSaveAs{nullptr};
     QAction *m_actionHighlightSearch{nullptr};
+
+#ifdef ENABLE_LLM_SUPPORT
+    QAction *m_actionToggleLLMWidget{nullptr};
+#endif
+
     QTabWidget *m_side_panel_tabs{nullptr};
     FloatingOverlayWidget *m_outline_overlay{nullptr};
     FloatingOverlayWidget *m_highlight_overlay{nullptr};
@@ -288,4 +302,9 @@ private:
     HighlightSearchWidget *m_highlight_search_widget{nullptr};
     CommandPaletteWidget *m_command_palette_widget{nullptr};
     FloatingOverlayWidget *m_command_palette_overlay{nullptr};
+
+#ifdef ENABLE_LLM_SUPPORT
+    // LLM Support
+    LLMWidget *m_llm_widget{nullptr};
+#endif
 };

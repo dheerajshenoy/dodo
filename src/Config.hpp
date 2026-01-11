@@ -91,6 +91,15 @@ struct Config
             int panel_width{300};
         } highlight_search{};
 
+#ifdef ENABLE_LLM_SUPPORT
+        struct llm_widget
+        {
+            bool visible{false};
+            QString panel_position{"right"};
+            int panel_width{400};
+        } llm_widget{};
+#endif
+
         QHash<QString, QColor> colors{};
     };
 

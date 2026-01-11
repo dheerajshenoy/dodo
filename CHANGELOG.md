@@ -4,6 +4,16 @@
 
 ### Features
 
+- **Add LLM support** 
+    - LLM (Large Language Model) integration is entirely optional and can be disabled completely from the code by the compile flag `ENABLE_LLM_SUPPORT`.
+    - Integrate with local LLM models to provide AI-powered assistance
+    - Config options:
+        - `[llm]`
+            - `enabled` (bool): Enable/Disable LLM assistance
+            - `model_path` (string): Path to the local LLM model
+            - `temperature` (float): Sampling temperature for response generation
+            - `max_tokens` (int): Maximum tokens in the generated response
+            
 - **Region Selection context menu**
     - Right click context menu when in region selection mode
         - Copy text in region to clipboard

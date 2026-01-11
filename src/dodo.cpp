@@ -224,6 +224,14 @@ dodo::initMenubar() noexcept
     m_viewMenu->addSeparator();
     m_toggleMenu = m_viewMenu->addMenu("Show/Hide");
 
+#ifdef ENABLE_LLM_SUPPORT
+    m_actionToggleLLMWidget = m_toggleMenu->addAction(
+        QString("LLM Widget\t%1").arg(m_config.shortcuts["toggle_llm_widget"]),
+        this, &dodo::ToggleLLMWidget);
+    m_actionToggleLLMWidget->setCheckable(true);
+    m_actionToggleLLMWidget->setChecked(m_config.ui.llm_widget.visible);
+#endif
+
     m_actionToggleOutline = m_toggleMenu->addAction(
         QString("Outline\t%1").arg(m_config.shortcuts["outline"]), this,
         &dodo::ShowOutline);
@@ -565,6 +573,15 @@ dodo::initConfig() noexcept
     m_config.ui.highlight_search.panel_width
         = ui_highlight_search["panel_width"].value_or(300);
 
+#ifdef ENABLE_LLM_SUPPORT
+    m_config.ui.llm_widget.panel_position
+        = ui["llm_widget"]["panel_position"].value_or("right");
+    m_config.ui.llm_widget.panel_width
+        = ui["llm_widget"]["panel_width"].value_or(400);
+    m_config.ui.llm_widget.visible
+        = ui["llm_widget"]["visible"].value_or(false);
+#endif
+
     auto colors = toml["colors"];
 
     m_config.ui.colors["search_index"]
@@ -868,6 +885,7 @@ dodo::initGui() noexcept
     const bool outlineSide = (m_config.ui.outline.type == "side_panel");
     const bool highlightSide
         = (m_config.ui.highlight_search.type == "side_panel");
+    QWidget *mainContent = nullptr;
     if (outlineSide || highlightSide)
     {
         QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
@@ -918,15 +936,36 @@ dodo::initGui() noexcept
         splitter->setHandleWidth(1);
         splitter->setContentsMargins(0, 0, 0, 0);
         splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-        m_layout->addWidget(splitter, 1);
+        mainContent = splitter;
 
         if (highlightSide)
             m_highlight_search_widget->setWindowFlags(Qt::Widget);
     }
     else
     {
-        m_layout->addWidget(m_tab_widget, 1);
+        mainContent = m_tab_widget;
     }
+
+#ifdef ENABLE_LLM_SUPPORT
+    m_llm_widget = new LLMWidget(m_config, this);
+    m_llm_widget->setVisible(m_config.ui.llm_widget.visible);
+
+    QSplitter *llm_splitter = new QSplitter(Qt::Horizontal, this);
+    llm_splitter->addWidget(mainContent);
+    llm_splitter->addWidget(m_llm_widget);
+    llm_splitter->setStretchFactor(0, 1);
+    llm_splitter->setStretchFactor(1, 0);
+    const int llmWidth = m_config.ui.llm_widget.panel_width;
+    llm_splitter->setSizes({this->width() - llmWidth, llmWidth});
+    llm_splitter->setFrameShape(QFrame::NoFrame);
+    llm_splitter->setFrameShadow(QFrame::Plain);
+    llm_splitter->setHandleWidth(1);
+    llm_splitter->setContentsMargins(0, 0, 0, 0);
+    llm_splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    m_layout->addWidget(llm_splitter, 1);
+#else
+    m_layout->addWidget(mainContent, 1);
+#endif
 
     if (!outlineSide && m_config.ui.outline.type == "overlay")
     {
@@ -3318,3 +3357,11 @@ dodo::ToggleCommandPalette() noexcept
     m_command_palette_overlay->setVisible(
         !m_command_palette_overlay->isVisible());
 }
+
+#ifdef ENABLE_LLM_SUPPORT
+void
+dodo::ToggleLLMWidget() noexcept
+{
+    m_llm_widget->setVisible(!m_llm_widget->isVisible());
+}
+#endif
