@@ -1,11 +1,70 @@
 #include "CommandPaletteWidget.hpp"
 
+#include <QApplication>
 #include <QEvent>
 #include <QHeaderView>
 #include <QKeySequence>
+#include <QPainter>
+#include <QScrollBar>
 #include <QShortcut>
+#include <QStyledItemDelegate>
 #include <QVBoxLayout>
-#include <sys/select.h>
+
+class CommandItemDelegate final : public QStyledItemDelegate
+{
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    void paint(QPainter *painter, const QStyleOptionViewItem &option,
+               const QModelIndex &index) const override
+    {
+        QStyleOptionViewItem opt = option;
+        initStyleOption(&opt, index);
+
+        QStyle *style
+            = opt.widget ? opt.widget->style() : QApplication::style();
+        style->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, painter,
+                             opt.widget);
+
+        const QString name     = index.data(Qt::DisplayRole).toString();
+        const QString shortcut = index.data(Qt::UserRole).toString();
+        const QString shortcutText
+            = shortcut.isEmpty() ? QString() : QString("(%1)").arg(shortcut);
+
+        painter->save();
+        painter->setFont(opt.font);
+        painter->setPen(opt.palette.color(QPalette::Text));
+
+        const QRect textRect = opt.rect.adjusted(8, 0, -8, 0);
+        const QFontMetrics fm(opt.font);
+
+        if (shortcutText.isEmpty())
+        {
+            painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, name);
+            painter->restore();
+            return;
+        }
+
+        const int shortcutWidth = fm.horizontalAdvance(shortcutText);
+        const int spacing       = fm.horizontalAdvance(QStringLiteral("  "));
+        const int nameWidth
+            = qMax(0, textRect.width() - shortcutWidth - spacing);
+        const QRect nameRect(textRect.left(), textRect.top(), nameWidth,
+                             textRect.height());
+        const QRect shortcutRect(textRect.left(), textRect.top(),
+                                 textRect.width(), textRect.height());
+
+        const QString elidedName
+            = fm.elidedText(name, Qt::ElideRight, nameWidth);
+        painter->drawText(nameRect, Qt::AlignVCenter | Qt::AlignLeft,
+                          elidedName);
+
+        painter->setPen(opt.palette.color(QPalette::PlaceholderText));
+        painter->drawText(shortcutRect, Qt::AlignVCenter | Qt::AlignRight,
+                          shortcutText);
+        painter->restore();
+    }
+};
 
 // ---- CommandPaletteWidget Implementation ----
 
@@ -25,15 +84,25 @@ CommandPaletteWidget::CommandPaletteWidget(
     m_command_table->verticalHeader()->setVisible(false);
 
     m_command_table->horizontalHeader()->setStretchLastSection(true);
-    this->setMinimumWidth(400);
+    m_command_table->horizontalHeader()->setSectionResizeMode(
+        QHeaderView::ResizeToContents);
+    m_command_table->setShowGrid(false);
+    m_command_table->setGridStyle(Qt::NoPen);
+    m_command_table->setContentsMargins(0, 0, 0, 0);
+    m_command_table->setFrameStyle(QFrame::NoFrame);
+    m_command_table->setItemDelegate(new CommandItemDelegate(m_command_table));
+    this->setMinimumSize(500, 300);
 
     m_input_line = new QLineEdit(this);
+    m_input_line->setPlaceholderText("Type a command...");
 
     QVBoxLayout *layout = new QVBoxLayout(this);
-    layout->setContentsMargins(8, 8, 8, 8);
-    layout->setSpacing(4);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
+
     layout->addWidget(m_input_line);
     layout->addWidget(m_command_table);
+
     this->setLayout(layout);
 
     initConnections();
@@ -121,7 +190,7 @@ int
 CommandModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return 2; // Name, Shortcut
+    return 1; // Name, Shortcut
 }
 
 QVariant
@@ -132,19 +201,13 @@ CommandModel::data(const QModelIndex &index, int role) const
     if (index.row() < 0 || index.row() >= static_cast<int>(m_commands.size()))
         return QVariant();
     const CommandEntry &entry = m_commands[index.row()];
-    if (role == Qt::DisplayRole)
+
+    switch (role)
     {
-        switch (index.column())
-        {
-            case 0:
-                return entry.name;
-            case 1:
-                return entry.shortcut;
-                // case 2:
-                //     return entry.description;
-            default:
-                return QVariant();
-        }
+        case Qt::DisplayRole:
+            return entry.name;
+        case Qt::UserRole:
+            return entry.shortcut;
     }
 
     return QVariant();
