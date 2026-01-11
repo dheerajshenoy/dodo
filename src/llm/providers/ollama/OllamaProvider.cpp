@@ -39,11 +39,14 @@ OllamaProvider::~OllamaProvider()
 void
 OllamaProvider::chat_stream(const LLM::Request &request)
 {
+    const std::string content = m_system_prompt.empty()
+                                    ? request.prompt
+                                    : m_system_prompt + "\n\n" + request.prompt;
     nlohmann::json j;
     j["model"]    = request.model;
     j["stream"]   = true;
     j["messages"] = nlohmann::json::array();
-    j["messages"].push_back({{"role", "user"}, {"content", request.prompt}});
+    j["messages"].push_back({{"role", "user"}, {"content", content}});
     j["max_tokens"] = request.max_tokens;
     // j["temperature"] = request.temperature;
     const std::string data = j.dump();

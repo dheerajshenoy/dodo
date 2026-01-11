@@ -66,10 +66,9 @@ LLMWidget::sendQuery() noexcept
     m_chat_edit->append("<b>User:</b> " + user_input);
     m_input_edit->clear();
     m_stream_in_progress = false;
-    LLM::Request llm_request;
-    llm_request.model      = "llama3.2:3b";
-    llm_request.prompt     = user_input.toStdString();
-    llm_request.max_tokens = 512;
+    LLM::Request llm_request{.model      = m_config.llm.model,
+                             .prompt     = user_input.toStdString(),
+                             .max_tokens = m_config.llm.max_tokens};
     m_provider->chat_stream(llm_request);
 }
 

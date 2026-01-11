@@ -134,6 +134,18 @@ struct Config
         bool confirm_on_quit{true};
     };
 
+#ifdef ENABLE_LLM_SUPPORT
+    struct llm
+    {
+        std::string provider{"ollama"};
+        std::string model{"llama2-7b-chat"};
+        int max_tokens{512};
+        // float temperature{0.7f}; //
+    };
+
+    llm llm{};
+#endif
+
     ui ui{};
     rendering rendering{};
     behavior behavior{};

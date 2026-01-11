@@ -21,7 +21,15 @@ public:
     explicit Provider(QObject *parent = nullptr);
     ~Provider() override;
 
+    inline void setSystemPrompt(const std::string &prompt)
+    {
+        m_system_prompt = prompt;
+    }
+
     virtual void chat_stream(const Request &request) = 0;
+
+protected:
+    std::string m_system_prompt{};
 
 signals:
     void dataReceived(const std::string &data);

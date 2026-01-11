@@ -580,6 +580,13 @@ dodo::initConfig() noexcept
         = ui["llm_widget"]["panel_width"].value_or(400);
     m_config.ui.llm_widget.visible
         = ui["llm_widget"]["visible"].value_or(false);
+
+    auto llm = toml["llm"];
+
+    m_config.llm.provider   = llm["provider"].value_or("");
+    m_config.llm.model      = llm["model"].value_or("");
+    m_config.llm.max_tokens = llm["max_tokens"].value_or(512);
+
 #endif
 
     auto colors = toml["colors"];
