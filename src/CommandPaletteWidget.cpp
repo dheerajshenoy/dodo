@@ -5,6 +5,7 @@
 #include <QHeaderView>
 #include <QKeySequence>
 #include <QPainter>
+#include <QRegularExpression>
 #include <QScrollBar>
 #include <QShortcut>
 #include <QStyledItemDelegate>
@@ -81,6 +82,58 @@ private:
     bool m_showShortcuts{true};
 };
 
+namespace
+{
+class CommandFilterProxy final : public QSortFilterProxyModel
+{
+public:
+    using QSortFilterProxyModel::QSortFilterProxyModel;
+
+    void setFilterInput(const QString &input)
+    {
+        const QString trimmed = input.trimmed();
+        if (trimmed.isEmpty())
+        {
+            m_tokens.clear();
+        }
+        else
+        {
+            m_tokens
+                = trimmed.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+            for (QString &token : m_tokens)
+                token = token.toLower();
+        }
+
+        invalidateFilter();
+    }
+
+protected:
+    bool filterAcceptsRow(int sourceRow,
+                          const QModelIndex &sourceParent) const override
+    {
+        if (m_tokens.isEmpty())
+            return true;
+
+        const QModelIndex index
+            = sourceModel()->index(sourceRow, 0, sourceParent);
+        const QString name = index.data(Qt::DisplayRole).toString().toLower();
+        const QString normalized
+            = QString(name).replace(QChar('_'), QChar(' '));
+
+        for (const QString &token : m_tokens)
+        {
+            if (!normalized.contains(token))
+                return false;
+        }
+
+        return true;
+    }
+
+private:
+    QStringList m_tokens;
+};
+} // namespace
+
 // ---- CommandPaletteWidget Implementation ----
 
 CommandPaletteWidget::CommandPaletteWidget(const Config &config,
@@ -99,9 +152,7 @@ CommandPaletteWidget::initGui() noexcept
     m_command_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_command_table->horizontalHeader()->setStretchLastSection(true);
     m_command_model = new CommandModel(m_config.shortcuts, this);
-    m_proxy_model   = new QSortFilterProxyModel(this);
-    m_proxy_model->setFilterCaseSensitivity(Qt::CaseInsensitive);
-    m_proxy_model->setFilterKeyColumn(0); // Filter on command name
+    m_proxy_model   = new CommandFilterProxy(this);
     m_proxy_model->setSourceModel(m_command_model);
     m_command_table->setModel(m_proxy_model);
     m_command_table->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -165,7 +216,8 @@ CommandPaletteWidget::initConnections() noexcept
     connect(m_input_line, &QLineEdit::textChanged, this,
             [this](const QString &text)
     {
-        m_proxy_model->setFilterFixedString(text);
+        auto *proxy = static_cast<CommandFilterProxy *>(m_proxy_model);
+        proxy->setFilterInput(text);
         selectFirstItem();
     });
 

@@ -45,6 +45,7 @@
 - Add visual feedback to current keypress in the link hinting mode
 - Hide non-matching link hints as keys are entered and dim the typed digits
 - Fix config color parsing to treat 8-digit hex values as RGBA
+- Add orderless, space-aware command palette search
 - Remove stray return causing panel update issues
 - Fix prompting for password protected documents
 - Fix session loading not opening files properly - files now load correctly with their saved state (page, zoom, fit mode, invert color)
