@@ -91,8 +91,14 @@ build_dodo() {
 final_install() {
     echo "Installing files to $PREFIX (requires sudo)..."
 
+    SRC_PREFIX_DIR="$STAGE_DIR$PREFIX"
+    if [ ! -d "$SRC_PREFIX_DIR" ]; then
+        echo "Staged install directory not found: $SRC_PREFIX_DIR"
+        exit 1
+    fi
+
     sudo mkdir -p "$PREFIX"
-    sudo cp -a "$STAGE_DIR"/usr/local/* "$PREFIX"/
+    sudo cp -a "$SRC_PREFIX_DIR"/* "$PREFIX"/
 
     echo "Installation complete."
 }
@@ -102,7 +108,7 @@ final_install() {
 # ============================================================
 
 rm -rf "$STAGE_DIR"
-mkdir -p "$STAGE_DIR/$PREFIX/share/applications"
+mkdir -p "$STAGE_DIR$PREFIX/share/applications"
 
 if [ "$SKIP_MUPDF_BUILD" -eq 0 ]; then
     download_mupdf
