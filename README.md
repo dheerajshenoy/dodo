@@ -5,28 +5,14 @@
 
 [![GitHub License](https://shields.io/badge/LICENSE-AGPL-3)](https://opensource.org/license/agpl-v3)
 
-**Dodo** (pronounced "doh-doh") is a fast, keyboard-friendly PDF reader built for
+**Dodo** is a fast, keyboard-friendly PDF reader built for
 smooth reading, quick navigation, and deep customization. It uses MuPDF for
-rendering and Qt for the UI, so it stays lightweight while still offering tabs,
-search, annotations, and power-user workflows.
-
-If you read papers, manuals, or long PDFs and want speed + control, this is for you.
+rendering and Qt for the UI. If you read papers, manuals, or long PDFs and want speed + control, this is for you.
 
 > [!NOTE]
 > Latest dodo version is v0.5.3
 
-## Table of Contents
-
-- [Screenshots](#screenshots)
-- [Features](#features)
-- [Dependencies](#dependencies)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Theming dodo](#theming-dodo)
-- [TODO](#todo)
-- [Contributing](#contributing)
-- [FAQ](#faq)
+## Check out dodo's webpage: [dheerajshenoy.github.io/dodo](https://dheerajshenoy.github.io/dodo)
 
 ## Screenshots
 
@@ -51,6 +37,8 @@ If you read papers, manuals, or long PDFs and want speed + control, this is for 
 ### Synctex forward search from dodo to tex editor (Zed editor in this case)
 <img src="./images/synctex.gif" alt="dodo synctex forward search feature" width="800"/>
 </p>
+
+
 
 ## Features
 
