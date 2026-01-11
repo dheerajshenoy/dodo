@@ -2,19 +2,64 @@
 set -e
 SKIP_MUPDF_BUILD=0
 PREFIX="/usr/local"
+CMAKE_ARGS=""
+BUILD_TYPE="Release"
+ENABLE_LLM_SUPPORT="OFF"
 # ============================================================
 # Arguments
 # ============================================================
 
-for arg in "$@"; do
-    case "$arg" in
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --help|-h)
+            echo "Usage: ./install.sh [options]"
+            echo ""
+            echo "Options:"
+            echo "  --prefix <path>         Install prefix (default: /usr/local)"
+            echo "  --skip-mupdf-build       Skip MuPDF build"
+            echo "  --release               Build type Release (default)"
+            echo "  --debug                 Build type Debug"
+            echo "  --with-llm-support       Enable LLM support"
+            echo "  --without-llm-support    Disable LLM support (default)"
+            echo "  --cmake-arg <value>      Extra CMake arg (repeatable)"
+            echo "  --cmake-args <value>     Extra CMake args (single string)"
+            exit 0
+            ;;
         --skip-mupdf-build)
             SKIP_MUPDF_BUILD=1
             ;;
+        --prefix)
+            shift
+            PREFIX="$1"
+            ;;
+        --release)
+            BUILD_TYPE="Release"
+            ;;
+        --debug)
+            BUILD_TYPE="Debug"
+            ;;
+        --with-llm-support)
+            ENABLE_LLM_SUPPORT="ON"
+            ;;
+        --without-llm-support)
+            ENABLE_LLM_SUPPORT="OFF"
+            ;;
+        --cmake-arg)
+            shift
+            CMAKE_ARGS="$CMAKE_ARGS $1"
+            ;;
+        --cmake-args)
+            shift
+            CMAKE_ARGS="$1"
+            ;;
+        --cmake-args=*)
+            CMAKE_ARGS="${1#*=}"
+            ;;
         *)
-            PREFIX="$arg"
+            PREFIX="$1"
             ;;
     esac
+    shift
 done
 
 # ============================================================
@@ -79,7 +124,9 @@ build_dodo() {
     cmake .. \
         -G Ninja \
         -DCMAKE_INSTALL_PREFIX=$PREFIX \
-        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+        -DENABLE_LLM_SUPPORT=$ENABLE_LLM_SUPPORT \
+        $CMAKE_ARGS
 
     ninja
     DESTDIR="$STAGE_DIR" ninja install
