@@ -2058,7 +2058,8 @@ dodo::initConnections() noexcept
             [this](int page, const QPointF &pos) // page returned is 1-based
     {
         m_doc->addToHistory(m_doc->CurrentLocation());
-        GotoLocation({page - 1, (float)pos.x(), (float)pos.y()});
+        m_doc->GotoLocation({page - 1, (float)pos.x(), (float)pos.y()});
+        m_outline_overlay->hide();
     });
 
     connect(m_highlight_search_widget,

@@ -65,17 +65,17 @@ type = "overlay" # or "overlay", "dialog", "side_panel"
 panel_width = 300
 
 
-# ===== Colors (RGBA) =====
+# ===== Colors (ARGB) =====
 [colors]
 accent = "#3daee9FF"
 background = "#00000000"
 search_match = "#55500033"
 search_index = "#55FF0055"
-link_hint_bg = "#FFFF0044"
-link_hint_fg = "#FF0000FF"
-selection = "#330000FF"
+link_hint_bg = "#000000FF"
+link_hint_fg = "#ea3ee9FF"
+selection = "#33000055"
 highlight = "#55FF0055"
-jump_marker = "#FFFF0000"
+jump_marker = "#FF0000FF"
 annot_rect = "#55FF5500"
 annot_popup = "#FFFFFFAA"
 

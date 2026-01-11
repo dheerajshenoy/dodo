@@ -43,6 +43,7 @@
 ### Bug Fixes
 
 - Add visual feedback to current keypress in the link hinting mode
+- Hide non-matching link hints as keys are entered and dim the typed digits
 - Fix config color parsing to treat 8-digit hex values as RGBA
 - Remove stray return causing panel update issues
 - Fix prompting for password protected documents

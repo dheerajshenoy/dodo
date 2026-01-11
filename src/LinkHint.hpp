@@ -42,16 +42,19 @@ public:
         {
             m_prefix_len   = 0;
             m_prefix_match = false;
+            setVisible(true);
         }
         else if (m_hint_text.startsWith(input))
         {
             m_prefix_len   = input.size();
             m_prefix_match = (m_prefix_len > 0);
+            setVisible(true);
         }
         else
         {
             m_prefix_len   = 0;
             m_prefix_match = false;
+            setVisible(false);
         }
 
         update();
@@ -90,11 +93,11 @@ public:
         QColor dim = m_fg;
         dim.setAlphaF(std::max(0.2, m_fg.alphaF() * 0.35));
 
-        painter->setPen(m_fg);
+        painter->setPen(dim);
         painter->drawText(QPointF(x, y), prefix);
 
         const qreal prefixWidth = metrics.horizontalAdvance(prefix);
-        painter->setPen(dim);
+        painter->setPen(m_fg);
         painter->drawText(QPointF(x + prefixWidth, y), suffix);
 
         painter->restore();
