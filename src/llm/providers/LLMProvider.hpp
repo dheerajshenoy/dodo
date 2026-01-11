@@ -35,6 +35,5 @@ signals:
     void dataReceived(const std::string &data);
     void requestFailed(const std::string &error);
     void streamFinished();
-};
-
+}; // namespace LLM
 }; // namespace LLM

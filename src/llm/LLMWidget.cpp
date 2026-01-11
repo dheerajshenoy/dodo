@@ -16,7 +16,33 @@ LLMWidget::LLMWidget(const Config &config, QWidget *parent) noexcept
 void
 LLMWidget::initProvider() noexcept
 {
-    m_provider = new OllamaProvider();
+    if (m_config.llm.provider == "ollama")
+    {
+        m_provider = new OllamaProvider();
+
+        // const std::string systemPrompt
+        //     = "* You are a helpful assistant embedded in a PDF reader app "
+        //       "named dodo."
+        //       "* You may request actions by outputting a single JSON object"
+        //       "* Allowed commands:"
+        //       "** goto_page(page:int)"
+        //       "** search(query:string, case_sensitive:bool)"
+        //       "** get_current_page()"
+        //       "** get_page_text(page:int, max_chars:int)"
+        //       "** add_note(page:int, text:string)"
+        //       "* Always format your responses in markdown rich format for "
+        //       "bold, "
+        //       "italic etc..";
+
+        // m_provider->setSystemPrompt(systemPrompt);
+    }
+    else
+    {
+        m_chat_edit->append("<b>LLM error:</b> Unsupported provider: "
+                            + QString::fromStdString(m_config.llm.provider));
+        return;
+    }
+
     connect(m_provider, &LLM::Provider::dataReceived, this,
             [this](const std::string &data)
     {
