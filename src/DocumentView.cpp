@@ -140,33 +140,15 @@ DocumentView::setupUI() noexcept
     m_gview->setVerticalScrollBar(m_vscroll);
     m_gview->setHorizontalScrollBar(m_hscroll);
 
-    // Vertical
-    if (!m_config.ui.scrollbars.vertical)
-    {
-        m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    }
-    else if (m_config.ui.scrollbars.auto_hide)
-    {
-        m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    }
-    else
-    {
-        m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    }
+    m_gview->setVerticalScrollBarPolicy(m_config.ui.scrollbars.vertical
+                                            ? Qt::ScrollBarAsNeeded
+                                            : Qt::ScrollBarAlwaysOff);
 
-    // Horizontal
-    if (!m_config.ui.scrollbars.horizontal)
-    {
-        m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    }
-    else if (m_config.ui.scrollbars.auto_hide)
-    {
-        m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    }
-    else
-    {
-        m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    }
+    m_gview->setHorizontalScrollBarPolicy(m_config.ui.scrollbars.horizontal
+                                              ? Qt::ScrollBarAsNeeded
+                                              : Qt::ScrollBarAlwaysOff);
+
+    m_gview->setAutoHideScrollbars(m_config.ui.scrollbars.auto_hide);
 
     m_auto_resize       = m_config.ui.layout.auto_resize;
     QVBoxLayout *layout = new QVBoxLayout(this);

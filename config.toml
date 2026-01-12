@@ -29,10 +29,12 @@ factor = 1.25 # factor for zoom in/out
 drag_threshold = 100
 
 [ui.scrollbars]
-horizontal = false
+horizontal = true
 vertical = true
 auto_hide = true
 search_hits = true # show/hide search hits on scrollbar
+size = 12 # scrollbar thickness in pixels
+hide_timeout = 1000 # time in ms to hide scrollbars when auto_hide is true
 
 [ui.markers]
 jump_marker = true
