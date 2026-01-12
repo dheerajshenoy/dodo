@@ -1,9 +1,13 @@
 # dodo
 
-## 0.5.3
+## 0.5.4
 
 ### Features
 
+- **Command palette improvements**
+    - Sort commands alphabetically
+    - Right-align shortcuts and optionally hide them (`[ui.command_palette].show_shortcuts`)
+    
 - **Overlay scrollbars**: Scrollbars now appear as floating overlays that don't shift the layout
     - Auto-hide after configurable timeout (default 1500ms)
     - Scrollbars remain visible while dragging or hovering over them
@@ -12,7 +16,9 @@
         - `auto_hide` (bool): Auto hide scrollbar when not in use
         - `size` (int): Scrollbar width/height in pixels (default: 12)
         - `hide_timeout` (int): Milliseconds before hiding after inactivity (default: 1500)
+        
 - **Detach from terminal** - By default dodo will now detach from the terminal when launched from a terminal. This can be disabled by using the `--foreground` command line argument.
+
 - **Add LLM support \[OPTIONAL\]**
     - LLM (Large Language Model) integration is entirely optional and can be disabled completely from the code by the compile flag `ENABLE_LLM_SUPPORT`.
     - Integrate with local LLM models to provide AI-powered assistance
@@ -22,31 +28,13 @@
             - `model_path` (string): Path to the local LLM model
             - `temperature` (float): Sampling temperature for response generation
             - `max_tokens` (int): Maximum tokens in the generated response
-
+            
 - **Region Selection context menu**
     - Right click context menu when in region selection mode
         - Copy text in region to clipboard
         - Copy region as image to clipboard
         - Save region as image to file
         - Open region as image externally
-- **Cross-window tab drag and drop**: Tabs can now be dragged between windows or detached to create new windows.
-- Change cursor when selecting or highlighting text
-- Searchable text highlights
-- Outline widget and Search Highlight widget types - "dialog", "side_panel", "overlay" (configurable in settings)
-    - UI
-        `[ui.outline]` - `type=<value>` where value = `dialog`, `side_panel`, `overlay`
-        `[ui.search_highlight]` - `type=<value>` where value = `dialog`, `side_panel`, `overlay`
-- Detection of non-link URL pdf object in the PDF and making them clickable links (optional, configurable in settings)
-    - [ui.links]
-        - `detect_urls` - Enable/Disable non-link URL detection and linkification
-        - `url_regex` - Custom regex for URL detection (default is a standard URL regex)
-- Command palette improvements
-    - Sort commands alphabetically
-    - Right-align shortcuts and optionally hide them (`[ui.command_palette].show_shortcuts`)
-
-- New options in `[behavior]`:
-    - `cache_pages` (int): Maximum number of pages to keep cached per document. Default is `20`.
-    - `always_open_in_new_window` (bool): If true, files will always open in a new window instead of a new tab. Default is `false`.
 
 
 ### Bug Fixes
@@ -58,6 +46,32 @@
 - Hide non-matching link hints as keys are entered and dim the typed digits
 - Fix config color parsing to treat 8-digit hex values as RGBA
 - Add orderless, space-aware command palette search
+
+## 0.5.3
+
+
+### Features
+
+
+- **Cross-window tab drag and drop**: Tabs can now be dragged between windows or detached to create new windows.
+- Change cursor when selecting or highlighting text
+- Searchable text highlights
+- Outline widget and Search Highlight widget types - "dialog", "side_panel", "overlay" (configurable in settings)
+    - UI
+        `[ui.outline]` - `type=<value>` where value = `dialog`, `side_panel`, `overlay`
+        `[ui.search_highlight]` - `type=<value>` where value = `dialog`, `side_panel`, `overlay`
+- Detection of non-link URL pdf object in the PDF and making them clickable links (optional, configurable in settings)
+    - [ui.links]
+        - `detect_urls` - Enable/Disable non-link URL detection and linkification
+        - `url_regex` - Custom regex for URL detection (default is a standard URL regex)
+
+- New options in `[behavior]`:
+    - `cache_pages` (int): Maximum number of pages to keep cached per document. Default is `20`.
+    - `always_open_in_new_window` (bool): If true, files will always open in a new window instead of a new tab. Default is `false`.
+
+
+
+### Bug Fixes
 - Remove stray return causing panel update issues
 - Fix prompting for password protected documents
 - Fix session loading not opening files properly - files now load correctly with their saved state (page, zoom, fit mode, invert color)

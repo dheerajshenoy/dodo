@@ -10,7 +10,7 @@ smooth reading, quick navigation, and deep customization. It uses MuPDF for
 rendering and Qt for the UI. If you read papers, manuals, or long PDFs and want speed + control, this is for you.
 
 > [!NOTE]
-> Latest dodo version is v0.5.3
+> Latest dodo version is v0.5.4
 
 ## Check out dodo's webpage: [dheerajshenoy.github.io/dodo](https://dheerajshenoy.github.io/dodo)
 
