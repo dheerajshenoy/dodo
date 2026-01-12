@@ -559,6 +559,8 @@ dodo::initConfig() noexcept
         = ui_scrollbars["horizontal"].value_or(true);
     m_config.ui.scrollbars.search_hits
         = ui_scrollbars["search_hits"].value_or(true);
+    m_config.ui.scrollbars.auto_hide
+        = ui_scrollbars["auto_hide"].value_or(true);
 
     auto command_palette = ui["command_palette"];
     m_config.ui.command_palette.height
