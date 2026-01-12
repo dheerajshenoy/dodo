@@ -4,6 +4,7 @@
 
 ### Features
 
+- **Detach from terminal** - By default dodo will now detach from the terminal when launched from a terminal. This can be disabled by using the `--foreground` command line argument.
 - **Add LLM support** 
     - LLM (Large Language Model) integration is entirely optional and can be disabled completely from the code by the compile flag `ENABLE_LLM_SUPPORT`.
     - Integrate with local LLM models to provide AI-powered assistance
