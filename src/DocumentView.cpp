@@ -1,15 +1,17 @@
 #include "DocumentView.hpp"
 
+#include "Annotations/HighlightAnnotation.hpp"
+#include "Annotations/RectAnnotation.hpp"
+#include "Annotations/TextAnnotation.hpp"
 #include "BrowseLinkItem.hpp"
 #include "GraphicsPixmapItem.hpp"
 #include "GraphicsView.hpp"
-#include "HighlightAnnotation.hpp"
 #include "LinkHint.hpp"
-#include "PopupAnnotation.hpp"
 #include "PropertiesWidget.hpp"
-#include "RectAnnotation.hpp"
 #include "WaitingSpinnerWidget.hpp"
 #include "commands/RectAnnotationCommand.hpp"
+#include "commands/TextAnnotationCommand.hpp"
+#include "mupdf/pdf/annot.h"
 #include "utils.hpp"
 
 #include <QClipboard>
@@ -472,6 +474,9 @@ DocumentView::initConnections() noexcept
 
     connect(m_gview, &GraphicsView::annotRectRequested, this,
             &DocumentView::handleAnnotRectRequested);
+
+    connect(m_gview, &GraphicsView::annotPopupRequested, this,
+            &DocumentView::handleAnnotPopupRequested);
 }
 
 void
@@ -1284,6 +1289,7 @@ DocumentView::LinkKB() noexcept
 
         LinkHint *hintItem
             = new LinkHint(QRectF(hintPos, hintSize), bg, fg, hint, fontSize);
+        hintItem->setZValue(ZVALUE_KB_LINK_OVERLAY);
         m_gscene->addItem(hintItem);
 
         Model::LinkInfo info;
@@ -2509,15 +2515,43 @@ DocumentView::renderAnnotations(
         switch (annot.type)
         {
             case PDF_ANNOT_HIGHLIGHT:
-                annot_item = new HighlightAnnotation(annot.rect, annot.index,
-                                                     annot.color);
+                annot_item = new HighlightAnnotation(annot.rect,
+                                                     annot.index); // no color
                 break;
 
             case PDF_ANNOT_SQUARE:
-                // annot_item
-                //     = new RectAnnotation(annot.rect, annot.index,
-                //     annot.color);
+                annot_item
+                    = new RectAnnotation(annot.rect, annot.index, annot.color);
                 break;
+
+            case PDF_ANNOT_TEXT:
+            {
+                auto *textAnnot = new TextAnnotation(annot.rect, annot.index,
+                                                     annot.color, annot.text);
+                annot_item      = textAnnot;
+
+                // Connect edit signal for text annotations
+                connect(textAnnot, &TextAnnotation::editRequested,
+                        [this, textAnnot, pageno]()
+                {
+                    bool ok;
+                    QString newText = QInputDialog::getMultiLineText(
+                        this, tr("Edit Note"), tr("Edit annotation text:"),
+                        textAnnot->text(), &ok);
+
+                    if (ok && !newText.isEmpty())
+                    {
+                        m_model->setTextAnnotationContents(
+                            pageno, textAnnot->index(), newText);
+                        setModified(true);
+                    }
+                });
+            }
+            break;
+
+            case PDF_ANNOT_POPUP:
+                break;
+
             default:
                 break;
         }
@@ -3197,5 +3231,40 @@ DocumentView::handleAnnotRectRequested(const QRectF &area) noexcept
 
     m_model->undoStack()->push(
         new RectAnnotationCommand(m_model, pageno, rect));
+    setModified(true);
+}
+
+// Handle annotation popup (text/sticky note) requested
+void
+DocumentView::handleAnnotPopupRequested(const QPointF &scenePos) noexcept
+{
+    int pageno;
+    GraphicsPixmapItem *pageItem;
+
+    if (!pageAtScenePos(scenePos, pageno, pageItem))
+        return;
+
+    // Show input dialog for annotation text
+    bool ok;
+    QString text = QInputDialog::getMultiLineText(
+        this, tr("Add Note"), tr("Enter annotation text:"), QString(), &ok);
+
+    if (!ok || text.isEmpty())
+        return;
+
+    const QPointF pageLocalPos = pageItem->mapFromScene(scenePos);
+    const double scale         = m_model->viewScale();
+
+    // Create a small rect at the click position for the text annotation icon
+    constexpr float annotSize = 24.0f;
+    const fz_rect rect        = {
+        static_cast<float>(pageLocalPos.x() * scale),
+        static_cast<float>(pageLocalPos.y() * scale),
+        static_cast<float>(pageLocalPos.x() * scale + annotSize),
+        static_cast<float>(pageLocalPos.y() * scale + annotSize),
+    };
+
+    m_model->undoStack()->push(
+        new TextAnnotationCommand(m_model, pageno, rect, text));
     setModified(true);
 }

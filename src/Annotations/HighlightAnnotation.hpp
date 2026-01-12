@@ -20,9 +20,9 @@ class HighlightAnnotation : public Annotation
 {
     Q_OBJECT
 public:
-    HighlightAnnotation(const QRectF &rect, int index, const QColor &color,
+    HighlightAnnotation(const QRectF &rect, int index,
                         QGraphicsItem *parent = nullptr)
-        : Annotation(index, color, parent), m_rect(rect)
+        : Annotation(index, QColor(Qt::transparent), parent), m_rect(rect)
     {
     }
 
@@ -82,7 +82,6 @@ protected:
         Q_UNUSED(painter);
 
         painter->setPen(m_pen);
-        // painter->setBrush(m_brush);
         painter->drawRect(m_rect);
     }
 

@@ -2,7 +2,7 @@
 
 // Wrapper for MuPDF Model
 
-#include "Annotation.hpp"
+#include "Annotations/Annotation.hpp"
 #include "BrowseLinkItem.hpp"
 
 #include <QColor>
@@ -26,6 +26,7 @@ extern "C"
 
 // Forward declaration
 class TextHighlightAnnotationCommand;
+class TextAnnotationCommand;
 class DocumentView;
 
 class Model : public QObject
@@ -93,11 +94,9 @@ public:
     struct RenderAnnotation
     {
         QRectF rect;
-        enum pdf_annot_type type
-        {
-            PDF_ANNOT_HIGHLIGHT
-        };
+        enum pdf_annot_type type;
         QColor color;
+        QString text;
         int index{-1};
     };
 
@@ -424,6 +423,10 @@ private:
     int addRectAnnotation(const int pageno, const fz_rect &rect) noexcept;
     int addHighlightAnnotation(const int pageno,
                                const std::vector<fz_quad> &quads) noexcept;
+    int addTextAnnotation(const int pageno, const fz_rect &rect,
+                          const QString &text) noexcept;
+    void setTextAnnotationContents(const int pageno, const int objNum,
+                                   const QString &text) noexcept;
     void removeAnnotations(const int pageno,
                            const std::vector<int> &objNums) noexcept;
     void buildTextCacheForPage(int pageno) noexcept;
@@ -458,5 +461,6 @@ private:
 
     friend class TextHighlightAnnotationCommand; // for highlight annotation
     friend class RectAnnotationCommand;          // for rectangle annotation
+    friend class TextAnnotationCommand;          // for text/popup annotation
     friend class DocumentView;
 };

@@ -40,6 +40,7 @@ extern "C"
 #define ZVALUE_LINK 1000
 #define ZVALUE_JUMP_MARKER 1100
 #define ZVALUE_SEARCH_HITS 1200
+#define ZVALUE_KB_LINK_OVERLAY 1300
 
 #define MIN_ZOOM_FACTOR 0.5
 #define MAX_ZOOM_FACTOR 5.0
@@ -285,6 +286,7 @@ public slots:
     void handleAnnotSelectClearRequested() noexcept;
     void handleRegionSelectRequested(const QRectF &area) noexcept;
     void handleAnnotRectRequested(const QRectF &area) noexcept;
+    void handleAnnotPopupRequested(const QPointF &scenePos) noexcept;
 
 #ifdef HAS_SYNCTEX
     void handleSynctexJumpRequested(const QPointF &scenePos) noexcept;

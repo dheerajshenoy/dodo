@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(dodo VERSION 0.5.4 LANGUAGES CXX)
+project(dodo VERSION 0.5.5 LANGUAGES CXX)
 
 option(ENABLE_LLM_SUPPORT "Enable LLM support for advanced features" OFF)
 
@@ -44,7 +44,7 @@ add_executable(${PROJECT_NAME}
     src/DocumentView.cpp
     src/StartupWidget.cpp
     src/MessageBar.cpp
-    src/Annotation.cpp
+    src/Annotations/Annotation.cpp
     src/EditLastPagesWidget.cpp
     src/RecentFilesStore.cpp
     src/RecentFilesModel.cpp
@@ -56,12 +56,14 @@ add_executable(${PROJECT_NAME}
     src/WaitingSpinnerWidget.cpp
     src/CommandPaletteWidget.cpp
 
+    src/Annotations/RectAnnotation.hpp
+    src/Annotations/TextAnnotation.hpp
     src/GraphicsPixmapItem.hpp
     src/BrowseLinkItem.hpp
     src/OutlineWidget.hpp
     src/OutlineModel.hpp
     src/ElidableLabel.hpp
-    src/HighlightAnnotation.hpp
+    src/Annotations/HighlightAnnotation.hpp
     src/FloatingOverlayWidget.hpp
     src/HighlightSearchWidget.hpp
     src/EditLastPagesWidget.hpp
@@ -73,9 +75,9 @@ add_executable(${PROJECT_NAME}
     src/TabWidget.hpp
     src/DraggableTabBar.hpp
     src/commands/RectAnnotationCommand.hpp
+    src/commands/TextAnnotationCommand.hpp
     src/commands/TextHighlightAnnotationCommand.hpp
     src/commands/DeleteAnnotationsCommand.hpp
-    src/PopupAnnotation.hpp
     src/PlaceholderWidget.hpp
     src/ScrollBar.hpp
     src/CommandPaletteWidget.hpp

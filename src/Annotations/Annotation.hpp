@@ -3,6 +3,7 @@
 #include <QBrush>
 #include <QGraphicsRectItem>
 #include <QGraphicsSceneContextMenuEvent>
+#include <QGraphicsSceneHoverEvent>
 #include <QGraphicsSceneMouseEvent>
 #include <QObject>
 #include <QPen>
@@ -12,7 +13,8 @@ class Annotation : public QObject, public QGraphicsItem
 {
     Q_OBJECT
 public:
-    Annotation(int index, const QColor &color, QGraphicsItem *parent = nullptr);
+    Annotation(const int index, const QColor &color,
+               QGraphicsItem *parent = nullptr);
 
     inline int index() noexcept
     {
@@ -30,11 +32,25 @@ signals:
     void annotSelectRequested();
 
 protected:
+    virtual void hoverEnterEvent(QGraphicsSceneHoverEvent *event)
+    {
+        QGraphicsItem::hoverEnterEvent(event);
+    }
+
+    virtual void hoverMoveEvent(QGraphicsSceneHoverEvent *event)
+    {
+        QGraphicsItem::hoverMoveEvent(event);
+    }
+
+    virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
+    {
+        QGraphicsItem::hoverLeaveEvent(event);
+    }
+
     int m_index{-1};
     QBrush m_brush{Qt::transparent};
     QPen m_pen{Qt::NoPen};
     bool m_selected{false};
-
     QBrush m_originalBrush;
     QPen m_originalPen;
 };

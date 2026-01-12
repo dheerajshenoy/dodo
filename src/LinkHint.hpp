@@ -17,7 +17,6 @@ public:
         : m_rect(rect), m_bg(bg), m_fg(fg), m_hint(hint), m_fontSize(fontSize)
     {
         setData(0, "kb_link_overlay");
-        setZValue(10);
         m_hint_text = QString::number(m_hint);
     }
 

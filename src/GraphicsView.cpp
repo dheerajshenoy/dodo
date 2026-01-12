@@ -244,6 +244,17 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
             return; // handled
         }
 
+        case Mode::AnnotPopup:
+        {
+            if (event->button() == Qt::LeftButton)
+            {
+                emit annotPopupRequested(mapToScene(event->pos()));
+                event->accept();
+                return; // handled
+            }
+            break;
+        }
+
         case Mode::TextSelection:
         case Mode::TextHighlight:
         {

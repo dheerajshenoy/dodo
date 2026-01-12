@@ -108,6 +108,7 @@ signals:
     void synctexJumpRequested(QPointF scenePos);
 #endif
     void annotRectRequested(const QRectF &sceneRect);
+    void annotPopupRequested(const QPointF &scenePos);
     void regionSelectRequested(const QRectF &sceneRect);
     void annotSelectRequested(const QRectF &sceneRect);
     void annotSelectRequested(const QPointF &scenePos);

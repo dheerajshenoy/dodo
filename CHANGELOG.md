@@ -1,5 +1,16 @@
 # dodo
 
+## 0.5.5
+
+### Features
+
+- Allow editing popup (also called text) annotations
+- Visual feedback when hovering over popup annotation icons
+
+### Bug Fixes
+
+- Fix popup annotation creation
+
 ## 0.5.4
 
 ### Features

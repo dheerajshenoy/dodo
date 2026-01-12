@@ -1,7 +1,6 @@
 #include "Model.hpp"
 
 #include "BrowseLinkItem.hpp"
-#include "HighlightAnnotation.hpp"
 #include "commands/TextHighlightAnnotationCommand.hpp"
 #include "mupdf/fitz/context.h"
 #include "mupdf/fitz/display-list.h"
@@ -263,6 +262,7 @@ Model::buildPageCache(int pageno) noexcept
         if (pdfPage)
         {
             float color[3];
+            int n = 3;
 
             for (pdf_annot *annot = pdf_first_annot(ctx, pdfPage); annot;
                  annot            = pdf_next_annot(ctx, annot))
@@ -272,24 +272,25 @@ Model::buildPageCache(int pageno) noexcept
                 ca.type    = pdf_annot_type(ctx, annot);
                 ca.index   = pdf_to_num(ctx, pdf_annot_obj(ctx, annot));
                 ca.opacity = pdf_annot_opacity(ctx, annot);
+                ca.text    = pdf_annot_contents(ctx, annot);
 
                 if (fz_is_infinite_rect(ca.rect) || fz_is_empty_rect(ca.rect))
                     continue;
 
                 switch (ca.type)
                 {
+                    case PDF_ANNOT_POPUP:
                     case PDF_ANNOT_TEXT:
                     {
-                        pdf_annot_color(ctx, annot, nullptr, color);
+                        pdf_annot_color(ctx, annot, &n, color);
                         ca.color = QColor::fromRgbF(color[0], color[1],
                                                     color[2], ca.opacity);
-                        ca.text  = pdf_annot_contents(ctx, annot);
                     }
                     break;
 
                     case PDF_ANNOT_SQUARE:
                     {
-                        pdf_annot_interior_color(ctx, annot, nullptr, color);
+                        pdf_annot_interior_color(ctx, annot, &n, color);
                         ca.color = QColor::fromRgbF(color[0], color[1],
                                                     color[2], ca.opacity);
                     }
@@ -297,7 +298,7 @@ Model::buildPageCache(int pageno) noexcept
 
                     case PDF_ANNOT_HIGHLIGHT:
                     {
-                        pdf_annot_color(ctx, annot, nullptr, color);
+                        pdf_annot_color(ctx, annot, &n, color);
                         ca.color = QColor::fromRgbF(color[0], color[1],
                                                     color[2], ca.opacity);
                     }
@@ -1169,29 +1170,17 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         for (const auto &annot : annotations)
         {
             RenderAnnotation renderAnnot;
-            switch (annot.type)
-            {
-                case PDF_ANNOT_TEXT:
-                case PDF_ANNOT_SQUARE:
-                    break;
 
-                case PDF_ANNOT_HIGHLIGHT:
-                {
-                    fz_rect r = fz_transform_rect(annot.rect, transform);
-                    const float scale = m_inv_dpr;
-                    QRectF qtRect(r.x0 * scale, r.y0 * scale,
-                                  (r.x1 - r.x0) * scale, (r.y1 - r.y0) * scale);
-                    renderAnnot.rect  = qtRect;
-                    renderAnnot.type  = annot.type;
-                    renderAnnot.index = annot.index;
-                    renderAnnot.color = annot.color;
-                    result.annotations.push_back(std::move(renderAnnot));
-                }
-                break;
-
-                default:
-                    break;
-            }
+            fz_rect r         = fz_transform_rect(annot.rect, transform);
+            const float scale = m_inv_dpr;
+            QRectF qtRect(r.x0 * scale, r.y0 * scale, (r.x1 - r.x0) * scale,
+                          (r.y1 - r.y0) * scale);
+            renderAnnot.rect  = qtRect;
+            renderAnnot.type  = annot.type;
+            renderAnnot.index = annot.index;
+            renderAnnot.color = annot.color;
+            renderAnnot.text  = annot.text;
+            result.annotations.push_back(std::move(renderAnnot));
         }
     }
     fz_always(ctx)
@@ -1385,6 +1374,121 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect) noexcept
              << " ObjNum:" << objNum;
 #endif
     return objNum;
+}
+
+int
+Model::addTextAnnotation(const int pageno, const fz_rect &rect,
+                         const QString &text) noexcept
+{
+    int objNum{-1};
+
+    fz_try(m_ctx)
+    {
+        // Load the specific page for this annotation
+        pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        // Create a text (sticky note) annotation
+        pdf_annot *annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_TEXT);
+
+        if (!annot)
+            return objNum;
+
+        pdf_set_annot_rect(m_ctx, annot, rect);
+        pdf_set_annot_color(m_ctx, annot, 3, m_popup_color);
+        pdf_set_annot_opacity(m_ctx, annot, m_popup_color[3]);
+
+        // Set the annotation contents (the text that appears in the popup)
+        if (!text.isEmpty())
+        {
+            pdf_set_annot_contents(m_ctx, annot, text.toUtf8().constData());
+        }
+
+        // Set the annotation to be open by default (optional)
+        // pdf_set_annot_is_open(m_ctx, annot, 0);
+
+        pdf_update_annot(m_ctx, annot);
+        pdf_update_page(m_ctx, page);
+
+        // Store the object number for later undo
+        pdf_obj *obj = pdf_annot_obj(m_ctx, annot);
+        if (obj)
+            objNum = pdf_to_num(m_ctx, obj);
+
+        pdf_drop_annot(m_ctx, annot);
+        pdf_drop_page(m_ctx, page);
+
+        {
+            std::lock_guard<std::recursive_mutex> cache_lock(
+                m_page_cache_mutex);
+            if (m_page_cache.contains(pageno))
+            {
+                fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
+                m_page_cache.erase(pageno);
+            }
+        }
+        // Build cache outside the lock to avoid holding it during expensive
+        // operations
+        buildPageCache(pageno);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "addTextAnnotation failed:" << fz_caught_message(m_ctx);
+    }
+
+#ifndef NDEBUG
+    qDebug() << "Adding text annotation on page" << pageno
+             << " ObjNum:" << objNum;
+#endif
+    return objNum;
+}
+
+void
+Model::setTextAnnotationContents(const int pageno, const int objNum,
+                                 const QString &text) noexcept
+{
+    fz_try(m_ctx)
+    {
+        pdf_page *page = pdf_load_page(m_ctx, m_pdf_doc, pageno);
+        if (!page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
+
+        // Find the annotation by object number
+        for (pdf_annot *annot = pdf_first_annot(m_ctx, page); annot;
+             annot            = pdf_next_annot(m_ctx, annot))
+        {
+            pdf_obj *obj = pdf_annot_obj(m_ctx, annot);
+            if (pdf_to_num(m_ctx, obj) == objNum)
+            {
+                pdf_set_annot_contents(m_ctx, annot, text.toUtf8().constData());
+                pdf_update_annot(m_ctx, annot);
+                pdf_update_page(m_ctx, page);
+                break;
+            }
+        }
+
+        pdf_drop_page(m_ctx, page);
+
+        {
+            std::lock_guard<std::recursive_mutex> cache_lock(
+                m_page_cache_mutex);
+            if (m_page_cache.contains(pageno))
+            {
+                fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
+                m_page_cache.erase(pageno);
+            }
+        }
+        buildPageCache(pageno);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "setTextAnnotationContents failed:"
+                   << fz_caught_message(m_ctx);
+    }
+
+    emit reloadRequested(pageno);
 }
 
 void
@@ -2104,6 +2208,7 @@ Model::annotChangeColor(int pageno, int index, const QColor &color) noexcept
             switch (pdf_annot_type(m_ctx, annot))
             {
                 case PDF_ANNOT_SQUARE:
+                case PDF_ANNOT_TEXT:
                     pdf_set_annot_interior_color(m_ctx, annot, 3, rgb);
                     break;
 
