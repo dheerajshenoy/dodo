@@ -31,6 +31,7 @@ drag_threshold = 100
 [ui.scrollbars]
 horizontal = false
 vertical = true
+auto_hide = true
 search_hits = true # show/hide search hits on scrollbar
 
 [ui.markers]
