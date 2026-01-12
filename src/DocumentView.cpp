@@ -51,7 +51,7 @@ DocumentView::DocumentView(const Config &config, QWidget *parent) noexcept
     connect(m_model, &Model::openFileFailed, this,
             [this]() { emit openFileFailed(this); });
 
-    setupUI();
+    initGui();
 #ifdef HAS_SYNCTEX
     initSynctex();
 #endif
@@ -76,7 +76,7 @@ DocumentView::~DocumentView() noexcept
 }
 
 void
-DocumentView::setupUI() noexcept
+DocumentView::initGui() noexcept
 {
     m_gview  = new GraphicsView(this);
     m_gscene = new GraphicsScene(m_gview);
@@ -86,6 +86,7 @@ DocumentView::setupUI() noexcept
     m_spinner->setInnerRadius(5.0);
     m_spinner->setColor(palette().color(QPalette::Text));
 
+    m_spacing             = m_config.ui.layout.spacing;
     m_selection_path_item = m_gscene->addPath(QPainterPath());
     m_selection_path_item->setBrush(QBrush(m_config.ui.colors["selection"]));
     m_selection_path_item->setPen(Qt::NoPen);
@@ -140,14 +141,26 @@ DocumentView::setupUI() noexcept
     m_gview->setVerticalScrollBar(m_vscroll);
     m_gview->setHorizontalScrollBar(m_hscroll);
 
-    m_gview->setVerticalScrollBarPolicy(m_config.ui.scrollbars.vertical
-                                            ? Qt::ScrollBarAsNeeded
-                                            : Qt::ScrollBarAlwaysOff);
+    // Scrollbar policies are always off - we use overlay scrollbars
+    // that don't affect layout. Visibility is controlled separately.
+    m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-    m_gview->setHorizontalScrollBarPolicy(m_config.ui.scrollbars.horizontal
-                                              ? Qt::ScrollBarAsNeeded
-                                              : Qt::ScrollBarAlwaysOff);
+    // Parent scrollbars to viewport so they overlay content
+    // This must be done after setVerticalScrollBar/setHorizontalScrollBar
+    m_vscroll->setParent(m_gview->viewport());
+    m_hscroll->setParent(m_gview->viewport());
 
+    // Apply scrollbar size from config
+    m_vscroll->setSize(m_config.ui.scrollbars.size);
+    m_hscroll->setSize(m_config.ui.scrollbars.size);
+    m_gview->setScrollbarSize(m_config.ui.scrollbars.size);
+    m_gview->setScrollbarIdleTimeout(m_config.ui.scrollbars.hide_timeout);
+
+    // Enable/disable each scrollbar based on config
+    // auto_hide controls whether they fade after inactivity
+    m_gview->setVerticalScrollbarEnabled(m_config.ui.scrollbars.vertical);
+    m_gview->setHorizontalScrollbarEnabled(m_config.ui.scrollbars.horizontal);
     m_gview->setAutoHideScrollbars(m_config.ui.scrollbars.auto_hide);
 
     m_auto_resize       = m_config.ui.layout.auto_resize;
@@ -1014,6 +1027,9 @@ DocumentView::zoomHelper() noexcept
     m_current_zoom = m_target_zoom;
     cachePageStride();
     updateSceneRect();
+
+    // Show scrollbars after scene rect is updated so handle size is correct
+    m_gview->flashScrollbars();
 
     const int targetPixelHeight = m_model->pageHeightPts() * m_model->DPR()
                                   * m_target_zoom * m_model->DPI() / 72.0;

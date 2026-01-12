@@ -76,6 +76,16 @@ public:
         float x, y;
     };
 
+    inline void setSpacing(int spacing) noexcept
+    {
+        m_spacing = spacing;
+    }
+
+    inline int spacing() const noexcept
+    {
+        return m_spacing;
+    }
+
     inline bool passwordRequired() const noexcept
     {
         return m_model->passwordRequired();
@@ -308,7 +318,7 @@ private:
     void onFileReloadRequested(const QString &path) noexcept;
     void tryReloadLater(int attempt) noexcept;
 
-    void setupUI() noexcept;
+    void initGui() noexcept;
     void setModified(bool state) noexcept;
     bool pageAtScenePos(const QPointF &scenePos, int &outPageIndex,
                         GraphicsPixmapItem *&outPageItem) const noexcept;

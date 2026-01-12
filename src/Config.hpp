@@ -26,6 +26,7 @@ struct Config
             QString mode{"top_to_bottom"};
             QString initial_fit{"none"};
             bool auto_resize{false};
+            int spacing{10};
         } layout{};
 
         struct zoom
@@ -45,6 +46,8 @@ struct Config
             bool vertical{true};
             bool search_hits{true};
             bool auto_hide{true};
+            int size{12};
+            int hide_timeout{1500};
         } scrollbars{};
 
         struct markers

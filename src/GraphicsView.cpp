@@ -1,5 +1,6 @@
 #include "GraphicsView.hpp"
 
+#include <QApplication>
 #include <QGestureEvent>
 #include <QGraphicsItem>
 #include <QGuiApplication>
@@ -21,6 +22,47 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
     setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing);
     setOptimizationFlag(QGraphicsView::DontSavePainterState);
     setContentsMargins(0, 0, 0, 0);
+
+    // Overlay scrollbars - no reserved space
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    // Hide timer setup
+    m_scrollbar_hide_timer.setSingleShot(true);
+    m_scrollbar_hide_timer.setInterval(1500);
+    connect(&m_scrollbar_hide_timer, &QTimer::timeout, this, [this]()
+    {
+        if (!m_autoHide)
+            return;
+        // Don't hide while actively dragging a scrollbar
+        if (m_activeScrollbar)
+        {
+            m_scrollbar_hide_timer.start();
+            return;
+        }
+        // Don't hide if any mouse button is pressed (fast scrolling protection)
+        if (QGuiApplication::mouseButtons() != Qt::NoButton)
+        {
+            m_scrollbar_hide_timer.start();
+            return;
+        }
+        // Don't hide if mouse is over a scrollbar
+        if (scrollbarAt(mapFromGlobal(QCursor::pos())))
+        {
+            m_scrollbar_hide_timer.start();
+            return;
+        }
+        hideScrollbars();
+    });
+
+    // Scrollbar value changes trigger activity
+    auto onActivity = [this]()
+    {
+        showScrollbars();
+        restartHideTimer();
+    };
+    connect(verticalScrollBar(), &QScrollBar::valueChanged, this, onActivity);
+    connect(horizontalScrollBar(), &QScrollBar::valueChanged, this, onActivity);
 
     // QSurfaceFormat format;
     // format.setSamples(4);
@@ -106,6 +148,15 @@ GraphicsView::setMode(Mode mode) noexcept
 void
 GraphicsView::mousePressEvent(QMouseEvent *event)
 {
+    // Check if click is on overlay scrollbar
+    if (QScrollBar *bar = scrollbarAt(event->pos()))
+    {
+        m_activeScrollbar = bar;
+        m_scrollbar_hide_timer.stop();
+        forwardMouseEvent(bar, event);
+        return;
+    }
+
 #ifdef HAS_SYNCTEX
     if (m_mode == Mode::TextSelection && event->button() == Qt::LeftButton
         && (event->modifiers() & Qt::ShiftModifier))
@@ -221,6 +272,13 @@ GraphicsView::mousePressEvent(QMouseEvent *event)
 void
 GraphicsView::mouseMoveEvent(QMouseEvent *event)
 {
+    // Forward to active scrollbar if dragging
+    if (m_activeScrollbar)
+    {
+        forwardMouseEvent(m_activeScrollbar, event);
+        return;
+    }
+
     // If we are selecting text/highlight, throttle signals
     if ((m_mode == Mode::TextSelection || m_mode == Mode::TextHighlight)
         && m_selecting)
@@ -270,6 +328,15 @@ GraphicsView::mouseMoveEvent(QMouseEvent *event)
 void
 GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 {
+    // Complete scrollbar drag
+    if (m_activeScrollbar)
+    {
+        forwardMouseEvent(m_activeScrollbar, event);
+        m_activeScrollbar = nullptr;
+        restartHideTimer();
+        return;
+    }
+
     if (m_ignore_next_release)
     {
         m_ignore_next_release = false;
@@ -524,3 +591,151 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *event)
 
 //     return QGraphicsView::viewportEvent(event);
 // }
+
+void
+GraphicsView::setAutoHideScrollbars(bool enabled)
+{
+    m_autoHide = enabled;
+    if (enabled)
+    {
+        hideScrollbars();
+        m_scrollbar_hide_timer.start();
+    }
+    else
+    {
+        m_scrollbar_hide_timer.stop();
+        showScrollbars();
+    }
+}
+
+bool
+GraphicsView::viewportEvent(QEvent *event)
+{
+    if (m_autoHide)
+    {
+        switch (event->type())
+        {
+            case QEvent::Wheel:
+            case QEvent::MouseMove:
+            case QEvent::MouseButtonPress:
+            case QEvent::MouseButtonRelease:
+            case QEvent::KeyPress:
+            case QEvent::KeyRelease:
+                showScrollbars();
+                restartHideTimer();
+                break;
+            default:
+                break;
+        }
+    }
+    return QGraphicsView::viewportEvent(event);
+}
+
+void
+GraphicsView::enterEvent(QEnterEvent *event)
+{
+    if (m_autoHide)
+    {
+        showScrollbars();
+        restartHideTimer();
+    }
+    QGraphicsView::enterEvent(event);
+}
+
+void
+GraphicsView::leaveEvent(QEvent *event)
+{
+    if (m_autoHide && !m_activeScrollbar)
+        m_scrollbar_hide_timer.start(250);
+    QGraphicsView::leaveEvent(event);
+}
+
+void
+GraphicsView::updateScrollbars()
+{
+    const bool showV = m_scrollbarsVisible && m_vbarEnabled;
+    const bool showH = m_scrollbarsVisible && m_hbarEnabled;
+
+    verticalScrollBar()->setVisible(showV);
+    horizontalScrollBar()->setVisible(showH);
+
+    if (showV || showH)
+        layoutScrollbars();
+}
+
+void
+GraphicsView::layoutScrollbars()
+{
+    QWidget *vp = viewport();
+    if (!vp || vp->width() <= 0 || vp->height() <= 0)
+        return;
+
+    const QPoint vpPos = vp->pos();
+    const int w        = vp->width();
+    const int h        = vp->height();
+    QScrollBar *vbar   = verticalScrollBar();
+    QScrollBar *hbar   = horizontalScrollBar();
+    const bool showV   = vbar->isVisible();
+    const bool showH   = hbar->isVisible();
+
+    // Position scrollbars as overlays on the viewport
+    // Don't change parent - let Qt manage the scrollbar internally
+    if (showV)
+    {
+        const int bottom
+            = showH ? m_scrollbarSize + SCROLLBAR_MARGIN : SCROLLBAR_MARGIN;
+        // Position relative to viewport
+        vbar->setGeometry(w - m_scrollbarSize - SCROLLBAR_MARGIN,
+                          SCROLLBAR_MARGIN, m_scrollbarSize,
+                          h - SCROLLBAR_MARGIN - bottom);
+        vbar->raise();
+    }
+    if (showH)
+    {
+        const int right
+            = showV ? m_scrollbarSize + SCROLLBAR_MARGIN : SCROLLBAR_MARGIN;
+        // Position relative to viewport
+        hbar->setGeometry(SCROLLBAR_MARGIN,
+                          h - m_scrollbarSize - SCROLLBAR_MARGIN,
+                          w - SCROLLBAR_MARGIN - right, m_scrollbarSize);
+        hbar->raise();
+    }
+}
+
+void
+GraphicsView::resizeEvent(QResizeEvent *event)
+{
+    QGraphicsView::resizeEvent(event);
+    if (m_scrollbarsVisible)
+        layoutScrollbars();
+}
+
+void
+GraphicsView::scrollContentsBy(int dx, int dy)
+{
+    QGraphicsView::scrollContentsBy(dx, dy);
+    if (m_scrollbarsVisible)
+        layoutScrollbars();
+}
+
+QScrollBar *
+GraphicsView::scrollbarAt(const QPoint &pos) const noexcept
+{
+    QScrollBar *vbar = verticalScrollBar();
+    if (vbar && vbar->isVisible() && vbar->geometry().contains(pos))
+        return vbar;
+    QScrollBar *hbar = horizontalScrollBar();
+    if (hbar && hbar->isVisible() && hbar->geometry().contains(pos))
+        return hbar;
+    return nullptr;
+}
+
+void
+GraphicsView::forwardMouseEvent(QScrollBar *bar, QMouseEvent *event)
+{
+    QMouseEvent e(event->type(), bar->mapFromParent(event->pos()),
+                  event->globalPosition(), event->button(), event->buttons(),
+                  event->modifiers());
+    QApplication::sendEvent(bar, &e);
+    event->accept();
+}

@@ -4,12 +4,16 @@
 
 ### Features
 
-- Add scrollbar config options
-    - `[ui.scrollbar]`
+- **Overlay scrollbars**: Scrollbars now appear as floating overlays that don't shift the layout
+    - Auto-hide after configurable timeout (default 1500ms)
+    - Scrollbars remain visible while dragging or hovering over them
+    - Scrollbars flash on zoom in/out/reset
+    - New config options in `[ui.scrollbars]`:
         - `auto_hide` (bool): Auto hide scrollbar when not in use
-
+        - `size` (int): Scrollbar width/height in pixels (default: 12)
+        - `hide_timeout` (int): Milliseconds before hiding after inactivity (default: 1500)
 - **Detach from terminal** - By default dodo will now detach from the terminal when launched from a terminal. This can be disabled by using the `--foreground` command line argument.
-- **Add LLM support**
+- **Add LLM support \[OPTIONAL\]**
     - LLM (Large Language Model) integration is entirely optional and can be disabled completely from the code by the compile flag `ENABLE_LLM_SUPPORT`.
     - Integrate with local LLM models to provide AI-powered assistance
     - Config options:
@@ -47,6 +51,9 @@
 
 ### Bug Fixes
 
+- Fix scrollbar disappearing while actively dragging
+- Fix scrollbar hiding when quickly changing scroll direction
+- Fix scrollbar handle size not updating after zoom
 - Add visual feedback to current keypress in the link hinting mode
 - Hide non-matching link hints as keys are entered and dim the typed digits
 - Fix config color parsing to treat 8-digit hex values as RGBA

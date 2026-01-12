@@ -544,6 +544,7 @@ dodo::initConfig() noexcept
     m_config.ui.layout.mode = ui_layout["mode"].value_or("top_to_bottom");
     m_config.ui.layout.initial_fit = ui_layout["initial_fit"].value_or("width");
     m_config.ui.layout.auto_resize = ui_layout["auto_resize"].value_or(false);
+    m_config.ui.layout.spacing     = ui_layout["spacing"].value_or(10);
 
     auto ui_zoom            = ui["zoom"];
     m_config.ui.zoom.level  = ui_zoom["level"].value_or(1.0);
@@ -561,6 +562,9 @@ dodo::initConfig() noexcept
         = ui_scrollbars["search_hits"].value_or(true);
     m_config.ui.scrollbars.auto_hide
         = ui_scrollbars["auto_hide"].value_or(true);
+    m_config.ui.scrollbars.size = ui_scrollbars["size"].value_or(12);
+    m_config.ui.scrollbars.hide_timeout
+        = ui_scrollbars["hide_timeout"].value_or(1500);
 
     auto command_palette = ui["command_palette"];
     m_config.ui.command_palette.height
@@ -3057,7 +3061,9 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("show_startup", showStartupWidget),
         ACTION_NO_ARGS("first_tab", FirstTab),
         ACTION_NO_ARGS("last_tab", LastTab),
+#ifdef ENABLE_LLM_SUPPORT
         ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
+#endif
         ACTION_NO_ARGS("reselect_last_selection", ReselectLastTextSelection),
 
         {"layout_single", [this](const QStringList &)
