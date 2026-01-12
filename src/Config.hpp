@@ -44,6 +44,7 @@ struct Config
             bool horizontal{true};
             bool vertical{true};
             bool search_hits{true};
+            bool auto_hide{true};
         } scrollbars{};
 
         struct markers

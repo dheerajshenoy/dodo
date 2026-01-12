@@ -4,8 +4,12 @@
 
 ### Features
 
+- Add scrollbar config options
+    - `[ui.scrollbar]`
+        - `auto_hide` (bool): Auto hide scrollbar when not in use
+
 - **Detach from terminal** - By default dodo will now detach from the terminal when launched from a terminal. This can be disabled by using the `--foreground` command line argument.
-- **Add LLM support** 
+- **Add LLM support**
     - LLM (Large Language Model) integration is entirely optional and can be disabled completely from the code by the compile flag `ENABLE_LLM_SUPPORT`.
     - Integrate with local LLM models to provide AI-powered assistance
     - Config options:
@@ -14,7 +18,7 @@
             - `model_path` (string): Path to the local LLM model
             - `temperature` (float): Sampling temperature for response generation
             - `max_tokens` (int): Maximum tokens in the generated response
-            
+
 - **Region Selection context menu**
     - Right click context menu when in region selection mode
         - Copy text in region to clipboard
@@ -39,8 +43,8 @@
 - New options in `[behavior]`:
     - `cache_pages` (int): Maximum number of pages to keep cached per document. Default is `20`.
     - `always_open_in_new_window` (bool): If true, files will always open in a new window instead of a new tab. Default is `false`.
-    
-    
+
+
 ### Bug Fixes
 
 - Add visual feedback to current keypress in the link hinting mode

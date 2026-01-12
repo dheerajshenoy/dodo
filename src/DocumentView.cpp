@@ -140,13 +140,33 @@ DocumentView::setupUI() noexcept
     m_gview->setVerticalScrollBar(m_vscroll);
     m_gview->setHorizontalScrollBar(m_hscroll);
 
+    // Vertical
     if (!m_config.ui.scrollbars.vertical)
-        m_gview->setVerticalScrollBarPolicy(
-            Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
+    {
+        m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    }
+    else if (m_config.ui.scrollbars.auto_hide)
+    {
+        m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    }
+    else
+    {
+        m_gview->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    }
 
+    // Horizontal
     if (!m_config.ui.scrollbars.horizontal)
-        m_gview->setHorizontalScrollBarPolicy(
-            Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
+    {
+        m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    }
+    else if (m_config.ui.scrollbars.auto_hide)
+    {
+        m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    }
+    else
+    {
+        m_gview->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    }
 
     m_auto_resize       = m_config.ui.layout.auto_resize;
     QVBoxLayout *layout = new QVBoxLayout(this);
@@ -3168,8 +3188,16 @@ DocumentView::handleAnnotRectRequested(const QRectF &area) noexcept
         return;
 
     const QRectF pageLocalRect = pageItem->mapFromScene(area).boundingRect();
-    const fz_rect rect = m_model->deviceRectToPage(pageno, pageLocalRect);
+    const double scale         = m_model->viewScale();
+
+    const fz_rect rect = {
+        static_cast<float>(pageLocalRect.left() * scale),
+        static_cast<float>(pageLocalRect.top() * scale),
+        static_cast<float>(pageLocalRect.right() * scale),
+        static_cast<float>(pageLocalRect.bottom() * scale),
+    };
 
     m_model->undoStack()->push(
         new RectAnnotationCommand(m_model, pageno, rect));
+    setModified(true);
 }
