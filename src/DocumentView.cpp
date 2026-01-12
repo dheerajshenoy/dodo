@@ -9,6 +9,7 @@
 #include "PropertiesWidget.hpp"
 #include "RectAnnotation.hpp"
 #include "WaitingSpinnerWidget.hpp"
+#include "commands/RectAnnotationCommand.hpp"
 #include "utils.hpp"
 
 #include <QClipboard>
@@ -453,6 +454,9 @@ DocumentView::initConnections() noexcept
 
     connect(m_gview, &GraphicsView::regionSelectRequested, this,
             &DocumentView::handleRegionSelectRequested);
+
+    connect(m_gview, &GraphicsView::annotRectRequested, this,
+            &DocumentView::handleAnnotRectRequested);
 }
 
 void
@@ -2051,8 +2055,7 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos) noexcept
             break;
 
         case GraphicsView::Mode::AnnotRect:
-            // addAction("Change color",
-            // &DocumentView::changeAnnotRectColor);
+            // addAction("Change color", &DocumentView::);
             break;
 
         default:
@@ -2490,6 +2493,12 @@ DocumentView::renderAnnotations(
             case PDF_ANNOT_HIGHLIGHT:
                 annot_item = new HighlightAnnotation(annot.rect, annot.index,
                                                      annot.color);
+                break;
+
+            case PDF_ANNOT_SQUARE:
+                // annot_item
+                //     = new RectAnnotation(annot.rect, annot.index,
+                //     annot.color);
                 break;
             default:
                 break;
@@ -3146,4 +3155,21 @@ DocumentView::handleRegionSelectRequested(const QRectF &area) noexcept
                     [this, area]() { CopyTextFromRegion(area); });
 
     menu->popup(QCursor::pos());
+}
+
+// Handle annotation rectangle requested
+void
+DocumentView::handleAnnotRectRequested(const QRectF &area) noexcept
+{
+    int pageno;
+    GraphicsPixmapItem *pageItem;
+
+    if (!pageAtScenePos(area.center(), pageno, pageItem))
+        return;
+
+    const QRectF pageLocalRect = pageItem->mapFromScene(area).boundingRect();
+    const fz_rect rect = m_model->deviceRectToPage(pageno, pageLocalRect);
+
+    m_model->undoStack()->push(
+        new RectAnnotationCommand(m_model, pageno, rect));
 }

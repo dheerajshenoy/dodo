@@ -4,8 +4,6 @@
 Annotation::Annotation(int index, const QColor &color, QGraphicsItem *parent)
     : QGraphicsItem(parent), m_index(index), m_brush(color)
 {
-
-    setZValue(1000); // Above other annotations
     m_originalBrush = m_brush;
     m_originalPen   = m_pen;
     setData(0, "annot");

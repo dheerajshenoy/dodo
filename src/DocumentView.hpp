@@ -274,6 +274,7 @@ public slots:
     void handleAnnotSelectRequested(const QPointF &area) noexcept;
     void handleAnnotSelectClearRequested() noexcept;
     void handleRegionSelectRequested(const QRectF &area) noexcept;
+    void handleAnnotRectRequested(const QRectF &area) noexcept;
 
 #ifdef HAS_SYNCTEX
     void handleSynctexJumpRequested(const QPointF &scenePos) noexcept;

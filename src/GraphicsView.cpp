@@ -339,7 +339,7 @@ GraphicsView::mouseReleaseEvent(QMouseEvent *event)
                 if (m_mode == Mode::RegionSelection)
                     emit regionSelectRequested(sceneRect);
                 else if (m_mode == Mode::AnnotRect)
-                    emit highlightDrawn(sceneRect);
+                    emit annotRectRequested(sceneRect);
                 else
                     emit annotSelectRequested(sceneRect);
             }

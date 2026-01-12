@@ -421,6 +421,7 @@ private:
     bool m_invert_color{false};
 
     void buildPageCache(int pageno) noexcept;
+    int addRectAnnotation(const int pageno, const fz_rect &rect) noexcept;
     int addHighlightAnnotation(const int pageno,
                                const std::vector<fz_quad> &quads) noexcept;
     void removeAnnotations(const int pageno,
@@ -456,5 +457,6 @@ private:
     QRegularExpression m_url_link_re;
 
     friend class TextHighlightAnnotationCommand; // for highlight annotation
+    friend class RectAnnotationCommand;          // for rectangle annotation
     friend class DocumentView;
 };

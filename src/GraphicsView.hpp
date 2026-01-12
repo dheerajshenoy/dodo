@@ -65,13 +65,13 @@ public:
     void clearRubberBand() noexcept;
 
 signals:
-    void highlightDrawn(const QRectF &sceneRect);
     void textSelectionRequested(const QPointF &a, const QPointF &b);
     void textHighlightRequested(const QPointF &a, const QPointF &b);
     void textSelectionDeletionRequested();
 #ifdef HAS_SYNCTEX
     void synctexJumpRequested(QPointF scenePos);
 #endif
+    void annotRectRequested(const QRectF &sceneRect);
     void regionSelectRequested(const QRectF &sceneRect);
     void annotSelectRequested(const QRectF &sceneRect);
     void annotSelectRequested(const QPointF &scenePos);
