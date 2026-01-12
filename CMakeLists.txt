@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(dodo VERSION 0.5.2 LANGUAGES CXX)
+project(dodo VERSION 0.5.3 LANGUAGES CXX)
 
 option(ENABLE_LLM_SUPPORT "Enable LLM support for advanced features" OFF)
 
