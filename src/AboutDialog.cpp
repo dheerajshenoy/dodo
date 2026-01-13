@@ -16,23 +16,29 @@ extern "C"
 }
 
 AboutDialog::AboutDialog(QWidget *parent)
-    : QDialog(parent), icon(new QSvgWidget), infoLabel(new QLabel),
+    : QDialog(parent), infoLabel(new QLabel),
       closeButton(new QPushButton("Close"))
 {
+
     setWindowTitle("About");
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint
                    & ~Qt::WindowMaximizeButtonHint);
 
     setMinimumSize(600, 400);
 
-    icon->load(QString(":/resources/dodo2.svg"));
-    icon->setFixedSize(100, 100);
+    QImage *icon = new QImage();
+
+    icon->load(":/resources/dodo.png");
+    QLabel *iconLabel = new QLabel();
+    iconLabel->setPixmap(QPixmap::fromImage(*icon).scaled(
+        128, 128, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     infoLabel->setWordWrap(true);
 
     m_tabWidget = new QTabWidget(this);
 
     QHBoxLayout *otherLayout = new QHBoxLayout();
-    otherLayout->addWidget(icon);
+
+    otherLayout->addWidget(iconLabel);
     otherLayout->addWidget(infoLabel);
 
     QTextEdit *licenseTextEdit = new QTextEdit();

@@ -1199,7 +1199,8 @@ void
 dodo::ShowAbout() noexcept
 {
     AboutDialog *abw = new AboutDialog(this);
-    abw->setAppInfo(__DODO_VERSION, "Just another PDF reader, but it's not");
+    abw->setAppInfo(__DODO_VERSION,
+                    "A fast, configurable PDF reader built using MuPDF and Qt");
     abw->show();
 }
 

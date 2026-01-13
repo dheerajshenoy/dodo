@@ -23,7 +23,6 @@ private:
     QWidget *softwaresUsedSection() noexcept;
     QWidget *authorsSection() noexcept;
 
-    QSvgWidget *icon;
     QLabel *infoLabel;
     QPushButton *closeButton;
     QTabWidget *m_tabWidget;

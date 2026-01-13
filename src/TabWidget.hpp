@@ -60,21 +60,22 @@ protected:
             painter.fillRect(rect(), palette().color(QPalette::Window));
             painter.setPen(palette().color(QPalette::Disabled, QPalette::Text));
 
-            QString logoText = "Dd";
-            QString info     = "Welcome to dodo!\n\n"
-                               "Use File → Open to open a PDF file.\n"
-                               "You can also drag and drop a PDF file here.";
+            QString logoText = "dodo";
+            QString info     = "File → Open to open PDF file(s).\n"
+                               "Or\n"
+                               "Drag and drop a PDF file(s).";
 
             // Setup logo font - load from resources
             int fontId = QFontDatabase::addApplicationFont(
-                ":/resources/fonts/victor.ttf");
+                ":/resources/fonts/Outfit-Bold.ttf");
             QString fontFamily
                 = QFontDatabase::applicationFontFamilies(fontId).value(
                     0, QString());
             QFont logoFont;
             if (!fontFamily.isEmpty())
                 logoFont.setFamily(fontFamily);
-            logoFont.setPointSize(72);
+            logoFont.setPointSize(50);
+            logoFont.setBold(true);
             QFontMetrics logoFm(logoFont);
             int logoHeight = logoFm.height();
 
@@ -121,7 +122,8 @@ signals:
     void tabDataRequested(int index, DraggableTabBar::TabData *outData);
     void tabDropReceived(const DraggableTabBar::TabData &data);
     void tabDetached(int index, const QPoint &globalPos);
-    void tabDetachedToNewWindow(int index, const DraggableTabBar::TabData &data);
+    void tabDetachedToNewWindow(int index,
+                                const DraggableTabBar::TabData &data);
 
 private:
     DraggableTabBar *m_tab_bar{nullptr};
