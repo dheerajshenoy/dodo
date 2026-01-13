@@ -36,6 +36,9 @@
 ### Jump Marker feature in action
 <img src="./images/Jump-Marker.gif" alt="dodo jump marker feature" width="800"/>
 
+### Link Hints
+<img src="./images/link_hint.png" alt="Link Hints" width="800"/>
+
 ### Synctex forward search from dodo to tex editor (Zed editor in this case)
 <img src="./images/synctex.gif" alt="dodo synctex forward search feature" width="800"/>
 </p>
