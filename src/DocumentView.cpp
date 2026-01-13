@@ -1923,7 +1923,9 @@ DocumentView::updateSceneRect() noexcept
 void
 DocumentView::resizeEvent(QResizeEvent *event)
 {
+    // TODO: Maybe do this only when auto resize is enabled ?
     invalidateVisiblePagesCache();
+
     if (m_resize_timer)
         m_resize_timer->start();
 
@@ -2597,7 +2599,7 @@ DocumentView::setModified(bool modified) noexcept
     m_is_modified = modified;
     QString title = m_config.ui.window.title_format;
     QString fileName;
-    if (m_config.ui.window.full_file_path_in_panel)
+    if (!m_config.ui.statusbar.file_name_only)
         fileName = filePath();
     else
         fileName = this->fileName();

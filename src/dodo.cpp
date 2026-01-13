@@ -79,7 +79,7 @@ dodo::dodo(const QString &sessionName, const QJsonArray &sessionArray) noexcept
     construct();
     openSessionFromArray(sessionArray);
     setSessionName(sessionName);
-    m_panel->setSessionName(sessionName);
+    m_statusbar->setSessionName(sessionName);
 }
 
 // Destructor for `dodo` class
@@ -297,7 +297,7 @@ dodo::initMenubar() noexcept
         QString("Statusbar\t%1").arg(m_config.shortcuts["toggle_statusbar"]),
         this, &dodo::TogglePanel);
     m_actionTogglePanel->setCheckable(true);
-    m_actionTogglePanel->setChecked(!m_panel->isHidden());
+    m_actionTogglePanel->setChecked(!m_statusbar->isHidden());
 
     m_actionInvertColor = m_viewMenu->addAction(
         QString("Invert Color\t%1").arg(m_config.shortcuts["invert_color"]),
@@ -436,13 +436,13 @@ void
 dodo::initDefaults() noexcept
 {
     const QColor transparent(0, 0, 0, 0);
-    m_config.ui.markers.jump_marker            = true;
-    m_config.ui.window.full_file_path_in_panel = false;
-    m_config.ui.zoom.level                     = 1.0f;
-    m_config.ui.outline.visible                = false;
-    m_config.ui.window.title_format            = QStringLiteral("%1 - dodo");
-    m_config.ui.link_hints.size                = 0.5f;
-    m_config.ui.links.detect_urls              = false;
+    m_config.ui.markers.jump_marker      = true;
+    m_config.ui.statusbar.file_name_only = false;
+    m_config.ui.zoom.level               = 1.0f;
+    m_config.ui.outline.visible          = false;
+    m_config.ui.window.title_format      = QStringLiteral("%1 - dodo");
+    m_config.ui.link_hints.size          = 0.5f;
+    m_config.ui.links.detect_urls        = false;
     m_config.ui.links.url_regex          = R"((https?://|www\.)[^\s<>()\"']+)";
     m_config.ui.highlight_search.visible = false;
     m_config.ui.highlight_search.as_side_panel  = false;
@@ -528,17 +528,27 @@ dodo::initConfig() noexcept
 
     auto ui_window                 = ui["window"];
     m_config.ui.window.startup_tab = ui_window["startup_tab"].value_or(true);
-    m_config.ui.window.panel       = ui_window["panel"].value_or(true);
     m_config.ui.window.menubar     = ui_window["menubar"].value_or(true);
-    m_config.ui.window.full_file_path_in_panel
-        = ui_window["full_file_path_in_panel"].value_or(false);
-    m_config.ui.window.fullscreen = ui_window["fullscreen"].value_or(false);
+    m_config.ui.window.fullscreen  = ui_window["fullscreen"].value_or(false);
     if (m_config.ui.window.fullscreen)
         this->showFullScreen();
     QString window_title = QString::fromStdString(
         ui_window["window_title"].value_or("{} - dodo"));
     window_title.replace("{}", "%1");
     m_config.ui.window.title_format = window_title;
+
+    auto ui_statusbar             = ui["statusbar"];
+    m_config.ui.statusbar.visible = ui_statusbar["visible"].value_or(true);
+    m_config.ui.statusbar.padding = ui_statusbar["padding"].value_or(4);
+    m_config.ui.statusbar.file_name_only
+        = ui_statusbar["file_name_only"].value_or(false);
+    m_config.ui.statusbar.show_file_info
+        = ui_statusbar["show_file_info"].value_or(true);
+    m_config.ui.statusbar.show_page_number
+        = ui_statusbar["show_page_number"].value_or(true);
+    m_config.ui.statusbar.show_mode = ui_statusbar["show_mode"].value_or(true);
+    m_config.ui.statusbar.show_session_name
+        = ui_statusbar["show_session_name"].value_or(false);
 
     auto ui_layout          = ui["layout"];
     m_config.ui.layout.mode = ui_layout["mode"].value_or("top_to_bottom");
@@ -960,10 +970,10 @@ dodo::initGui() noexcept
     m_layout->setContentsMargins(0, 0, 0, 0);
 
     // Panel
-    m_panel = new Panel(this);
-    m_panel->hidePageInfo(true);
-    m_panel->setMode(GraphicsView::Mode::TextSelection);
-    m_panel->setSessionName("");
+    m_statusbar = new Statusbar(m_config, this);
+    m_statusbar->hidePageInfo(true);
+    m_statusbar->setMode(GraphicsView::Mode::TextSelection);
+    m_statusbar->setSessionName("");
 
     m_search_bar = new SearchBar(this);
     m_search_bar->setVisible(false);
@@ -1170,8 +1180,8 @@ dodo::ToggleFullscreen() noexcept
 void
 dodo::TogglePanel() noexcept
 {
-    bool shown = !m_panel->isHidden();
-    m_panel->setHidden(shown);
+    bool shown = !m_statusbar->isHidden();
+    m_statusbar->setHidden(shown);
     m_actionTogglePanel->setChecked(!shown);
 }
 
@@ -1969,10 +1979,11 @@ dodo::TextHighlightCurrentSelection() noexcept
 void
 dodo::initConnections() noexcept
 {
-    connect(m_panel, &Panel::modeColorChangeRequested, this,
+    connect(m_statusbar, &Statusbar::modeColorChangeRequested, this,
             [&](GraphicsView::Mode mode) { modeColorChangeRequested(mode); });
 
-    connect(m_panel, &Panel::pageChangeRequested, this, &dodo::gotoPage);
+    connect(m_statusbar, &Statusbar::pageChangeRequested, this,
+            &dodo::gotoPage);
 
     connect(m_config_watcher, &QFileSystemWatcher::fileChanged, this,
             &dodo::updateGUIFromConfig);
@@ -2081,7 +2092,7 @@ dodo::initConnections() noexcept
 void
 dodo::handleFileNameChanged(const QString &name) noexcept
 {
-    m_panel->setFileName(name);
+    m_statusbar->setFileName(name);
     this->setWindowTitle(name);
 }
 
@@ -2097,7 +2108,7 @@ dodo::handleCurrentTabChanged(int index) noexcept
 
     if (index == -1)
     {
-        m_panel->hidePageInfo(true);
+        m_statusbar->hidePageInfo(true);
         updateMenuActions();
         updateUiEnabledState();
         updatePanel();
@@ -2521,10 +2532,10 @@ void
 dodo::initTabConnections(DocumentView *docwidget) noexcept
 {
     connect(docwidget, &DocumentView::panelNameChanged, this,
-            [this](const QString &name) { m_panel->setFileName(name); });
+            [this](const QString &name) { m_statusbar->setFileName(name); });
 
-    connect(docwidget, &DocumentView::currentPageChanged, m_panel,
-            &Panel::setPageNo);
+    connect(docwidget, &DocumentView::currentPageChanged, m_statusbar,
+            &Statusbar::setPageNo);
 
     connect(docwidget, &DocumentView::searchBarSpinnerShow, m_search_bar,
             &SearchBar::showSpinner);
@@ -2544,16 +2555,17 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
             m_actionRedo->setEnabled(canRedo);
     });
 
-    connect(m_panel, &Panel::modeChangeRequested, docwidget,
+    connect(m_statusbar, &Statusbar::modeChangeRequested, docwidget,
             &DocumentView::NextSelectionMode);
 
-    connect(m_panel, &Panel::fitModeChangeRequested, docwidget,
+    connect(m_statusbar, &Statusbar::fitModeChangeRequested, docwidget,
             &DocumentView::NextFitMode);
 
     connect(docwidget, &DocumentView::fileNameChanged, this,
             &dodo::handleFileNameChanged);
 
-    connect(docwidget, &DocumentView::pageChanged, m_panel, &Panel::setPageNo);
+    connect(docwidget, &DocumentView::pageChanged, m_statusbar,
+            &Statusbar::setPageNo);
 
     connect(docwidget, &DocumentView::searchCountChanged, m_search_bar,
             &SearchBar::setSearchCount);
@@ -2564,14 +2576,14 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
     connect(docwidget, &DocumentView::searchIndexChanged, m_search_bar,
             &SearchBar::setSearchIndex);
 
-    connect(docwidget, &DocumentView::totalPageCountChanged, m_panel,
-            &Panel::setTotalPageCount);
+    connect(docwidget, &DocumentView::totalPageCountChanged, m_statusbar,
+            &Statusbar::setTotalPageCount);
 
-    connect(docwidget, &DocumentView::highlightColorChanged, m_panel,
-            &Panel::setHighlightColor);
+    connect(docwidget, &DocumentView::highlightColorChanged, m_statusbar,
+            &Statusbar::setHighlightColor);
 
-    connect(docwidget, &DocumentView::selectionModeChanged, m_panel,
-            &Panel::setMode);
+    connect(docwidget, &DocumentView::selectionModeChanged, m_statusbar,
+            &Statusbar::setMode);
 
     connect(docwidget, &DocumentView::clipboardContentChanged, this,
             [&](const QString &text) { m_clipboard->setText(text); });
@@ -2600,7 +2612,7 @@ dodo::updateMenuActions() noexcept
 {
     const bool valid = m_doc != nullptr;
 
-    m_panel->hidePageInfo(!valid);
+    m_statusbar->hidePageInfo(!valid);
     m_actionCloseFile->setEnabled(valid);
 
     if (valid)
@@ -2654,20 +2666,22 @@ dodo::updatePanel() noexcept
         Model *model = m_doc->model();
         if (!model)
             return;
-        if (m_config.ui.window.full_file_path_in_panel)
-            m_panel->setFileName(m_doc->filePath());
+
+        if (m_config.ui.statusbar.file_name_only)
+            m_statusbar->setFileName(m_doc->fileName());
         else
-            m_panel->setFileName(m_doc->fileName());
-        m_panel->setHighlightColor(model->highlightAnnotColor());
-        m_panel->setMode(m_doc->selectionMode());
-        m_panel->setTotalPageCount(model->numPages());
-        m_panel->setPageNo(m_doc->pageNo() + 1);
+            m_statusbar->setFileName(m_doc->filePath());
+
+        m_statusbar->setHighlightColor(model->highlightAnnotColor());
+        m_statusbar->setMode(m_doc->selectionMode());
+        m_statusbar->setTotalPageCount(model->numPages());
+        m_statusbar->setPageNo(m_doc->pageNo() + 1);
     }
     else
     {
-        m_panel->hidePageInfo(true);
-        m_panel->setFileName("");
-        m_panel->setHighlightColor("");
+        m_statusbar->hidePageInfo(true);
+        m_statusbar->setFileName("");
+        m_statusbar->setHighlightColor("");
     }
 }
 
@@ -2924,16 +2938,16 @@ dodo::showStartupWidget() noexcept
     });
     int index = m_tab_widget->addTab(m_startup_widget, "Startup");
     m_tab_widget->setCurrentIndex(index);
-    m_panel->setFileName("Startup");
+    m_statusbar->setFileName("Startup");
 }
 
 // Update actions and stuff for system tabs
 void
 dodo::updateActionsAndStuffForSystemTabs() noexcept
 {
-    m_panel->hidePageInfo(true);
+    m_statusbar->hidePageInfo(true);
     updateUiEnabledState();
-    m_panel->setFileName("Startup");
+    m_statusbar->setFileName("Startup");
 }
 
 // Undo operation
@@ -3310,10 +3324,10 @@ dodo::updateGUIFromConfig() noexcept
 
     m_layout->addWidget(m_search_bar);
     m_layout->addWidget(m_message_bar);
-    m_layout->addWidget(m_panel);
+    m_layout->addWidget(m_statusbar);
 
     m_tab_widget->setTabBarAutoHide(m_config.ui.tabs.auto_hide);
-    m_panel->setVisible(m_config.ui.window.panel);
+    m_statusbar->setVisible(m_config.ui.statusbar.visible);
     m_menuBar->setVisible(m_config.ui.window.menubar);
     m_tab_widget->tabBar()->setVisible(m_config.ui.tabs.visible);
 }
@@ -3335,13 +3349,13 @@ dodo::setFocusMode(bool enable) noexcept
     if (m_focus_mode)
     {
         m_menuBar->setVisible(false);
-        m_panel->setVisible(false);
+        m_statusbar->setVisible(false);
         m_tab_widget->tabBar()->setVisible(false);
     }
     else
     {
         m_menuBar->setVisible(m_config.ui.window.menubar);
-        m_panel->setVisible(m_config.ui.window.panel);
+        m_statusbar->setVisible(m_config.ui.statusbar.visible);
         updateTabbarVisibility();
     }
 }
@@ -3374,7 +3388,7 @@ void
 dodo::setSessionName(const QString &name) noexcept
 {
     m_session_name = name;
-    m_panel->setSessionName(name);
+    m_statusbar->setSessionName(name);
 }
 
 void
@@ -3428,7 +3442,7 @@ dodo::modeColorChangeRequested(const GraphicsView::Mode mode) noexcept
         else if (mode == GraphicsView::Mode::AnnotPopup)
             model->setPopupColor(color);
 
-        m_panel->setHighlightColor(color);
+        m_statusbar->setHighlightColor(color);
     }
 }
 

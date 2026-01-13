@@ -126,6 +126,7 @@ main(int argc, char *argv[])
     catch (const std::exception &e)
     {
         qDebug() << e.what();
+        return 1;
     }
 
     // Zed-style behavior: by default, detach from the terminal so the shell

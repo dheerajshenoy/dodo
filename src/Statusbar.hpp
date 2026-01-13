@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CircleLabel.hpp"
+#include "Config.hpp"
 #include "DocumentView.hpp"
 #include "ElidableLabel.hpp"
 #include "GraphicsView.hpp"
@@ -12,11 +13,11 @@
 
 enum class FitMode;
 
-class Panel : public QWidget
+class Statusbar : public QWidget
 {
     Q_OBJECT
 public:
-    Panel(QWidget *parent = nullptr);
+    Statusbar(const Config &config, QWidget *parent = nullptr);
 
     void hidePageInfo(bool state) noexcept;
     void setTotalPageCount(int total) noexcept;
@@ -34,13 +35,14 @@ signals:
     void pageChangeRequested(int pageno);
 
 private:
+    Config m_config;
     void initGui() noexcept;
     void initConnections() noexcept;
     void labelBG(QLabel *label, const QColor &color) noexcept;
     ElidableLabel *m_filename_label = new ElidableLabel();
     QPushButton *m_mode_label       = new QPushButton();
     CircleLabel *m_mode_color_label = new CircleLabel();
-    QLineEdit *m_pageno_box         = new QLineEdit();
+    QLabel *m_pageno_label          = new QLabel();
     QLabel *m_totalpage_label       = new QLabel();
     QLabel *m_pageno_separator      = new QLabel(" of ");
     QPushButton *m_session_label    = new QPushButton();

@@ -8,11 +8,11 @@
 #include "HighlightSearchWidget.hpp"
 #include "MessageBar.hpp"
 #include "OutlineWidget.hpp"
-#include "Panel.hpp"
 #include "PropertiesWidget.hpp"
 #include "RecentFilesStore.hpp"
 #include "SearchBar.hpp"
 #include "StartupWidget.hpp"
+#include "Statusbar.hpp"
 #include "TabWidget.hpp"
 #include "argparse.hpp"
 
@@ -203,7 +203,7 @@ private:
     void handleEscapeKeyPressed() noexcept;
 
     QDir m_config_dir, m_session_dir;
-    Panel *m_panel{nullptr};
+    Statusbar *m_statusbar{nullptr};
 
     QMenuBar *m_menuBar{nullptr};
     QMenu *m_fitMenu{nullptr};

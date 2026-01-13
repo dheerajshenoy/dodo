@@ -2,10 +2,16 @@
 [ui.window]
 fullscreen = false
 menubar = false
-panel = true
 startup_tab = true
-full_file_path_in_panel = false
 window_title = "{} - dodo" # '{}' replaced with base file name
+
+[ui.statusbar]
+visible = true
+padding = 4
+show_session_name = false # show current session name in statusbar (if in session)
+show_file_name = true # show current file name in statusbar
+show_mode = false # show current interaction mode in statusbar
+show_page_number = true # show current page number in statusbar
 
 [ui.command_palette]
 show_shortcuts = false
@@ -20,6 +26,7 @@ panel_width = 400
 mode = "top_to_bottom" # "single", "top_to_bottom", "left_to_right"
 initial_fit = "width" # "none", "width", "height", "window"
 auto_resize = false # fit document to window
+spacing = 0
 
 [ui.zoom]
 level = 1.0 # default zoom factor
@@ -53,7 +60,7 @@ auto_hide = true
 closable = true
 movable = true
 elide_mode = "middle" # "none", "start", "middle", "end"
-bar_position = "bottom" # "top", "bottom", "left", "right"
+bar_position = "top" # "top", "bottom", "left", "right"
 
 [ui.outline]
 visible = false
@@ -93,7 +100,7 @@ icc_color_profile = true
 # ===== Behavior =====
 [behavior]
 initial_mode = "text_select_mode" # { "region_select_mode", "annot_rect_mode", "annot_select_mode", "text_select_mode", "text_highlight_mode", "annot_popup_mode" }
-always_open_in_new_window = true
+always_open_in_new_window = false
 remember_last_visited = true
 page_history = 100
 confirm_on_quit = false
@@ -185,3 +192,4 @@ highlight_annot_search = "Alt+Shift+H"
 completion_next = "Ctrl+n"
 completion_prev = "Ctrl+p"
 toggle_llm_widget = "Ctrl+Shift+L"
+toggle_statusbar = "Ctrl+Shift+S"

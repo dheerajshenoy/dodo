@@ -35,7 +35,7 @@ pkg_check_modules(synctex QUIET synctex)
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/dodo.cpp
-    src/Panel.cpp
+    src/Statusbar.cpp
     src/Model.cpp
     src/PropertiesWidget.cpp
     src/AboutDialog.cpp

@@ -1,4 +1,4 @@
-#include "Panel.hpp"
+#include "Statusbar.hpp"
 
 #include "GraphicsView.hpp"
 
@@ -7,54 +7,46 @@
 #include <qnamespace.h>
 #include <qsizepolicy.h>
 
-Panel::Panel(QWidget *parent) : QWidget(parent)
+Statusbar::Statusbar(const Config &config, QWidget *parent)
+    : QWidget(parent), m_config(config)
 {
     initGui();
     initConnections();
 }
 
 void
-Panel::initConnections() noexcept
+Statusbar::initConnections() noexcept
 {
     connect(m_mode_color_label, &CircleLabel::clicked,
             [&]() { emit modeColorChangeRequested(m_current_mode); });
-    connect(m_pageno_box, &QLineEdit::returnPressed, [&]()
-    {
-        bool ok;
-        int pageno = m_pageno_box->text().toInt(&ok);
-        if (ok)
-        {
-            clearFocus();
-            emit pageChangeRequested(pageno);
-        }
-        else
-            QMessageBox::warning(this, "Invalid Page Number",
-                                 "Please enter a valid page number");
-    });
 }
 
 void
-Panel::initGui() noexcept
+Statusbar::initGui() noexcept
 {
-
-    setContentsMargins(0, 0, 0, 0);
-    // m_layout->setContentsMargins(0, 0, 0, 0);
+    int padding = m_config.ui.statusbar.padding;
+    setContentsMargins(padding, 0, padding, 0);
+    m_layout->setContentsMargins(0, 0, 0, 0);
+    m_layout->setSpacing(padding);
     setLayout(m_layout);
 
     // Left
     auto *leftLayout = new QHBoxLayout;
+
     leftLayout->addWidget(m_session_label);
     leftLayout->addWidget(m_filename_label);
 
     // Center
     auto *centerLayout = new QHBoxLayout;
-    m_pageno_box->setFocusPolicy(Qt::ClickFocus);
-    centerLayout->addWidget(m_pageno_box);
+    m_pageno_label->setFocusPolicy(Qt::ClickFocus);
+
+    centerLayout->addWidget(m_pageno_label);
     centerLayout->addWidget(m_pageno_separator);
     centerLayout->addWidget(m_totalpage_label);
 
     // Right
     auto *rightLayout = new QHBoxLayout;
+
     rightLayout->addWidget(m_mode_color_label);
     rightLayout->addWidget(m_mode_label);
 
@@ -69,10 +61,19 @@ Panel::initGui() noexcept
 
     connect(m_mode_label, &QPushButton::clicked,
             [&]() { emit modeChangeRequested(); });
+
+    m_filename_label->setVisible(m_config.ui.statusbar.show_file_info);
+
+    m_pageno_label->setVisible(m_config.ui.statusbar.show_page_number);
+    m_pageno_separator->setVisible(m_config.ui.statusbar.show_page_number);
+    m_totalpage_label->setVisible(m_config.ui.statusbar.show_page_number);
+
+    m_mode_color_label->setVisible(m_config.ui.statusbar.show_mode);
+    m_mode_label->setVisible(m_config.ui.statusbar.show_mode);
 }
 
 void
-Panel::labelBG(QLabel *label, const QColor &color) noexcept
+Statusbar::labelBG(QLabel *label, const QColor &color) noexcept
 {
     QPalette palette = label->palette();
     palette.setColor(QPalette::Window, color);
@@ -81,103 +82,114 @@ Panel::labelBG(QLabel *label, const QColor &color) noexcept
 }
 
 void
-Panel::setTotalPageCount(int total) noexcept
+Statusbar::setTotalPageCount(int total) noexcept
 {
     m_totalpage_label->setText(QString::number(total));
 }
 
 void
-Panel::setFileName(const QString &name) noexcept
+Statusbar::setFileName(const QString &name) noexcept
 {
     m_filename_label->setFullText(name);
 }
 
 void
-Panel::setPageNo(int pageno) noexcept
+Statusbar::setPageNo(int pageno) noexcept
 {
-    m_pageno_box->setText(QString::number(pageno));
-    m_pageno_box->setMaximumWidth(
-        m_pageno_box->fontMetrics().horizontalAdvance(QString::number(9999))
+    m_pageno_label->setText(QString::number(pageno));
+    m_pageno_label->setMaximumWidth(
+        m_pageno_label->fontMetrics().horizontalAdvance(QString::number(9999))
         + 10);
 }
 
 void
-Panel::setMode(GraphicsView::Mode mode) noexcept
+Statusbar::setMode(GraphicsView::Mode mode) noexcept
 {
+    bool show_color = false;
+
     switch (mode)
     {
         case GraphicsView::Mode::RegionSelection:
         {
             m_mode_label->setText("Region Selection");
-            m_mode_color_label->hide();
+            show_color = false;
         }
         break;
 
         case GraphicsView::Mode::TextSelection:
         {
             m_mode_label->setText("Text Selection");
-            m_mode_color_label->hide();
+            show_color = false;
         }
         break;
 
         case GraphicsView::Mode::TextHighlight:
         {
             m_mode_label->setText("Text Highlight");
-            m_mode_color_label->show();
+            show_color = true;
         }
         break;
 
         case GraphicsView::Mode::AnnotSelect:
         {
             m_mode_label->setText("Annot Select");
-            m_mode_color_label->hide();
+            show_color = false;
         }
         break;
 
         case GraphicsView::Mode::AnnotRect:
         {
             m_mode_label->setText("Annot Rect");
-            m_mode_color_label->show();
+            show_color = true;
         }
         break;
 
         case GraphicsView::Mode::AnnotPopup:
         {
             m_mode_label->setText("Annot Popup");
-            m_mode_color_label->show();
+            show_color = true;
         }
         break;
 
         default:
             break;
     }
+
+    // Respect config setting for mode visibility
+    m_mode_color_label->setVisible(m_config.ui.statusbar.show_mode
+                                   && show_color);
     m_current_mode = mode;
 }
 
 void
-Panel::setHighlightColor(const QColor &color) noexcept
+Statusbar::setHighlightColor(const QColor &color) noexcept
 {
     m_mode_color_label->setColor(color);
 }
 
 void
-Panel::hidePageInfo(bool state) noexcept
+Statusbar::hidePageInfo(bool state) noexcept
 {
-    m_pageno_box->setVisible(!state);
-    m_pageno_separator->setVisible(!state);
-    m_totalpage_label->setVisible(!state);
-    m_mode_label->setVisible(!state);
+    bool show_page = !state && m_config.ui.statusbar.show_page_number;
+    bool show_mode = !state && m_config.ui.statusbar.show_mode;
+
+    m_pageno_label->setVisible(show_page);
+    m_pageno_separator->setVisible(show_page);
+    m_totalpage_label->setVisible(show_page);
+    m_mode_label->setVisible(show_mode);
 }
 
 void
-Panel::setSessionName(const QString &name) noexcept
+Statusbar::setSessionName(const QString &name) noexcept
 {
     if (name.isEmpty())
         m_session_label->hide();
     else
     {
-        // We are assuming here that the session name is valid and exists
-        m_session_label->show();
-        m_session_label->setText(name);
+        if (m_config.ui.statusbar.show_session_name)
+        {
+            m_session_label->setText(name);
+            m_session_label->show();
+        }
     }
 }

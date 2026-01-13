@@ -15,9 +15,7 @@ struct Config
         {
             bool fullscreen{false};
             bool menubar{true};
-            bool panel{true};
             bool startup_tab{true};
-            bool full_file_path_in_panel{false};
             QString title_format{"{} - dodo"};
         } window{};
 
@@ -28,6 +26,17 @@ struct Config
             bool auto_resize{false};
             int spacing{10};
         } layout{};
+
+        struct statusbar
+        {
+            bool visible{true};
+            int padding{4};
+            bool show_session_name{false};
+            bool file_name_only{false};
+            bool show_file_info{true};
+            bool show_page_number{true};
+            bool show_mode{true};
+        } statusbar{};
 
         struct zoom
         {
