@@ -5,6 +5,7 @@
 
 <p align="center">
     <a href="https://dheerajshenoy.github.io/dodo.html" target="_blank">Homepage</a> |
+    <a href="https://dheerajshenoy.github.io/dodo.html#install" target="_blank">Installation</a> |
     <a href="https://dheerajshenoy.github.io/dodo-docs.html" target="_blank">Documentation</a> |
     <a href="https://dheerajshenoy.github.io/dodo-configuration.html" target="_blank">Configuration</a>
 </p>
