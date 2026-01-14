@@ -39,6 +39,9 @@
 ### Link Hints
 <img src="./images/link_hint.png" alt="Link Hints" width="800"/>
 
+### Command Palette
+<img src="./images/command_palette.png" alt="Command Palette" width="800"/>
+
 ### Synctex forward search from dodo to tex editor (Zed editor in this case)
 <img src="./images/synctex.gif" alt="dodo synctex forward search feature" width="800"/>
 </p>

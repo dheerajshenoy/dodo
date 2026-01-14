@@ -95,6 +95,8 @@ public:
     OutlineWidget(QWidget *parent = nullptr, bool is_side_panel = true) noexcept
         : QWidget(parent), m_is_side_panel(is_side_panel)
     {
+        setMinimumSize(500, 400);
+
         QVBoxLayout *layout = new QVBoxLayout(this);
         searchEdit->setPlaceholderText("Search Outline");
         searchEdit->setFocusPolicy(Qt::StrongFocus);
@@ -109,6 +111,9 @@ public:
         m_tree->setRootIsDecorated(false);
         m_tree->setItemsExpandable(false);
         m_tree->setIndentation(0);
+        m_tree->setUniformRowHeights(true);
+        m_tree->setStyleSheet("QTreeView::item { padding: 4px 2px; }"
+                              "QTreeView { outline: none; }");
 
         // m_tree->verticalHeader()->setVisible(false);
 
