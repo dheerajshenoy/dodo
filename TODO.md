@@ -1,12 +1,14 @@
 # TODO
 - [X] Percentange of progress
+- [X] Popup Annotation edit support
+- [X] Rect Annotation fix
+
 - [ ] Undo/Redo operations
   - [ ] Rect Annotation
   - [X] Text Highlight Annotation
   - [X] Delete Annotation
   - [ ] Popup Annotation
 - [ ] Synctex highlight line
-- [ ] Popup Annotation edit support
 - [ ] Easy reference paper search
 - [ ] Reference previewer
 - [ ] Peek equation dependencies

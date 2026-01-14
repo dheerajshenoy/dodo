@@ -3222,13 +3222,18 @@ DocumentView::handleAnnotRectRequested(const QRectF &area) noexcept
         return;
 
     const QRectF pageLocalRect = pageItem->mapFromScene(area).boundingRect();
-    const double scale         = m_model->viewScale();
+
+    // Convert from pixel space to PDF space using the model's transform
+    const fz_point topLeft
+        = m_model->toPDFSpace(pageno, pageLocalRect.topLeft());
+    const fz_point bottomRight
+        = m_model->toPDFSpace(pageno, pageLocalRect.bottomRight());
 
     const fz_rect rect = {
-        static_cast<float>(pageLocalRect.left() * scale),
-        static_cast<float>(pageLocalRect.top() * scale),
-        static_cast<float>(pageLocalRect.right() * scale),
-        static_cast<float>(pageLocalRect.bottom() * scale),
+        topLeft.x,
+        topLeft.y,
+        bottomRight.x,
+        bottomRight.y,
     };
 
     m_model->undoStack()->push(
@@ -3255,15 +3260,17 @@ DocumentView::handleAnnotPopupRequested(const QPointF &scenePos) noexcept
         return;
 
     const QPointF pageLocalPos = pageItem->mapFromScene(scenePos);
-    const double scale         = m_model->viewScale();
+
+    // Convert from pixel space to PDF space using the model's transform
+    const fz_point pdfPos = m_model->toPDFSpace(pageno, pageLocalPos);
 
     // Create a small rect at the click position for the text annotation icon
     constexpr float annotSize = 24.0f;
     const fz_rect rect        = {
-        static_cast<float>(pageLocalPos.x() * scale),
-        static_cast<float>(pageLocalPos.y() * scale),
-        static_cast<float>(pageLocalPos.x() * scale + annotSize),
-        static_cast<float>(pageLocalPos.y() * scale + annotSize),
+        pdfPos.x,
+        pdfPos.y,
+        pdfPos.x + annotSize,
+        pdfPos.y + annotSize,
     };
 
     m_model->undoStack()->push(

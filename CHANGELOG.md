@@ -20,6 +20,7 @@
             
 ### Bug Fixes
 
+- Fix rect annotation creation
 - Fix popup annotation creation
 
 ## 0.5.4

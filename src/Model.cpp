@@ -822,8 +822,9 @@ Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
 
     // 4. Reverse Step 6: Adjust for Qt's Device Pixel Ratio
     // Map from logical Qt coordinates back to physical pixel coordinates
-    float physicalX = pixelPos.x();
-    float physicalY = pixelPos.y();
+    // The pixmap is scaled by DPR, so multiply to get physical pixels
+    float physicalX = pixelPos.x() * m_dpr;
+    float physicalY = pixelPos.y() * m_dpr;
 
     // 5. Reverse Step 5: ADD the bbox origin
     // Move from the pixmap-local (0,0) back to the transformed coordinate
@@ -1330,8 +1331,6 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect) noexcept
         if (!page)
             fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-        // Create a separate highlight annotation for each quad
-        // This looks better visually for multi-line selections
         pdf_annot *annot = pdf_create_annot(m_ctx, page, PDF_ANNOT_SQUARE);
 
         if (!annot)
@@ -1339,6 +1338,7 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect) noexcept
 
         pdf_set_annot_rect(m_ctx, annot, rect);
         pdf_set_annot_interior_color(m_ctx, annot, 3, m_annot_rect_color);
+        pdf_set_annot_color(m_ctx, annot, 3, m_annot_rect_color);
         pdf_set_annot_opacity(m_ctx, annot, m_annot_rect_color[3]);
         pdf_update_annot(m_ctx, annot);
         pdf_update_page(m_ctx, page);
