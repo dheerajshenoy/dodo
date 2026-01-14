@@ -886,6 +886,8 @@ dodo::initKeybinds() noexcept
     addShortcut(">", [this]() { RotateClock(); });
     addShortcut("u", [this]() { Undo(); });
     addShortcut("Ctrl+r", [this]() { Redo(); });
+    addShortcut("Alt+Shift+H", [this]() { ShowOutline(); });
+    addShortcut("Ctrl+Shift+P", [this]() { ToggleCommandPalette(); });
 }
 
 void
