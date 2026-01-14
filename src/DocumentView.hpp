@@ -42,7 +42,7 @@ extern "C"
 #define ZVALUE_SEARCH_HITS 1200
 #define ZVALUE_KB_LINK_OVERLAY 1300
 
-#define MIN_ZOOM_FACTOR 0.5
+#define MIN_ZOOM_FACTOR 0.1
 #define MAX_ZOOM_FACTOR 5.0
 
 #define CSTR(x) x.toStdString().c_str()
