@@ -37,6 +37,7 @@ struct Config
             bool show_file_info{true};
             bool show_page_number{true};
             bool show_mode{true};
+            bool show_progress{true};
         } statusbar{};
 
         struct zoom
