@@ -813,7 +813,8 @@ Model::toPDFSpace(int pageno, QPointF pixelPos) const noexcept
     fz_rect bounds = fz_bound_page(m_ctx, page);
 
     // 2. Re-create the same transform used in rendering
-    const float scale   = viewScale();
+    // Must match the scale used in createRenderJob: m_zoom * m_dpr * m_dpi
+    const float scale   = m_zoom * m_dpr * m_dpi;
     fz_matrix transform = fz_transform_page(bounds, scale, m_rotation);
 
     // 3. Get the bbox (to find the origin shift)
