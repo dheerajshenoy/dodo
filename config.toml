@@ -2,15 +2,15 @@
 [ui.window]
 fullscreen = false
 menubar = false
-startup_tab = true
+startup_tab = false
 window_title = "{} - dodo" # '{}' replaced with base file name
 
 [ui.statusbar]
 visible = true
 padding = 4
-show_session_name = false # show current session name in statusbar (if in session)
+show_session_name = true # show current session name in statusbar (if in session)
 show_file_name = true # show current file name in statusbar
-show_mode = false # show current interaction mode in statusbar
+show_mode = true # show current interaction mode in statusbar
 show_page_number = true # show current page number in statusbar
 
 [ui.command_palette]
