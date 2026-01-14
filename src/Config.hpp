@@ -4,6 +4,7 @@
 
 #include <QColor>
 #include <QHash>
+#include <array>
 
 struct Config
 {
@@ -30,7 +31,7 @@ struct Config
         struct statusbar
         {
             bool visible{true};
-            int padding{4};
+            std::array<int, 4> padding{5, 5, 5, 5}; // top, right, bottom, left
             bool show_session_name{false};
             bool file_name_only{false};
             bool show_file_info{true};

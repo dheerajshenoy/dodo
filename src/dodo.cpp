@@ -538,7 +538,18 @@ dodo::initConfig() noexcept
 
     auto ui_statusbar             = ui["statusbar"];
     m_config.ui.statusbar.visible = ui_statusbar["visible"].value_or(true);
-    m_config.ui.statusbar.padding = ui_statusbar["padding"].value_or(4);
+    auto padding_array            = ui_statusbar["padding"].as_array();
+
+    if (padding_array && padding_array->size() > 0)
+    {
+        m_config.ui.statusbar.padding = {padding_array->get(0)->value_or(5),
+                                         padding_array->get(1)->value_or(5),
+                                         padding_array->get(2)->value_or(5),
+                                         padding_array->get(3)->value_or(5)};
+    }
+
+    m_config.ui.statusbar.show_progress
+        = ui_statusbar["show_progress"].value_or(true);
     m_config.ui.statusbar.file_name_only
         = ui_statusbar["file_name_only"].value_or(false);
     m_config.ui.statusbar.show_file_info

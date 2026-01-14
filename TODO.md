@@ -1,4 +1,5 @@
 # TODO
+- [X] Percentange of progress
 - [ ] Undo/Redo operations
   - [ ] Rect Annotation
   - [X] Text Highlight Annotation

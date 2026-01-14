@@ -4,9 +4,20 @@
 
 ### Features
 
-- Allow editing popup (also called text) annotations
+- Allow editing popup annotations (also called text annotations)
 - Visual feedback when hovering over popup annotation icons
-
+- Statusbar config option
+    - `[ui.statusbar]`
+        - `visible` (bool): Show/Hide statusbar
+        - `padding` (array of 4 ints): Padding around the statusbar (top, right, bottom, left)
+        - `show_session_name` (bool): Show session name in statusbar
+        - `file_name_only` (bool): Show only file name instead of full path
+        - `show_file_info` (bool): Show file info (size, number of pages) in statusbar
+        - `show_page_number` (bool): Show current page number in statusbar
+        - `show_mode` (bool): Show current mode (e.g. selection mode) in statusbar
+        - `show_progress` (bool): Show reading progress in statusbar
+- Percentage progress indicator in statusbar
+            
 ### Bug Fixes
 
 - Fix popup annotation creation

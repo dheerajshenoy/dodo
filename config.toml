@@ -7,11 +7,12 @@ window_title = "{} - dodo" # '{}' replaced with base file name
 
 [ui.statusbar]
 visible = true
-padding = 4
+padding = [ 5, 5, 5, 5 ] # top, right, bottom, left
 show_session_name = true # show current session name in statusbar (if in session)
 show_file_name = true # show current file name in statusbar
 show_mode = true # show current interaction mode in statusbar
 show_page_number = true # show current page number in statusbar
+show_progress = true # show reading progress in statusbar
 
 [ui.command_palette]
 show_shortcuts = false

@@ -45,6 +45,7 @@ private:
     QLabel *m_pageno_label          = new QLabel();
     QLabel *m_totalpage_label       = new QLabel();
     QLabel *m_pageno_separator      = new QLabel(" of ");
+    QLabel *m_progress_label        = new QLabel();
     QPushButton *m_session_label    = new QPushButton();
     QGridLayout *m_layout           = new QGridLayout();
     GraphicsView::Mode m_current_mode;

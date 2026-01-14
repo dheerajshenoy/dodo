@@ -24,8 +24,8 @@ Statusbar::initConnections() noexcept
 void
 Statusbar::initGui() noexcept
 {
-    int padding = m_config.ui.statusbar.padding;
-    setContentsMargins(padding, 0, padding, 0);
+    const auto padding = m_config.ui.statusbar.padding;
+    setContentsMargins(padding[0], padding[1], padding[2], padding[3]);
     m_layout->setContentsMargins(0, 0, 0, 0);
     m_layout->setSpacing(padding);
     setLayout(m_layout);
@@ -47,6 +47,7 @@ Statusbar::initGui() noexcept
     // Right
     auto *rightLayout = new QHBoxLayout;
 
+    rightLayout->addWidget(m_progress_label);
     rightLayout->addWidget(m_mode_color_label);
     rightLayout->addWidget(m_mode_label);
 
@@ -70,6 +71,7 @@ Statusbar::initGui() noexcept
 
     m_mode_color_label->setVisible(m_config.ui.statusbar.show_mode);
     m_mode_label->setVisible(m_config.ui.statusbar.show_mode);
+    m_progress_label->setVisible(m_config.ui.statusbar.show_progress);
 }
 
 void
@@ -100,6 +102,8 @@ Statusbar::setPageNo(int pageno) noexcept
     m_pageno_label->setMaximumWidth(
         m_pageno_label->fontMetrics().horizontalAdvance(QString::number(9999))
         + 10);
+    m_progress_label->setText(QString("%1%").arg(QString::number(
+        (pageno * 100) / std::max(1, m_totalpage_label->text().toInt()))));
 }
 
 void
