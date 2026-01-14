@@ -445,11 +445,10 @@ dodo::initDefaults() noexcept
     m_config.ui.links.detect_urls        = false;
     m_config.ui.links.url_regex          = R"((https?://|www\.)[^\s<>()\"']+)";
     m_config.ui.highlight_search.visible = false;
-    m_config.ui.highlight_search.as_side_panel  = false;
-    m_config.ui.highlight_search.type           = "dialog";
+    m_config.ui.highlight_search.type    = "overlay";
     m_config.ui.highlight_search.panel_position = "right";
     m_config.ui.highlight_search.panel_width    = 300;
-    m_config.ui.outline.type                    = "side_panel";
+    m_config.ui.outline.type                    = "overlay";
 
     m_config.ui.colors[QStringLiteral("search_index")]
         = parseConfigColor(QStringLiteral("#3daee944"), transparent);
@@ -612,12 +611,7 @@ dodo::initConfig() noexcept
 
     auto ui_outline             = ui["outline"];
     m_config.ui.outline.visible = ui_outline["visible"].value_or(false);
-    m_config.ui.outline.as_side_panel
-        = ui_outline["as_side_panel"].value_or(true);
-    m_config.ui.outline.type = ui_outline["type"].value_or("");
-    if (m_config.ui.outline.type.isEmpty())
-        m_config.ui.outline.type
-            = m_config.ui.outline.as_side_panel ? "side_panel" : "dialog";
+    m_config.ui.outline.type    = "overlay";
     m_config.ui.outline.panel_position
         = ui_outline["panel_position"].value_or("left");
     m_config.ui.outline.panel_width = ui_outline["panel_width"].value_or(300);
@@ -625,16 +619,8 @@ dodo::initConfig() noexcept
     auto ui_highlight_search = ui["highlight_search"];
     m_config.ui.highlight_search.visible
         = ui_highlight_search["visible"].value_or(false);
-    m_config.ui.highlight_search.as_side_panel
-        = ui_highlight_search["as_side_panel"].value_or(false);
     m_config.ui.highlight_search.type
-        = ui_highlight_search["type"].value_or("");
-    if (m_config.ui.highlight_search.type.isEmpty())
-    {
-        m_config.ui.highlight_search.type
-            = m_config.ui.highlight_search.as_side_panel ? "side_panel"
-                                                         : "dialog";
-    }
+        = ui_highlight_search["type"].value_or("overlay");
     m_config.ui.highlight_search.panel_position
         = ui_highlight_search["panel_position"].value_or("right");
     m_config.ui.highlight_search.panel_width
