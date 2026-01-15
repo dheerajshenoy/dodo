@@ -277,7 +277,6 @@ private:
                 }
 
                 annot = pdf_next_annot(ctx, annot);
-                ++index;
             }
 
             fz_drop_page(ctx, (fz_page *)page);
