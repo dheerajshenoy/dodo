@@ -3225,7 +3225,9 @@ DocumentView::tryReloadLater(int attempt) noexcept
         else
         {
             requestPageRender(m_pageno);
+#ifdef HAS_SYNCTEX
             initSynctex();
+#endif
         }
 
         const QString &filepath = m_model->filePath();
