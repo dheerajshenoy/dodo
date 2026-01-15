@@ -23,6 +23,10 @@ public:
 
     void select(const QColor &color) noexcept;
     void restoreBrushPen() noexcept;
+    inline bool isSelected() const noexcept
+    {
+        return m_selected;
+    }
     virtual void paint(QPainter *painter,
                        const QStyleOptionGraphicsItem *option, QWidget *widget);
 

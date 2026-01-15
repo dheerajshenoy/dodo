@@ -368,6 +368,8 @@ private:
                                                 const QRectF &area) noexcept;
     Annotation *annotationAtPoint(int pageno, const QPointF &point) noexcept;
     void openImageInExternalViewer(const QImage &image) noexcept;
+    std::vector<std::pair<int, Annotation *>> getSelectedAnnotations() noexcept;
+    void changeColorOfSelectedAnnotations(const QColor &color) noexcept;
 
 #ifdef HAS_SYNCTEX
     void initSynctex() noexcept;

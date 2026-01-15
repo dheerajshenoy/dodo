@@ -2069,21 +2069,24 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos) noexcept
 
         case GraphicsView::Mode::AnnotSelect:
         {
-            // if (!m_gview->annotSelectionExists())
-            //     return;
+            const auto selectedAnnots = getSelectedAnnotations();
+            if (selectedAnnots.empty())
+                return;
+
             addAction("Delete Annotations", []() { /* TODO */ });
-            addAction("Change color", []() { /* TODO */ });
+            addAction("Change Color", [this]()
+            {
+                auto newColor = QColorDialog::getColor(
+                    Qt::white, this, "Annotation Color",
+                    QColorDialog::ColorDialogOption::ShowAlphaChannel);
+
+                if (newColor.isValid())
+                {
+                    changeColorOfSelectedAnnotations(newColor);
+                }
+            });
         }
         break;
-
-        case GraphicsView::Mode::TextHighlight:
-            // addAction("Change color",
-            // &DocumentView::changeHighlighterColor);
-            break;
-
-        case GraphicsView::Mode::AnnotRect:
-            // addAction("Change color", &DocumentView::);
-            break;
 
         default:
             break;
@@ -2946,6 +2949,51 @@ DocumentView::annotationAtPoint(int pageno, const QPointF &point) noexcept
 #endif
 
     return foundAnnot;
+}
+
+std::vector<std::pair<int, Annotation *>>
+DocumentView::getSelectedAnnotations() noexcept
+{
+    std::vector<std::pair<int, Annotation *>> selectedAnnotations;
+
+    for (auto it = m_page_annotations_hash.begin();
+         it != m_page_annotations_hash.end(); ++it)
+    {
+        const int pageno        = it.key();
+        const auto &annotations = it.value();
+        for (auto *annot : annotations)
+        {
+            if (!annot)
+                continue;
+
+            if (annot->isSelected())
+            {
+                selectedAnnotations.push_back({pageno, annot});
+            }
+        }
+    }
+
+#ifndef NDEBUG
+    qDebug() << "DocumentView::getSelectedAnnotations(): Found"
+             << selectedAnnotations.size() << "selected annotations.";
+#endif
+
+    return selectedAnnotations;
+}
+
+void
+DocumentView::changeColorOfSelectedAnnotations(const QColor &color) noexcept
+{
+    const auto selectedAnnots = getSelectedAnnotations();
+    if (selectedAnnots.empty())
+        return;
+
+    for (const auto &[pageno, annot] : selectedAnnots)
+    {
+        m_model->annotChangeColor(pageno, annot->index(), color);
+    }
+
+    setModified(true);
 }
 
 // Returns the current location in the document
