@@ -154,7 +154,9 @@ struct Config
         int num_recent_files{10};
         int startpage_override{-1};
         GraphicsView::Mode initial_mode{GraphicsView::Mode::RegionSelection};
+#ifdef HAS_SYNCTEX
         QString synctex_editor_command{QString()};
+#endif
         bool confirm_on_quit{true};
     };
 

@@ -784,8 +784,10 @@ dodo::initConfig() noexcept
         = behavior["always_open_in_new_window"].value_or(false);
     m_config.behavior.page_history_limit
         = behavior["page_history"].value_or(100);
+#ifdef HAS_SYNCTEX
     m_config.behavior.synctex_editor_command = QString::fromStdString(
         behavior["synctex_editor_command"].value_or(""));
+#endif
     m_config.behavior.invert_mode = behavior["invert_mode"].value_or(false);
     m_config.behavior.auto_reload = behavior["auto_reload"].value_or(true);
     m_config.behavior.config_auto_reload
@@ -1232,6 +1234,7 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
     if (argparser.is_used("page"))
         m_config.behavior.startpage_override = argparser.get<int>("--page");
 
+#ifdef HAS_SYNCTEX
     if (argparser.is_used("synctex-forward"))
     {
         m_config.behavior.startpage_override = -1; // do not override the page
@@ -1266,6 +1269,7 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
                           "file.pdf#file.tex:line:column";
         }
     }
+#endif
 
     if (argparser.is_used("files"))
     {
