@@ -3,6 +3,7 @@
 #include "Annotation.hpp"
 
 #include <QGraphicsView>
+#include <QMenu>
 #include <QPainter>
 #include <QToolTip>
 #include <qgraphicssceneevent.h>
@@ -43,6 +44,24 @@ public:
         }
 
         event->accept();
+    }
+
+    void contextMenuEvent(QGraphicsSceneContextMenuEvent *e) override
+    {
+        QMenu menu;
+
+        QAction *deleteAction      = new QAction("Delete");
+        QAction *changeColorAction = new QAction("Change Color");
+
+        connect(deleteAction, &QAction::triggered,
+                [this]() { emit annotDeleteRequested(); });
+        connect(changeColorAction, &QAction::triggered,
+                [this]() { emit annotColorChangeRequested(); });
+
+        menu.addAction(deleteAction);
+        menu.addAction(changeColorAction);
+        menu.exec(e->screenPos());
+        e->accept();
     }
 
 private:
