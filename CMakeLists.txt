@@ -111,7 +111,7 @@ qt_add_resources(RESOURCES resources.qrc)
 
 # Add MuPDF headers
 target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_SOURCE_DIR}/extern/mupdf/include
+    ${CMAKE_SOURCE_DIR}/external/mupdf/include
 )
 
 target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
@@ -128,8 +128,8 @@ endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Widgets Qt6::Core Qt6::SvgWidgets Qt6::Concurrent
-    ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf.a
-    ${CMAKE_SOURCE_DIR}/extern/mupdf/build/release/libmupdf-third.a
+    ${CMAKE_SOURCE_DIR}/external/mupdf/build/release/libmupdf.a
+    ${CMAKE_SOURCE_DIR}/external/mupdf/build/release/libmupdf-third.a
 )
 
 
