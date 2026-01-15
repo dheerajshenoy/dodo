@@ -1,5 +1,5 @@
 build/
 .cache/
-extern/
+external/
 _stage/
 build*/
