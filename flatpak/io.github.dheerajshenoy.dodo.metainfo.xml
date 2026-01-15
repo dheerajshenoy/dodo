@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+<id>io.github.dheerajshenoy.dodo</id>
+<metadata_license>CC0-1.0</metadata_license>
+<project_license>GNU-AGPL-3.0</project_license>
+<name>dodo</name>
+<summary>Fast, minimal PDF reader focused on navigation and productivity</summary>
+<developer_name>Dheeraj Vittal Shenoy</developer_name>
+<description>
+<p>
+dodo is a fast, keyboard-friendly, configurable PDF reader
+</p>
+<p>
+dodo is especially suited for academic reading, technical documents,
+and large PDFs where quick navigation and visual clarity matter.
+</p>
+</description>
+
+<categories>
+<category>Office</category>
+<category>Viewer</category>
+</categories>
+
+<keywords>
+<keyword>PDF</keyword>
+<keyword>Document</keyword>
+<keyword>Reader</keyword>
+<keyword>Annotation</keyword>
+<keyword>Research</keyword>
+</keywords>
+
+<launchable type="desktop-id">io.github.dheerajshenoy.dodo.desktop</launchable>
+
+
+<url type="homepage">https://dheerajshenoy.github.io/dodo</url>
+<url type="bugtracker">https://github.com/dheerajshenoy/dodo/issues</url>
+<url type="vcs-browser">https://github.com/dheerajshenoy/dodo</url>
+<url type="donation">https://www.buymeacoffee.com/dheerajshenoy</url>
+
+<content_rating type="oars-1.1"/>
+<screenshots>
+  <screenshot type="default">
+    <image type="source" width="1024" height="575">https://github.com/dheerajshenoy/dodo/raw/main/images/dodo.png</image>
+    <caption>Home</caption>
+  </screenshot>
+  <screenshot>
+    <image type="source" width="1024" height="565">https://github.com/dheerajshenoy/dodo/raw/main/images/Outline.png</image>
+    <caption>Outline Overlay</caption>
+  </screenshot>
+  <screenshot>
+    <image type="source" width="1024" height="573">https://github.com/dheerajshenoy/dodo/raw/main/images/link_hint.png</image>
+    <caption>Link Hints</caption>
+  </screenshot>
+  <screenshot>
+    <image type="source" width="1024" height="572">https://github.com/dheerajshenoy/dodo/raw/main/images/command_palette.png</image>
+    <caption>Command Palette</caption>
+  </screenshot>
+</screenshots>
+<releases>
+<release version="0.5.5" date="2026-01-14">
+<description>
+<ul>
+<li>Change color of selected annotations</li>
+<li>Allow editing popup annotations (also called text annotations)</li>
+<li>Visual feedback when hovering over popup annotation icons</li>
+<li>Statusbar config option</li>
+<li>- Percentage progress indicator in statusbar</li>
+<li>Fix rect annotation creation</li>
+<li>Fix popup annotation creation</li>
+</ul>
+</description>
+<url>https://github.com/dheerajshenoy/dodo/releases/v0.5.5</url>
+</release>
+</releases>
+
+</component>
