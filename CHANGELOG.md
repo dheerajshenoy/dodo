@@ -4,6 +4,7 @@
 
 ### Features
 
+- Change color of selected annotations
 - Allow editing popup annotations (also called text annotations)
 - Visual feedback when hovering over popup annotation icons
 - Statusbar config option
