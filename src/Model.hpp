@@ -282,6 +282,11 @@ public:
         m_stext_page_cache.clear();
     }
 
+    inline const float *annotRectColor() const noexcept
+    {
+        return m_annot_rect_color;
+    }
+
     RenderJob createRenderJob(int pageno) const noexcept;
     void requestPageRender(
         const RenderJob &job,
