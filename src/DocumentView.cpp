@@ -9,6 +9,7 @@
 #include "LinkHint.hpp"
 #include "PropertiesWidget.hpp"
 #include "WaitingSpinnerWidget.hpp"
+#include "commands/DeleteAnnotationsCommand.hpp"
 #include "commands/RectAnnotationCommand.hpp"
 #include "commands/TextAnnotationCommand.hpp"
 #include "mupdf/pdf/annot.h"
@@ -2568,7 +2569,8 @@ DocumentView::renderAnnotations(
         connect(annot_item, &Annotation::annotDeleteRequested,
                 [this, annot_item, pageno]()
         {
-            m_model->removeAnnotations(pageno, {annot_item->index()});
+            m_model->undoStack()->push(new DeleteAnnotationsCommand(
+                m_model, pageno, {annot_item->index()}));
             setModified(true);
         });
 

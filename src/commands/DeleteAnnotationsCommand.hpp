@@ -29,17 +29,19 @@ public:
         QString contents;           // For text annotations
     };
 
-    // Constructor that captures annotations by their indexes before deletion
-    DeleteAnnotationsCommand(Model *model, int pageno, const QSet<int> &indexes,
+    // Constructor that captures annotations by their objNums before deletion
+    // Note: indexes here are actually PDF object numbers (objNums), not
+    // iteration indices
+    DeleteAnnotationsCommand(Model *model, int pageno, const QSet<int> &objNums,
                              QUndoCommand *parent = nullptr)
         : QUndoCommand("Delete Annotations", parent), m_model(model),
           m_pageno(pageno)
     {
-        if (indexes.size() == 1)
+        if (objNums.size() == 1)
             setText("Delete Annotation");
 
-        // Capture annotation data for all selected annotations
-        captureAnnotationsData(indexes);
+        // Capture annotation data for all selected annotations by objNum
+        captureAnnotationsDataByObjNum(objNums);
     }
 
     void undo() override
@@ -47,8 +49,8 @@ public:
         if (!m_model || m_annotations.empty())
             return;
 
-        fz_context *ctx   = m_model->context();
-        fz_document *doc  = m_model->document();
+        fz_context *ctx   = m_model->m_ctx;
+        fz_document *doc  = m_model->m_doc;
         pdf_document *pdf = pdf_specifics(ctx, doc);
 
         if (!pdf)
@@ -134,7 +136,8 @@ public:
             qWarning() << "Undo delete failed:" << fz_caught_message(ctx);
         }
 
-        emit m_model->pageRenderRequested(m_pageno, true);
+        m_model->invalidatePageCache(m_pageno);
+        emit m_model->reloadRequested(m_pageno);
     }
 
     void redo() override
@@ -142,8 +145,8 @@ public:
         if (!m_model || m_annotations.empty())
             return;
 
-        fz_context *ctx   = m_model->context();
-        fz_document *doc  = m_model->document();
+        fz_context *ctx   = m_model->m_ctx;
+        fz_document *doc  = m_model->m_doc;
         pdf_document *pdf = pdf_specifics(ctx, doc);
 
         if (!pdf)
@@ -155,8 +158,7 @@ public:
             if (!page)
                 fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-            // Delete annotations in reverse order by objNum to avoid issues
-            // with the annotation list changing during deletion
+            // Delete annotations by objNum
             for (const AnnotationData &data : m_annotations)
             {
                 if (data.objNum < 0)
@@ -183,17 +185,20 @@ public:
             qWarning() << "Redo delete failed:" << fz_caught_message(ctx);
         }
 
-        emit m_model->pageRenderRequested(m_pageno, true);
+        m_model->invalidatePageCache(m_pageno);
+        emit m_model->reloadRequested(m_pageno);
     }
 
 private:
-    void captureAnnotationsData(const QSet<int> &indexes)
+    // Capture annotation data by looking up annotations by their objNum (PDF
+    // object number)
+    void captureAnnotationsDataByObjNum(const QSet<int> &objNums)
     {
-        if (!m_model || indexes.isEmpty())
+        if (!m_model || objNums.isEmpty())
             return;
 
-        fz_context *ctx   = m_model->context();
-        fz_document *doc  = m_model->document();
+        fz_context *ctx   = m_model->m_ctx;
+        fz_document *doc  = m_model->m_doc;
         pdf_document *pdf = pdf_specifics(ctx, doc);
 
         if (!pdf)
@@ -206,16 +211,19 @@ private:
                 fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
             pdf_annot *annot = pdf_first_annot(ctx, page);
-            int index        = 0;
 
             while (annot)
             {
-                if (indexes.contains(index))
+                pdf_obj *obj   = pdf_annot_obj(ctx, annot);
+                int thisObjNum = pdf_to_num(ctx, obj);
+
+                // Check if this annotation's objNum is in the set we want to
+                // delete
+                if (objNums.contains(thisObjNum))
                 {
                     AnnotationData data;
-                    pdf_obj *obj = pdf_annot_obj(ctx, annot);
-                    data.objNum  = pdf_to_num(ctx, obj);
-                    data.type    = pdf_annot_type(ctx, annot);
+                    data.objNum = thisObjNum;
+                    data.type   = pdf_annot_type(ctx, annot);
 
                     int n         = 0;
                     float opacity = pdf_annot_opacity(ctx, annot);

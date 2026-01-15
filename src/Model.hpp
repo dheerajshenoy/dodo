@@ -462,5 +462,6 @@ private:
     friend class TextHighlightAnnotationCommand; // for highlight annotation
     friend class RectAnnotationCommand;          // for rectangle annotation
     friend class TextAnnotationCommand;          // for text/popup annotation
+    friend class DeleteAnnotationsCommand;       // for delete annotation
     friend class DocumentView;
 };
