@@ -121,7 +121,7 @@ if(synctex_FOUND)
     target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_SYNCTEX=1)
     target_link_libraries(${PROJECT_NAME} PRIVATE synctex)
 else()
-    message(FATAL_ERROR "SyncTex not found")
+    message(STATUS "SyncTex not found")
 endif()
 
 
