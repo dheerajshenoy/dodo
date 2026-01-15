@@ -1,5 +1,11 @@
 # dodo
 
+## 0.5.6
+
+### Bug Fixes
+
+- Fix dodo not compiling without synctex
+
 ## 0.5.5
 
 ### Features
