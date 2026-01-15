@@ -2,9 +2,10 @@
 - [X] Percentange of progress
 - [X] Popup Annotation edit support
 - [X] Rect Annotation fix
+- [X] Undo/Redo change modified state
 
 - [ ] Undo/Redo operations
-  - [ ] Rect Annotation
+  - [X] Rect Annotation
   - [X] Text Highlight Annotation
   - [X] Delete Annotation
   - [ ] Popup Annotation
@@ -22,4 +23,3 @@
 - [ ] Two page side-by-side view mode
 - [ ] Two selected page view mode
 - [ ] Implement LRU caching for pages and other resources
-- [ ] Undo/Redo change modified state
