@@ -10,7 +10,7 @@ command: dodo
 finish-args:
     - --filesystem=xdg-documents
     - --filesystem=xdg-download
-    - --filesystem=~/.config/dodo
+    - --filesystem=xdg-config/dodo
     - --filesystem=/run/media
     - --filesystem=/media
     - --share=ipc
