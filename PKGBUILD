@@ -1,5 +1,5 @@
 # Maintainer: Dheeraj Vittal Shenoy <dheerajshenoy22@gmail.com>
-pkgname=dodo-git
+pkgname=dodo-pdf-reader-git
 pkgver=0.5.6
 pkgrel=1
 pkgdesc="A fast, keyboard-based, configurable PDF reader"
