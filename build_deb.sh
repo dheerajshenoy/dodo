@@ -18,7 +18,6 @@ JOBS=${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)}
 BUILD_TYPE=${BUILD_TYPE:-Release}
 ENABLE_LLM_SUPPORT=${ENABLE_LLM_SUPPORT:-OFF}
 CLEAN_BUILD=${CLEAN_BUILD:-0}
-DEB_DEPENDS=${DEB_DEPENDS:-""}
 
 MUPDF_LIB="$ROOT_DIR/external/mupdf/build/release/libmupdf.a"
 MUPDF_THIRD_LIB="$ROOT_DIR/external/mupdf/build/release/libmupdf-third.a"
@@ -76,7 +75,9 @@ Architecture: $ARCH
 Maintainer: Dheeraj Vittal Shenoy <dheerajshenoy22@gmail.com>
 Homepage: https://github.com/dheerajshenoy/dodo
 Installed-Size: ${INSTALLED_SIZE:-0}
-Depends: ${DEB_DEPENDS:-libc6, libstdc++6}
+Build-Depends: cmake ninja-build
+Depends: qt6-base-dev curl
+Suggests: libsynctex-dev qt6-style-kvantum
 Description: A fast, keyboard-based, configurable PDF reader
 EOF
 
