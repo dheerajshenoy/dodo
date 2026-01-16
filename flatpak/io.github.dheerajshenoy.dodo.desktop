@@ -1,7 +1,6 @@
 [Desktop Entry]
 Name=dodo
 GenericName=Fast and configurable PDF reader
-Comment=Sioyek is a PDF viewer designed for reading research papers and technical books
 Exec=dodo %f
 Icon=io.github.dheerajshenoy.dodo
 Terminal=false
