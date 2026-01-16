@@ -52,24 +52,34 @@ and large PDFs where quick navigation and visual clarity matter.
 
 <screenshots>
 <screenshot type="default">
-<image type="source" width="1024" height="575">https://raw.githubusercontent.com/dheerajshenoy/dodo/v0.5.5/images/dodo.png</image>
+<image type="source" width="1024" height="575">https://raw.githubusercontent.com/dheerajshenoy/dodo/v0.5.6/images/dodo.png</image>
 <caption>Home</caption>
 </screenshot>
 <screenshot>
-<image type="source" width="1024" height="565">https://raw.githubusercontent.com/dheerajshenoy/dodo/v0.5.5/images/Outline.png</image>
+<image type="source" width="1024" height="565">https://raw.githubusercontent.com/dheerajshenoy/dodo/v0.5.6/images/Outline.png</image>
 <caption>Outline Overlay</caption>
 </screenshot>
 <screenshot>
-<image type="source" width="1024" height="573">https://raw.githubusercontent.com/dheerajshenoy/dodo/v0.5.5/images/link_hint.png</image>
+<image type="source" width="1024" height="573">https://raw.githubusercontent.com/dheerajshenoy/dodo/v0.5.6/images/link_hint.png</image>
 <caption>Link Hints</caption>
 </screenshot>
 <screenshot>
-<image type="source" width="1024" height="572">https://raw.githubusercontent.com/dheerajshenoy/dodo/v0.5.5/images/command_palette.png</image>
+<image type="source" width="1024" height="572">https://raw.githubusercontent.com/dheerajshenoy/dodo/v0.5.6/images/command_palette.png</image>
 <caption>Command Palette</caption>
 </screenshot>
 </screenshots>
 
 <releases>
+<release version="0.5.6" date="2026-01-15">
+<url type="details">https://github.com/dheerajshenoy/dodo/releases/tag/v0.5.6</url>
+<description>
+<p>Release description</p>
+<ul>
+<li>Changes to adhere to flatpak rules</li>
+<li>Bump version to 0.5.6</li>
+</ul>
+</description>
+</release>
 <release version="0.5.5" date="2026-01-14">
 <url type="details">https://github.com/dheerajshenoy/dodo/releases/v0.5.5</url>
 <description>

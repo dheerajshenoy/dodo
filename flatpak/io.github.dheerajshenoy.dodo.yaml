@@ -37,7 +37,7 @@ modules:
       sources:
           - type: git
             url: https://github.com/dheerajshenoy/dodo.git
-            branch: main
+            tag: v0.5.6
           - type: file
             path: io.github.dheerajshenoy.dodo.metainfo.xml
           - type: file
