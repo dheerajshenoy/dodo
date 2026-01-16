@@ -4,3 +4,5 @@ external/
 _stage/
 build*/
 repo/
+appimage/
+build*/
