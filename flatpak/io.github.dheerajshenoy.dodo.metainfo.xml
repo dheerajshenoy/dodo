@@ -5,7 +5,9 @@
 <project_license>AGPL-3.0-only</project_license>
 <name>dodo</name>
 <summary>Fast, minimal PDF reader focused on navigation and productivity</summary>
-<developer_name>Dheeraj Vittal Shenoy</developer_name>
+<developer id="io.github.dheerajshenoy">
+<name>Dheeraj Vittal Shenoy</name>
+</developer>
 <description>
 <p>
 dodo is a fast, keyboard-friendly, configurable PDF reader
@@ -15,6 +17,8 @@ dodo is especially suited for academic reading, technical documents,
 and large PDFs where quick navigation and visual clarity matter.
 </p>
 </description>
+
+<launchable type="desktop-id">io.github.dheerajshenoy.dodo.desktop</launchable>
 
 <categories>
 <category>Office</category>
@@ -29,37 +33,47 @@ and large PDFs where quick navigation and visual clarity matter.
 <keyword>Research</keyword>
 </keywords>
 
-<launchable type="desktop-id">io.github.dheerajshenoy.dodo.desktop</launchable>
 <icon type="stock">io.github.dheerajshenoy.dodo</icon>
 
+<branding>
+<color type="primary" scheme_preference="light">#FFC0CB</color>
+<color type="primary" scheme_preference="dark">#FFC0CB</color>
+</branding>
+
+
+<content_rating type="oars-1.1"/>
 
 <url type="homepage">https://dheerajshenoy.github.io/dodo</url>
 <url type="bugtracker">https://github.com/dheerajshenoy/dodo/issues</url>
 <url type="vcs-browser">https://github.com/dheerajshenoy/dodo</url>
 <url type="donation">https://www.buymeacoffee.com/dheerajshenoy</url>
+<url type="contact">https://example.org/contact</url>
+<url type="faq">https://dheerajshenoy.github.io/dodo.html#FAQ</url>
 
-<content_rating type="oars-1.1"/>
 <screenshots>
-  <screenshot type="default">
-    <image type="source" width="1024" height="575">https://raw.githubusercontent.com/dheerajshenoy/dodo/main/images/dodo.png</image>
-    <caption>Home</caption>
-  </screenshot>
-  <screenshot>
-    <image type="source" width="1024" height="565">https://raw.githubusercontent.com/dheerajshenoy/dodo/main/images/Outline.png</image>
-    <caption>Outline Overlay</caption>
-  </screenshot>
-  <screenshot>
-    <image type="source" width="1024" height="573">https://raw.githubusercontent.com/dheerajshenoy/dodo/main/images/link_hint.png</image>
-    <caption>Link Hints</caption>
-  </screenshot>
-  <screenshot>
-    <image type="source" width="1024" height="572">https://raw.githubusercontent.com/dheerajshenoy/dodo/main/images/command_palette.png</image>
-    <caption>Command Palette</caption>
-  </screenshot>
+<screenshot type="default">
+<image type="source" width="1024" height="575">https://raw.githubusercontent.com/dheerajshenoy/dodo/v0.5.5/images/dodo.png</image>
+<caption>Home</caption>
+</screenshot>
+<screenshot>
+<image type="source" width="1024" height="565">https://raw.githubusercontent.com/dheerajshenoy/dodo/v0.5.5/images/Outline.png</image>
+<caption>Outline Overlay</caption>
+</screenshot>
+<screenshot>
+<image type="source" width="1024" height="573">https://raw.githubusercontent.com/dheerajshenoy/dodo/v0.5.5/images/link_hint.png</image>
+<caption>Link Hints</caption>
+</screenshot>
+<screenshot>
+<image type="source" width="1024" height="572">https://raw.githubusercontent.com/dheerajshenoy/dodo/v0.5.5/images/command_palette.png</image>
+<caption>Command Palette</caption>
+</screenshot>
 </screenshots>
+
 <releases>
 <release version="0.5.5" date="2026-01-14">
+<url type="details">https://github.com/dheerajshenoy/dodo/releases/v0.5.5</url>
 <description>
+<p>Release description</p>
 <ul>
 <li>Change color of selected annotations</li>
 <li>Allow editing popup annotations (also called text annotations)</li>
@@ -70,8 +84,13 @@ and large PDFs where quick navigation and visual clarity matter.
 <li>Fix popup annotation creation</li>
 </ul>
 </description>
-<url>https://github.com/dheerajshenoy/dodo/releases/v0.5.5</url>
 </release>
 </releases>
+
+<!-- ONLY desktop supported -->
+<requires>
+<control>keyboard</control>
+<control>pointing</control>
+</requires>
 
 </component>
