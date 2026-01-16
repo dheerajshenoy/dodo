@@ -8,3 +8,4 @@ appimage/
 build*/
 _deb_pkg/
 _deb_stage/
+dist/
