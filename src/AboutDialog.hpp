@@ -8,7 +8,6 @@
 #include <QPushButton>
 #include <QTabWidget>
 #include <QVBoxLayout>
-#include <QtSvgWidgets/QSvgWidget>
 
 class AboutDialog : public QDialog
 {
