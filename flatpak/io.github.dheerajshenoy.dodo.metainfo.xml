@@ -30,6 +30,7 @@ and large PDFs where quick navigation and visual clarity matter.
 </keywords>
 
 <launchable type="desktop-id">io.github.dheerajshenoy.dodo.desktop</launchable>
+<icon type="stock">io.github.dheerajshenoy.dodo</icon>
 
 
 <url type="homepage">https://dheerajshenoy.github.io/dodo</url>
