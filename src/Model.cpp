@@ -18,6 +18,7 @@
 #include <qstyle.h>
 #include <qtextformat.h>
 #include <ranges>
+#include <unordered_set>
 
 /**
  * @brief Clean up image data when the last copy of the QImage is destoryed.
