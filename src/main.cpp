@@ -138,7 +138,7 @@ main(int argc, char *argv[])
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QApplication app(argc, argv);
-    app.setWindowIcon(QIcon(":/resources/dodo2.svg"));
+    app.setWindowIcon(QIcon(":/resources/dodo2.png"));
     dodo d;
     d.readArgsParser(program);
     app.exec();
