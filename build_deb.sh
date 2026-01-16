@@ -60,12 +60,6 @@ cp -a "$STAGE_DIR"/. "$PKG_DIR"/
 
 INSTALLED_SIZE=$(du -ks "$PKG_DIR/usr" 2>/dev/null | awk '{print $1}')
 
-if [ -z "$DEB_DEPENDS" ] && command -v dpkg-shlibdeps >/dev/null 2>&1; then
-    # dpkg-shlibdeps prints "shlibs:Depends=..."
-    DEB_DEPENDS=$(dpkg-shlibdeps -O -e "$PKG_DIR/usr/bin/$APP_NAME" 2>/dev/null \
-        | sed -n 's/^shlibs:Depends=//p')
-fi
-
 cat >"$PKG_DIR/DEBIAN/control" <<EOF
 Package: $APP_NAME
 Version: $APP_VERSION
@@ -76,8 +70,8 @@ Maintainer: Dheeraj Vittal Shenoy <dheerajshenoy22@gmail.com>
 Homepage: https://github.com/dheerajshenoy/dodo
 Installed-Size: ${INSTALLED_SIZE:-0}
 Build-Depends: cmake ninja-build
-Depends: qt6-base-dev curl
-Suggests: libsynctex-dev qt6-style-kvantum
+Depends: qt6-base-dev, curl
+Suggests: libsynctex-dev, qt6-style-kvantum
 Description: A fast, keyboard-based, configurable PDF reader
 EOF
 
