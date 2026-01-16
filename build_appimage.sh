@@ -41,7 +41,7 @@ if [ "$CLEAN_APPDIR" -eq 1 ]; then
 fi
 mkdir -p "$APPDIR"
 
-cmake -S "$ROOT_DIR" -B "$BUILD_DIR" -DCMAKE_BUILD_TiYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+cmake -S "$ROOT_DIR" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
 cmake --build "$BUILD_DIR" -j"$JOBS"
 DESTDIR="$APPDIR" cmake --install "$BUILD_DIR"
 
