@@ -26,7 +26,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra")
 #Set flags for Release build
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Svg SvgWidgets Concurrent)
+find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Concurrent)
 #OpenGLWidgets )
 find_package(PkgConfig REQUIRED)
 
@@ -127,7 +127,7 @@ endif()
 
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    Qt6::Widgets Qt6::Core Qt6::SvgWidgets Qt6::Concurrent
+    Qt6::Widgets Qt6::Core Qt6::Concurrent
     ${CMAKE_SOURCE_DIR}/external/mupdf/build/release/libmupdf.a
     ${CMAKE_SOURCE_DIR}/external/mupdf/build/release/libmupdf-third.a
 )
