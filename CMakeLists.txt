@@ -147,3 +147,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dodo-template.desktop.in
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dodo.desktop DESTINATION share/applications)
 
 install(DIRECTORY resources/hicolor DESTINATION share/icons FILES_MATCHING PATTERN "*.png")
+
+# Install docs
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/tutorial.pdf
+    DESTINATION share/doc/${PROJECT_NAME})
