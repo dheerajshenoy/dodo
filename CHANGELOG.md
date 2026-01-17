@@ -1,12 +1,20 @@
 # dodo
 
-## 0.5.7
+## 0.6.0
+
+
+### Features
+
+- Add `tutorial_file` command to show a tutorial PDF file
+
+### Breaking Changes
+
+- Command `first_tab`, `last_tab` renamed to `tab_first`, `tab_last`
 
 ### Bug Fixes
 
 - Fix scroll commands not triggering scrollbar visibility (for auto_hide = true)
 - Fix document not reloading even when `[behavior.auto_reload]` is set to true
-- Add `tutorial_file` command to show a tutorial PDF file
 - Hide searchbar when the search term is empty
 
 ## 0.5.6
