@@ -52,7 +52,10 @@ SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
     connect(m_searchInput, &QLineEdit::returnPressed, this, [this]()
     {
         m_searchInput->clearFocus();
-        emit searchRequested(m_searchInput->text());
+        const QString searchText = m_searchInput->text();
+        if (searchText.isEmpty())
+            this->hide();
+        emit searchRequested(searchText);
     });
 
     connect(m_searchIndexLabel, &QLineEdit::returnPressed, this, [this]()
