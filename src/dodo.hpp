@@ -39,8 +39,6 @@
 #include <QStandardPaths>
 #include <QTabWidget>
 
-#define __DODO_VERSION "v0.5.6"
-
 class dodo : public QMainWindow
 {
     Q_OBJECT

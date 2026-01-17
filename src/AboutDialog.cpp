@@ -82,10 +82,11 @@ void
 AboutDialog::setAppInfo(const QString &version,
                         const QString &description) noexcept
 {
-    auto link = "<a href='https://github.com/dheerajshenoy/dodo'>github</a>";
+    const char *link
+        = "<a href='https://github.com/dheerajshenoy/dodo'>github</a>";
     infoLabel->setText(
         QString("%1<br>Build Type: %2<br>Version: %3<br>Project homepage: %4")
-            .arg(description, __DODO_BUILD_TYPE, version, link));
+            .arg(description, APP_BUILD_TYPE, version, link));
 }
 
 QWidget *

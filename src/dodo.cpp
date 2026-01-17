@@ -1200,7 +1200,7 @@ void
 dodo::ShowAbout() noexcept
 {
     AboutDialog *abw = new AboutDialog(this);
-    abw->setAppInfo(__DODO_VERSION,
+    abw->setAppInfo(APP_VERSION,
                     "A fast, configurable PDF reader built using MuPDF and Qt");
     abw->show();
 }
@@ -1212,7 +1212,7 @@ dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
 {
     if (argparser.is_used("version"))
     {
-        qInfo() << "dodo version: " << __DODO_VERSION;
+        qInfo() << "dodo version: " << APP_VERSION;
         exit(0);
     }
 
