@@ -93,3 +93,18 @@ deg2rad(double deg) noexcept
 {
     return deg * (3.14159265358979323846 / 180.0);
 }
+
+// Simple trim for wstring
+static inline void
+trim_ws(std::wstring &s)
+{
+    auto is_space = [](wchar_t c)
+    {
+        return std::iswspace(c) != 0;
+    };
+
+    while (!s.empty() && is_space(s.front()))
+        s.erase(s.begin());
+    while (!s.empty() && is_space(s.back()))
+        s.pop_back();
+}

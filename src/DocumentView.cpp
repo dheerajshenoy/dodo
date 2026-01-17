@@ -554,8 +554,10 @@ DocumentView::handleClickSelection(int clickType,
     switch (clickType)
     {
         case 2: // double click → select word
+        {
             quads = m_model->selectWordAt(pageIndex, pdfPos);
-            break;
+        }
+        break;
 
         case 3: // triple click → select line
             quads = m_model->selectLineAt(pageIndex, pdfPos);
