@@ -462,37 +462,44 @@ bool
 Model::reloadDocument() noexcept
 {
     // Lock to prevent concurrent access (if multithreaded)
-    // std::lock_guard<std::mutex> lock(m_doc_mutex);
+    std::lock_guard<std::mutex> lock(m_doc_mutex);
 
-    // Drop text page cache
-    // clear_fz_stext_page_cache();
+    const QString filepath = m_filepath;
+    if (filepath.isEmpty())
+        return false;
 
-    // Drop display lists / page cache entries
-    // {
-    //     std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-    //     for (auto &[_, entry] : m_page_cache)
-    //         fz_drop_display_list(m_ctx, entry.display_list);
-    //     m_page_cache.clear();
-    // }
+    if (!m_ctx)
+    {
+        m_ctx = fz_new_context(nullptr, &m_fz_locks, FZ_STORE_DEFAULT);
+        if (!m_ctx)
+            return false;
+        fz_register_document_handlers(m_ctx);
+        m_colorspace = fz_device_rgb(m_ctx);
+    }
 
-    // fz_drop_outline(m_ctx, m_outline);
-    // pdf_drop_document(m_ctx, m_pdf_doc);
-    // fz_drop_document(m_ctx, m_doc);
-    // fz_drop_context(m_ctx);
-    // m_pdf_doc = nullptr;
-    // m_doc     = nullptr;
-    // m_outline = nullptr;
-    // m_success = false;
-    // m_ctx        = nullptr;
-    // m_page_count = 0;
+    cleanup();
+    m_page_count = 0;
+    m_success    = false;
 
-    // Reopen the document
-    // openAsync(m_filepath,
-    //           password); // ensure open() sets m_doc, m_pdf_doc, m_success
+    bool ok = false;
+    fz_try(m_ctx)
+    {
+        m_doc = fz_open_document(m_ctx, CSTR(filepath));
+        if (!m_doc)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to open document");
 
-    qDebug() << "Reloading document is not yet implemented.";
+        m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
+        m_page_count = fz_count_pages(m_ctx, m_doc);
+        cachePageDimension();
+        ok = true;
+    }
+    fz_catch(m_ctx)
+    {
+        ok = false;
+    }
 
-    return m_success;
+    m_success = ok;
+    return ok;
 }
 
 bool

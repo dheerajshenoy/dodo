@@ -134,7 +134,6 @@ DocumentView::initGui() noexcept
     m_model->setLinkBoundary(m_config.ui.links.boundary);
     m_model->setDetectUrlLinks(m_config.ui.links.detect_urls);
     m_model->setUrlLinkRegex(m_config.ui.links.url_regex);
-    setAutoReload(m_config.behavior.auto_reload);
     // if (m_config.rendering.icc_color_profile)
     //     m_model->enableICC();
     // m_cache.setMaxCost(m_config.behavior.cache_pages);
@@ -248,8 +247,7 @@ DocumentView::openAsync(const QString &filePath,
                         const QString &password) noexcept
 {
 #ifndef NDEBUG
-    qDebug() << "DocumentView::openAsync(): Opening file:"
-             << m_model->filePath();
+    qDebug() << "DocumentView::openAsync(): Opening file:" << filePath;
 #endif
     m_spinner->start();
     m_spinner->show();
@@ -313,6 +311,7 @@ DocumentView::handleOpenFileFinished() noexcept
         m_deferred_fit = true;
     }
 
+    setAutoReload(m_config.behavior.auto_reload);
     emit openFileFinished(this);
 }
 

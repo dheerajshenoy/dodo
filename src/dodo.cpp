@@ -2718,13 +2718,21 @@ dodo::LoadSession(QString sessionName) noexcept
 
         if (err.error != QJsonParseError::NoError)
         {
+            QMessageBox::critical(this, "Session File Parse Error",
+                                  err.errorString());
+#ifndef NDEBUG
             qDebug() << "JSON parse error:" << err.errorString();
+#endif
             return;
         }
 
         if (!doc.isArray())
         {
+            QMessageBox::critical(this, "Session File Parse Error",
+                                  "Session file root is not an array");
+#ifndef NDEBUG
             qDebug() << "Session file root is not an array";
+#endif
             return;
         }
 
