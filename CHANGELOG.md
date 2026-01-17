@@ -6,6 +6,7 @@
 
 - Fix document not reloading even when `[behavior.auto_reload]` is set to true
 - Add `tutorial_file` command to show a tutorial PDF file
+- Hide searchbar when the search term is empty
 
 ## 0.5.6
 
@@ -31,7 +32,7 @@
         - `show_mode` (bool): Show current mode (e.g. selection mode) in statusbar
         - `show_progress` (bool): Show reading progress in statusbar
 - Percentage progress indicator in statusbar
-            
+
 ### Bug Fixes
 
 - Fix rect annotation creation
@@ -44,7 +45,7 @@
 - **Command palette improvements**
     - Sort commands alphabetically
     - Right-align shortcuts and optionally hide them (`[ui.command_palette].show_shortcuts`)
-    
+
 - **Overlay scrollbars**: Scrollbars now appear as floating overlays that don't shift the layout
     - Auto-hide after configurable timeout (default 1500ms)
     - Scrollbars remain visible while dragging or hovering over them
@@ -53,7 +54,7 @@
         - `auto_hide` (bool): Auto hide scrollbar when not in use
         - `size` (int): Scrollbar width/height in pixels (default: 12)
         - `hide_timeout` (int): Milliseconds before hiding after inactivity (default: 1500)
-        
+
 - **Detach from terminal** - By default dodo will now detach from the terminal when launched from a terminal. This can be disabled by using the `--foreground` command line argument.
 
 - **Add LLM support \[OPTIONAL\]**
@@ -65,7 +66,7 @@
             - `model_path` (string): Path to the local LLM model
             - `temperature` (float): Sampling temperature for response generation
             - `max_tokens` (int): Maximum tokens in the generated response
-            
+
 - **Region Selection context menu**
     - Right click context menu when in region selection mode
         - Copy text in region to clipboard

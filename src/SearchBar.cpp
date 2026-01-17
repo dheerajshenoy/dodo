@@ -11,13 +11,13 @@ SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
 
     // Set color based on the current palette's text color
     m_spinner->setColor(palette().color(QPalette::Text));
-    m_label               = new QLabel("Search:", this);
-    m_searchInput         = new QLineEdit(this);
-    m_prevButton          = new QPushButton(this);
-    m_nextButton          = new QPushButton(this);
-    m_closeButton         = new QPushButton(this);
-    m_searchCountLabel    = new QLabel(this);
-    m_searchIndexLabel    = new QLineEdit(this);
+    m_label            = new QLabel("Search:", this);
+    m_searchInput      = new QLineEdit(this);
+    m_prevButton       = new QPushButton(this);
+    m_nextButton       = new QPushButton(this);
+    m_closeButton      = new QPushButton(this);
+    m_searchCountLabel = new QLabel(this);
+    m_searchIndexLabel = new QLineEdit(this);
 
     m_searchInput->setFocusPolicy(Qt::ClickFocus);
 
