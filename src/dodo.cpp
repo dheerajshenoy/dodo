@@ -3094,9 +3094,6 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("tab_prev", PrevTab),
         ACTION_NO_ARGS("tab_close", CloseTab),
         ACTION_NO_ARGS("tutorial_file", showTutorialFile),
-#ifdef ENABLE_LLM_SUPPORT
-        ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
-#endif
         ACTION_NO_ARGS("reselect_last_selection", ReselectLastTextSelection),
         ACTION_NO_ARGS("search", Search),
 
