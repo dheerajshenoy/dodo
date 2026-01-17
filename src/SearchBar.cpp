@@ -53,9 +53,7 @@ SearchBar::SearchBar(QWidget *parent) : QWidget(parent)
     {
         m_searchInput->clearFocus();
         const QString searchText = m_searchInput->text();
-        if (searchText.isEmpty())
-            this->hide();
-        emit searchRequested(searchText);
+        search(searchText);
     });
 
     connect(m_searchIndexLabel, &QLineEdit::returnPressed, this, [this]()
@@ -118,4 +116,12 @@ SearchBar::setSearchIndex(int index) noexcept
     m_searchIndexLabel->setText(QString::number(index + 1));
     m_searchIndexLabel->show();
     m_searchSeparator->show();
+}
+
+void
+SearchBar::search(const QString &term) noexcept
+{
+    emit searchRequested(term);
+    if (term.isEmpty())
+        this->hide();
 }

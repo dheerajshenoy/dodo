@@ -60,6 +60,18 @@ protected:
     bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
+    inline bool validTabIndex(int index) const noexcept
+    {
+        return m_tab_widget && index >= 0 && index < m_tab_widget->count();
+    }
+
+    inline void ToggleSearchBar() noexcept
+    {
+        m_search_bar->setVisible(!m_search_bar->isVisible());
+        if (m_search_bar->isVisible())
+            m_search_bar->focusSearchInput();
+    }
+
     void construct() noexcept;
     void setDPR(float dpr) noexcept;
     void initDB() noexcept;
@@ -89,11 +101,6 @@ private:
     handleTabDetachedToNewWindow(int index,
                                  const DraggableTabBar::TabData &data) noexcept;
 
-    inline bool validTabIndex(int index) const noexcept
-    {
-        return m_tab_widget && index >= 0 && index < m_tab_widget->count();
-    }
-
     // Interactive functions
     void EncryptDocument() noexcept;
     void DecryptDocument() noexcept;
@@ -107,7 +114,8 @@ private:
 #endif
 
     void ToggleCommandPalette() noexcept;
-    void ToggleSearchBar() noexcept;
+    void Search() noexcept;
+    void search(const QString &term = {}) noexcept;
     void ShowHighlightSearch() noexcept;
     void ToggleFocusMode() noexcept;
     void ToggleMenubar() noexcept;
@@ -154,7 +162,6 @@ private:
     void ScrollUp() noexcept;
     void ScrollLeft() noexcept;
     void ScrollRight() noexcept;
-    void Search(const QString &term) noexcept;
     void NextHit() noexcept;
     void GotoHit(int index) noexcept;
     void PrevHit() noexcept;

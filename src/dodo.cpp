@@ -880,7 +880,7 @@ dodo::initKeybinds() noexcept
     addShortcut("3", [this]() { ToggleAnnotRect(); });
     addShortcut("4", [this]() { ToggleAnnotSelect(); });
     addShortcut("5", [this]() { ToggleAnnotPopup(); });
-    addShortcut("/", [this]() { ToggleSearchBar(); });
+    addShortcut("/", [this]() { Search(); });
     addShortcut("t", [this]() { ShowOutline(); });
     addShortcut("n", [this]() { NextHit(); });
     addShortcut("Shift+n", [this]() { PrevHit(); });
@@ -1365,14 +1365,6 @@ dodo::openLastVisitedFile() noexcept
         OpenFile(entry.file_path);
         gotoPage(entry.page_number);
     }
-}
-
-// Search for term
-void
-dodo::Search(const QString &term) noexcept
-{
-    if (m_doc)
-        m_doc->Search(term);
 }
 
 // Zoom out the file
@@ -2031,7 +2023,13 @@ dodo::initConnections() noexcept
         }
     });
 
-    connect(m_search_bar, &SearchBar::searchRequested, this, &dodo::Search);
+    connect(m_search_bar, &SearchBar::searchRequested, this,
+            [this](const QString &term)
+    {
+        if (m_doc)
+            m_doc->Search(term);
+    });
+
     connect(m_search_bar, &SearchBar::searchIndexChangeRequested, this,
             &dodo::GotoHit);
     connect(m_search_bar, &SearchBar::nextHitRequested, this, &dodo::NextHit);
@@ -3086,7 +3084,6 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("toggle_menubar", ToggleMenubar),
         ACTION_NO_ARGS("toggle_statusbar", TogglePanel),
         ACTION_NO_ARGS("toggle_focus_mode", ToggleFocusMode),
-        ACTION_NO_ARGS("search", ToggleSearchBar),
         ACTION_NO_ARGS("save_session", SaveSession),
         ACTION_NO_ARGS("save_as_session", SaveAsSession),
         ACTION_NO_ARGS("load_session", LoadSession),
@@ -3098,6 +3095,7 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
 #endif
         ACTION_NO_ARGS("reselect_last_selection", ReselectLastTextSelection),
+        ACTION_NO_ARGS("search", Search),
 
         {"layout_single", [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::SINGLE); }},
@@ -3389,17 +3387,19 @@ dodo::updateTabbarVisibility() noexcept
 }
 
 void
-dodo::ToggleSearchBar() noexcept
+dodo::search(const QString &term) noexcept
 {
-    if (!m_doc)
-        return;
-    if (m_search_bar->isVisible())
+    if (m_doc)
+        m_doc->Search(term);
+}
+
+void
+dodo::Search() noexcept
+{
+    if (m_doc)
     {
+        m_search_bar->setVisible(true);
         m_search_bar->focusSearchInput();
-    }
-    else
-    {
-        m_search_bar->setVisible(!m_search_bar->isVisible());
     }
 }
 
