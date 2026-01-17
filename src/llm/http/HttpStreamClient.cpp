@@ -16,6 +16,14 @@ curlCallback(char *buffer, size_t size, size_t nitems, void *ptr)
     return total_size;
 }
 
+static size_t
+discardCallback(char *buffer, size_t size, size_t nitems, void *ptr)
+{
+    (void)buffer;
+    (void)ptr;
+    return size * nitems;
+}
+
 HttpStreamClient::HttpStreamClient()
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -28,6 +36,44 @@ HttpStreamClient::~HttpStreamClient()
         m_worker.join();
     curl_slist_free_all(m_headers);
     curl_global_cleanup();
+}
+
+bool
+HttpStreamClient::probe(const std::string &url, std::string *error) const
+{
+    CURL *curl = curl_easy_init();
+    if (!curl)
+    {
+        if (error)
+            *error = "Failed to initialize CURL";
+        return false;
+    }
+
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCallback);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 500L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 300L);
+
+    CURLcode res = curl_easy_perform(curl);
+    long status  = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
+    curl_easy_cleanup(curl);
+
+    if (res != CURLE_OK)
+    {
+        if (error)
+            *error = curl_easy_strerror(res);
+        return false;
+    }
+
+    if (status < 200 || status >= 300)
+    {
+        if (error)
+            *error = "HTTP " + std::to_string(status);
+        return false;
+    }
+
+    return true;
 }
 
 void

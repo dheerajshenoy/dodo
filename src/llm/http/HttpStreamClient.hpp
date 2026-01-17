@@ -23,6 +23,7 @@ public:
         return m_url;
     }
 
+    bool probe(const std::string &url, std::string *error) const;
     void sendRequest(const std::string &data);
     void handleDataReceived(const std::string &data) noexcept;
 
