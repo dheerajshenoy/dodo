@@ -13,6 +13,9 @@
 
 ### Bug Fixes
 
+- LLM Widget
+    - Disable send button in the LLM widget when there's no query
+    - Message when provider server is not found to be running
 - Fix scroll commands not triggering scrollbar visibility (for auto_hide = true)
 - Fix document not reloading even when `[behavior.auto_reload]` is set to true
 - Hide searchbar when the search term is empty
