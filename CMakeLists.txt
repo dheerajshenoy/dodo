@@ -8,7 +8,12 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-add_compile_definitions(__DODO_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
+add_compile_definitions(
+    APP_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
+    APP_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}"
+    APP_VERSION="${PROJECT_VERSION}"
+    APP_NAME="${PROJECT_NAME}"
+)
 
 # Used to .desktop file generation
 set(PREFIX "${CMAKE_INSTALL_PREFIX}")
