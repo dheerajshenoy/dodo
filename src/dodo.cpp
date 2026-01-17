@@ -414,10 +414,16 @@ dodo::initMenubar() noexcept
                                    .arg(m_config.shortcuts["prev_location"]),
                                this, &dodo::GoBackHistory);
 
+    /* Help Menu */
     QMenu *helpMenu = m_menuBar->addMenu("&Help");
     m_actionAbout   = helpMenu->addAction(
         QString("About\t%1").arg(m_config.shortcuts["about"]), this,
         &dodo::ShowAbout);
+
+    m_actionShowTutorialFile
+        = helpMenu->addAction(QString("Open Tutorial File\t%1")
+                                  .arg(m_config.shortcuts["tutorial_file"]),
+                              this, &dodo::showTutorialFile);
 }
 
 // Initialize the recent files store
@@ -3087,6 +3093,7 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("show_startup", showStartupWidget),
         ACTION_NO_ARGS("first_tab", FirstTab),
         ACTION_NO_ARGS("last_tab", LastTab),
+        ACTION_NO_ARGS("tutorial_file", showTutorialFile),
 #ifdef ENABLE_LLM_SUPPORT
         ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
 #endif
@@ -3519,3 +3526,20 @@ dodo::ToggleLLMWidget() noexcept
     m_llm_widget->setVisible(!m_llm_widget->isVisible());
 }
 #endif
+
+void
+dodo::showTutorialFile() noexcept
+{
+#if defined(__linux__)
+    const QString doc_path = QString("%1%2")
+                                 .arg(APP_INSTALL_PREFIX)
+                                 .arg("/share/doc/dodo/tutorial.pdf");
+    OpenFile(doc_path);
+#elif defined(__APPLE__) && defined(__MACH__)
+    QMessageBox::warning(this, "Show Tutorial File",
+                         "Not yet implemented for Macintosh");
+#elif defined(_WIN64)
+    QMessageBox::warning(this, "Show Tutorial File",
+                         "Not yet implemented for Windows");
+#endif
+}

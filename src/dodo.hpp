@@ -199,6 +199,7 @@ private:
     void openSessionFromArray(const QJsonArray &sessionArray) noexcept;
     void modeColorChangeRequested(const GraphicsView::Mode mode) noexcept;
     void handleEscapeKeyPressed() noexcept;
+    void showTutorialFile() noexcept;
 
     QDir m_config_dir, m_session_dir;
     Statusbar *m_statusbar{nullptr};
@@ -211,6 +212,7 @@ private:
     QMenu *m_viewMenu{nullptr};
     QMenu *m_layoutMenu{nullptr};
 
+    QAction *m_actionShowTutorialFile{nullptr};
     QAction *m_actionLayoutSingle{nullptr};
     QAction *m_actionLayoutLeftToRight{nullptr};
     QAction *m_actionLayoutTopToBottom{nullptr};

@@ -1,5 +1,12 @@
 # dodo
 
+## 0.5.7
+
+### Bug Fixes
+
+- Fix document not reloading even when `[behavior.auto_reload]` is set to true
+- Add `tutorial_file` command to show a tutorial PDF file
+
 ## 0.5.6
 
 ### Bug Fixes
