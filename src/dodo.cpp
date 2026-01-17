@@ -3027,7 +3027,10 @@ dodo::initActionMap() noexcept
             m_message_bar->showMessage(QStringLiteral("Invalid tab index"));
     }},
 
-        // Actions without arguments
+// Actions without arguments
+#ifdef ENABLE_LLM_SUPPORT
+        ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
+#endif
         ACTION_NO_ARGS("command_palette", ToggleCommandPalette),
         ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
         ACTION_NO_ARGS("tab_next", NextTab),
