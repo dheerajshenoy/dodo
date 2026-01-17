@@ -55,14 +55,7 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
         hideScrollbars();
     });
 
-    // Scrollbar value changes trigger activity
-    auto onActivity = [this]()
-    {
-        showScrollbars();
-        restartHideTimer();
-    };
-    connect(verticalScrollBar(), &QScrollBar::valueChanged, this, onActivity);
-    connect(horizontalScrollBar(), &QScrollBar::valueChanged, this, onActivity);
+    bindScrollbarActivity(verticalScrollBar(), horizontalScrollBar());
 
     // QSurfaceFormat format;
     // format.setSamples(4);
@@ -86,6 +79,29 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
     if (!m_rubberBand)
         m_rubberBand = new QRubberBand(QRubberBand::Rectangle, this);
     m_rubberBand->hide();
+}
+
+void
+GraphicsView::bindScrollbarActivity(QScrollBar *vertical,
+                                    QScrollBar *horizontal) noexcept
+{
+    if (vertical)
+    {
+        connect(vertical, &QScrollBar::valueChanged, this,
+                &GraphicsView::onScrollbarActivity, Qt::UniqueConnection);
+    }
+    if (horizontal)
+    {
+        connect(horizontal, &QScrollBar::valueChanged, this,
+                &GraphicsView::onScrollbarActivity, Qt::UniqueConnection);
+    }
+}
+
+void
+GraphicsView::onScrollbarActivity() noexcept
+{
+    showScrollbars();
+    restartHideTimer();
 }
 
 void

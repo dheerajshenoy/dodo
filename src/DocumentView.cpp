@@ -141,6 +141,7 @@ DocumentView::initGui() noexcept
     m_vscroll = new ScrollBar(Qt::Vertical, this);
     m_gview->setVerticalScrollBar(m_vscroll);
     m_gview->setHorizontalScrollBar(m_hscroll);
+    m_gview->bindScrollbarActivity(m_vscroll, m_hscroll);
 
     // Scrollbar policies are always off - we use overlay scrollbars
     // that don't affect layout. Visibility is controlled separately.

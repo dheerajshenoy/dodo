@@ -98,6 +98,8 @@ public:
         }
     }
 
+    void bindScrollbarActivity(QScrollBar *vertical,
+                               QScrollBar *horizontal) noexcept;
     void clearRubberBand() noexcept;
 
 signals:
@@ -135,6 +137,7 @@ protected:
 
 private:
     void updateCursorForMode() noexcept;
+    void onScrollbarActivity() noexcept;
 
     // Overlay scrollbar helpers (optimized)
     void updateScrollbars();

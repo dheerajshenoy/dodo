@@ -4,6 +4,7 @@
 
 ### Bug Fixes
 
+- Fix scroll commands not triggering scrollbar visibility (for auto_hide = true)
 - Fix document not reloading even when `[behavior.auto_reload]` is set to true
 - Add `tutorial_file` command to show a tutorial PDF file
 - Hide searchbar when the search term is empty
