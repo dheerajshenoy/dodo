@@ -1,9 +1,4 @@
 # TODO
-- [X] Percentange of progress
-- [X] Popup Annotation edit support
-- [X] Rect Annotation fix
-- [X] Undo/Redo change modified state
-
 - [ ] Undo/Redo operations
   - [X] Rect Annotation
   - [X] Text Highlight Annotation
