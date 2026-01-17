@@ -13,7 +13,7 @@
 [![GitHub License](https://shields.io/badge/LICENSE-AGPL-3)](https://opensource.org/license/agpl-v3)
 
 > [!NOTE]
-> Latest dodo version is v0.5.5
+> Latest dodo version is v0.5.6
 
 
 ## Screenshots
