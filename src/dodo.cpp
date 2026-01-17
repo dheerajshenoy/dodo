@@ -1066,6 +1066,19 @@ dodo::initGui() noexcept
 #ifdef ENABLE_LLM_SUPPORT
     m_llm_widget = new LLMWidget(m_config, this);
     m_llm_widget->setVisible(m_config.ui.llm_widget.visible);
+    connect(m_llm_widget, &LLMWidget::actionRequested, this,
+            [this](const QString &action, const QStringList &args)
+    {
+        if (action == QStringLiteral("noop"))
+            return;
+        const auto it = m_actionMap.find(action);
+        if (it == m_actionMap.end())
+        {
+            m_message_bar->showMessage(QStringLiteral("LLM: Unknown action"));
+            return;
+        }
+        it.value()(args);
+    });
 
     QSplitter *llm_splitter = new QSplitter(Qt::Horizontal, this);
     llm_splitter->addWidget(mainContent);

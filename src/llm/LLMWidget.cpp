@@ -2,8 +2,16 @@
 
 #include "providers/ollama/OllamaProvider.hpp"
 
+#include <QFile>
 #include <QFont>
 #include <QHBoxLayout>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
+#include <QKeySequence>
+#include <QMessageBox>
+#include <QShortcut>
 #include <QTextCursor>
 
 LLMWidget::LLMWidget(const Config &config, QWidget *parent) noexcept
@@ -20,21 +28,25 @@ LLMWidget::initProvider() noexcept
     {
         m_provider = new OllamaProvider();
 
-        // const std::string systemPrompt
-        //     = "* You are a helpful assistant embedded in a PDF reader app "
-        //       "named dodo."
-        //       "* You may request actions by outputting a single JSON object"
-        //       "* Allowed commands:"
-        //       "** goto_page(page:int)"
-        //       "** search(query:string, case_sensitive:bool)"
-        //       "** get_current_page()"
-        //       "** get_page_text(page:int, max_chars:int)"
-        //       "** add_note(page:int, text:string)"
-        //       "* Always format your responses in markdown rich format for "
-        //       "bold, "
-        //       "italic etc..";
+        std::string promptText;
+        QFile roleFile("/home/dheeraj/Gits/dodo/src/llm/role.txt");
+        if (!roleFile.open(QIODevice::ReadOnly | QIODevice::Text))
+        {
+            QMessageBox::critical(
+                this, "Error",
+                "Role error while instantiating LLM. Please contact support");
 
-        // m_provider->setSystemPrompt(systemPrompt);
+            qDebug() << "LLMWidget::getSystemPrompt() role.txt not found! "
+                        "Exiting";
+            return;
+        }
+
+        promptText = roleFile.readAll().toStdString();
+
+        qDebug().noquote() << promptText;
+
+        m_provider->setModel(m_config.llm.model);
+        m_provider->setSystemPrompt(promptText);
     }
     else
     {
@@ -50,7 +62,8 @@ LLMWidget::initProvider() noexcept
             return;
 
         const QString token = QString::fromStdString(data);
-        auto cursor         = m_chat_edit->textCursor();
+        m_stream_buffer += token;
+        auto cursor = m_chat_edit->textCursor();
         cursor.movePosition(QTextCursor::End);
         if (!m_stream_in_progress)
         {
@@ -60,11 +73,47 @@ LLMWidget::initProvider() noexcept
         }
         cursor.insertText(token);
         m_chat_edit->setTextCursor(cursor);
+
         m_chat_edit->ensureCursorVisible();
     });
 
     connect(m_provider, &LLM::Provider::streamFinished, this, [this]()
     {
+        const QString payload = m_stream_buffer.trimmed();
+        m_stream_buffer.clear();
+        if (!payload.isEmpty())
+        {
+            QJsonParseError error;
+            const QJsonDocument doc
+                = QJsonDocument::fromJson(payload.toUtf8(), &error);
+            if (error.error == QJsonParseError::NoError && doc.isObject())
+            {
+                const QJsonObject obj = doc.object();
+                const QString action  = obj.value("action").toString();
+                if (!action.isEmpty() && action != QStringLiteral("noop"))
+                {
+                    QStringList args;
+                    const QJsonValue argsValue = obj.value("args");
+                    if (argsValue.isArray())
+                    {
+                        const QJsonArray arr = argsValue.toArray();
+                        for (const auto &val : arr)
+                        {
+                            if (val.isDouble())
+                                args.append(
+                                    QString::number(val.toDouble(), 'g', 15));
+                            else if (val.isString())
+                                args.append(val.toString());
+                        }
+                    }
+                    emit actionRequested(action, args);
+                }
+            }
+            else
+            {
+                m_chat_edit->append("<b>LLM error:</b> Invalid JSON response.");
+            }
+        }
         if (m_stream_in_progress)
         {
             m_chat_edit->append("");
@@ -75,6 +124,7 @@ LLMWidget::initProvider() noexcept
     connect(m_provider, &LLM::Provider::requestFailed, this,
             [this](const std::string &error)
     {
+        m_stream_buffer.clear();
         m_chat_edit->append("<b>LLM error:</b> "
                             + QString::fromStdString(error));
         m_stream_in_progress = false;
@@ -91,9 +141,9 @@ LLMWidget::sendQuery() noexcept
 
     m_chat_edit->append("<b>User:</b> " + user_input);
     m_input_edit->clear();
+    m_stream_buffer.clear();
     m_stream_in_progress = false;
-    LLM::Request llm_request{.model      = m_config.llm.model,
-                             .prompt     = user_input.toStdString(),
+    LLM::Request llm_request{.prompt     = user_input.toStdString(),
                              .max_tokens = m_config.llm.max_tokens};
     m_provider->chat_stream(llm_request);
 }
@@ -108,6 +158,7 @@ LLMWidget::initGui() noexcept
     m_chat_edit->setAcceptRichText(true);
     m_chat_edit->setReadOnly(true);
 
+    m_send_btn->setEnabled(false);
     m_input_edit->setPlaceholderText("Enter your message...");
     m_input_edit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
 
@@ -121,6 +172,20 @@ LLMWidget::initGui() noexcept
     layout->addLayout(input_layout);
 
     setLayout(layout);
+
+    // Ctrl + Return to send
+    QShortcut *send
+        = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return), m_send_btn);
+    connect(send, &QShortcut::activated, this, &LLMWidget::sendQuery);
+
+    // Handle enable/disable of send button
+    connect(m_input_edit, &QTextEdit::textChanged, this, [this]()
+    {
+        const QString text = m_input_edit->toPlainText();
+        const bool enabled = !text.trimmed().isEmpty();
+        if (m_send_btn->isEnabled() != enabled)
+            m_send_btn->setEnabled(enabled);
+    });
 
     connect(m_send_btn, &QPushButton::clicked, this, &LLMWidget::sendQuery);
 }
