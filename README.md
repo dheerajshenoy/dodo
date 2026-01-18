@@ -21,34 +21,43 @@
 
 ## Screenshots
 
-### Home screen
+<p align="center">
 | ![dodo home screen](./images/dodo.png) |
 |:--------------------------------------:|
 | Home Screen                            |
 
-### Scrolling View
-<img src="./images/Scrolling.gif" alt="Scrolling" width="800"/>
+| ![Scrolling](./images/Scrolling.gif) |
+|:------------------------------------:|
+| Scrolling                            |
 
-### Layouts
-<img src="./images/Layouts.gif" alt="Layouts" width="800"/>
+| ![Layouts](./images/Layouts.gif) |
+|:--------------------------------:|
+| Layouts                          |
 
-### File opened + outline overlay
-<img src="./images/Outline.png" alt="File + Outline" width="800"/>
+| ![Outline Overlay](./images/Outline.png) |
+|:----------------------------------------:|
+| Outline Overlay                          |
 
-### Search Marker in Scrollbar
-<img src="./images/Search-Hits-Scrollbar.gif" alt="Search Hits in Scrollbar" width="800"/>
+| ![Search](./images/Search-Hits-Scrollbar.gif) |
+|:---------------------------------------------:|
+| Search + Hits in Scrollbar                    |
 
-### Jump Marker feature in action
-<img src="./images/Jump-Marker.gif" alt="dodo jump marker feature" width="800"/>
+| ![./images/Jump-Marker.gif) |
+|:---------------------------:|
+| Jump Markers                |
 
-### Link Hints
-<img src="./images/link_hint.png" alt="Link Hints" width="800"/>
+| ![Link Hints](./images/link_hint.png) |
+|:-------------------------------------:|
+| Link Hints                            |
 
-### Command Palette
-<img src="./images/command_palette.png" alt="Command Palette" width="800"/>
+| ![Command Palette](./images/command_palette.png) |
+|:------------------------------------------------:|
+| Command Palette                                  |
 
-### Synctex forward search from dodo to tex editor (Zed editor in this case)
-<img src="./images/synctex.gif" alt="dodo synctex forward search feature" width="800"/>
+| ![SyncTeX integration](./images/synctex.gif) |
+|:---------------------------------------------|
+| SyncTeX integration                          |
+|                                              |
 </p>
 
 ## Check out dodo's [homepage](https://dheerajshenoy.github.io/dodo) for more details
