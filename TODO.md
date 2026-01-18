@@ -1,4 +1,6 @@
 # TODO
+- [X] Implement LRU caching for pages and other resources
+
 - [ ] Undo/Redo operations
   - [X] Rect Annotation
   - [X] Text Highlight Annotation
