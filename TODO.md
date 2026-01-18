@@ -10,13 +10,12 @@
 - [ ] Easy reference paper search
 - [ ] Reference previewer
 - [ ] Peek equation dependencies
-- [ ] AI features
-    - [ ] Equation OCR to LaTeX
-    - [ ] Table exporter to CSV/Excel/Numpy
-    - [ ] Semantic search
 - [ ] Search inside math equations
 - [ ] Set marks and jump to marks
 - [ ] Touchpad gestures
 - [ ] Two page side-by-side view mode
 - [ ] Two selected page view mode
-- [ ] Implement LRU caching for pages and other resources
+- [ ] AI features
+    - [ ] Equation OCR to LaTeX
+    - [ ] Table exporter to CSV/Excel/Numpy
+    - [ ] Semantic search
