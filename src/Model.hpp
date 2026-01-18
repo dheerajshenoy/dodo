@@ -4,6 +4,7 @@
 
 #include "Annotations/Annotation.hpp"
 #include "BrowseLinkItem.hpp"
+#include "LRUCache.hpp"
 
 #include <QColor>
 #include <QFuture>
@@ -239,14 +240,19 @@ public:
         m_detect_url_links = state;
     }
 
-    void setUrlLinkRegex(const QString &pattern) noexcept;
-
     // Cache management
     inline size_t pageCacheSize() const noexcept
     {
         std::lock_guard<std::recursive_mutex> lock(m_page_cache_mutex);
-        return m_page_cache.size();
+        return m_page_lru_cache.size();
     }
+
+    inline void setCacheCapacity(const size_t n) noexcept
+    {
+        m_page_lru_cache.setCapacity(n);
+    }
+
+    void setUrlLinkRegex(const QString &pattern) noexcept;
 
     // Clear page cache to free memory (e.g., when tab becomes inactive)
     void clearPageCache() noexcept;
@@ -275,12 +281,13 @@ public:
     }
 
     // Clear cached fz_stext_page objects
-    inline void clear_fz_stext_page_cache() noexcept
-    {
-        for (auto &pair : m_stext_page_cache)
-            fz_drop_stext_page(m_ctx, pair.second);
-        m_stext_page_cache.clear();
-    }
+    // inline void clear_fz_stext_page_cache() noexcept
+    // {
+    // for (auto &pair : m_stext_page_cache)
+    //     fz_drop_stext_page(m_ctx, pair.second);
+    // m_stext_page_cache.clear();
+    //     m_stext_page_cache.clear();
+    // }
 
     inline const float *annotRectColor() const noexcept
     {
@@ -454,9 +461,12 @@ private:
     float m_page_width_pts{0.0f}, m_page_height_pts{0.0f};
     fz_point m_selection_start{}, m_selection_end{};
     fz_locks_context m_fz_locks;
-    std::unordered_map<int, fz_stext_page *> m_stext_page_cache;
-    std::unordered_map<int, PageCacheEntry> m_page_cache;
+    // std::unordered_map<int, fz_stext_page *> m_stext_page_cache;
+    // std::unordered_map<int, PageCacheEntry> m_page_cache;
     mutable std::recursive_mutex m_page_cache_mutex;
+    LRUCache<int, PageCacheEntry> m_page_lru_cache;
+    // LRUCache<int, CachedTextPage> m_text_cache;
+    void LRUEvictFunction(PageCacheEntry &entry) noexcept;
 
     std::mutex m_doc_mutex;
     QFuture<PageRenderResult> m_render_future;

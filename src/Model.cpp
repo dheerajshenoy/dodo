@@ -59,6 +59,21 @@ Model::Model(QObject *parent) noexcept : QObject(parent)
     m_colorspace = fz_device_rgb(m_ctx);
     m_undo_stack = new QUndoStack();
     setUrlLinkRegex(QString::fromUtf8(R"((https?://|www\.)[^\s<>()\"']+)"));
+
+    // Eviction for LRU Cache
+    m_page_lru_cache.setCallback([this](PageCacheEntry &entry)
+    { LRUEvictFunction(entry); });
+}
+
+void
+Model::LRUEvictFunction(PageCacheEntry &entry) noexcept
+{
+    std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+    if (entry.display_list)
+    {
+        fz_drop_display_list(m_ctx, entry.display_list);
+        entry.display_list = nullptr;
+    }
 }
 
 void
@@ -76,25 +91,10 @@ Model::cleanup() noexcept
 
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-        for (auto &[_, entry] : m_page_cache)
-            fz_drop_display_list(m_ctx, entry.display_list);
-
-        m_page_cache.clear();
+        m_page_lru_cache.clear();
     }
 
-    m_stext_page_cache.clear();
     m_text_cache.clear();
-
-    if (!m_ctx)
-    {
-        m_outline = nullptr;
-        m_pdf_doc = nullptr;
-        m_doc     = nullptr;
-        m_page_cache.clear();
-        m_stext_page_cache.clear();
-        m_text_cache.clear();
-        return;
-    }
 }
 
 Model::~Model() noexcept
@@ -160,21 +160,21 @@ void
 Model::clearPageCache() noexcept
 {
     std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-    for (auto &[_, entry] : m_page_cache)
-        fz_drop_display_list(m_ctx, entry.display_list);
+    // for (auto &[_, entry] : m_page_cache)
+    //     fz_drop_display_list(m_ctx, entry.display_list);
 
-    m_page_cache.clear();
+    m_page_lru_cache.clear();
 }
 
 void
 Model::ensurePageCached(int pageno) noexcept
 {
-    {
-        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-        auto it = m_page_cache.find(pageno);
-        if (it != m_page_cache.end())
-            return;
-    }
+    std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+    // auto it = m_page_cache.find(pageno);
+    // if (it != m_page_cache.end())
+    //     return;
+    if (m_page_lru_cache.has(pageno))
+        return;
 
     // Not cached, build it
     buildPageCache(pageno);
@@ -183,16 +183,14 @@ Model::ensurePageCached(int pageno) noexcept
 void
 Model::buildPageCache(int pageno) noexcept
 {
-    {
-        std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-        auto it = m_page_cache.find(pageno);
-        if (it != m_page_cache.end())
-            return;
-    }
+    std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
+    // auto it = m_page_cache.find(pageno);
+    // if (it != m_page_cache.end())
+    //     return;
 
     PageCacheEntry entry;
 
-    fz_context *ctx = m_ctx;
+    // fz_context *ctx = m_ctx;
     fz_page *page{nullptr};
     fz_display_list *dlist{nullptr};
     fz_device *list_dev{nullptr};
@@ -200,21 +198,21 @@ Model::buildPageCache(int pageno) noexcept
     fz_rect bounds{};
     bool success{false};
 
-    fz_try(ctx)
+    fz_try(m_ctx)
     {
-        page = fz_load_page(ctx, m_doc, pageno);
+        page = fz_load_page(m_ctx, m_doc, pageno);
         if (!page)
-            fz_throw(ctx, FZ_ERROR_GENERIC, "Failed to load page");
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-        bounds = fz_bound_page(ctx, page);
+        bounds = fz_bound_page(m_ctx, page);
 
-        dlist    = fz_new_display_list(ctx, bounds);
-        list_dev = fz_new_list_device(ctx, dlist);
+        dlist    = fz_new_display_list(m_ctx, bounds);
+        list_dev = fz_new_list_device(m_ctx, dlist);
 
-        fz_run_page(ctx, page, list_dev, fz_identity, nullptr);
+        fz_run_page(m_ctx, page, list_dev, fz_identity, nullptr);
 
         // Extract links and cache them
-        head = fz_load_links(ctx, page);
+        head = fz_load_links(m_ctx, page);
         for (fz_link *link = head; link; link = link->next)
         {
             if (!link->uri)
@@ -229,7 +227,7 @@ Model::buildPageCache(int pageno) noexcept
             cl.source_loc.x = link->rect.x0;
             cl.source_loc.y = link->rect.y0;
 
-            if (fz_is_external_link(ctx, link->uri))
+            if (fz_is_external_link(m_ctx, link->uri))
             {
                 cl.type = BrowseLinkItem::LinkType::External;
             }
@@ -237,38 +235,39 @@ Model::buildPageCache(int pageno) noexcept
             {
                 float xp, yp;
                 fz_location loc
-                    = fz_resolve_link(ctx, m_doc, link->uri, &xp, &yp);
+                    = fz_resolve_link(m_ctx, m_doc, link->uri, &xp, &yp);
                 cl.type        = BrowseLinkItem::LinkType::Page;
                 cl.target_page = loc.page;
             }
             else
             {
-                fz_link_dest dest = fz_resolve_link_dest(ctx, m_doc, link->uri);
-                cl.type           = BrowseLinkItem::LinkType::Location;
-                cl.target_page    = dest.loc.page;
-                cl.target_loc.x   = dest.x;
-                cl.target_loc.y   = dest.y;
-                cl.zoom           = dest.zoom;
+                fz_link_dest dest
+                    = fz_resolve_link_dest(m_ctx, m_doc, link->uri);
+                cl.type         = BrowseLinkItem::LinkType::Location;
+                cl.target_page  = dest.loc.page;
+                cl.target_loc.x = dest.x;
+                cl.target_loc.y = dest.y;
+                cl.zoom         = dest.zoom;
             }
 
             entry.links.push_back(std::move(cl));
         }
 
-        pdf_page *pdfPage = pdf_page_from_fz_page(ctx, page);
+        pdf_page *pdfPage = pdf_page_from_fz_page(m_ctx, page);
         if (pdfPage)
         {
             float color[3];
             int n = 3;
 
-            for (pdf_annot *annot = pdf_first_annot(ctx, pdfPage); annot;
-                 annot            = pdf_next_annot(ctx, annot))
+            for (pdf_annot *annot = pdf_first_annot(m_ctx, pdfPage); annot;
+                 annot            = pdf_next_annot(m_ctx, annot))
             {
                 CachedAnnotation ca;
-                ca.rect    = pdf_bound_annot(ctx, annot);
-                ca.type    = pdf_annot_type(ctx, annot);
-                ca.index   = pdf_to_num(ctx, pdf_annot_obj(ctx, annot));
-                ca.opacity = pdf_annot_opacity(ctx, annot);
-                ca.text    = pdf_annot_contents(ctx, annot);
+                ca.rect    = pdf_bound_annot(m_ctx, annot);
+                ca.type    = pdf_annot_type(m_ctx, annot);
+                ca.index   = pdf_to_num(m_ctx, pdf_annot_obj(m_ctx, annot));
+                ca.opacity = pdf_annot_opacity(m_ctx, annot);
+                ca.text    = pdf_annot_contents(m_ctx, annot);
 
                 if (fz_is_infinite_rect(ca.rect) || fz_is_empty_rect(ca.rect))
                     continue;
@@ -278,7 +277,7 @@ Model::buildPageCache(int pageno) noexcept
                     case PDF_ANNOT_POPUP:
                     case PDF_ANNOT_TEXT:
                     {
-                        pdf_annot_color(ctx, annot, &n, color);
+                        pdf_annot_color(m_ctx, annot, &n, color);
                         ca.color = QColor::fromRgbF(color[0], color[1],
                                                     color[2], ca.opacity);
                     }
@@ -286,7 +285,7 @@ Model::buildPageCache(int pageno) noexcept
 
                     case PDF_ANNOT_SQUARE:
                     {
-                        pdf_annot_interior_color(ctx, annot, &n, color);
+                        pdf_annot_interior_color(m_ctx, annot, &n, color);
                         ca.color = QColor::fromRgbF(color[0], color[1],
                                                     color[2], ca.opacity);
                     }
@@ -294,7 +293,7 @@ Model::buildPageCache(int pageno) noexcept
 
                     case PDF_ANNOT_HIGHLIGHT:
                     {
-                        pdf_annot_color(ctx, annot, &n, color);
+                        pdf_annot_color(m_ctx, annot, &n, color);
                         ca.color = QColor::fromRgbF(color[0], color[1],
                                                     color[2], ca.opacity);
                     }
@@ -313,24 +312,24 @@ Model::buildPageCache(int pageno) noexcept
         entry.bounds       = bounds;
         success            = true;
     }
-    fz_always(ctx)
+    fz_always(m_ctx)
     {
         if (head)
-            fz_drop_link(ctx, head);
+            fz_drop_link(m_ctx, head);
         if (list_dev)
         {
-            fz_close_device(ctx, list_dev);
-            fz_drop_device(ctx, list_dev);
+            fz_close_device(m_ctx, list_dev);
+            fz_drop_device(m_ctx, list_dev);
         }
         if (page)
-            fz_drop_page(ctx, page);
+            fz_drop_page(m_ctx, page);
         if (!success && dlist)
-            fz_drop_display_list(ctx, dlist);
+            fz_drop_display_list(m_ctx, dlist);
     }
-    fz_catch(ctx)
+    fz_catch(m_ctx)
     {
         qWarning() << "Failed to build page cache for page" << pageno << ":"
-                   << fz_caught_message(ctx);
+                   << fz_caught_message(m_ctx);
         return;
     }
 
@@ -339,7 +338,7 @@ Model::buildPageCache(int pageno) noexcept
 
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-        m_page_cache[pageno] = entry;
+        m_page_lru_cache.put(pageno, entry);
     }
 }
 
@@ -456,12 +455,15 @@ Model::authenticate(const QString &password) noexcept
 bool
 Model::reloadDocument() noexcept
 {
-    // Lock to prevent concurrent access (if multithreaded)
-    std::lock_guard<std::mutex> lock(m_doc_mutex);
-
     const QString filepath = m_filepath;
     if (filepath.isEmpty())
         return false;
+
+    if (m_render_future.isRunning())
+        m_render_future.waitForFinished();
+
+    // Lock to prevent concurrent access
+    std::lock_guard<std::mutex> lock(m_doc_mutex);
 
     if (!m_ctx)
     {
@@ -507,21 +509,12 @@ Model::SaveChanges() noexcept
 
     fz_try(m_ctx)
     {
-        // 1. MUST clear text pages; they hold page references!
-        clear_fz_stext_page_cache();
-
-        // pdf_write_options opts = pdf_default_write_options;
-        // opts.do_incremental    = 1; // Faster and more reliable for
-        // annotations
+        // MUST clear text pages; they hold page references!
 
         if (m_pdf_doc)
         {
             pdf_save_document(m_ctx, m_pdf_doc, path.c_str(),
                               &m_pdf_write_options);
-
-            // TODO: reload safely
-            // reloadDocument();
-            // emit documentSaved();
         }
         else
         {
@@ -637,30 +630,25 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &devStart,
 
     // --- Get (or build) stext page and compute highlight quads in PAGE space
     // ---
-    fz_stext_page *text_page = nullptr;
-    fz_page *page            = nullptr;
-    int count                = 0;
+    fz_stext_page *stext_page = nullptr;
+    fz_page *page             = nullptr;
+    int count                 = 0;
 
     fz_try(m_ctx)
     {
-        auto it = m_stext_page_cache.find(pageno);
-        if (it != m_stext_page_cache.end())
-        {
-            text_page = it->second;
-        }
-        else
-        {
-            page      = fz_load_page(m_ctx, m_doc, pageno);
-            text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-            m_stext_page_cache.emplace(pageno, text_page);
-        }
+        page       = fz_load_page(m_ctx, m_doc, pageno);
+        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        if (!stext_page)
+            fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to build text page");
 
-        fz_snap_selection(m_ctx, text_page, &a, &b, FZ_SELECT_CHARS);
-        count = fz_highlight_selection(m_ctx, text_page, a, b, hits.data(),
+        fz_snap_selection(m_ctx, stext_page, &a, &b, FZ_SELECT_CHARS);
+        count = fz_highlight_selection(m_ctx, stext_page, a, b, hits.data(),
                                        MAX_HITS);
     }
     fz_always(m_ctx)
     {
+        if (stext_page)
+            fz_drop_stext_page(m_ctx, stext_page);
         if (page)
             fz_drop_page(m_ctx, page);
     }
@@ -700,24 +688,15 @@ Model::getSelectedText(int pageno, const fz_point &a,
     std::string result;
     fz_page *page{nullptr};
     char *selection_text{nullptr};
+    fz_stext_page *stext_page{nullptr};
 
     fz_try(m_ctx)
     {
         page = fz_load_page(m_ctx, m_doc, pageno);
 
-        fz_stext_page *text_page;
+        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
 
-        if (m_stext_page_cache.contains(pageno))
-        {
-            text_page = m_stext_page_cache[pageno];
-        }
-        else
-        {
-            text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-            m_stext_page_cache[pageno] = text_page;
-        }
-
-        selection_text = fz_copy_selection(m_ctx, text_page, a, b, 0);
+        selection_text = fz_copy_selection(m_ctx, stext_page, a, b, 0);
     }
     fz_always(m_ctx)
     {
@@ -727,6 +706,7 @@ Model::getSelectedText(int pageno, const fz_point &a,
             fz_free(m_ctx, selection_text);
         }
         fz_drop_page(m_ctx, page);
+        fz_drop_stext_page(m_ctx, stext_page);
     }
     fz_catch(m_ctx)
     {
@@ -913,19 +893,10 @@ Model::requestPageRender(
 
         // on main thread
         if (callback)
-        {
             callback(result);
-        }
     });
 
     watcher->setFuture(m_render_future);
-
-    // Running without QFutureWatcher (no main-thread callback)
-    // m_render_future = QtConcurrent::run([this, job, callback]() -> void
-    // {
-    //     PageRenderResult result = renderPageWithExtrasAsync(job);
-    //     callback(result);
-    // });
 }
 
 Model::PageRenderResult
@@ -934,8 +905,8 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
     PageRenderResult result;
     fz_context *ctx{nullptr};
 
+    // MuPDF context cloning must be thread-safe
     {
-        // MuPDF context cloning must be thread-safe
         static std::mutex clone_lock;
         std::lock_guard<std::mutex> lock(clone_lock);
         ctx = fz_clone_context(m_ctx);
@@ -954,27 +925,29 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
 
     {
         std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-        auto it = m_page_cache.find(job.pageno);
-        if (it == m_page_cache.end())
+
+        if (!m_page_lru_cache.has(job.pageno))
         {
             qWarning() << "Model::PageRenderResult() Page not cached:"
                        << job.pageno;
             fz_drop_context(ctx);
             return result;
         }
-        const PageCacheEntry &entry = it->second;
-        if (!entry.display_list)
+
+        const PageCacheEntry *entry = m_page_lru_cache.get(job.pageno);
+        if (!entry->display_list)
         {
             qWarning() << "Model::PageRenderResult() Missing display list for:"
                        << job.pageno;
             fz_drop_context(ctx);
             return result;
         }
+
         // Increment reference count so the display list stays valid
-        dlist       = fz_keep_display_list(ctx, entry.display_list);
-        bounds      = entry.bounds;
-        links       = entry.links;
-        annotations = entry.annotations;
+        dlist       = fz_keep_display_list(ctx, entry->display_list);
+        bounds      = entry->bounds;
+        links       = entry->links;
+        annotations = entry->annotations;
     }
 
     fz_link *head{nullptr};
@@ -1217,31 +1190,23 @@ Model::highlightTextSelection(int pageno, const QPointF &start,
     constexpr int MAX_HITS = 1000;
     fz_quad hits[MAX_HITS];
     int count = 0;
+    fz_stext_page *stext_page{nullptr};
 
     fz_try(m_ctx)
     {
         page = fz_load_page(m_ctx, m_doc, pageno);
 
-        fz_stext_page *text_page;
-
-        if (m_stext_page_cache.contains(pageno))
-        {
-            text_page = m_stext_page_cache[pageno];
-        }
-        else
-        {
-            text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-            m_stext_page_cache[pageno] = text_page;
-        }
+        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
 
         fz_point a, b;
         a     = {static_cast<float>(start.x()), static_cast<float>(start.y())};
         b     = {static_cast<float>(end.x()), static_cast<float>(end.y())};
-        count = fz_highlight_selection(m_ctx, text_page, a, b, hits, MAX_HITS);
+        count = fz_highlight_selection(m_ctx, stext_page, a, b, hits, MAX_HITS);
     }
     fz_always(m_ctx)
     {
         fz_drop_page(m_ctx, page);
+        fz_drop_stext_page(m_ctx, stext_page);
     }
     fz_catch(m_ctx)
     {
@@ -1300,10 +1265,12 @@ Model::addHighlightAnnotation(const int pageno,
         {
             std::lock_guard<std::recursive_mutex> cache_lock(
                 m_page_cache_mutex);
-            if (m_page_cache.contains(pageno))
+            if (m_page_lru_cache.has(pageno))
             {
-                fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
-                m_page_cache.erase(pageno);
+                // fz_drop_display_list(m_ctx,
+                // m_page_cache[pageno].display_list);
+                // m_page_cache.erase(pageno);
+                m_page_lru_cache.remove(pageno);
             }
         }
         // Build cache outside the lock to avoid holding it during expensive
@@ -1358,10 +1325,12 @@ Model::addRectAnnotation(const int pageno, const fz_rect &rect) noexcept
         {
             std::lock_guard<std::recursive_mutex> cache_lock(
                 m_page_cache_mutex);
-            if (m_page_cache.contains(pageno))
+            if (m_page_lru_cache.has(pageno))
             {
-                fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
-                m_page_cache.erase(pageno);
+                m_page_lru_cache.remove(pageno);
+                // fz_drop_display_list(m_ctx,
+                // m_page_cache[pageno].display_list);
+                // m_page_cache.erase(pageno);
             }
         }
         // Build cache outside the lock to avoid holding it during expensive
@@ -1427,10 +1396,12 @@ Model::addTextAnnotation(const int pageno, const fz_rect &rect,
         {
             std::lock_guard<std::recursive_mutex> cache_lock(
                 m_page_cache_mutex);
-            if (m_page_cache.contains(pageno))
+            if (m_page_lru_cache.has(pageno))
             {
-                fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
-                m_page_cache.erase(pageno);
+                // fz_drop_display_list(m_ctx,
+                // m_page_cache[pageno].display_list);
+                // m_page_cache.erase(pageno);
+                m_page_lru_cache.remove(pageno);
             }
         }
         // Build cache outside the lock to avoid holding it during expensive
@@ -1478,10 +1449,12 @@ Model::setTextAnnotationContents(const int pageno, const int objNum,
         {
             std::lock_guard<std::recursive_mutex> cache_lock(
                 m_page_cache_mutex);
-            if (m_page_cache.contains(pageno))
+            if (m_page_lru_cache.has(pageno))
             {
-                fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
-                m_page_cache.erase(pageno);
+                // fz_drop_display_list(m_ctx,
+                // m_page_cache[pageno].display_list);
+                // m_page_cache.erase(pageno);
+                m_page_lru_cache.remove(pageno);
             }
         }
         buildPageCache(pageno);
@@ -1577,12 +1550,13 @@ void
 Model::invalidatePageCache(int pageno) noexcept
 {
     std::lock_guard<std::recursive_mutex> cache_lock(m_page_cache_mutex);
-    if (m_page_cache.contains(pageno))
+    if (m_page_lru_cache.has(pageno))
     {
-        fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
-        m_page_cache.erase(pageno);
+        // fz_drop_display_list(m_ctx, m_page_cache[pageno].display_list);
+        // m_page_cache.erase(pageno);
+        m_page_lru_cache.remove(pageno);
 
-        buildPageCache(pageno);
+        // buildPageCache(pageno);
     }
 }
 
@@ -1627,33 +1601,25 @@ Model::selectWordAt(int pageno, fz_point pt) noexcept
     a          = fz_transform_point(a, dev_to_page);
     b          = fz_transform_point(b, dev_to_page);
 
-    fz_stext_page *text_page{nullptr};
+    fz_stext_page *stext_page{nullptr};
     fz_page *page{nullptr};
     int count = 0;
 
     fz_try(m_ctx)
     {
-        if (m_stext_page_cache.contains(pageno))
-        {
-            text_page = m_stext_page_cache[pageno];
-        }
-        else
-        {
-            page      = fz_load_page(m_ctx, m_doc, pageno);
-            text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-            m_stext_page_cache[pageno] = text_page;
-        }
+        page       = fz_load_page(m_ctx, m_doc, pageno);
+        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
 
-        fz_snap_selection(m_ctx, text_page, &a, &b, FZ_SELECT_WORDS);
-        count = fz_highlight_selection(m_ctx, text_page, a, b, hits.data(),
+        fz_snap_selection(m_ctx, stext_page, &a, &b, FZ_SELECT_WORDS);
+        count = fz_highlight_selection(m_ctx, stext_page, a, b, hits.data(),
                                        MAX_HITS);
         m_selection_start = a;
         m_selection_end   = b;
     }
     fz_always(m_ctx)
     {
-        if (page)
-            fz_drop_page(m_ctx, page);
+        fz_drop_page(m_ctx, page);
+        fz_drop_stext_page(m_ctx, stext_page);
     }
     fz_catch(m_ctx)
     {
@@ -1721,33 +1687,25 @@ Model::selectLineAt(int pageno, fz_point pt) noexcept
     a          = fz_transform_point(a, dev_to_page);
     b          = fz_transform_point(b, dev_to_page);
 
-    fz_stext_page *text_page{nullptr};
+    fz_stext_page *stext_page{nullptr};
     fz_page *page{nullptr};
     int count = 0;
 
     fz_try(m_ctx)
     {
-        if (m_stext_page_cache.contains(pageno))
-        {
-            text_page = m_stext_page_cache[pageno];
-        }
-        else
-        {
-            page      = fz_load_page(m_ctx, m_doc, pageno);
-            text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-            m_stext_page_cache[pageno] = text_page;
-        }
+        page       = fz_load_page(m_ctx, m_doc, pageno);
+        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
 
-        fz_snap_selection(m_ctx, text_page, &a, &b, FZ_SELECT_LINES);
-        count = fz_highlight_selection(m_ctx, text_page, a, b, hits.data(),
+        fz_snap_selection(m_ctx, stext_page, &a, &b, FZ_SELECT_LINES);
+        count = fz_highlight_selection(m_ctx, stext_page, a, b, hits.data(),
                                        MAX_HITS);
         m_selection_start = a;
         m_selection_end   = b;
     }
     fz_always(m_ctx)
     {
-        if (page)
-            fz_drop_page(m_ctx, page);
+        fz_drop_page(m_ctx, page);
+        fz_drop_stext_page(m_ctx, stext_page);
     }
     fz_catch(m_ctx)
     {
@@ -1812,23 +1770,15 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
 
     fz_point page_pt = fz_transform_point(pt, dev_to_page);
 
-    fz_stext_page *text_page{nullptr};
+    fz_stext_page *stext_page{nullptr};
     fz_page *page{nullptr};
 
     fz_try(m_ctx)
     {
-        if (m_stext_page_cache.contains(pageno))
-        {
-            text_page = m_stext_page_cache[pageno];
-        }
-        else
-        {
-            page      = fz_load_page(m_ctx, m_doc, pageno);
-            text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-            m_stext_page_cache[pageno] = text_page;
-        }
+        page       = fz_load_page(m_ctx, m_doc, pageno);
+        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
 
-        for (fz_stext_block *block = text_page->first_block; block;
+        for (fz_stext_block *block = stext_page->first_block; block;
              block                 = block->next)
         {
             if (block->type != FZ_STEXT_BLOCK_TEXT)
@@ -1841,7 +1791,7 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
                 fz_point blockEnd   = {block->bbox.x1, block->bbox.y1};
 
                 int count
-                    = fz_highlight_selection(m_ctx, text_page, blockStart,
+                    = fz_highlight_selection(m_ctx, stext_page, blockStart,
                                              blockEnd, hits.data(), MAX_HITS);
 
                 auto toDev = [&](const fz_point &p0) -> QPointF
@@ -1869,8 +1819,8 @@ Model::selectParagraphAt(int pageno, fz_point pt) noexcept
     }
     fz_always(m_ctx)
     {
-        if (page)
-            fz_drop_page(m_ctx, page);
+        fz_drop_page(m_ctx, page);
+        fz_drop_stext_page(m_ctx, stext_page);
     }
     fz_catch(m_ctx)
     {
@@ -1987,7 +1937,8 @@ Model::collectHighlightTexts(bool groupByLine) noexcept
 
     for (int pageno = 0; pageno < m_page_count; ++pageno)
     {
-        pdf_page *pdfPage = nullptr;
+        pdf_page *pdfPage{nullptr};
+        fz_stext_page *stext_page{nullptr};
 
         fz_try(m_ctx)
         {
@@ -1995,24 +1946,14 @@ Model::collectHighlightTexts(bool groupByLine) noexcept
             if (!pdfPage)
                 fz_throw(m_ctx, FZ_ERROR_GENERIC, "Failed to load page");
 
-            fz_stext_page *text_page = nullptr;
-            if (m_stext_page_cache.contains(pageno))
+            fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
+            if (page)
             {
-                text_page = m_stext_page_cache[pageno];
-            }
-            else
-            {
-                fz_page *page = fz_load_page(m_ctx, m_doc, pageno);
-                if (page)
-                {
-                    text_page
-                        = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-                    m_stext_page_cache[pageno] = text_page;
-                    fz_drop_page(m_ctx, page);
-                }
+                stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+                fz_drop_page(m_ctx, page);
             }
 
-            if (!text_page)
+            if (!stext_page)
                 continue;
 
             for (pdf_annot *annot = pdf_first_annot(m_ctx, pdfPage); annot;
@@ -2045,7 +1986,7 @@ Model::collectHighlightTexts(bool groupByLine) noexcept
                     const fz_point a{rect.x0, rect.y0};
                     const fz_point b{rect.x1, rect.y1};
                     char *selection_text
-                        = fz_copy_selection(m_ctx, text_page, a, b, 0);
+                        = fz_copy_selection(m_ctx, stext_page, a, b, 0);
                     if (!selection_text)
                         continue;
 
@@ -2061,8 +2002,8 @@ Model::collectHighlightTexts(bool groupByLine) noexcept
         }
         fz_always(m_ctx)
         {
-            if (pdfPage)
-                pdf_drop_page(m_ctx, pdfPage);
+            pdf_drop_page(m_ctx, pdfPage);
+            fz_drop_stext_page(m_ctx, stext_page);
         }
         fz_catch(m_ctx)
         {
@@ -2082,7 +2023,7 @@ Model::buildTextCacheForPage(int pageno) noexcept
     fz_page *page        = nullptr;
     fz_stext_page *stext = nullptr;
 
-    try
+    fz_try(m_ctx)
     {
         page  = fz_load_page(m_ctx, m_doc, pageno);
         stext = fz_new_stext_page_from_page(m_ctx, page, nullptr);
@@ -2110,15 +2051,15 @@ Model::buildTextCacheForPage(int pageno) noexcept
 
         m_text_cache.emplace(pageno, std::move(cache));
     }
-    catch (...)
+    fz_always(m_ctx)
+    {
+        fz_drop_stext_page(m_ctx, stext);
+        fz_drop_page(m_ctx, page);
+    }
+    fz_catch(m_ctx)
     {
         // ignore page failures
     }
-
-    if (stext)
-        fz_drop_stext_page(m_ctx, stext);
-    if (page)
-        fz_drop_page(m_ctx, page);
 }
 
 // fz_pixmap *
@@ -2301,23 +2242,14 @@ Model::getTextInArea(const int pageno, const QPointF &start,
     const fz_rect rect = {min_x, min_y, max_x, max_y};
 
     fz_page *page{nullptr};
-    fz_stext_page *text_page{nullptr};
+    fz_stext_page *stext_page{nullptr};
     char *selection_text{nullptr};
 
     fz_try(m_ctx)
     {
-        if (m_stext_page_cache.contains(pageno))
-        {
-            text_page = m_stext_page_cache[pageno];
-        }
-        else
-        {
-            page      = fz_load_page(m_ctx, m_doc, pageno);
-            text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-            m_stext_page_cache[pageno] = text_page;
-        }
-
-        selection_text = fz_copy_rectangle(m_ctx, text_page, rect, 0);
+        page           = fz_load_page(m_ctx, m_doc, pageno);
+        stext_page     = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+        selection_text = fz_copy_rectangle(m_ctx, stext_page, rect, 0);
     }
     fz_always(m_ctx)
     {
@@ -2326,8 +2258,9 @@ Model::getTextInArea(const int pageno, const QPointF &start,
             result = std::string(selection_text);
             fz_free(m_ctx, selection_text);
         }
-        if (page)
-            fz_drop_page(m_ctx, page);
+
+        fz_drop_stext_page(m_ctx, stext_page);
+        fz_drop_page(m_ctx, page);
     }
     fz_catch(m_ctx)
     {
@@ -2340,42 +2273,32 @@ Model::getTextInArea(const int pageno, const QPointF &start,
 std::optional<std::wstring>
 Model::get_paper_name_at_position(const int pageno, const fz_point pos) noexcept
 {
-    fz_stext_page *text_page = nullptr;
+    fz_stext_page *stext_page{nullptr};
+    fz_page *page{nullptr};
 
-    // 1) Get or build stext page (and DO NOT leak fz_page)
-    if (m_stext_page_cache.contains(pageno))
+    fz_try(m_ctx)
     {
-        text_page = m_stext_page_cache[pageno];
+        page       = fz_load_page(m_ctx, m_doc, pageno);
+        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
     }
-    else
+    fz_always(m_ctx)
     {
-        fz_page *page = nullptr;
-
-        fz_try(m_ctx)
-        {
-            page      = fz_load_page(m_ctx, m_doc, pageno);
-            text_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
-            m_stext_page_cache[pageno] = text_page;
-        }
-        fz_always(m_ctx)
-        {
-            if (page)
-                fz_drop_page(m_ctx, page);
-        }
-        fz_catch(m_ctx)
-        {
-            return {};
-        }
+        fz_drop_page(m_ctx, page);
+        fz_drop_stext_page(m_ctx, stext_page);
+    }
+    fz_catch(m_ctx)
+    {
+        return {};
     }
 
-    if (!text_page)
+    if (!stext_page)
         return {};
 
     // 2) Flatten all characters
     std::vector<fz_stext_char *> flat_chars;
     flat_chars.reserve(4096);
 
-    for (fz_stext_block *b = text_page->first_block; b; b = b->next)
+    for (fz_stext_block *b = stext_page->first_block; b; b = b->next)
     {
         if (b->type != FZ_STEXT_BLOCK_TEXT)
             continue;
@@ -2490,6 +2413,7 @@ Model::get_paper_name_at_position(const int pageno, const fz_point pos) noexcept
         }
     }
 
+    fz_drop_stext_page(m_ctx, stext_page);
     trim_ws(out);
 
     if (out.empty())
