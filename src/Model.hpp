@@ -260,7 +260,27 @@ public:
     // Ensure a page is cached (lazy loading)
     void ensurePageCached(int pageno) noexcept;
 
-    inline float pageWidthPts() const noexcept
+    inline void setBackgroundColor(const uint32_t bg) noexcept
+    {
+        m_bg_color = bg;
+    }
+
+    inline void setForegroundColor(const uint32_t fg) noexcept
+    {
+        m_fg_color = fg;
+    }
+
+    [[nodiscard]] inline uint32_t backgroundColor() noexcept
+    {
+        return m_bg_color;
+    }
+
+    [[nodiscard]] inline uint32_t foregroundColor() noexcept
+    {
+        return m_fg_color;
+    }
+
+    [[nodiscard]] inline float pageWidthPts() const noexcept
     {
         return m_page_width_pts;
     }
@@ -442,6 +462,7 @@ private:
     void removeAnnotations(const int pageno,
                            const std::vector<int> &objNums) noexcept;
     void buildTextCacheForPage(int pageno) noexcept;
+    void LRUEvictFunction(PageCacheEntry &entry) noexcept;
 
     std::optional<std::wstring>
     get_paper_name_at_position(const int pageno, const fz_point) noexcept;
@@ -461,12 +482,11 @@ private:
     float m_page_width_pts{0.0f}, m_page_height_pts{0.0f};
     fz_point m_selection_start{}, m_selection_end{};
     fz_locks_context m_fz_locks;
-    // std::unordered_map<int, fz_stext_page *> m_stext_page_cache;
-    // std::unordered_map<int, PageCacheEntry> m_page_cache;
     mutable std::recursive_mutex m_page_cache_mutex;
     LRUCache<int, PageCacheEntry> m_page_lru_cache;
-    // LRUCache<int, CachedTextPage> m_text_cache;
-    void LRUEvictFunction(PageCacheEntry &entry) noexcept;
+
+    uint32_t m_bg_color{0};
+    uint32_t m_fg_color{0};
 
     std::mutex m_doc_mutex;
     QFuture<PageRenderResult> m_render_future;

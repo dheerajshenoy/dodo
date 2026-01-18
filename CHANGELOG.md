@@ -10,6 +10,11 @@
 - Added `role.txt` system prompts for the LLM
 - Implement LRU (Least Recently Used) cache for reduced memory usage
     - Respect `behavior.cache_pages` config option for this
+- Page foreground and background color config option
+    - `[colors]
+        - page_foreground 
+        - page_background
+    **NOTE**: They have to be RGB and not RGBA (alpha will be ignored)
 
 
 ### Optimizations

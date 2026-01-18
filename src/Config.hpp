@@ -128,6 +128,8 @@ struct Config
         {
             uint32_t accent{0x3daee9FF};
             uint32_t background{0x00000000};
+            uint32_t page_background{0xFFFFFF};
+            uint32_t page_foreground{0x000000};
             uint32_t search_match{0x55500033};
             uint32_t search_index{0x55FF0055};
             uint32_t link_hint_bg{0x000000FF};

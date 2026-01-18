@@ -633,36 +633,54 @@ dodo::initConfig() noexcept
     if (!parseHexColor(colors["accent"].value_or("#3DAEE9FF"),
                        m_config.ui.colors.accent))
         m_config.ui.colors.accent = 0x3DAEE9FF;
+
     if (!parseHexColor(colors["background"].value_or("#00000000"),
                        m_config.ui.colors.background))
         m_config.ui.colors.background = 0x00000000;
+
     if (!parseHexColor(colors["search_match"].value_or("#55500033"),
                        m_config.ui.colors.search_match))
         m_config.ui.colors.search_match = 0x55500033;
+
     if (!parseHexColor(colors["search_index"].value_or("#55FF0055"),
                        m_config.ui.colors.search_index))
         m_config.ui.colors.search_index = 0x55FF0055;
+
     if (!parseHexColor(colors["link_hint_bg"].value_or("#000000FF"),
                        m_config.ui.colors.link_hint_bg))
         m_config.ui.colors.link_hint_bg = 0x000000FF;
+
     if (!parseHexColor(colors["link_hint_fg"].value_or("#EA3EE9FF"),
                        m_config.ui.colors.link_hint_fg))
         m_config.ui.colors.link_hint_fg = 0xEA3EE9FF;
+
     if (!parseHexColor(colors["selection"].value_or("#33000055"),
                        m_config.ui.colors.selection))
         m_config.ui.colors.selection = 0x33000055;
+
     if (!parseHexColor(colors["highlight"].value_or("#55FF0055"),
                        m_config.ui.colors.highlight))
         m_config.ui.colors.highlight = 0x55FF0055;
+
     if (!parseHexColor(colors["jump_marker"].value_or("#FF0000FF"),
                        m_config.ui.colors.jump_marker))
         m_config.ui.colors.jump_marker = 0xFF0000FF;
+
     if (!parseHexColor(colors["annot_rect"].value_or("#55FF5588"),
                        m_config.ui.colors.annot_rect))
         m_config.ui.colors.annot_rect = 0x55FF5588;
+
     if (!parseHexColor(colors["annot_popup"].value_or("#FFFFFFAA"),
                        m_config.ui.colors.annot_popup))
         m_config.ui.colors.annot_popup = 0xFFFFFFAA;
+
+    if (!parseHexColor(colors["page_background"].value_or("#FFFFFF"),
+                       m_config.ui.colors.page_background))
+        m_config.ui.colors.page_background = 0xFFFFFF;
+
+    if (!parseHexColor(colors["page_foreground"].value_or("#000000"),
+                       m_config.ui.colors.page_foreground))
+        m_config.ui.colors.page_foreground = 0x000000;
 
     auto rendering = toml["rendering"];
 

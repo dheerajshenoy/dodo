@@ -970,6 +970,10 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
         fz_run_display_list(ctx, dlist, dev, transform,
                             fz_rect_from_irect(bbox), nullptr);
 
+        static const int fg = (m_fg_color >> 8) & 0xFFFFFF;
+        static const int bg = (m_bg_color >> 8) & 0xFFFFFF;
+        fz_tint_pixmap(ctx, pix, fg, bg);
+
         if (job.invert_color)
         {
             fz_invert_pixmap_luminance(ctx, pix);

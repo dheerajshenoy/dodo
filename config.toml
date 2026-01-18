@@ -89,6 +89,8 @@ highlight = "#55FF0055"
 jump_marker = "#FF0000FF"
 annot_rect = "#55FF5588"
 annot_popup = "#FFFFFFAA"
+page_background = "#FFFFFF"
+page_foreground = "#000000"
 
 # ===== Rendering =====
 [rendering]
