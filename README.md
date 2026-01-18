@@ -56,7 +56,7 @@
 | **Command Palette**                              |
 
 | ![SyncTeX integration](./images/synctex.gif) |
-|:---------------------------------------------|
+|:--------------------------------------------:|
 | **SyncTeX integration**                      |
 
 </p>
