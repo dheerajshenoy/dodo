@@ -1,6 +1,6 @@
 <p align="center">
     <img src="./resources/dodo.png" height="200px" width="200px"/><br><br>
-<b><i>A fast, configurable PDF reader built with MuPDF and Qt</i></b>
+<b>Fast and configurable PDF reader</b>
 </p>
 
 <p align="center">
@@ -11,13 +11,13 @@
 </p>
 
 <p align="center">
-<a href="LICENSE.md"><img src="https://img.shields.io/badge/LICENSE-AGPL--3.0"></a>
-<a href="https://github.com/dheerajshenoy/dodo/releases"><img src="https://img.shields.io/github/release/dheerajshenoy/dodo.svg?style=for-the-badge"></a>
-<a href="https://isocpp.org"><img src="https://img.shields.io/badge/LANGUAGE-C%2B%2B-orange?style=for-the-badge"></a>
+<a href="https://github.com/dheerajshenoy/dodo/releases"><img src="https://img.shields.io/github/v/release/dheerajshenoy/dodo?style=for-the-badge&color=red"></a>
+<a href="https://isocpp.org"><img src="https://img.shields.io/badge/LANGUAGE-C%2B%2B-blue?style=for-the-badge"></a>
+<a href="LICENSE.md"><img alt="Static Badge" src="https://img.shields.io/badge/LICENSE-AGPL--3.0-lime?style=for-the-badge"></a>
 </p>
 
-> [!NOTE]
-> Latest dodo version is v0.6.0
+> [!WARNING]
+> **dodo** is still in alpha, bugs and crashes expected.
 
 ## Screenshots
 
