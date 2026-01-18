@@ -2,11 +2,6 @@
 
 #include "BrowseLinkItem.hpp"
 #include "commands/TextHighlightAnnotationCommand.hpp"
-#include "mupdf/fitz/context.h"
-#include "mupdf/fitz/display-list.h"
-#include "mupdf/fitz/document.h"
-#include "mupdf/fitz/util.h"
-#include "mupdf/pdf/annot.h"
 #include "utils.hpp"
 
 #include <QtConcurrent/QtConcurrent>
