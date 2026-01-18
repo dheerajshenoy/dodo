@@ -22,41 +22,42 @@
 ## Screenshots
 
 <p align="center">
+
 | ![dodo home screen](./images/dodo.png) |
 |:--------------------------------------:|
 | **Home Screen**                        |
 
 | ![Scrolling](./images/Scrolling.gif) |
 |:------------------------------------:|
-| **Scrolling**                            |
+| **Scrolling**                        |
 
 | ![Layouts](./images/Layouts.gif) |
 |:--------------------------------:|
-| **Layouts**                         |
+| **Layouts**                      |
 
 | ![Outline Overlay](./images/Outline.png) |
 |:----------------------------------------:|
-| **Outline Overlay**                          |
+| **Outline Overlay**                      |
 
 | ![Search](./images/Search-Hits-Scrollbar.gif) |
 |:---------------------------------------------:|
-| **Search + Hits in Scrollbar**                    |
+| **Search + Hits in Scrollbar**                |
 
 | ![Jump Marker](./images/Jump-Marker.gif) |
 |:----------------------------------------:|
-| **Jump Markers**                             |
+| **Jump Markers**                         |
 
 | ![Link Hints](./images/link_hint.png) |
 |:-------------------------------------:|
-| **Link Hints**                            |
+| **Link Hints**                        |
 
 | ![Command Palette](./images/command_palette.png) |
 |:------------------------------------------------:|
-| **Command Palette**                                  |
+| **Command Palette**                              |
 
 | ![SyncTeX integration](./images/synctex.gif) |
 |:---------------------------------------------|
-| **SyncTeX integration**                          |
+| **SyncTeX integration**                      |
 
 </p>
 
