@@ -44,7 +44,6 @@ public:
         // setBrush(Qt::transparent);
         setAcceptHoverEvents(true);
         setToolTip(link);
-        setCursor(Qt::PointingHandCursor);
         setAcceptedMouseButtons(Qt::AllButtons);
         setFlags(QGraphicsItem::ItemIsSelectable
                  | QGraphicsItem::ItemIsFocusable);
@@ -149,12 +148,14 @@ protected:
     void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override
     {
         setBrush(QBrush(QColor(1.0, 1.0, 0.0, 125)));
+        QGuiApplication::setOverrideCursor(Qt::PointingHandCursor);
         QGraphicsRectItem::hoverEnterEvent(e);
     }
 
     void hoverLeaveEvent(QGraphicsSceneHoverEvent *e) override
     {
         setBrush(Qt::transparent);
+        QGuiApplication::restoreOverrideCursor();
         QGraphicsRectItem::hoverLeaveEvent(e);
     }
 
