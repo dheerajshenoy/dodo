@@ -19,6 +19,7 @@
 
 ### Bug Fixes
 
+- Fix right click context menu on tabs
 - Command palette orderless matching consider underscore as literal when entered.
 - Cancel page rendering request when starting to scroll
 - Placeholder page items are just upscale pixmaps to reduce cpu and memory usage

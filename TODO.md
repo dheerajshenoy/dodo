@@ -19,3 +19,4 @@
     - [ ] Equation OCR to LaTeX
     - [ ] Table exporter to CSV/Excel/Numpy
     - [ ] Semantic search
+    - [ ] Finding citation from folder
