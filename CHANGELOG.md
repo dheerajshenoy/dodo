@@ -7,6 +7,8 @@
 
 - Add `tutorial_file` command to show a tutorial PDF file
 - Added `role.txt` system prompts for the LLM
+- Implement LRU (Least Recently Used) cache for reduced memory usage
+    - Respect `behavior.cache_pages` config option for this
 
 ### Breaking Changes
 
@@ -14,6 +16,8 @@
 
 ### Bug Fixes
 
+- Render visible pages instead of just reloading single page when file changes in disk
+- Don't cache `fz_stext_page` (very memory intensive)
 - LLM Widget
     - Disable send button in the LLM widget when there's no query
     - Message when provider server is not found to be running
