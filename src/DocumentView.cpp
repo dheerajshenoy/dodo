@@ -136,6 +136,7 @@ DocumentView::initGui() noexcept
     m_model->setUrlLinkRegex(m_config.ui.links.url_regex);
     // if (m_config.rendering.icc_color_profile)
     //     m_model->enableICC();
+    m_model->setCacheCapacity(m_config.behavior.cache_pages);
 
     m_hscroll = new ScrollBar(Qt::Horizontal, this);
     m_vscroll = new ScrollBar(Qt::Vertical, this);
