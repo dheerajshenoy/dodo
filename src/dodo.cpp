@@ -417,6 +417,12 @@ dodo::initMenubar() noexcept
                                    .arg(m_config.shortcuts["prev_location"]),
                                this, &dodo::GoBackHistory);
 
+    QMenu *markMenu = m_navMenu->addMenu("Marks");
+
+    m_actionSetMark = markMenu->addAction(
+        QString("Set Mar\t%1").arg(m_config.shortcuts["set_mark"]), this,
+        &dodo::SetMark);
+
     /* Help Menu */
     QMenu *helpMenu = m_menuBar->addMenu("&Help");
     m_actionAbout   = helpMenu->addAction(
@@ -1561,13 +1567,13 @@ dodo::VisitLinkKB() noexcept
 {
     if (m_doc)
     {
-        m_currentHintInput.clear();
+        m_lockedInputBuffer.clear();
         m_link_hint_map = m_doc->LinkKB();
         if (!m_link_hint_map.isEmpty())
         {
             m_link_hint_current_mode = LinkHintMode::Visit;
             m_link_hint_mode         = true;
-            m_doc->UpdateKBHintsOverlay(m_currentHintInput);
+            m_doc->UpdateKBHintsOverlay(m_lockedInputBuffer);
         }
     }
 }
@@ -1579,13 +1585,13 @@ dodo::CopyLinkKB() noexcept
 {
     if (m_doc)
     {
-        m_currentHintInput.clear();
+        m_lockedInputBuffer.clear();
         m_link_hint_map = m_doc->LinkKB();
         if (!m_link_hint_map.isEmpty())
         {
             m_link_hint_current_mode = LinkHintMode::Copy;
             m_link_hint_mode         = true;
-            m_doc->UpdateKBHintsOverlay(m_currentHintInput);
+            m_doc->UpdateKBHintsOverlay(m_lockedInputBuffer);
         }
     }
 }
