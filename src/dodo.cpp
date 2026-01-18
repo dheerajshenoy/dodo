@@ -1020,6 +1020,7 @@ dodo::initGui() noexcept
 
     widget->setLayout(m_layout);
     m_tab_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    m_tab_widget->installEventFilter(this);
 
     this->setCentralWidget(widget);
 
@@ -2405,124 +2406,26 @@ bool
 dodo::eventFilter(QObject *object, QEvent *event)
 {
     const QEvent::Type type = event->type();
+
+    // Link Hint Handle Key Press
     if (m_link_hint_mode)
     {
-        switch (type)
-        {
-            case QEvent::KeyPress:
-            {
-                QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-                switch (keyEvent->key())
-                {
-                    case Qt::Key_Escape:
-                        handleEscapeKeyPressed();
-                        return true;
-                        break;
-
-                    case Qt::Key_Backspace:
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-                        m_currentHintInput.removeLast();
-#else
-                        if (!m_currentHintInput.isEmpty())
-                            m_currentHintInput.chop(1);
-#endif
-                        if (m_doc)
-                            m_doc->UpdateKBHintsOverlay(m_currentHintInput);
-                        return true;
-                    default:
-                        break;
-                }
-
-                QString text = keyEvent->text();
-                if (text.isEmpty())
-                {
-                    const int key = keyEvent->key();
-                    if (key >= Qt::Key_0 && key <= Qt::Key_9)
-                        text = QString(QChar('0' + (key - Qt::Key_0)));
-                }
-
-                bool appended = false;
-                if (text.size() == 1 && text.at(0).isDigit())
-                {
-                    m_currentHintInput += text;
-                    appended = true;
-                }
-
-                if (!appended)
-                    return true;
-
-                if (m_doc)
-                    m_doc->UpdateKBHintsOverlay(m_currentHintInput);
-
-                int num = m_currentHintInput.toInt();
-                auto it = m_link_hint_map.find(num);
-                if (it != m_link_hint_map.end())
-                {
-                    const Model::LinkInfo &info = it.value();
-
-                    switch (m_link_hint_current_mode)
-                    {
-                        case LinkHintMode::None:
-                            break;
-
-                        case LinkHintMode::Visit:
-                            m_doc->FollowLink(info);
-                            break;
-
-                        case LinkHintMode::Copy:
-                            m_clipboard->setText(info.uri);
-                            break;
-                    }
-
-                    m_currentHintInput.clear();
-                    m_link_hint_map.clear();
-                    m_doc->ClearKBHintsOverlay();
-                    m_link_hint_mode = false;
-                    return true;
-                }
-                keyEvent->accept();
-                return true;
-            }
-            case QEvent::ShortcutOverride:
-                event->accept();
-                return true;
-            default:
-                break;
-        }
-    }
-    else
-    {
-
-        if (object == m_tab_widget->tabBar() && type == QEvent::ContextMenu)
-        {
-            QContextMenuEvent *contextEvent
-                = static_cast<QContextMenuEvent *>(event);
-            int index = m_tab_widget->tabBar()->tabAt(contextEvent->pos());
-
-            if (index != -1)
-            {
-                QMenu menu;
-                menu.addAction("Open Location", this, [this, index]()
-                { openInExplorerForIndex(index); });
-                menu.addAction("File Properties", this, [this, index]()
-                { filePropertiesForIndex(index); });
-                menu.addSeparator();
-                menu.addAction("Move Tab to New Window", this, [this, index]()
-                {
-                    DraggableTabBar::TabData data;
-                    handleTabDataRequested(index, &data);
-                    if (!data.filePath.isEmpty())
-                        handleTabDetachedToNewWindow(index, data);
-                });
-                menu.addAction("Close Tab", this, [this, index]()
-                { m_tab_widget->tabCloseRequested(index); });
-
-                menu.exec(contextEvent->globalPos());
-            }
+        if (handleLinkHintEvent(event))
             return true;
-        }
     }
 
+    if (m_get_input_mode)
+    {
+        if (handleGetInputEvent(event))
+            return true;
+    }
+
+    // Context menu for the tab widgets
+    if ((object == m_tab_widget->tabBar() || object == m_tab_widget)
+        && type == QEvent::ContextMenu)
+        return handleTabContextMenu(object, event);
+
+    // Drop Event
     if (event->type() == QEvent::Drop)
     {
         QDropEvent *e          = static_cast<QDropEvent *>(event);
@@ -2548,6 +2451,185 @@ dodo::eventFilter(QObject *object, QEvent *event)
 
     // Let other events pass through
     return QObject::eventFilter(object, event);
+}
+
+bool
+dodo::handleTabContextMenu(QObject *object, QEvent *event) noexcept
+{
+    auto *contextEvent = static_cast<QContextMenuEvent *>(event);
+    if (!contextEvent || !m_tab_widget)
+        return false;
+
+    const QPoint tabPos = object == m_tab_widget->tabBar()
+                              ? contextEvent->pos()
+                              : m_tab_widget->tabBar()->mapFrom(
+                                    m_tab_widget, contextEvent->pos());
+    const int index     = m_tab_widget->tabBar()->tabAt(tabPos);
+    if (index == -1)
+        return true;
+
+    QMenu menu;
+    menu.addAction("Open Location", this,
+                   [this, index]() { openInExplorerForIndex(index); });
+    menu.addAction("File Properties", this,
+                   [this, index]() { filePropertiesForIndex(index); });
+    menu.addSeparator();
+    menu.addAction("Move Tab to New Window", this, [this, index]()
+    {
+        DraggableTabBar::TabData data;
+        handleTabDataRequested(index, &data);
+        if (!data.filePath.isEmpty())
+            handleTabDetachedToNewWindow(index, data);
+    });
+    menu.addAction("Close Tab", this,
+                   [this, index]() { m_tab_widget->tabCloseRequested(index); });
+
+    menu.exec(contextEvent->globalPos());
+    return true;
+}
+
+bool
+dodo::handleLinkHintEvent(QEvent *event) noexcept
+{
+    const QEvent::Type type = event->type();
+    switch (type)
+    {
+        case QEvent::KeyPress:
+        {
+            QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+            switch (keyEvent->key())
+            {
+                case Qt::Key_Escape:
+                    handleEscapeKeyPressed();
+                    return true;
+
+                case Qt::Key_Backspace:
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+                    m_lockedInputBuffer.removeLast();
+#else
+                    if (!m_currentHintInput.isEmpty())
+                        m_currentHintInput.chop(1);
+#endif
+                    if (m_doc)
+                        m_doc->UpdateKBHintsOverlay(m_lockedInputBuffer);
+                    return true;
+                default:
+                    break;
+            }
+
+            QString text = keyEvent->text();
+            if (text.isEmpty())
+            {
+                const int key = keyEvent->key();
+                if (key >= Qt::Key_0 && key <= Qt::Key_9)
+                    text = QString(QChar('0' + (key - Qt::Key_0)));
+            }
+
+            bool appended = false;
+            if (text.size() == 1 && text.at(0).isDigit())
+            {
+                m_lockedInputBuffer += text;
+                appended = true;
+            }
+
+            if (!appended)
+                return true;
+
+            if (m_doc)
+                m_doc->UpdateKBHintsOverlay(m_lockedInputBuffer);
+
+            int num = m_lockedInputBuffer.toInt();
+            auto it = m_link_hint_map.find(num);
+            if (it != m_link_hint_map.end())
+            {
+                const Model::LinkInfo &info = it.value();
+
+                switch (m_link_hint_current_mode)
+                {
+                    case LinkHintMode::None:
+                        break;
+
+                    case LinkHintMode::Visit:
+                        m_doc->FollowLink(info);
+                        break;
+
+                    case LinkHintMode::Copy:
+                        m_clipboard->setText(info.uri);
+                        break;
+                }
+
+                m_lockedInputBuffer.clear();
+                m_link_hint_map.clear();
+                m_doc->ClearKBHintsOverlay();
+                m_link_hint_mode = false;
+                return true;
+            }
+            keyEvent->accept();
+            return true;
+        }
+        case QEvent::ShortcutOverride:
+            event->accept();
+            return true;
+        default:
+            break;
+    }
+
+    return false;
+}
+
+// Used for waiting input events like marks etc.
+bool
+dodo::handleGetInputEvent(QEvent *event) noexcept
+{
+    const QEvent::Type type = event->type();
+    switch (type)
+    {
+        case QEvent::KeyPress:
+        {
+            QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+            switch (keyEvent->key())
+            {
+                case Qt::Key_Escape:
+                    handleEscapeKeyPressed();
+                    return true;
+
+                case Qt::Key_Backspace:
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+                    m_lockedInputBuffer.removeLast();
+#else
+                    if (!m_lockedInputBuffer.isEmpty())
+                        m_lockedInputBuffer.chop(1);
+#endif
+                    return true;
+                default:
+                    break;
+            }
+
+            QString text = keyEvent->text();
+
+            bool appended = false;
+            if (text.size() == 1 && text.at(0).isDigit())
+            {
+                m_lockedInputBuffer += text;
+                appended = true;
+            }
+
+            if (!appended)
+                return true;
+
+            int num = m_lockedInputBuffer.toInt();
+            keyEvent->accept();
+            return true;
+        }
+
+        case QEvent::ShortcutOverride:
+            event->accept();
+            return true;
+        default:
+            break;
+    }
+
+    return false;
 }
 
 // Opens the file of tab with index `index`
@@ -3526,17 +3608,24 @@ dodo::SetLayoutMode(DocumentView::LayoutMode mode) noexcept
 void
 dodo::handleEscapeKeyPressed() noexcept
 {
-    if (m_link_hint_mode)
-    {
-        m_currentHintInput.clear();
-        m_doc->ClearKBHintsOverlay();
-        m_link_hint_map.clear();
-        m_link_hint_mode = false;
-    }
-
 #ifndef NDEBUG
     qDebug() << "Escape key pressed handled";
 #endif
+
+    m_lockedInputBuffer.clear();
+
+    if (m_link_hint_mode)
+    {
+        m_doc->ClearKBHintsOverlay();
+        m_link_hint_map.clear();
+        m_link_hint_mode = false;
+        return;
+    }
+
+    if (m_get_input_mode)
+    {
+        // TODO: Handle Escape key
+    }
 }
 
 void
@@ -3585,4 +3674,39 @@ dodo::showTutorialFile() noexcept
     QMessageBox::warning(this, "Show Tutorial File",
                          "Not yet implemented for Windows");
 #endif
+}
+
+void
+dodo::SetMark() noexcept
+{
+    m_message_bar->showMessage("**SetMark**, Waiting for mark: ", -1);
+}
+
+void
+dodo::GotoMark() noexcept
+{
+    m_message_bar->showMessage("**GotoMark**, Waiting for mark: ", -1);
+    // Wait for key input
+}
+
+void
+dodo::DeleteMark() noexcept
+{
+    m_message_bar->showMessage("**GotoMark**, Waiting for mark: ", -1);
+}
+
+void
+dodo::setMark(const QString &key, const int pageno,
+              const DocumentView::PageLocation location) noexcept
+{
+}
+
+void
+dodo::gotoMark(const QString &key) noexcept
+{
+}
+
+void
+dodo::deleteMark(const QString &key) noexcept
+{
 }

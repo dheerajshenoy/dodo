@@ -140,6 +140,6 @@ main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/resources/dodo2.png"));
     dodo d;
-    d.readArgsParser(program);
+    d.ReadArgsParser(program);
     app.exec();
 }

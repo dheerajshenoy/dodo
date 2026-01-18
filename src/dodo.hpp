@@ -6,6 +6,7 @@
 #include "DraggableTabBar.hpp"
 #include "FloatingOverlayWidget.hpp"
 #include "HighlightSearchWidget.hpp"
+#include "MarkManager.hpp"
 #include "MessageBar.hpp"
 #include "OutlineWidget.hpp"
 #include "PropertiesWidget.hpp"
@@ -52,70 +53,10 @@ public:
          const QJsonArray &sessionArray) noexcept; // load from session
     ~dodo() noexcept;
 
-    void readArgsParser(argparse::ArgumentParser &argparser) noexcept;
+    void ReadArgsParser(argparse::ArgumentParser &argparser) noexcept;
     bool OpenFile(DocumentView *view) noexcept;
-
-protected:
-    void closeEvent(QCloseEvent *e) override;
-    bool eventFilter(QObject *object, QEvent *event) override;
-
-private:
-    inline bool validTabIndex(int index) const noexcept
-    {
-        return m_tab_widget && index >= 0 && index < m_tab_widget->count();
-    }
-
-    inline void ToggleSearchBar() noexcept
-    {
-        m_search_bar->setVisible(!m_search_bar->isVisible());
-        if (m_search_bar->isVisible())
-            m_search_bar->focusSearchInput();
-    }
-
-    void construct() noexcept;
-    void setDPR(float dpr) noexcept;
-    void initDB() noexcept;
-    void initDefaults() noexcept;
-    void initMenubar() noexcept;
-    void initGui() noexcept;
-    void initConfig() noexcept;
-    void initDefaultKeybinds() noexcept;
-    void warnShortcutConflicts() noexcept;
-    void setupKeybinding(const QString &action, const QString &key) noexcept;
-    void populateRecentFiles() noexcept;
-    void updateUiEnabledState() noexcept;
-    void editLastPages() noexcept;
-    void openLastVisitedFile() noexcept;
-    void initConnections() noexcept;
-    void initTabConnections(DocumentView *) noexcept;
-    void initActionMap() noexcept;
-    void trimRecentFilesDatabase() noexcept;
-    void reloadDocument() noexcept;
-
-    // Tab drag and drop handlers
-    void handleTabDataRequested(int index,
-                                DraggableTabBar::TabData *outData) noexcept;
-    void handleTabDropReceived(const DraggableTabBar::TabData &data) noexcept;
-    void handleTabDetached(int index, const QPoint &globalPos) noexcept;
-    void
-    handleTabDetachedToNewWindow(int index,
-                                 const DraggableTabBar::TabData &data) noexcept;
-
-    // Interactive functions
-    void EncryptDocument() noexcept;
-    void DecryptDocument() noexcept;
-    void Undo() noexcept;
-    void Redo() noexcept;
-    void ShowAbout() noexcept;
-    void TextHighlightCurrentSelection() noexcept;
-
-#ifdef ENABLE_LLM_SUPPORT
-    void ToggleLLMWidget() noexcept;
-#endif
-
     void ToggleCommandPalette() noexcept;
     void Search() noexcept;
-    void search(const QString &term = {}) noexcept;
     void ShowHighlightSearch() noexcept;
     void ToggleFocusMode() noexcept;
     void ToggleMenubar() noexcept;
@@ -169,10 +110,8 @@ private:
     void GotoPage() noexcept;
     void GotoLocation(int pageno, float x, float y) noexcept;
     void GotoLocation(const DocumentView::PageLocation &loc) noexcept;
-    void gotoPage(int pageno) noexcept;
     void LoadSession(QString name = QString()) noexcept;
     void SaveSession() noexcept;
-    void writeSessionToFile(const QString &sessionName) noexcept;
     void SaveAsSession(const QString &name = QString()) noexcept;
     void GotoTab(int tabno) noexcept;
     void LastTab() noexcept;
@@ -182,7 +121,67 @@ private:
     void PrevTab() noexcept;
     void ReselectLastTextSelection() noexcept;
     void SetLayoutMode(DocumentView::LayoutMode mode) noexcept;
+    void SetMark() noexcept;
+    void GotoMark() noexcept;
+    void DeleteMark() noexcept;
+    void EncryptDocument() noexcept;
+    void DecryptDocument() noexcept;
+    void Undo() noexcept;
+    void Redo() noexcept;
+    void ShowAbout() noexcept;
+    void TextHighlightCurrentSelection() noexcept;
+#ifdef ENABLE_LLM_SUPPORT
+    void ToggleLLMWidget() noexcept;
+#endif
+
+protected:
+    void closeEvent(QCloseEvent *e) override;
+    bool eventFilter(QObject *object, QEvent *event) override;
+
+private:
+    inline bool validTabIndex(int index) const noexcept
+    {
+        return m_tab_widget && index >= 0 && index < m_tab_widget->count();
+    }
+
+    inline void ToggleSearchBar() noexcept
+    {
+        m_search_bar->setVisible(!m_search_bar->isVisible());
+        if (m_search_bar->isVisible())
+            m_search_bar->focusSearchInput();
+    }
+
+    void construct() noexcept;
+    void setDPR(float dpr) noexcept;
+    void initDB() noexcept;
+    void initDefaults() noexcept;
+    void initMenubar() noexcept;
+    void initGui() noexcept;
+    void initConfig() noexcept;
+    void initDefaultKeybinds() noexcept;
+    void warnShortcutConflicts() noexcept;
+    void setupKeybinding(const QString &action, const QString &key) noexcept;
+    void populateRecentFiles() noexcept;
+    void updateUiEnabledState() noexcept;
+    void editLastPages() noexcept;
+    void openLastVisitedFile() noexcept;
+    void initConnections() noexcept;
+    void initTabConnections(DocumentView *) noexcept;
+    void initActionMap() noexcept;
+    void trimRecentFilesDatabase() noexcept;
+    void reloadDocument() noexcept;
+    void handleTabDataRequested(int index,
+                                DraggableTabBar::TabData *outData) noexcept;
+    void handleTabDropReceived(const DraggableTabBar::TabData &data) noexcept;
+    void handleTabDetached(int index, const QPoint &globalPos) noexcept;
+    void
+    handleTabDetachedToNewWindow(int index,
+                                 const DraggableTabBar::TabData &data) noexcept;
+
+    void gotoPage(int pageno) noexcept;
     void setFocusMode(bool state) noexcept;
+    void search(const QString &term = {}) noexcept;
+    void writeSessionToFile(const QString &sessionName) noexcept;
 
     // private helpers
     void handleFileNameChanged(const QString &name) noexcept;
@@ -207,6 +206,13 @@ private:
     void modeColorChangeRequested(const GraphicsView::Mode mode) noexcept;
     void handleEscapeKeyPressed() noexcept;
     void showTutorialFile() noexcept;
+    void setMark(const QString &key, const int pageno,
+                 const DocumentView::PageLocation location) noexcept;
+    void gotoMark(const QString &key) noexcept;
+    void deleteMark(const QString &key) noexcept;
+    bool handleLinkHintEvent(QEvent *event) noexcept;
+    bool handleTabContextMenu(QObject *object, QEvent *event) noexcept;
+    bool handleGetInputEvent(QEvent *event) noexcept;
 
     QDir m_config_dir, m_session_dir;
     Statusbar *m_statusbar{nullptr};
@@ -265,6 +271,9 @@ private:
     QAction *m_actionSessionSave{nullptr};
     QAction *m_actionSessionSaveAs{nullptr};
     QAction *m_actionHighlightSearch{nullptr};
+    QAction *m_actionSetMark{nullptr};
+    QAction *m_actionGotoMark{nullptr};
+    QAction *m_actionDeleteMark{nullptr};
 
 #ifdef ENABLE_LLM_SUPPORT
     QAction *m_actionToggleLLMWidget{nullptr};
@@ -288,9 +297,10 @@ private:
 
     QMap<QString, float> m_screen_dpr_map; // DPR per screen
     QString m_config_file_path;
-    QString m_currentHintInput;
+    QString m_lockedInputBuffer; // Used for link hints and waiting input event
+                                 // like for marks etc.
     bool m_link_hint_mode{false}, m_focus_mode{false},
-        m_load_default_keybinding{true};
+        m_load_default_keybinding{true}, m_get_input_mode{false};
     StartupWidget *m_startup_widget{nullptr};
     LinkHintMode m_link_hint_current_mode{LinkHintMode::None};
     QMap<int, Model::LinkInfo> m_link_hint_map;
@@ -309,6 +319,7 @@ private:
     HighlightSearchWidget *m_highlight_search_widget{nullptr};
     CommandPaletteWidget *m_command_palette_widget{nullptr};
     FloatingOverlayWidget *m_command_palette_overlay{nullptr};
+    MarkManager m_marks_manager;
 
 #ifdef ENABLE_LLM_SUPPORT
     // LLM Support
