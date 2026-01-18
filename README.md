@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-<a href="LICENSE.md"><img src="https://shields.io/badge/LICENSE-AGPL--3.0"></a>
+<a href="LICENSE.md"><img src="https://img.shields.io/badge/LICENSE-AGPL--3.0"></a>
 <a href="https://github.com/dheerajshenoy/dodo/releases"><img src="https://img.shields.io/github/release/dheerajshenoy/dodo.svg?style=for-the-badge"></a>
 <a href="https://isocpp.org"><img src="https://img.shields.io/badge/LANGUAGE-C%2B%2B-orange?style=for-the-badge"></a>
 </p>
