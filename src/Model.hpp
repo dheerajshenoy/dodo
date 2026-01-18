@@ -285,7 +285,7 @@ public:
         return m_page_width_pts;
     }
 
-    inline float pageHeightPts() const noexcept
+    [[nodiscard]] inline float pageHeightPts() const noexcept
     {
         return m_page_height_pts;
     }
