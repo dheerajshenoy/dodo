@@ -844,7 +844,6 @@ dodo::initDefaultKeybinds() noexcept
     addShortcut("h", [this]() { ScrollLeft(); });
     addShortcut("j", [this]() { ScrollDown(); });
     addShortcut("k", [this]() { ScrollUp(); });
-    addShortcut("h", [this]() { ScrollLeft(); });
     addShortcut("l", [this]() { ScrollRight(); });
 
     m_config.shortcuts["next_page"]  = "Shift+j";
