@@ -97,7 +97,7 @@ dodo::construct() noexcept
     initGui();
     updateGUIFromConfig();
     if (m_load_default_keybinding)
-        initKeybinds();
+        initDefaultKeybinds();
     initMenubar();
     warnShortcutConflicts();
     initDB();
@@ -331,20 +331,23 @@ dodo::initMenubar() noexcept
     m_actionTextHighlight->setCheckable(true);
     modeActionGroup->addAction(m_actionTextHighlight);
 
-    m_actionAnnotRect = m_modeMenu->addAction(
-        QString("Annotate Rectangle\t%1").arg(m_config.shortcuts["annot_rect"]),
-        this, &dodo::ToggleAnnotRect);
+    m_actionAnnotRect
+        = m_modeMenu->addAction(QString("Annotate Rectangle\t%1")
+                                    .arg(m_config.shortcuts["annot_rect_mode"]),
+                                this, &dodo::ToggleAnnotRect);
     m_actionAnnotRect->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotRect);
 
-    m_actionAnnotEdit = m_modeMenu->addAction(
-        QString("Edit Annotations\t%1").arg(m_config.shortcuts["annot_edit"]),
-        this, &dodo::ToggleAnnotSelect);
+    m_actionAnnotEdit
+        = m_modeMenu->addAction(QString("Edit Annotations\t%1")
+                                    .arg(m_config.shortcuts["annot_edit_mode"]),
+                                this, &dodo::ToggleAnnotSelect);
     m_actionAnnotEdit->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotEdit);
 
     m_actionAnnotPopup = m_modeMenu->addAction(
-        QString("Annotate Popup\t%1").arg(m_config.shortcuts["annot_popup"]),
+        QString("Annotate Popup\t%1")
+            .arg(m_config.shortcuts["annot_popup_mode"]),
         this, &dodo::ToggleAnnotPopup);
     m_actionAnnotPopup->setCheckable(true);
     modeActionGroup->addAction(m_actionAnnotPopup);
@@ -822,47 +825,8 @@ dodo::initConfig() noexcept
 
 // Initialize the keybindings related stuff
 void
-dodo::initKeybinds() noexcept
+dodo::initDefaultKeybinds() noexcept
 {
-    m_config.shortcuts[QStringLiteral("undo")] = QStringLiteral("u");
-    m_config.shortcuts[QStringLiteral("redo")] = QStringLiteral("Ctrl+r");
-    m_config.shortcuts[QStringLiteral("toggle_menubar")]
-        = QStringLiteral("Ctrl+Shift+m");
-    m_config.shortcuts[QStringLiteral("invert_color")]    = QStringLiteral("b");
-    m_config.shortcuts[QStringLiteral("link_hint_visit")] = QStringLiteral("f");
-    m_config.shortcuts[QStringLiteral("save")] = QStringLiteral("Ctrl+s");
-    m_config.shortcuts[QStringLiteral("text_highlight_mode")]
-        = QStringLiteral("1");
-    m_config.shortcuts[QStringLiteral("annot_rect_mode")] = QStringLiteral("2");
-    m_config.shortcuts[QStringLiteral("annot_edit_mode")] = QStringLiteral("3");
-    m_config.shortcuts[QStringLiteral("outline")]         = QStringLiteral("t");
-    m_config.shortcuts[QStringLiteral("search")]          = QStringLiteral("/");
-    m_config.shortcuts[QStringLiteral("search_next")]     = QStringLiteral("n");
-    m_config.shortcuts[QStringLiteral("search_prev")]
-        = QStringLiteral("Shift+n");
-    m_config.shortcuts[QStringLiteral("zoom_in")]    = QStringLiteral("+");
-    m_config.shortcuts[QStringLiteral("zoom_out")]   = QStringLiteral("-");
-    m_config.shortcuts[QStringLiteral("zoom_reset")] = QStringLiteral("0");
-    m_config.shortcuts[QStringLiteral("fit_width")]
-        = QStringLiteral("Ctrl+Shift+W");
-    m_config.shortcuts[QStringLiteral("fit_height")]
-        = QStringLiteral("Ctrl+Shift+H");
-    m_config.shortcuts[QStringLiteral("fit_window")]
-        = QStringLiteral("Ctrl+Shift+=");
-    m_config.shortcuts[QStringLiteral("auto_resize")]
-        = QStringLiteral("Ctrl+Shift+R");
-    m_config.shortcuts[QStringLiteral("prev_location")]
-        = QStringLiteral("Ctrl+o");
-    m_config.shortcuts[QStringLiteral("open_file")]    = QStringLiteral("o");
-    m_config.shortcuts[QStringLiteral("scroll_left")]  = QStringLiteral("h");
-    m_config.shortcuts[QStringLiteral("scroll_down")]  = QStringLiteral("j");
-    m_config.shortcuts[QStringLiteral("scroll_up")]    = QStringLiteral("k");
-    m_config.shortcuts[QStringLiteral("scroll_right")] = QStringLiteral("l");
-    m_config.shortcuts[QStringLiteral("next_page")] = QStringLiteral("Shift+j");
-    m_config.shortcuts[QStringLiteral("prev_page")] = QStringLiteral("Shift+k");
-    m_config.shortcuts[QStringLiteral("first_page")] = QStringLiteral("g,g");
-    m_config.shortcuts[QStringLiteral("last_page")] = QStringLiteral("Shift+g");
-
     // Helper lambda to create and connect shortcuts
     auto addShortcut = [this](const char *key, auto &&func)
     {
@@ -870,43 +834,107 @@ dodo::initKeybinds() noexcept
         connect(sc, &QShortcut::activated, std::forward<decltype(func)>(func));
     };
 
-    addShortcut("Ctrl+Shift+m", [this]() { ToggleMenubar(); });
-    addShortcut("i", [this]() { InvertColor(); });
-    addShortcut("b", [this]() { GotoPage(); });
-    addShortcut("f", [this]() { VisitLinkKB(); });
-    addShortcut("Ctrl+s", [this]() { SaveFile(); });
-    addShortcut("1", [this]() { ToggleTextSelection(); });
-    addShortcut("2", [this]() { ToggleTextHighlight(); });
-    addShortcut("3", [this]() { ToggleAnnotRect(); });
-    addShortcut("4", [this]() { ToggleAnnotSelect(); });
-    addShortcut("5", [this]() { ToggleAnnotPopup(); });
-    addShortcut("/", [this]() { Search(); });
-    addShortcut("t", [this]() { ShowOutline(); });
-    addShortcut("n", [this]() { NextHit(); });
-    addShortcut("Shift+n", [this]() { PrevHit(); });
-    addShortcut("Ctrl+o", [this]() { GoBackHistory(); });
-    addShortcut("o", [this]() { OpenFile(); });
+    // Navigation
+
+    m_config.shortcuts["scroll_left"]  = "h";
+    m_config.shortcuts["scroll_down"]  = "j";
+    m_config.shortcuts["scroll_up"]    = "k";
+    m_config.shortcuts["scroll_right"] = "l";
+
+    addShortcut("h", [this]() { ScrollLeft(); });
     addShortcut("j", [this]() { ScrollDown(); });
     addShortcut("k", [this]() { ScrollUp(); });
     addShortcut("h", [this]() { ScrollLeft(); });
     addShortcut("l", [this]() { ScrollRight(); });
+
+    m_config.shortcuts["next_page"]  = "Shift+j";
+    m_config.shortcuts["prev_page"]  = "Shift+k";
+    m_config.shortcuts["first_page"] = "g,g";
+    m_config.shortcuts["last_page"]  = "Shift+g";
+
     addShortcut("Shift+j", [this]() { NextPage(); });
     addShortcut("Shift+k", [this]() { PrevPage(); });
     addShortcut("g,g", [this]() { FirstPage(); });
     addShortcut("Shift+g", [this]() { LastPage(); });
-    addShortcut("0", [this]() { ZoomReset(); });
+    addShortcut("Ctrl+g", [this]() { GotoPage(); });
+
+    // Search
+    m_config.shortcuts["search"]      = "/";
+    m_config.shortcuts["search_next"] = "n";
+    m_config.shortcuts["search_prev"] = "Shift+n";
+
+    addShortcut("/", [this]() { Search(); });
+    addShortcut("n", [this]() { NextHit(); });
+    addShortcut("Shift+n", [this]() { PrevHit(); });
+
+    // Zoom
+    m_config.shortcuts["zoom_in"]    = "+";
+    m_config.shortcuts["zoom_out"]   = "-";
+    m_config.shortcuts["zoom_reset"] = "0";
+
     addShortcut("=", [this]() { ZoomIn(); });
     addShortcut("-", [this]() { ZoomOut(); });
+    addShortcut("0", [this]() { ZoomReset(); });
+
+    // Fit modes
+    m_config.shortcuts["fit_width"]   = "Ctrl+Shift+W";
+    m_config.shortcuts["fit_height"]  = "Ctrl+Shift+H";
+    m_config.shortcuts["fit_window"]  = "Ctrl+Shift+=";
+    m_config.shortcuts["auto_resize"] = "Ctrl+Shift+R";
+
     addShortcut("Ctrl+Shift+W", [this]() { FitWidth(); });
     addShortcut("Ctrl+Shift+H", [this]() { FitHeight(); });
     addShortcut("Ctrl+Shift+=", [this]() { FitWindow(); });
     addShortcut("Ctrl+Shift+R", [this]() { ToggleAutoResize(); });
-    addShortcut("<", [this]() { RotateAnticlock(); });
-    addShortcut(">", [this]() { RotateClock(); });
+
+    // Outline and History
+    m_config.shortcuts["outline"]                = "t";
+    m_config.shortcuts["highlight_annot_search"] = "Alt+Shift+H";
+    m_config.shortcuts["prev_location"]          = "Ctrl+o";
+
+    addShortcut("t", [this]() { ShowOutline(); });
+    addShortcut("Alt+Shift+H", [this]() { ShowOutline(); });
+    addShortcut("Ctrl+o", [this]() { GoBackHistory(); });
+
+    // Annotations and Interaction modes
+    m_config.shortcuts["text_selection_mode"] = "1";
+    m_config.shortcuts["text_highlight_mode"] = "2";
+    m_config.shortcuts["annot_rect_mode"]     = "3";
+    m_config.shortcuts["region_select_mode"]  = "4";
+    m_config.shortcuts["annot_popup_mode"]    = "5";
+
+    addShortcut("1", [this]() { ToggleTextSelection(); });
+    addShortcut("2", [this]() { ToggleTextHighlight(); });
+    addShortcut("3", [this]() { ToggleAnnotRect(); });
+    addShortcut("4", [this]() { ToggleRegionSelect(); });
+    addShortcut("5", [this]() { ToggleAnnotPopup(); });
+
+    // Links and Actions
+    m_config.shortcuts["link_hint_visit"] = "f";
+    m_config.shortcuts["open_file"]       = "o";
+    m_config.shortcuts["save"]            = "Ctrl+s";
+    addShortcut("f", [this]() { VisitLinkKB(); });
+    addShortcut("o", [this]() { OpenFile(); });
+    addShortcut("Ctrl+s", [this]() { SaveFile(); });
+
+    // Editing and UI
+    m_config.shortcuts["undo"]            = "u";
+    m_config.shortcuts["redo"]            = "Ctrl+r";
+    m_config.shortcuts["invert_color"]    = "i";
+    m_config.shortcuts["toggle_menubar"]  = "Ctrl+Shift+m";
+    m_config.shortcuts["command_palette"] = ":";
+
     addShortcut("u", [this]() { Undo(); });
     addShortcut("Ctrl+r", [this]() { Redo(); });
-    addShortcut("Alt+Shift+H", [this]() { ShowOutline(); });
+    addShortcut("i", [this]() { InvertColor(); });
+    addShortcut("Ctrl+Shift+m", [this]() { ToggleMenubar(); });
     addShortcut("Ctrl+Shift+P", [this]() { ToggleCommandPalette(); });
+
+    // Rotation
+    m_config.shortcuts["rotate_clock"]     = ">";
+    m_config.shortcuts["rotate_anticlock"] = ">";
+    addShortcut("<", [this]() { RotateAnticlock(); });
+    addShortcut(">", [this]() { RotateClock(); });
 }
 
 void
@@ -3044,6 +3072,7 @@ dodo::initActionMap() noexcept
 #ifdef ENABLE_LLM_SUPPORT
         ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
 #endif
+
         ACTION_NO_ARGS("command_palette", ToggleCommandPalette),
         ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
         ACTION_NO_ARGS("encrypt", EncryptDocument),
@@ -3081,11 +3110,13 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("zoom_out", ZoomOut),
         ACTION_NO_ARGS("zoom_reset", ZoomReset),
         ACTION_NO_ARGS("region_select_mode", ToggleRegionSelect),
+
         ACTION_NO_ARGS("annot_edit_mode", ToggleAnnotSelect),
         ACTION_NO_ARGS("annot_popup_mode", ToggleAnnotPopup),
+        ACTION_NO_ARGS("annot_rect_mode", ToggleAnnotRect),
+
         ACTION_NO_ARGS("text_select_mode", ToggleTextSelection),
         ACTION_NO_ARGS("text_highlight_mode", ToggleTextHighlight),
-        ACTION_NO_ARGS("annot_rect_mode", ToggleAnnotRect),
         ACTION_NO_ARGS("fullscreen", ToggleFullscreen),
         ACTION_NO_ARGS("file_properties", FileProperties),
         ACTION_NO_ARGS("open_file", OpenFile),

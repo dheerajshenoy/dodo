@@ -79,7 +79,7 @@ private:
     void initMenubar() noexcept;
     void initGui() noexcept;
     void initConfig() noexcept;
-    void initKeybinds() noexcept;
+    void initDefaultKeybinds() noexcept;
     void warnShortcutConflicts() noexcept;
     void setupKeybinding(const QString &action, const QString &key) noexcept;
     void populateRecentFiles() noexcept;
