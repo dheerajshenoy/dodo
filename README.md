@@ -22,7 +22,9 @@
 ## Screenshots
 
 ### Home screen
-<img src="./images/dodo.png" alt="dodo home screen" width="800"/>
+| ![dodo home screen](./images/dodo.png) |
+|:--------------------------------------:|
+| Home Screen                            |
 
 ### Scrolling View
 <img src="./images/Scrolling.gif" alt="Scrolling" width="800"/>
