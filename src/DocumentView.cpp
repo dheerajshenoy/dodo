@@ -1386,9 +1386,7 @@ void
 DocumentView::SaveFile() noexcept
 {
     if (m_model->SaveChanges())
-    {
         setModified(false);
-    }
     else
     {
         QMessageBox::critical(
@@ -1580,7 +1578,6 @@ DocumentView::ClearTextSelection() noexcept
     }
     m_selection_start = QPointF();
     m_selection_end   = QPointF();
-    m_model->clear_fz_stext_page_cache(); // clear cached text pages
 }
 
 // Yank the current text selection to clipboard
@@ -3225,7 +3222,8 @@ DocumentView::tryReloadLater(int attempt) noexcept
         }
         else
         {
-            requestPageRender(m_pageno);
+            renderVisiblePages();
+            emit totalPageCountChanged(m_model->m_page_count);
 #ifdef HAS_SYNCTEX
             initSynctex();
 #endif
