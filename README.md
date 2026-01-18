@@ -13,7 +13,7 @@
 <p align="center">
 <a href="https://github.com/dheerajshenoy/dodo/releases"><img src="https://img.shields.io/github/v/release/dheerajshenoy/dodo?style=for-the-badge&color=red"></a>
 <a href="https://isocpp.org"><img src="https://img.shields.io/badge/LANGUAGE-C%2B%2B-blue?style=for-the-badge"></a>
-<a href="LICENSE.md"><img alt="Static Badge" src="https://img.shields.io/badge/LICENSE-AGPL--3.0-lime?style=for-the-badge"></a>
+<a href="LICENSE.md"><img alt="Static Badge" src="https://img.shields.io/badge/LICENSE-AGPL--3.0-darkgreen?style=for-the-badge"></a>
 </p>
 
 > [!WARNING]
