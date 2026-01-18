@@ -72,7 +72,6 @@ public:
         // Draw hover glow effect
         if (m_hovered)
         {
-            QColor glowColor(255, 200, 0, 100);
             for (int i = 3; i >= 1; --i)
             {
                 painter->setPen(Qt::NoPen);
