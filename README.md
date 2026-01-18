@@ -10,9 +10,12 @@
     <a href="https://dheerajshenoy.github.io/dodo-configuration.html" target="_blank">Configuration</a>
 </p>
 
-[![GitHub License](https://shields.io/badge/LICENSE-AGPL-3)](https://opensource.org/license/agpl-v3)
-![C++](https://img.shields.io/badge/c++-%2300599C.svg?style=for-the-badge&logo=c%2B%2B&logoColor=white)
-![Qt](https://img.shields.io/badge/Qt-%23217346.svg?style=for-the-badge&logo=Qt&logoColor=white)
+<p align="center">
+[![GitHub License](https://shields.io/badge/LICENSE-AGPL--3.0)](LICENSE.md)
+[![QT](https://img.shields.io/badge/GUI-Qt-lime?style=for-the-badge)](https://www.qt.io/)
+[![C++](https://img.shields.io/badge/LANGUAGE-C%2B%2B-orange?style=for-the-badge)](https://isocpp.org/)
+[![MuPDF](https://img.shields.io/badge/PDF--ENGINE-MuPDF-blue?style=for-the-badge)](https://mupdf.com/)
+</p>
 
 > [!NOTE]
 > Latest dodo version is v0.6.0
