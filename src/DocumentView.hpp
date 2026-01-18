@@ -357,6 +357,7 @@ private:
     void handleDeferredResize() noexcept;
     void removePageItem(int pageno) noexcept;
     void createAndAddPlaceholderPageItem(int pageno) noexcept;
+    void prunePendingRenders(const std::set<int> &visiblePages) noexcept;
     void renderSearchHitsForPage(int pageno) noexcept;
     void renderSearchHitsInScrollbar() noexcept;
     void clearSearchHits() noexcept;
@@ -393,6 +394,7 @@ private:
     QSet<int> m_pending_renders;
     QQueue<int> m_render_queue;
     bool m_render_in_flight{false};
+    int m_render_in_flight_page{-1};
     float m_old_y{0.0f};
     JumpMarker *m_jump_marker{nullptr};
     QTimer *m_scroll_page_update_timer{nullptr};

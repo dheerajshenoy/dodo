@@ -27,6 +27,7 @@
 #include <QPainter>
 #include <QProcess>
 #include <QTextCursor>
+#include <QTransform>
 #include <QUrl>
 #include <QVBoxLayout>
 #include <QtConcurrent/QtConcurrent>
@@ -1049,19 +1050,37 @@ DocumentView::zoomHelper() noexcept
         GraphicsPixmapItem *item = it.value();
 
         const QPixmap pix = item->pixmap();
+        const bool isPlaceholder
+            = (item->data(0).toString() == "placeholder_page");
 
-        // Calculate scale based on ACTUAL pixmap height vs TARGET pixel
-        // height This ensures the item perfectly fills the 'pixelHeight'
-        // portion of the stride
-        double currentPixmapHeight = item->pixmap().height();
-        double perfectScale
-            = static_cast<double>(targetPixelHeight) / currentPixmapHeight;
-        item->setScale(perfectScale);
+        double pageWidthScene  = 0.0;
+        double pageHeightScene = 0.0;
+        if (isPlaceholder)
+        {
+            const QSizeF logicalSize = currentPageSceneSize();
+            if (!pix.isNull() && pix.width() > 0 && pix.height() > 0)
+            {
+                item->setScale(1.0);
+                item->setTransform(
+                    QTransform::fromScale(logicalSize.width() / pix.width(),
+                                          logicalSize.height() / pix.height()));
+            }
+            pageWidthScene  = logicalSize.width();
+            pageHeightScene = logicalSize.height();
+        }
+        else
+        {
+            // Calculate scale based on ACTUAL pixmap height vs TARGET pixel
+            // height This ensures the item perfectly fills the 'pixelHeight'
+            // portion of the stride
+            double currentPixmapHeight = item->pixmap().height();
+            double perfectScale
+                = static_cast<double>(targetPixelHeight) / currentPixmapHeight;
+            item->setScale(perfectScale);
 
-        const double pageWidthScene
-            = item->boundingRect().width() * item->scale();
-        const double pageHeightScene
-            = item->boundingRect().height() * item->scale();
+            pageWidthScene  = item->boundingRect().width() * item->scale();
+            pageHeightScene = item->boundingRect().height() * item->scale();
+        }
         const QRectF sr = m_gview->sceneRect();
 
         if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
@@ -1765,6 +1784,7 @@ DocumentView::renderVisiblePages() noexcept
 {
     std::set<int> visiblePages = getVisiblePages();
 
+    prunePendingRenders(visiblePages);
     removeUnusedPageItems(visiblePages);
     // ClearTextSelection();
 
@@ -1779,11 +1799,50 @@ DocumentView::renderVisiblePages() noexcept
 void
 DocumentView::renderPage() noexcept
 {
+    prunePendingRenders({m_pageno});
     removeUnusedPageItems({m_pageno});
     requestPageRender(m_pageno);
 
     updateSceneRect();
     updateCurrentHitHighlight();
+}
+
+void
+DocumentView::prunePendingRenders(const std::set<int> &visiblePages) noexcept
+{
+    if (m_pending_renders.isEmpty() && m_render_queue.isEmpty())
+        return;
+
+    QSet<int> visibleSet;
+    for (int pageno : visiblePages)
+        visibleSet.insert(pageno);
+
+    const int inFlightPage = m_render_in_flight ? m_render_in_flight_page : -1;
+
+    for (auto it = m_pending_renders.begin(); it != m_pending_renders.end();)
+    {
+        const int pageno = *it;
+        if (pageno == inFlightPage || visibleSet.contains(pageno))
+        {
+            ++it;
+        }
+        else
+        {
+            it = m_pending_renders.erase(it);
+        }
+    }
+
+    if (m_render_queue.isEmpty())
+        return;
+
+    QQueue<int> filtered;
+    while (!m_render_queue.isEmpty())
+    {
+        const int pageno = m_render_queue.dequeue();
+        if (pageno == inFlightPage || visibleSet.contains(pageno))
+            filtered.enqueue(pageno);
+    }
+    m_render_queue = std::move(filtered);
 }
 
 void
@@ -2212,7 +2271,8 @@ DocumentView::clearDocumentItems() noexcept
     m_page_annotations_hash.clear();
     m_pending_renders.clear();
     m_render_queue.clear();
-    m_render_in_flight = false;
+    m_render_in_flight      = false;
+    m_render_in_flight_page = -1;
 }
 
 // Request rendering of a specific page (ASYNC)
@@ -2244,22 +2304,28 @@ DocumentView::startNextRenderJob() noexcept
         if (!m_pending_renders.contains(pageno))
             continue;
 
-        m_render_in_flight = true;
-        auto job           = m_model->createRenderJob(pageno);
+        m_render_in_flight      = true;
+        m_render_in_flight_page = pageno;
+        auto job                = m_model->createRenderJob(pageno);
 
         m_model->requestPageRender(
             job, [this, pageno](const Model::PageRenderResult &result)
         {
             m_pending_renders.remove(pageno);
-            m_render_in_flight = false;
+            m_render_in_flight      = false;
+            m_render_in_flight_page = -1;
 
             const QImage &image = result.image;
             if (!image.isNull())
             {
-                renderPageFromImage(pageno, result.image);
-                renderLinks(pageno, result.links);
-                renderAnnotations(pageno, result.annotations);
-                renderSearchHitsForPage(pageno);
+                const std::set<int> &visiblePages = getVisiblePages();
+                if (visiblePages.find(pageno) != visiblePages.end())
+                {
+                    renderPageFromImage(pageno, result.image);
+                    renderLinks(pageno, result.links);
+                    renderAnnotations(pageno, result.annotations);
+                    renderSearchHitsForPage(pageno);
+                }
 
                 if (m_pending_jump.pageno != -1)
                 {
@@ -2300,50 +2366,41 @@ DocumentView::createAndAddPlaceholderPageItem(int pageno) noexcept
     if (logicalSize.isEmpty())
         return;
 
-    const qreal dpr = m_model->DPR();
-    const int pixelW
-        = std::max(1, static_cast<int>(std::lround(logicalSize.width() * dpr)));
-    const int pixelH = std::max(
-        1, static_cast<int>(std::lround(logicalSize.height() * dpr)));
+    QPixmap pix(1, 1);
+    pix.fill(m_model->invertColor() ? Qt::black : Qt::white);
 
-    QPixmap pix(pixelW, pixelH);
-    pix.setDevicePixelRatio(dpr);
+    auto *item = new GraphicsPixmapItem();
+    item->setPixmap(pix);
+    item->setTransform(
+        QTransform::fromScale(logicalSize.width() / pix.width(),
+                              logicalSize.height() / pix.height()));
 
-    const QColor bg(Qt::white);
-    const QColor base = bg.lightness() > 128 ? bg.darker(110) : bg.lighter(130);
-    const QColor accent
-        = bg.lightness() > 128 ? bg.darker(160) : bg.lighter(160);
-    const QColor textColor
-        = bg.lightness() > 128 ? bg.darker(200) : bg.lighter(200);
+    const double pageW = logicalSize.width();
+    const double pageH = logicalSize.height();
+    const QRectF sr    = m_gview->sceneRect();
 
-    pix.fill(base);
+    if (m_layout_mode == LayoutMode::LEFT_TO_RIGHT)
+    {
+        const double yOffset = (sr.height() - pageH) / 2.0;
+        const double xPos    = pageno * m_page_stride;
+        item->setPos(xPos, yOffset);
+    }
+    else if (m_layout_mode == LayoutMode::SINGLE)
+    {
+        const double xOffset = (sr.width() - pageW) / 2.0;
+        const double yOffset = (sr.height() - pageH) / 2.0;
+        item->setPos(xOffset, yOffset);
+    }
+    else
+    {
+        const double xOffset = (sr.width() - pageW) / 2.0;
+        const double yPos    = pageno * m_page_stride;
+        item->setPos(xOffset, yPos);
+    }
 
-    QPainter painter(&pix);
-    painter.setRenderHint(QPainter::Antialiasing, false);
-    const QRectF rect(0.0, 0.0, logicalSize.width(), logicalSize.height());
-
-    QPen borderPen(accent);
-    borderPen.setWidthF(1.0);
-    painter.setPen(borderPen);
-    painter.setBrush(Qt::NoBrush);
-    painter.drawRect(rect.adjusted(0.5, 0.5, -0.5, -0.5));
-
-    QColor hatchColor = accent;
-    hatchColor.setAlpha(60);
-    painter.fillRect(rect, QBrush(hatchColor, Qt::BDiagPattern));
-
-    // QFont font         = painter.font();
-    // const qreal minDim = std::min(rect.width(), rect.height());
-    // font.setPointSizeF(std::max(10.0, minDim / 18.0));
-    // font.setBold(true);
-    // painter.setFont(font);
-    // painter.setPen(textColor);
-    // painter.drawText(rect, Qt::AlignCenter, QStringLiteral("Loading..."));
-
-    createAndAddPageItem(pageno, pix);
-    GraphicsPixmapItem *item = m_page_items_hash.value(pageno, nullptr);
-    if (item)
-        item->setData(0, QStringLiteral("placeholder_page"));
+    m_gscene->addItem(item);
+    m_page_items_hash[pageno] = item;
+    item->setData(0, QStringLiteral("placeholder_page"));
 }
 
 void
