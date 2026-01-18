@@ -3,7 +3,9 @@
 #include <QLabel>
 #include <QWidget>
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QQueue>
+#include <QWidget>
 
 class MessageBar : public QWidget
 {
@@ -19,7 +21,7 @@ public:
 
 private:
     void showNext() noexcept;
-    bool m_showing { false };
+    bool m_showing{false};
     QQueue<MessageItem> m_queue;
     QLabel *m_label{new QLabel()};
 };
