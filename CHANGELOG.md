@@ -6,6 +6,7 @@
 ### Features
 
 - Add `tutorial_file` command to show a tutorial PDF file
+- Added `role.txt` system prompts for the LLM
 
 ### Breaking Changes
 

@@ -2,6 +2,7 @@
 
 #include "providers/ollama/OllamaProvider.hpp"
 
+#include <QDir>
 #include <QFile>
 #include <QFont>
 #include <QHBoxLayout>
@@ -29,7 +30,14 @@ LLMWidget::initProvider() noexcept
         m_provider = new OllamaProvider();
 
         std::string promptText;
-        QFile roleFile("/home/dheeraj/Gits/dodo/src/llm/role.txt");
+
+#if defined(__linux__)
+        const QString rolePath
+            = QDir(APP_INSTALL_PREFIX).filePath("share/dodo/role.txt");
+#endif
+
+        QFile roleFile(rolePath);
+
         if (!roleFile.open(QIODevice::ReadOnly | QIODevice::Text))
         {
             QMessageBox::critical(

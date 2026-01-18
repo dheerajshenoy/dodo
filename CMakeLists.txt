@@ -151,3 +151,7 @@ install(DIRECTORY resources/hicolor DESTINATION share/icons FILES_MATCHING PATTE
 # Install docs
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/tutorial.pdf
     DESTINATION share/doc/${PROJECT_NAME})
+
+if(ENABLE_LLM_SUPPORT)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/llm/role.txt DESTINATION share/${PROJECT_NAME}/)
+endif()
