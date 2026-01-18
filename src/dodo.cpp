@@ -1254,7 +1254,7 @@ dodo::ShowAbout() noexcept
 // Reads the arguments passed with `dodo` from the
 // commandline
 void
-dodo::readArgsParser(argparse::ArgumentParser &argparser) noexcept
+dodo::ReadArgsParser(argparse::ArgumentParser &argparser) noexcept
 {
     if (argparser.is_used("version"))
     {
