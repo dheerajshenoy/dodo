@@ -15,8 +15,7 @@
 ![Qt](https://img.shields.io/badge/Qt-%23217346.svg?style=for-the-badge&logo=Qt&logoColor=white)
 
 > [!NOTE]
-> Latest dodo version is v0.5.6
-
+> Latest dodo version is v0.6.0
 
 ## Screenshots
 

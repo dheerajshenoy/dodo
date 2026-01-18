@@ -27,7 +27,7 @@ panel_width = 400
 mode = "top_to_bottom" # "single", "top_to_bottom", "left_to_right"
 initial_fit = "width" # "none", "width", "height", "window"
 auto_resize = false # fit document to window
-spacing = 0
+spacing = 10
 
 [ui.zoom]
 level = 1.0 # default zoom factor
