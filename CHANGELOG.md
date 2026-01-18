@@ -11,6 +11,11 @@
 - Implement LRU (Least Recently Used) cache for reduced memory usage
     - Respect `behavior.cache_pages` config option for this
 
+
+### Optimizations
+
+- Colors are now stored as packed RGBA ints and parsed from hex config values
+
 ### Breaking Changes
 
 **NOTE**: You might have to change few things in the config

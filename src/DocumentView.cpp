@@ -92,12 +92,15 @@ DocumentView::initGui() noexcept
 
     m_spacing             = m_config.ui.layout.spacing;
     m_selection_path_item = m_gscene->addPath(QPainterPath());
-    m_selection_path_item->setBrush(QBrush(m_config.ui.colors["selection"]));
+
+    m_selection_path_item->setBrush(
+        QBrush(rgbaToQColor(m_config.ui.colors.selection)));
     m_selection_path_item->setPen(Qt::NoPen);
     m_selection_path_item->setZValue(ZVALUE_TEXT_SELECTION);
 
     m_current_search_hit_item = m_gscene->addPath(QPainterPath());
-    m_current_search_hit_item->setBrush(m_config.ui.colors["search_index"]);
+    m_current_search_hit_item->setBrush(
+        rgbaToQColor(m_config.ui.colors.search_index));
     m_current_search_hit_item->setPen(Qt::NoPen);
     m_current_search_hit_item->setZValue(ZVALUE_SEARCH_HITS + 1);
 
@@ -115,19 +118,20 @@ DocumentView::initGui() noexcept
     connect(m_resize_timer, &QTimer::timeout, this,
             &DocumentView::handleDeferredResize);
 
-    m_jump_marker = new JumpMarker(m_config.ui.colors["jump_marker"]);
+    m_jump_marker
+        = new JumpMarker(rgbaToQColor(m_config.ui.colors.jump_marker));
     m_jump_marker->setZValue(ZVALUE_JUMP_MARKER);
     m_gscene->addItem(m_jump_marker);
 
     m_gview->setAlignment(Qt::AlignCenter);
     m_gview->setDefaultMode(m_config.behavior.initial_mode);
     m_gview->setMode(m_config.behavior.initial_mode);
-    m_gview->setBackgroundBrush(QColor(m_config.ui.colors["background"]));
+    m_gview->setBackgroundBrush(rgbaToQColor(m_config.ui.colors.background));
     m_model->setDPI(m_config.rendering.dpi);
     m_model->setAnnotRectColor(
-        QColor(m_config.ui.colors["annot_rect"]).toRgb());
-    m_model->setSelectionColor(m_config.ui.colors["selection"]);
-    m_model->setHighlightColor(m_config.ui.colors["highlight"]);
+        rgbaToQColor(m_config.ui.colors.annot_rect).toRgb());
+    m_model->setSelectionColor(rgbaToQColor(m_config.ui.colors.selection));
+    m_model->setHighlightColor(rgbaToQColor(m_config.ui.colors.highlight));
     // m_model->setAntialiasingBits(m_config.rendering.antialiasing_bits);
     m_model->undoStack()->setUndoLimit(m_config.behavior.undo_limit);
 
@@ -1285,8 +1289,8 @@ DocumentView::LinkKB() noexcept
     font.setPointSizeF(fontSize);
     QFontMetricsF metrics(font);
 
-    const QColor bg = m_config.ui.colors["link_hint_bg"];
-    const QColor fg = m_config.ui.colors["link_hint_fg"];
+    const QColor bg = rgbaToQColor(m_config.ui.colors.link_hint_bg);
+    const QColor fg = rgbaToQColor(m_config.ui.colors.link_hint_fg);
 
     for (const auto &entry : visibleLinks)
     {
@@ -2776,7 +2780,7 @@ DocumentView::renderSearchHitsForPage(int pageno) noexcept
 
     // Set colors
     item->setPath(allPath);
-    item->setBrush(m_config.ui.colors["search_match"]);
+    item->setBrush(rgbaToQColor(m_config.ui.colors.search_match));
 }
 
 // Render search hits in the scrollbar

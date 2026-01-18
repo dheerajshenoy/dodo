@@ -124,15 +124,26 @@ struct Config
         } llm_widget{};
 #endif
 
-        QHash<QString, QColor> colors{};
+        struct colors
+        {
+            uint32_t accent{0x3daee9FF};
+            uint32_t background{0x00000000};
+            uint32_t search_match{0x55500033};
+            uint32_t search_index{0x55FF0055};
+            uint32_t link_hint_bg{0x000000FF};
+            uint32_t link_hint_fg{0xea3ee9FF};
+            uint32_t selection{0x33000055};
+            uint32_t highlight{0x55FF0055};
+            uint32_t jump_marker{0xFF0000FF};
+            uint32_t annot_rect{0x55FF5588};
+            uint32_t annot_popup{0xFFFFFFAA};
+        } colors{};
     };
 
     struct rendering
     {
         float dpi{300};
-
         std::variant<float, QMap<QString, float>> dpr{};
-
         float inv_dpr{1.0f};
         bool icc_color_profile{true};
         int antialiasing_bits{8};
@@ -167,9 +178,7 @@ struct Config
         std::string model{"llama2-7b-chat"};
         int max_tokens{512};
         // float temperature{0.7f}; //
-    };
-
-    llm llm{};
+    } llm{};
 #endif
 
     ui ui{};

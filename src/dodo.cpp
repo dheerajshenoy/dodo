@@ -11,6 +11,7 @@
 #include "SearchBar.hpp"
 #include "StartupWidget.hpp"
 #include "toml.hpp"
+#include "utils.hpp"
 
 #include <QColorDialog>
 #include <QDesktopServices>
@@ -30,37 +31,6 @@
 
 namespace
 {
-QColor
-parseConfigColor(const QString &value, const QColor &fallback)
-{
-    QString hex = value.trimmed();
-    if (hex.isEmpty())
-        return fallback;
-    if (hex.startsWith('#'))
-        hex.remove(0, 1);
-    if (hex.size() != 6 && hex.size() != 8)
-        return fallback;
-
-    bool ok = true;
-    int r   = hex.mid(0, 2).toInt(&ok, 16);
-    if (!ok)
-        return fallback;
-    int g = hex.mid(2, 2).toInt(&ok, 16);
-    if (!ok)
-        return fallback;
-    int b = hex.mid(4, 2).toInt(&ok, 16);
-    if (!ok)
-        return fallback;
-    int a = 255;
-    if (hex.size() == 8)
-    {
-        a = hex.mid(6, 2).toInt(&ok, 16);
-        if (!ok)
-            return fallback;
-    }
-
-    return QColor(r, g, b, a);
-}
 } // namespace
 
 // Constructs the `dodo` class
@@ -450,7 +420,6 @@ dodo::initDB() noexcept
 void
 dodo::initDefaults() noexcept
 {
-    const QColor transparent(0, 0, 0, 0);
     m_config.ui.markers.jump_marker      = true;
     m_config.ui.statusbar.file_name_only = false;
     m_config.ui.zoom.level               = 1.0f;
@@ -465,26 +434,17 @@ dodo::initDefaults() noexcept
     m_config.ui.highlight_search.panel_width    = 300;
     m_config.ui.outline.type                    = "overlay";
 
-    m_config.ui.colors[QStringLiteral("search_index")]
-        = parseConfigColor(QStringLiteral("#3daee944"), transparent);
-    m_config.ui.colors[QStringLiteral("search_match")]
-        = parseConfigColor(QStringLiteral("#55FF8844"), transparent);
-    m_config.ui.colors[QStringLiteral("accent")]
-        = parseConfigColor(QStringLiteral("#FF500044"), transparent);
-    m_config.ui.colors[QStringLiteral("background")]
-        = parseConfigColor(QStringLiteral("#00000000"), transparent);
-    m_config.ui.colors[QStringLiteral("link_hint_fg")]
-        = parseConfigColor(QStringLiteral("#000000"), transparent);
-    m_config.ui.colors[QStringLiteral("link_hint_bg")]
-        = parseConfigColor(QStringLiteral("#FFFF00"), transparent);
-    m_config.ui.colors[QStringLiteral("highlight")]
-        = parseConfigColor(QStringLiteral("#55FFFF00"), transparent);
-    m_config.ui.colors[QStringLiteral("selection")]
-        = parseConfigColor(QStringLiteral("#55000055"), transparent);
-    m_config.ui.colors[QStringLiteral("jump_marker")]
-        = parseConfigColor(QStringLiteral("#FFFF0000"), transparent);
-    m_config.ui.colors[QStringLiteral("annot_rect")]
-        = parseConfigColor(QStringLiteral("#55FF0000"), transparent);
+    m_config.ui.colors.search_index = 0x3DAEE944;
+    m_config.ui.colors.search_match = 0x55FF8844;
+    m_config.ui.colors.accent       = 0xFF500044;
+    m_config.ui.colors.background   = 0x00000000;
+    m_config.ui.colors.link_hint_fg = 0x000000FF;
+    m_config.ui.colors.link_hint_bg = 0xFFFF00FF;
+    m_config.ui.colors.highlight    = 0x55FFFF00;
+    m_config.ui.colors.selection    = 0x55000055;
+    m_config.ui.colors.jump_marker  = 0xFFFF0000;
+    m_config.ui.colors.annot_rect   = 0x55FF0000;
+    m_config.ui.colors.annot_popup  = 0xFFFFFFAA;
 
     m_config.rendering.dpi = 300.0f;
     m_config.rendering.dpr
@@ -670,58 +630,39 @@ dodo::initConfig() noexcept
 
     auto colors = toml["colors"];
 
-    const QColor transparent(0, 0, 0, 0);
-    const QColor default_search_index
-        = parseConfigColor(QStringLiteral("#3daee944"), transparent);
-    const QColor default_search_match
-        = parseConfigColor(QStringLiteral("#FFFF8844"), transparent);
-    const QColor default_accent
-        = parseConfigColor(QStringLiteral("#FF500044"), transparent);
-    const QColor default_background
-        = parseConfigColor(QStringLiteral("#FFFFFF"), transparent);
-    const QColor default_link_hint_fg
-        = parseConfigColor(QStringLiteral("#000000"), transparent);
-    const QColor default_link_hint_bg
-        = parseConfigColor(QStringLiteral("#FFFF00"), transparent);
-    const QColor default_highlight
-        = parseConfigColor(QStringLiteral("#55FFFF00"), transparent);
-    const QColor default_selection
-        = parseConfigColor(QStringLiteral("#550000FF"), transparent);
-    const QColor default_jump_marker
-        = parseConfigColor(QStringLiteral("#FFFF0000"), transparent);
-    const QColor default_annot_rect
-        = parseConfigColor(QStringLiteral("#55FF0000"), transparent);
-
-    m_config.ui.colors["search_index"] = parseConfigColor(
-        QString::fromStdString(colors["search_index"].value_or("#3daee944")),
-        default_search_index);
-    m_config.ui.colors["search_match"] = parseConfigColor(
-        QString::fromStdString(colors["search_match"].value_or("#FFFF8844")),
-        default_search_match);
-    m_config.ui.colors["accent"] = parseConfigColor(
-        QString::fromStdString(colors["accent"].value_or("#FF500044")),
-        default_accent);
-    m_config.ui.colors["background"] = parseConfigColor(
-        QString::fromStdString(colors["background"].value_or("#FFFFFF")),
-        default_background);
-    m_config.ui.colors["link_hint_fg"] = parseConfigColor(
-        QString::fromStdString(colors["link_hint_fg"].value_or("#000000")),
-        default_link_hint_fg);
-    m_config.ui.colors["link_hint_bg"] = parseConfigColor(
-        QString::fromStdString(colors["link_hint_bg"].value_or("#FFFF00")),
-        default_link_hint_bg);
-    m_config.ui.colors["highlight"] = parseConfigColor(
-        QString::fromStdString(colors["highlight"].value_or("#55FFFF00")),
-        default_highlight);
-    m_config.ui.colors["selection"] = parseConfigColor(
-        QString::fromStdString(colors["selection"].value_or("#550000FF")),
-        default_selection);
-    m_config.ui.colors["jump_marker"] = parseConfigColor(
-        QString::fromStdString(colors["jump_marker"].value_or("#FFFF0000")),
-        default_jump_marker);
-    m_config.ui.colors["annot_rect"] = parseConfigColor(
-        QString::fromStdString(colors["annot_rect"].value_or("#55FF0000")),
-        default_annot_rect);
+    if (!parseHexColor(colors["accent"].value_or("#3DAEE9FF"),
+                       m_config.ui.colors.accent))
+        m_config.ui.colors.accent = 0x3DAEE9FF;
+    if (!parseHexColor(colors["background"].value_or("#00000000"),
+                       m_config.ui.colors.background))
+        m_config.ui.colors.background = 0x00000000;
+    if (!parseHexColor(colors["search_match"].value_or("#55500033"),
+                       m_config.ui.colors.search_match))
+        m_config.ui.colors.search_match = 0x55500033;
+    if (!parseHexColor(colors["search_index"].value_or("#55FF0055"),
+                       m_config.ui.colors.search_index))
+        m_config.ui.colors.search_index = 0x55FF0055;
+    if (!parseHexColor(colors["link_hint_bg"].value_or("#000000FF"),
+                       m_config.ui.colors.link_hint_bg))
+        m_config.ui.colors.link_hint_bg = 0x000000FF;
+    if (!parseHexColor(colors["link_hint_fg"].value_or("#EA3EE9FF"),
+                       m_config.ui.colors.link_hint_fg))
+        m_config.ui.colors.link_hint_fg = 0xEA3EE9FF;
+    if (!parseHexColor(colors["selection"].value_or("#33000055"),
+                       m_config.ui.colors.selection))
+        m_config.ui.colors.selection = 0x33000055;
+    if (!parseHexColor(colors["highlight"].value_or("#55FF0055"),
+                       m_config.ui.colors.highlight))
+        m_config.ui.colors.highlight = 0x55FF0055;
+    if (!parseHexColor(colors["jump_marker"].value_or("#FF0000FF"),
+                       m_config.ui.colors.jump_marker))
+        m_config.ui.colors.jump_marker = 0xFF0000FF;
+    if (!parseHexColor(colors["annot_rect"].value_or("#55FF5588"),
+                       m_config.ui.colors.annot_rect))
+        m_config.ui.colors.annot_rect = 0x55FF5588;
+    if (!parseHexColor(colors["annot_popup"].value_or("#FFFFFFAA"),
+                       m_config.ui.colors.annot_popup))
+        m_config.ui.colors.annot_popup = 0xFFFFFFAA;
 
     auto rendering = toml["rendering"];
 

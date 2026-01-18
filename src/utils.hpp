@@ -1,7 +1,10 @@
 #pragma once
 
+#include <QColor>
 #include <QPointF>
 #include <algorithm>
+#include <cstdint>
+#include <string_view>
 #include <vector>
 
 extern "C"
@@ -107,4 +110,14 @@ trim_ws(std::wstring &s)
         s.erase(s.begin());
     while (!s.empty() && is_space(s.back()))
         s.pop_back();
+}
+
+bool
+parseHexColor(std::string_view s, uint32_t &out);
+
+static inline QColor
+rgbaToQColor(uint32_t rgba) noexcept
+{
+    return QColor((rgba >> 24) & 0xFF, (rgba >> 16) & 0xFF, (rgba >> 8) & 0xFF,
+                  rgba & 0xFF);
 }

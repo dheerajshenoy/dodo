@@ -285,3 +285,48 @@ getQuadForSubstring(fz_stext_line *line, int start, int len)
     }
     return fz_quad_from_rect(rect);
 }
+
+bool
+parseHexColor(std::string_view s, uint32_t &out)
+{
+    if (s.empty())
+        return false;
+    if (s[0] == '#')
+        s.remove_prefix(1);
+    if (s.size() != 6 && s.size() != 8)
+        return false;
+
+    auto hex = [](char c) -> int
+    {
+        if (c >= '0' && c <= '9')
+            return c - '0';
+        if (c >= 'a' && c <= 'f')
+            return 10 + (c - 'a');
+        if (c >= 'A' && c <= 'F')
+            return 10 + (c - 'A');
+        return -1;
+    };
+
+    auto byte = [&](size_t i) -> int
+    {
+        int hi = hex(s[i]), lo = hex(s[i + 1]);
+        if (hi < 0 || lo < 0)
+            return -1;
+        return (hi << 4) | lo;
+    };
+
+    int r = byte(0), g = byte(2), b = byte(4);
+    if (r < 0 || g < 0 || b < 0)
+        return false;
+    int a = 255;
+    if (s.size() == 8)
+    {
+        a = byte(6);
+        if (a < 0)
+            return false;
+    }
+
+    out = (uint32_t(r) << 24) | (uint32_t(g) << 16) | (uint32_t(b) << 8)
+          | uint32_t(a);
+    return true;
+}
