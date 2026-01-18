@@ -147,16 +147,16 @@ protected:
 
     void hoverEnterEvent(QGraphicsSceneHoverEvent *e) override
     {
+        QGraphicsRectItem::hoverEnterEvent(e);
         setBrush(QBrush(QColor(1.0, 1.0, 0.0, 125)));
         QGuiApplication::setOverrideCursor(Qt::PointingHandCursor);
-        QGraphicsRectItem::hoverEnterEvent(e);
     }
 
     void hoverLeaveEvent(QGraphicsSceneHoverEvent *e) override
     {
+        QGraphicsRectItem::hoverLeaveEvent(e);
         setBrush(Qt::transparent);
         QGuiApplication::restoreOverrideCursor();
-        QGraphicsRectItem::hoverLeaveEvent(e);
     }
 
     void contextMenuEvent(QGraphicsSceneContextMenuEvent *e) override

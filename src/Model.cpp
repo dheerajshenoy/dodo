@@ -971,7 +971,9 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
                             fz_rect_from_irect(bbox), nullptr);
 
         if (job.invert_color)
+        {
             fz_invert_pixmap_luminance(ctx, pix);
+        }
         fz_gamma_pixmap(ctx, pix, 1.0f);
 
         int width  = fz_pixmap_width(ctx, pix);
