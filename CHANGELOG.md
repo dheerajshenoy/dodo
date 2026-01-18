@@ -5,6 +5,7 @@
 
 ### Features
 
+- Increased rendering performance.
 - Add `tutorial_file` command to show a tutorial PDF file
 - Added `role.txt` system prompts for the LLM
 - Implement LRU (Least Recently Used) cache for reduced memory usage
@@ -12,10 +13,14 @@
 
 ### Breaking Changes
 
+**NOTE**: You might have to change few things in the config
+
 - Command `first_tab`, `last_tab` renamed to `tab_first`, `tab_last`
 
 ### Bug Fixes
 
+- Cancel page rendering request when starting to scroll
+- Placeholder page items are just upscale pixmaps to reduce cpu and memory usage
 - Render visible pages instead of just reloading single page when file changes in disk
 - Don't cache `fz_stext_page` (very memory intensive)
 - LLM Widget
