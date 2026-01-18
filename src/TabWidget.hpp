@@ -9,11 +9,27 @@
 #include <QTabBar>
 #include <QTabWidget>
 
+namespace
+{
+using TabId = uint32_t;
+
+static TabId nextTabId{0};
+
+inline TabId
+newTabId() noexcept
+{
+    return nextTabId++;
+}
+
+} // namespace
+
 class TabWidget : public QTabWidget
 {
     Q_OBJECT
+    TabId m_id{0};
+
 public:
-    TabWidget(QWidget *parent = nullptr) : QTabWidget(parent)
+    TabWidget(QWidget *parent = nullptr) : QTabWidget(parent), m_id(newTabId())
     {
         m_tab_bar = new DraggableTabBar(this);
         setTabBar(m_tab_bar);
@@ -47,6 +63,11 @@ public:
         int result = QTabWidget::addTab(page, title);
         emit tabAdded(result);
         return result;
+    }
+
+    inline uint32_t id() const noexcept
+    {
+        return m_id;
     }
 
 protected:
