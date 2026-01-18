@@ -6,7 +6,7 @@
 #include "DraggableTabBar.hpp"
 #include "FloatingOverlayWidget.hpp"
 #include "HighlightSearchWidget.hpp"
-#include "MarkManager.hpp"
+// #include "MarkManager.hpp"
 #include "MessageBar.hpp"
 #include "OutlineWidget.hpp"
 #include "PropertiesWidget.hpp"
@@ -212,7 +212,7 @@ private:
     void deleteMark(const QString &key) noexcept;
     bool handleLinkHintEvent(QEvent *event) noexcept;
     bool handleTabContextMenu(QObject *object, QEvent *event) noexcept;
-    bool handleGetInputEvent(QEvent *event) noexcept;
+    // bool handleGetInputEvent(QEvent *event) noexcept;
 
     QDir m_config_dir, m_session_dir;
     Statusbar *m_statusbar{nullptr};
@@ -300,7 +300,7 @@ private:
     QString m_lockedInputBuffer; // Used for link hints and waiting input event
                                  // like for marks etc.
     bool m_link_hint_mode{false}, m_focus_mode{false},
-        m_load_default_keybinding{true}, m_get_input_mode{false};
+        m_load_default_keybinding{true};
     StartupWidget *m_startup_widget{nullptr};
     LinkHintMode m_link_hint_current_mode{LinkHintMode::None};
     QMap<int, Model::LinkInfo> m_link_hint_map;
@@ -319,7 +319,7 @@ private:
     HighlightSearchWidget *m_highlight_search_widget{nullptr};
     CommandPaletteWidget *m_command_palette_widget{nullptr};
     FloatingOverlayWidget *m_command_palette_overlay{nullptr};
-    MarkManager m_marks_manager;
+    // MarkManager m_marks_manager;
 
 #ifdef ENABLE_LLM_SUPPORT
     // LLM Support

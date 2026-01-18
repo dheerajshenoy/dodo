@@ -61,6 +61,7 @@ add_executable(${PROJECT_NAME}
     src/utils.cpp
     src/WaitingSpinnerWidget.cpp
     src/CommandPaletteWidget.cpp
+    # src/MarkManager.cpp
 
     src/Annotations/RectAnnotation.hpp
     src/Annotations/TextAnnotation.hpp

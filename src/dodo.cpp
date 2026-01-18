@@ -417,11 +417,11 @@ dodo::initMenubar() noexcept
                                    .arg(m_config.shortcuts["prev_location"]),
                                this, &dodo::GoBackHistory);
 
-    QMenu *markMenu = m_navMenu->addMenu("Marks");
+    // QMenu *markMenu = m_navMenu->addMenu("Marks");
 
-    m_actionSetMark = markMenu->addAction(
-        QString("Set Mar\t%1").arg(m_config.shortcuts["set_mark"]), this,
-        &dodo::SetMark);
+    // m_actionSetMark = markMenu->addAction(
+    //     QString("Set Mar\t%1").arg(m_config.shortcuts["set_mark"]), this,
+    //     &dodo::SetMark);
 
     /* Help Menu */
     QMenu *helpMenu = m_menuBar->addMenu("&Help");
@@ -2420,12 +2420,6 @@ dodo::eventFilter(QObject *object, QEvent *event)
             return true;
     }
 
-    if (m_get_input_mode)
-    {
-        if (handleGetInputEvent(event))
-            return true;
-    }
-
     // Context menu for the tab widgets
     if ((object == m_tab_widget->tabBar() || object == m_tab_widget)
         && type == QEvent::ContextMenu)
@@ -2584,59 +2578,59 @@ dodo::handleLinkHintEvent(QEvent *event) noexcept
 }
 
 // Used for waiting input events like marks etc.
-bool
-dodo::handleGetInputEvent(QEvent *event) noexcept
-{
-    const QEvent::Type type = event->type();
-    switch (type)
-    {
-        case QEvent::KeyPress:
-        {
-            QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-            switch (keyEvent->key())
-            {
-                case Qt::Key_Escape:
-                    handleEscapeKeyPressed();
-                    return true;
+// bool
+// dodo::handleGetInputEvent(QEvent *event) noexcept
+// {
+//     const QEvent::Type type = event->type();
+//     switch (type)
+//     {
+//         case QEvent::KeyPress:
+//         {
+//             QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+//             switch (keyEvent->key())
+//             {
+//                 case Qt::Key_Escape:
+//                     handleEscapeKeyPressed();
+//                     return true;
 
-                case Qt::Key_Backspace:
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-                    m_lockedInputBuffer.removeLast();
-#else
-                    if (!m_lockedInputBuffer.isEmpty())
-                        m_lockedInputBuffer.chop(1);
-#endif
-                    return true;
-                default:
-                    break;
-            }
+//                 case Qt::Key_Backspace:
+// #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+//                     m_lockedInputBuffer.removeLast();
+// #else
+//                     if (!m_lockedInputBuffer.isEmpty())
+//                         m_lockedInputBuffer.chop(1);
+// #endif
+//                     return true;
+//                 default:
+//                     break;
+//             }
 
-            QString text = keyEvent->text();
+//             QString text = keyEvent->text();
 
-            bool appended = false;
-            if (text.size() == 1 && text.at(0).isDigit())
-            {
-                m_lockedInputBuffer += text;
-                appended = true;
-            }
+//             bool appended = false;
+//             if (text.size() == 1 && text.at(0).isDigit())
+//             {
+//                 m_lockedInputBuffer += text;
+//                 appended = true;
+//             }
 
-            if (!appended)
-                return true;
+//             if (!appended)
+//                 return true;
 
-            int num = m_lockedInputBuffer.toInt();
-            keyEvent->accept();
-            return true;
-        }
+//             int num = m_lockedInputBuffer.toInt();
+//             keyEvent->accept();
+//             return true;
+//         }
 
-        case QEvent::ShortcutOverride:
-            event->accept();
-            return true;
-        default:
-            break;
-    }
+//         case QEvent::ShortcutOverride:
+//             event->accept();
+//             return true;
+//         default:
+//             break;
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
 // Opens the file of tab with index `index`
 // in file manager program
@@ -3627,11 +3621,6 @@ dodo::handleEscapeKeyPressed() noexcept
         m_link_hint_mode = false;
         return;
     }
-
-    if (m_get_input_mode)
-    {
-        // TODO: Handle Escape key
-    }
 }
 
 void
@@ -3682,37 +3671,37 @@ dodo::showTutorialFile() noexcept
 #endif
 }
 
-void
-dodo::SetMark() noexcept
-{
-    m_message_bar->showMessage("**SetMark**, Waiting for mark: ", -1);
-}
+// void
+// dodo::SetMark() noexcept
+// {
+//     m_message_bar->showMessage("**SetMark**, Waiting for mark: ", -1);
+// }
 
-void
-dodo::GotoMark() noexcept
-{
-    m_message_bar->showMessage("**GotoMark**, Waiting for mark: ", -1);
-    // Wait for key input
-}
+// void
+// dodo::GotoMark() noexcept
+// {
+//     m_message_bar->showMessage("**GotoMark**, Waiting for mark: ", -1);
+//     // Wait for key input
+// }
 
-void
-dodo::DeleteMark() noexcept
-{
-    m_message_bar->showMessage("**GotoMark**, Waiting for mark: ", -1);
-}
+// void
+// dodo::DeleteMark() noexcept
+// {
+//     m_message_bar->showMessage("**GotoMark**, Waiting for mark: ", -1);
+// }
 
-void
-dodo::setMark(const QString &key, const int pageno,
-              const DocumentView::PageLocation location) noexcept
-{
-}
+// void
+// dodo::setMark(const QString &key, const int pageno,
+//               const DocumentView::PageLocation location) noexcept
+// {
+// }
 
-void
-dodo::gotoMark(const QString &key) noexcept
-{
-}
+// void
+// dodo::gotoMark(const QString &key) noexcept
+// {
+// }
 
-void
-dodo::deleteMark(const QString &key) noexcept
-{
-}
+// void
+// dodo::deleteMark(const QString &key) noexcept
+// {
+// }

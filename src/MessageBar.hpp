@@ -1,7 +1,5 @@
 #pragma once
 
-#include <QLabel>
-#include <QWidget>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QQueue>
