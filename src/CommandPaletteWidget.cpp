@@ -104,7 +104,7 @@ public:
                 token = token.toLower();
         }
 
-        invalidateFilter();
+        invalidate();
     }
 
 protected:
@@ -175,6 +175,7 @@ CommandPaletteWidget::initGui() noexcept
 
     this->setMinimumSize(m_config.ui.command_palette.width,
                          m_config.ui.command_palette.height);
+    this->setProperty("overlayFrameBorder", true);
 
     m_input_line = new QLineEdit(this);
     m_input_line->setPlaceholderText(

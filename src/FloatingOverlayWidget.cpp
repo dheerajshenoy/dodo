@@ -23,6 +23,7 @@ FloatingOverlayWidget::FloatingOverlayWidget(QWidget *parent) : QWidget(parent)
     m_frame->setFrameShape(QFrame::NoFrame);
     m_frame->setStyleSheet("background-color: palette(base);");
     m_frame->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+    m_frame->setAttribute(Qt::WA_StyledBackground, true);
 
     auto *escShortcut = new QShortcut(QKeySequence(Qt::Key_Escape), this);
     escShortcut->setContext(Qt::WidgetWithChildrenShortcut);
@@ -60,6 +61,20 @@ FloatingOverlayWidget::setContentWidget(QWidget *widget) noexcept
         return;
 
     m_content->setParent(m_frame);
+    if (m_content->property("overlayFrameBorder").toBool())
+    {
+        m_frame->setObjectName("overlayFrameBorder");
+        m_frame->setStyleSheet("QFrame#overlayFrameBorder {"
+                               " background-color: palette(base);"
+                               " border: 1px solid palette(highlight);"
+                               " border-radius: 8px;"
+                               " }");
+    }
+    else
+    {
+        m_frame->setObjectName(QString());
+        m_frame->setStyleSheet("background-color: palette(base);");
+    }
     QVBoxLayout *layout = new QVBoxLayout(m_frame);
     layout->setContentsMargins(12, 12, 12, 12);
     layout->addWidget(m_content);

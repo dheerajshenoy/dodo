@@ -10,6 +10,7 @@
 - Added `role.txt` system prompts for the LLM
 - Implement LRU (Least Recently Used) cache for reduced memory usage
     - Respect `behavior.cache_pages` config option for this
+- Add frame border around the overlay widgets
 
 ### Config options
 - Page foreground and background color config option

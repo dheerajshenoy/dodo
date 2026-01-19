@@ -964,6 +964,10 @@ dodo::initGui() noexcept
     const bool outlineSide = (m_config.ui.outline.type == "side_panel");
     const bool highlightSide
         = (m_config.ui.highlight_search.type == "side_panel");
+    if (!outlineSide)
+        m_outline_widget->setProperty("overlayFrameBorder", true);
+    if (!highlightSide)
+        m_highlight_search_widget->setProperty("overlayFrameBorder", true);
     QWidget *mainContent = nullptr;
     if (outlineSide || highlightSide)
     {
