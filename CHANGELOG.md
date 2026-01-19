@@ -61,6 +61,7 @@
 - Fix scroll commands not triggering scrollbar visibility (for auto_hide = true)
 - Fix document not reloading even when `[behavior.auto_reload]` is set to true
 - Hide searchbar when the search term is empty
+- Fix loading default config when error is found in config
 
 ## 0.5.6
 

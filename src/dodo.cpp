@@ -532,6 +532,7 @@ dodo::initConfig() noexcept
             QString("There are one or more error(s) in your config "
                     "file:\n%1\n\nLoading default config.")
                 .arg(e.what()));
+        initDefaults();
         return;
     }
 
