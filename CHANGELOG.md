@@ -26,6 +26,7 @@
 
 ### Optimizations
 
+- Set optimization flag and CacheMode for QGraphicsView 
 - Colors are now stored as packed RGBA ints and parsed from hex config values
 
 ### Breaking Changes

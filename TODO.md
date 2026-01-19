@@ -1,12 +1,12 @@
 # TODO
 - [X] Implement LRU caching for pages and other resources
+- [X] close other tabs, tabs to the left, tabs to the right
 
 - [ ] Undo/Redo operations
   - [X] Rect Annotation
   - [X] Text Highlight Annotation
   - [X] Delete Annotation
   - [ ] Popup Annotation
-- [X] close other tabs, tabs to the left, tabs to the right
 
 - [ ] Underline Annotation
 - [ ] Synctex highlight line
