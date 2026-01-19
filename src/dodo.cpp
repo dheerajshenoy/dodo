@@ -471,17 +471,19 @@ dodo::initDefaults() noexcept
     m_config.ui.highlight_search.panel_width    = 300;
     m_config.ui.outline.type                    = "overlay";
 
-    m_config.ui.colors.search_index = 0x3DAEE944;
-    m_config.ui.colors.search_match = 0x55FF8844;
-    m_config.ui.colors.accent       = 0xFF500044;
-    m_config.ui.colors.background   = 0x00000000;
-    m_config.ui.colors.link_hint_fg = 0x000000FF;
-    m_config.ui.colors.link_hint_bg = 0xFFFF00FF;
-    m_config.ui.colors.highlight    = 0x55FFFF00;
-    m_config.ui.colors.selection    = 0x55000055;
-    m_config.ui.colors.jump_marker  = 0xFFFF0000;
-    m_config.ui.colors.annot_rect   = 0x55FF0000;
-    m_config.ui.colors.annot_popup  = 0xFFFFFFAA;
+    m_config.ui.colors.search_index    = 0x3DAEE944;
+    m_config.ui.colors.search_match    = 0x55FF8844;
+    m_config.ui.colors.accent          = 0xFF500044;
+    m_config.ui.colors.background      = 0xFFFFFFFF;
+    m_config.ui.colors.link_hint_fg    = 0x000000FF;
+    m_config.ui.colors.link_hint_bg    = 0xFFFF00FF;
+    m_config.ui.colors.highlight       = 0x55FFFF00;
+    m_config.ui.colors.selection       = 0x55000055;
+    m_config.ui.colors.jump_marker     = 0xFFFF0000;
+    m_config.ui.colors.annot_rect      = 0x55FF0000;
+    m_config.ui.colors.annot_popup     = 0xFFFFFFAA;
+    m_config.ui.colors.page_background = 0xFFFFFFFF;
+    m_config.ui.colors.page_foreground = 0x000000FF;
 
     m_config.rendering.dpi = 300.0f;
     m_config.rendering.dpr

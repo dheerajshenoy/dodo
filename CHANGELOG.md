@@ -14,10 +14,9 @@
 
 ### Config options
 - Page foreground and background color config option
-    - `[colors]`
-        - `page_foreground`
-        - `page_background`
-    **NOTE**: They have to be RGB and not RGBA (alpha will be ignored)
+    - `[colors]` 
+        - `page_foreground` (RGBA hex value)
+        - `page_background` (RGBA hex value)
 - Tab close commands `[keybindings]`
     - `tabs_close_left` - close all tabs to the left of the current tab
     - `tabs_close_right` - close all tabs to the right of the current tab
