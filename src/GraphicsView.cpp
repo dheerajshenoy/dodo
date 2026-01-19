@@ -22,6 +22,8 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
     setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing);
     setOptimizationFlag(QGraphicsView::DontSavePainterState);
     setContentsMargins(0, 0, 0, 0);
+    setCacheMode(QGraphicsView::CacheBackground);
+    setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
 
     // Overlay scrollbars - no reserved space
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
