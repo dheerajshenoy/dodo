@@ -3088,18 +3088,6 @@ dodo::initActionMap() noexcept
 {
     m_actionMap = {
         // Actions with arguments
-        {"setdpr",
-         [this](const QStringList &args)
-    {
-        if (args.isEmpty())
-            return;
-        bool ok;
-        float dpr = args.at(0).toFloat(&ok);
-        if (ok)
-            setDPR(dpr);
-        else
-            m_message_bar->showMessage(QStringLiteral("Invalid DPR"));
-    }},
         {"tabgoto",
          [this](const QStringList &args)
     {
@@ -3118,6 +3106,7 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
 #endif
 
+        ACTION_NO_ARGS("set_dpr", SetDPR),
         ACTION_NO_ARGS("tabs_close_left", TabsCloseLeft),
         ACTION_NO_ARGS("tabs_close_right", TabsCloseRight),
         ACTION_NO_ARGS("tabs_close_others", TabsCloseOthers),
@@ -3226,12 +3215,19 @@ dodo::trimRecentFilesDatabase() noexcept
 
 // Sets the DPR of the current document
 void
-dodo::setDPR(float dpr) noexcept
+dodo::SetDPR() noexcept
 {
     if (m_doc)
     {
-        m_doc->GotoFirstPage();
-        m_doc->setDPR(dpr);
+        QInputDialog id;
+        bool ok;
+        float dpr = id.getDouble(
+            this, "Set DPR", "Enter the Device Pixel Ratio (DPR) value: ", 1.0,
+            0.0, 10.0, 2, &ok);
+        if (ok)
+            m_doc->setDPR(dpr);
+        else
+            QMessageBox::critical(this, "Set DPR", "Invalid DPR value");
     }
 }
 

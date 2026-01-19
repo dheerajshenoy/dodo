@@ -162,7 +162,7 @@ private:
     }
 
     void construct() noexcept;
-    void setDPR(float dpr) noexcept;
+    void SetDPR() noexcept;
     void initDB() noexcept;
     void initDefaults() noexcept;
     void initMenubar() noexcept;

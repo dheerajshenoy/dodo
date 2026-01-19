@@ -130,6 +130,7 @@ public:
     inline void setDPR(float dpr) noexcept
     {
         m_model->setDPR(dpr);
+        renderVisiblePages();
     }
 
     inline QString fileName() const noexcept

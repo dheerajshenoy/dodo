@@ -11,6 +11,7 @@
 - Implement LRU (Least Recently Used) cache for reduced memory usage
     - Respect `behavior.cache_pages` config option for this
 - Add frame border around the overlay widgets
+- Replace `setdpr` command with `set_dpr`. This command now opens a popup input dialog asking for the new Device Pixel Ratio (DPR) value.
 
 ### Config options
 - Page foreground and background color config option
@@ -45,6 +46,7 @@
 
 ### Bug Fixes
 
+- Hide the command palette before executing the command
 - Fix command pallette showing only set keybound commands
 - Fix tab close commands not working as expected
 - Fix cursor not changing when hovering over link

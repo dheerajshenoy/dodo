@@ -240,6 +240,7 @@ CommandPaletteWidget::initConnections() noexcept
             args = args.mid(1);
         else
             args.clear();
+        hide();
         emit commandSelected(commandName, args);
     });
 
