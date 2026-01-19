@@ -1,6 +1,7 @@
 # TODO
 - [X] Implement LRU caching for pages and other resources
 - [X] close other tabs, tabs to the left, tabs to the right
+- [X] shift click drag drop open in new window
 
 - [ ] Undo/Redo operations
   - [X] Rect Annotation
@@ -27,7 +28,6 @@
 - [ ] password protected files
 - [ ] add tabs feature to website
 - [ ] book view
-- [ ] shift click drag drop open in new window
 - [ ] compare files side by side
 - [ ] file font info
 - [ ] smooth scrolling
