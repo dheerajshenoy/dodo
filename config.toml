@@ -62,6 +62,7 @@ closable = true
 movable = true
 elide_mode = "middle" # "none", "start", "middle", "end"
 bar_position = "top" # "top", "bottom", "left", "right"
+full_path = false # show full file path in tab title
 
 [ui.outline]
 visible = false

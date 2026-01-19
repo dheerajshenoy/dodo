@@ -84,6 +84,7 @@ struct Config
             bool auto_hide{false};
             bool closable{true};
             bool movable{true};
+            bool full_path{false};
             QString elide_mode{"right"};
             QString bar_position{"top"};
         } tabs{};

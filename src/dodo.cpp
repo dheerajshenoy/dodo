@@ -618,6 +618,7 @@ dodo::initConfig() noexcept
     m_config.ui.tabs.movable      = ui_tabs["movable"].value_or(true);
     m_config.ui.tabs.elide_mode   = ui_tabs["elide_mode"].value_or("right");
     m_config.ui.tabs.bar_position = ui_tabs["bar_position"].value_or("top");
+    m_config.ui.tabs.full_path    = ui_tabs["full_path"].value_or(false);
 
     auto ui_outline             = ui["outline"];
     m_config.ui.outline.visible = ui_outline["visible"].value_or(false);
@@ -1572,6 +1573,8 @@ dodo::OpenFile(DocumentView *view) noexcept
     QString path     = QFileInfo(fileName).fileName();
     m_tab_widget->addTab(view, path);
 
+    m_tab_widget->addTab(view, path);
+
     // Switch to already opened filepath, if it's open.
     auto it = m_path_tab_map.find(fileName);
     if (it != m_path_tab_map.end())
@@ -1671,7 +1674,10 @@ dodo::OpenFile(const QString &filePath,
     }
 
     DocumentView *docwidget = new DocumentView(m_config, m_tab_widget);
-    int index               = m_tab_widget->addTab(docwidget, fp);
+    const QString tabTitle  = m_config.ui.tabs.full_path
+                                  ? QFileInfo(fp).filePath()
+                                  : QFileInfo(fp).fileName();
+    int index               = m_tab_widget->addTab(docwidget, tabTitle);
 
     connect(docwidget, &DocumentView::openFileFinished, this,
             [this, callback, index](DocumentView *doc)
