@@ -3075,7 +3075,7 @@ dodo::Redo() noexcept
 // to call
 // Helper macro for actions that don't use arguments
 #define ACTION_NO_ARGS(name, func)                                             \
-    {QStringLiteral(name), [this](const QStringList &) { func(); }}
+    {name, [this](const QStringList &) { func(); }}
 
 // Initialize the action map
 void
@@ -3083,7 +3083,7 @@ dodo::initActionMap() noexcept
 {
     m_actionMap = {
         // Actions with arguments
-        {QStringLiteral("setdpr"),
+        {"setdpr",
          [this](const QStringList &args)
     {
         if (args.isEmpty())
@@ -3095,7 +3095,7 @@ dodo::initActionMap() noexcept
         else
             m_message_bar->showMessage(QStringLiteral("Invalid DPR"));
     }},
-        {QStringLiteral("tabgoto"),
+        {"tabgoto",
          [this](const QStringList &args)
     {
         if (args.isEmpty())
@@ -3108,11 +3108,14 @@ dodo::initActionMap() noexcept
             m_message_bar->showMessage(QStringLiteral("Invalid tab index"));
     }},
 
-// Actions without arguments
+    // Actions without arguments
 #ifdef ENABLE_LLM_SUPPORT
         ACTION_NO_ARGS("toggle_llm_widget", ToggleLLMWidget),
 #endif
 
+        ACTION_NO_ARGS("tabs_close_left", TabsCloseLeft),
+        ACTION_NO_ARGS("tabs_close_right", TabsCloseRight),
+        ACTION_NO_ARGS("tabs_close_others", TabsCloseOthers),
         ACTION_NO_ARGS("command_palette", ToggleCommandPalette),
         ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
         ACTION_NO_ARGS("encrypt", EncryptDocument),
@@ -3664,3 +3667,42 @@ dodo::showTutorialFile() noexcept
 // dodo::deleteMark(const QString &key) noexcept
 // {
 // }
+
+void
+dodo::TabsCloseLeft() noexcept
+{
+    const int currentIndex = m_tab_widget->currentIndex();
+
+    if (currentIndex == 0)
+        return;
+
+    for (int i = 0; i < currentIndex; i++)
+        m_tab_widget->tabCloseRequested(i);
+}
+
+void
+dodo::TabsCloseRight() noexcept
+{
+    const int currentIndex = m_tab_widget->currentIndex();
+    const int ntabs        = m_tab_widget->count();
+
+    if (currentIndex == ntabs - 1)
+        return;
+
+    for (int i = currentIndex; i < ntabs; i++)
+        m_tab_widget->tabCloseRequested(i);
+}
+
+void
+dodo::TabsCloseOthers() noexcept
+{
+    const int ntabs = m_tab_widget->count();
+
+    if (ntabs == 0)
+        return;
+
+    const int currentIndex = m_tab_widget->currentIndex();
+
+    for (int i = 0; i < ntabs && i != currentIndex; i++)
+        m_tab_widget->tabCloseRequested(i);
+}

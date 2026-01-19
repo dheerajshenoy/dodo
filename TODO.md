@@ -6,6 +6,7 @@
   - [X] Text Highlight Annotation
   - [X] Delete Annotation
   - [ ] Popup Annotation
+- [X] close other tabs, tabs to the left, tabs to the right
 
 - [ ] Underline Annotation
 - [ ] Synctex highlight line
@@ -31,5 +32,4 @@
 - [ ] file font info
 - [ ] smooth scrolling
 - [ ] beautify command palette
-- [ ] close other tabs, tabs to the left, tabs to the right
 - [ ] improved home page

@@ -130,6 +130,10 @@ public:
     void Redo() noexcept;
     void ShowAbout() noexcept;
     void TextHighlightCurrentSelection() noexcept;
+    void TabsCloseLeft() noexcept;
+    void TabsCloseRight() noexcept;
+    void TabsCloseOthers() noexcept;
+
 #ifdef ENABLE_LLM_SUPPORT
     void ToggleLLMWidget() noexcept;
 #endif

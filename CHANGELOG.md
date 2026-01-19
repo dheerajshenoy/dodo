@@ -10,11 +10,17 @@
 - Added `role.txt` system prompts for the LLM
 - Implement LRU (Least Recently Used) cache for reduced memory usage
     - Respect `behavior.cache_pages` config option for this
+
+### Config options
 - Page foreground and background color config option
     - `[colors]
         - page_foreground 
         - page_background
     **NOTE**: They have to be RGB and not RGBA (alpha will be ignored)
+- Tab close commands
+    - `tabs_close_left` - close all tabs to the left of the current tab
+    - `tabs_close_right` - close all tabs to the right of the current tab
+    - `tabs_close_others` - close all tabs except the current tab
 
 
 ### Optimizations
