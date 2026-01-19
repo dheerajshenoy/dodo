@@ -6,7 +6,7 @@
   - [X] Text Highlight Annotation
   - [X] Delete Annotation
   - [ ] Popup Annotation
-  
+
 - [ ] Underline Annotation
 - [ ] Synctex highlight line
 - [ ] Easy reference paper search
@@ -26,7 +26,6 @@
 - [ ] password protected files
 - [ ] add tabs feature to website
 - [ ] book view
-- [ ] look into libjpeg-turbo
 - [ ] shift click drag drop open in new window
 - [ ] compare files side by side
 - [ ] file font info
