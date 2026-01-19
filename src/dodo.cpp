@@ -55,6 +55,19 @@ buildCommandPaletteEntries(
 
     return entries;
 }
+
+FloatingOverlayWidget::FrameStyle
+makeOverlayFrameStyle(const Config &config)
+{
+    FloatingOverlayWidget::FrameStyle style;
+    style.border             = config.ui.overlays.border;
+    style.shadow             = config.ui.overlays.shadow.enabled;
+    style.shadow_blur_radius = config.ui.overlays.shadow.blur_radius;
+    style.shadow_offset_x    = config.ui.overlays.shadow.offset_x;
+    style.shadow_offset_y    = config.ui.overlays.shadow.offset_y;
+    style.shadow_opacity     = config.ui.overlays.shadow.opacity;
+    return style;
+}
 } // namespace
 
 // Constructs the `dodo` class
@@ -599,6 +612,20 @@ dodo::initConfig() noexcept
     m_config.ui.command_palette.show_shortcuts
         = command_palette["show_shortcuts"].value_or(true);
 
+    auto ui_overlays            = ui["overlays"];
+    m_config.ui.overlays.border = ui_overlays["border"].value_or(true);
+    auto overlay_shadow         = ui_overlays["shadow"];
+    m_config.ui.overlays.shadow.enabled
+        = overlay_shadow["enabled"].value_or(true);
+    m_config.ui.overlays.shadow.blur_radius
+        = overlay_shadow["blur_radius"].value_or(18);
+    m_config.ui.overlays.shadow.offset_x
+        = overlay_shadow["offset_x"].value_or(0);
+    m_config.ui.overlays.shadow.offset_y
+        = overlay_shadow["offset_y"].value_or(6);
+    m_config.ui.overlays.shadow.opacity
+        = overlay_shadow["opacity"].value_or(120);
+
     auto ui_markers                 = ui["markers"];
     m_config.ui.markers.jump_marker = ui_markers["jump_marker"].value_or(true);
 
@@ -964,10 +991,6 @@ dodo::initGui() noexcept
     const bool outlineSide = (m_config.ui.outline.type == "side_panel");
     const bool highlightSide
         = (m_config.ui.highlight_search.type == "side_panel");
-    if (!outlineSide)
-        m_outline_widget->setProperty("overlayFrameBorder", true);
-    if (!highlightSide)
-        m_highlight_search_widget->setProperty("overlayFrameBorder", true);
     QWidget *mainContent = nullptr;
     if (outlineSide || highlightSide)
     {
@@ -1066,6 +1089,7 @@ dodo::initGui() noexcept
     if (!outlineSide && m_config.ui.outline.type == "overlay")
     {
         m_outline_overlay = new FloatingOverlayWidget(m_tab_widget);
+        m_outline_overlay->setFrameStyle(makeOverlayFrameStyle(m_config));
         m_outline_overlay->setContentWidget(m_outline_widget);
         connect(m_outline_overlay, &FloatingOverlayWidget::overlayHidden, this,
                 [this]()
@@ -1084,6 +1108,7 @@ dodo::initGui() noexcept
     if (!highlightSide && m_config.ui.highlight_search.type == "overlay")
     {
         m_highlight_overlay = new FloatingOverlayWidget(m_tab_widget);
+        m_highlight_overlay->setFrameStyle(makeOverlayFrameStyle(m_config));
         m_highlight_overlay->setContentWidget(m_highlight_search_widget);
         connect(m_highlight_overlay, &FloatingOverlayWidget::overlayHidden,
                 this, [this]()
@@ -3580,6 +3605,8 @@ dodo::ToggleCommandPalette() noexcept
             m_command_palette_overlay->setVisible(false);
         });
         m_command_palette_overlay = new FloatingOverlayWidget(this);
+        m_command_palette_overlay->setFrameStyle(
+            makeOverlayFrameStyle(m_config));
         m_command_palette_overlay->setContentWidget(m_command_palette_widget);
     }
 

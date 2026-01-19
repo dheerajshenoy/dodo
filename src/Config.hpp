@@ -116,6 +116,19 @@ struct Config
             bool show_grid{false};
         } command_palette{};
 
+        struct overlays
+        {
+            bool border{true};
+            struct shadow
+            {
+                bool enabled{true};
+                int blur_radius{18};
+                int offset_x{0};
+                int offset_y{6};
+                int opacity{120};
+            } shadow{};
+        } overlays{};
+
 #ifdef ENABLE_LLM_SUPPORT
         struct llm_widget
         {

@@ -1,10 +1,13 @@
 #include "FloatingOverlayWidget.hpp"
 
+#include <QColor>
+#include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
 #include <QKeySequence>
 #include <QShortcut>
 #include <QTimer>
 #include <QVBoxLayout>
+#include <algorithm>
 #include <qnamespace.h>
 
 FloatingOverlayWidget::FloatingOverlayWidget(QWidget *parent) : QWidget(parent)
@@ -24,6 +27,9 @@ FloatingOverlayWidget::FloatingOverlayWidget(QWidget *parent) : QWidget(parent)
     m_frame->setStyleSheet("background-color: palette(base);");
     m_frame->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
     m_frame->setAttribute(Qt::WA_StyledBackground, true);
+    m_shadow_effect = new QGraphicsDropShadowEffect(m_frame);
+    m_frame->setGraphicsEffect(m_shadow_effect);
+    applyFrameStyle();
 
     auto *escShortcut = new QShortcut(QKeySequence(Qt::Key_Escape), this);
     escShortcut->setContext(Qt::WidgetWithChildrenShortcut);
@@ -61,7 +67,32 @@ FloatingOverlayWidget::setContentWidget(QWidget *widget) noexcept
         return;
 
     m_content->setParent(m_frame);
-    if (m_content->property("overlayFrameBorder").toBool())
+    applyFrameStyle();
+    QVBoxLayout *layout = new QVBoxLayout(m_frame);
+    layout->setContentsMargins(12, 12, 12, 12);
+    layout->addWidget(m_content);
+}
+
+QWidget *
+FloatingOverlayWidget::contentWidget() const noexcept
+{
+    return m_content;
+}
+
+void
+FloatingOverlayWidget::setFrameStyle(const FrameStyle &style) noexcept
+{
+    m_frame_style = style;
+    applyFrameStyle();
+}
+
+void
+FloatingOverlayWidget::applyFrameStyle() noexcept
+{
+    if (!m_frame)
+        return;
+
+    if (m_frame_style.border)
     {
         m_frame->setObjectName("overlayFrameBorder");
         m_frame->setStyleSheet("QFrame#overlayFrameBorder {"
@@ -75,15 +106,20 @@ FloatingOverlayWidget::setContentWidget(QWidget *widget) noexcept
         m_frame->setObjectName(QString());
         m_frame->setStyleSheet("background-color: palette(base);");
     }
-    QVBoxLayout *layout = new QVBoxLayout(m_frame);
-    layout->setContentsMargins(12, 12, 12, 12);
-    layout->addWidget(m_content);
-}
 
-QWidget *
-FloatingOverlayWidget::contentWidget() const noexcept
-{
-    return m_content;
+    if (!m_shadow_effect)
+        return;
+
+    m_shadow_effect->setEnabled(m_frame_style.shadow);
+    if (!m_frame_style.shadow)
+        return;
+
+    const int blur  = std::max(0, m_frame_style.shadow_blur_radius);
+    const int alpha = std::clamp(m_frame_style.shadow_opacity, 0, 255);
+    m_shadow_effect->setBlurRadius(blur);
+    m_shadow_effect->setOffset(m_frame_style.shadow_offset_x,
+                               m_frame_style.shadow_offset_y);
+    m_shadow_effect->setColor(QColor(0, 0, 0, alpha));
 }
 
 bool
