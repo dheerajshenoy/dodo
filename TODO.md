@@ -20,3 +20,7 @@
     - [ ] Table exporter to CSV/Excel/Numpy
     - [ ] Semantic search
     - [ ] Finding citation from folder
+- [ ] read from stdin
+- [ ] password protected files
+- [ ] add tabs feature to website
+
