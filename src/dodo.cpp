@@ -26,11 +26,35 @@
 #include <QSplitter>
 #include <QStyleHints>
 #include <QWindow>
+#include <algorithm>
 #include <qobject.h>
 #include <variant>
 
 namespace
 {
+
+std::vector<std::pair<QString, QString>>
+buildCommandPaletteEntries(
+    const QHash<QString, std::function<void(const QStringList &args)>>
+        &actionMap,
+    const QHash<QString, QString> &shortcuts)
+{
+    std::vector<dodo::Command> commands;
+    commands.reserve(static_cast<size_t>(actionMap.size()));
+    for (auto it = actionMap.constBegin(); it != actionMap.constEnd(); ++it)
+        commands.push_back({it.key(), shortcuts.value(it.key())});
+
+    std::sort(commands.begin(), commands.end(),
+              [](const dodo::Command &a, const dodo::Command &b)
+    { return QString::compare(a.name, b.name, Qt::CaseInsensitive) < 0; });
+
+    std::vector<std::pair<QString, QString>> entries;
+    entries.reserve(commands.size());
+    for (const auto &cmd : commands)
+        entries.push_back({cmd.name, cmd.shortcut});
+
+    return entries;
+}
 } // namespace
 
 // Constructs the `dodo` class
@@ -792,113 +816,57 @@ dodo::initConfig() noexcept
 void
 dodo::initDefaultKeybinds() noexcept
 {
-    // Helper lambda to create and connect shortcuts
-    auto addShortcut = [this](const char *key, auto &&func)
+    struct DefaultBinding
     {
-        auto *sc = new QShortcut(QKeySequence(QLatin1String(key)), this);
-        connect(sc, &QShortcut::activated, std::forward<decltype(func)>(func));
+        const char *action;
+        const char *key;
     };
 
-    // Navigation
+    static const DefaultBinding defaults[] = {
+        {"scroll_left", "h"},
+        {"scroll_down", "j"},
+        {"scroll_up", "k"},
+        {"scroll_right", "l"},
+        {"next_page", "Shift+j"},
+        {"prev_page", "Shift+k"},
+        {"first_page", "g,g"},
+        {"last_page", "Shift+g"},
+        {"goto_page", "Ctrl+g"},
+        {"search", "/"},
+        {"search_next", "n"},
+        {"search_prev", "Shift+n"},
+        {"zoom_in", "="},
+        {"zoom_out", "-"},
+        {"zoom_reset", "0"},
+        {"fit_width", "Ctrl+Shift+W"},
+        {"fit_height", "Ctrl+Shift+H"},
+        {"fit_window", "Ctrl+Shift+="},
+        {"auto_resize", "Ctrl+Shift+R"},
+        {"outline", "t"},
+        {"highlight_annot_search", "Alt+Shift+H"},
+        {"prev_location", "Ctrl+o"},
+        {"text_select_mode", "1"},
+        {"text_highlight_mode", "2"},
+        {"annot_rect_mode", "3"},
+        {"region_select_mode", "4"},
+        {"annot_popup_mode", "5"},
+        {"link_hint_visit", "f"},
+        {"open_file", "o"},
+        {"save", "Ctrl+s"},
+        {"undo", "u"},
+        {"redo", "Ctrl+r"},
+        {"invert_color", "i"},
+        {"toggle_menubar", "Ctrl+Shift+m"},
+        {"command_palette", "Ctrl+Shift+P"},
+        {"rotate_clock", ">"},
+        {"rotate_anticlock", "<"},
+    };
 
-    m_config.shortcuts["scroll_left"]  = "h";
-    m_config.shortcuts["scroll_down"]  = "j";
-    m_config.shortcuts["scroll_up"]    = "k";
-    m_config.shortcuts["scroll_right"] = "l";
-
-    addShortcut("h", [this]() { ScrollLeft(); });
-    addShortcut("j", [this]() { ScrollDown(); });
-    addShortcut("k", [this]() { ScrollUp(); });
-    addShortcut("l", [this]() { ScrollRight(); });
-
-    m_config.shortcuts["next_page"]  = "Shift+j";
-    m_config.shortcuts["prev_page"]  = "Shift+k";
-    m_config.shortcuts["first_page"] = "g,g";
-    m_config.shortcuts["last_page"]  = "Shift+g";
-
-    addShortcut("Shift+j", [this]() { NextPage(); });
-    addShortcut("Shift+k", [this]() { PrevPage(); });
-    addShortcut("g,g", [this]() { FirstPage(); });
-    addShortcut("Shift+g", [this]() { LastPage(); });
-    addShortcut("Ctrl+g", [this]() { GotoPage(); });
-
-    // Search
-    m_config.shortcuts["search"]      = "/";
-    m_config.shortcuts["search_next"] = "n";
-    m_config.shortcuts["search_prev"] = "Shift+n";
-
-    addShortcut("/", [this]() { Search(); });
-    addShortcut("n", [this]() { NextHit(); });
-    addShortcut("Shift+n", [this]() { PrevHit(); });
-
-    // Zoom
-    m_config.shortcuts["zoom_in"]    = "+";
-    m_config.shortcuts["zoom_out"]   = "-";
-    m_config.shortcuts["zoom_reset"] = "0";
-
-    addShortcut("=", [this]() { ZoomIn(); });
-    addShortcut("-", [this]() { ZoomOut(); });
-    addShortcut("0", [this]() { ZoomReset(); });
-
-    // Fit modes
-    m_config.shortcuts["fit_width"]   = "Ctrl+Shift+W";
-    m_config.shortcuts["fit_height"]  = "Ctrl+Shift+H";
-    m_config.shortcuts["fit_window"]  = "Ctrl+Shift+=";
-    m_config.shortcuts["auto_resize"] = "Ctrl+Shift+R";
-
-    addShortcut("Ctrl+Shift+W", [this]() { FitWidth(); });
-    addShortcut("Ctrl+Shift+H", [this]() { FitHeight(); });
-    addShortcut("Ctrl+Shift+=", [this]() { FitWindow(); });
-    addShortcut("Ctrl+Shift+R", [this]() { ToggleAutoResize(); });
-
-    // Outline and History
-    m_config.shortcuts["outline"]                = "t";
-    m_config.shortcuts["highlight_annot_search"] = "Alt+Shift+H";
-    m_config.shortcuts["prev_location"]          = "Ctrl+o";
-
-    addShortcut("t", [this]() { ShowOutline(); });
-    addShortcut("Alt+Shift+H", [this]() { ShowOutline(); });
-    addShortcut("Ctrl+o", [this]() { GoBackHistory(); });
-
-    // Annotations and Interaction modes
-    m_config.shortcuts["text_selection_mode"] = "1";
-    m_config.shortcuts["text_highlight_mode"] = "2";
-    m_config.shortcuts["annot_rect_mode"]     = "3";
-    m_config.shortcuts["region_select_mode"]  = "4";
-    m_config.shortcuts["annot_popup_mode"]    = "5";
-
-    addShortcut("1", [this]() { ToggleTextSelection(); });
-    addShortcut("2", [this]() { ToggleTextHighlight(); });
-    addShortcut("3", [this]() { ToggleAnnotRect(); });
-    addShortcut("4", [this]() { ToggleRegionSelect(); });
-    addShortcut("5", [this]() { ToggleAnnotPopup(); });
-
-    // Links and Actions
-    m_config.shortcuts["link_hint_visit"] = "f";
-    m_config.shortcuts["open_file"]       = "o";
-    m_config.shortcuts["save"]            = "Ctrl+s";
-    addShortcut("f", [this]() { VisitLinkKB(); });
-    addShortcut("o", [this]() { OpenFile(); });
-    addShortcut("Ctrl+s", [this]() { SaveFile(); });
-
-    // Editing and UI
-    m_config.shortcuts["undo"]            = "u";
-    m_config.shortcuts["redo"]            = "Ctrl+r";
-    m_config.shortcuts["invert_color"]    = "i";
-    m_config.shortcuts["toggle_menubar"]  = "Ctrl+Shift+m";
-    m_config.shortcuts["command_palette"] = ":";
-
-    addShortcut("u", [this]() { Undo(); });
-    addShortcut("Ctrl+r", [this]() { Redo(); });
-    addShortcut("i", [this]() { InvertColor(); });
-    addShortcut("Ctrl+Shift+m", [this]() { ToggleMenubar(); });
-    addShortcut("Ctrl+Shift+P", [this]() { ToggleCommandPalette(); });
-
-    // Rotation
-    m_config.shortcuts["rotate_clock"]     = ">";
-    m_config.shortcuts["rotate_anticlock"] = ">";
-    addShortcut("<", [this]() { RotateAnticlock(); });
-    addShortcut(">", [this]() { RotateClock(); });
+    for (const auto &binding : defaults)
+    {
+        setupKeybinding(QString::fromLatin1(binding.action),
+                        QString::fromLatin1(binding.key));
+    }
 }
 
 void
@@ -3592,7 +3560,9 @@ dodo::ToggleCommandPalette() noexcept
     if (!m_command_palette_widget)
     {
 
-        m_command_palette_widget = new CommandPaletteWidget(m_config, this);
+        m_command_palette_widget = new CommandPaletteWidget(
+            m_config,
+            buildCommandPaletteEntries(m_actionMap, m_config.shortcuts), this);
         connect(m_command_palette_widget,
                 &CommandPaletteWidget::commandSelected, this,
                 [this](const QString &command, const QStringList &args)
@@ -3672,11 +3642,10 @@ void
 dodo::TabsCloseLeft() noexcept
 {
     const int currentIndex = m_tab_widget->currentIndex();
-
-    if (currentIndex == 0)
+    if (currentIndex <= 0)
         return;
 
-    for (int i = 0; i < currentIndex; i++)
+    for (int i = currentIndex - 1; i >= 0; --i)
         m_tab_widget->tabCloseRequested(i);
 }
 
@@ -3686,10 +3655,10 @@ dodo::TabsCloseRight() noexcept
     const int currentIndex = m_tab_widget->currentIndex();
     const int ntabs        = m_tab_widget->count();
 
-    if (currentIndex == ntabs - 1)
+    if (currentIndex < 0 || currentIndex >= ntabs - 1)
         return;
 
-    for (int i = currentIndex; i < ntabs; i++)
+    for (int i = ntabs - 1; i > currentIndex; --i)
         m_tab_widget->tabCloseRequested(i);
 }
 
@@ -3703,6 +3672,13 @@ dodo::TabsCloseOthers() noexcept
 
     const int currentIndex = m_tab_widget->currentIndex();
 
-    for (int i = 0; i < ntabs && i != currentIndex; i++)
+    if (currentIndex < 0)
+        return;
+
+    for (int i = ntabs - 1; i >= 0; --i)
+    {
+        if (i == currentIndex)
+            continue;
         m_tab_widget->tabCloseRequested(i);
+    }
 }
