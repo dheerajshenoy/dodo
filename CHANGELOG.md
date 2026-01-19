@@ -24,6 +24,14 @@
     - `tabs_close_others` - close all tabs except the current tab
 - File path in tab `[ui.tabs]`
     - `full_path` - whether to show full path in the tab
+- Overlay frame config `[ui.overlays]`
+    - `border` - show border around overlay frames
+    - `shadow` table
+        - `enabled` - toggle shadow on overlay frames
+        - `blur_radius` - shadow blur radius in pixels
+        - `offset_x` - horizontal shadow offset
+        - `offset_y` - vertical shadow offset
+        - `opacity` - shadow opacity (0-255)
 
 ### Optimizations
 
