@@ -1752,7 +1752,6 @@ dodo::OpenFile(const QString &filePath,
                     m_outline_widget->show();
                 }
             }
-        }
 
             m_path_tab_hash[filePath] = doc;
 

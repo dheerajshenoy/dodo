@@ -70,6 +70,13 @@ public:
         return m_id;
     }
 
+    int insertTab(int index, QWidget *page, const QString &title)
+    {
+        int result = QTabWidget::insertTab(index, page, title);
+        emit tabAdded(result);
+        return result;
+    }
+
 protected:
     void paintEvent(QPaintEvent *event) override
     {
@@ -127,13 +134,6 @@ protected:
                              Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap,
                              info);
         }
-    }
-
-    int insertTab(int index, QWidget *page, const QString &title)
-    {
-        int result = QTabWidget::insertTab(index, page, title);
-        emit tabAdded(result);
-        return result;
     }
 
 signals:
