@@ -48,6 +48,12 @@ class dodo : public QMainWindow
         = QHash<QString, std::function<void(const QStringList &args)>>;
 
 public:
+    struct Command
+    {
+        QString name;
+        QString shortcut;
+    };
+
     dodo() noexcept;
     dodo(const QString &sessionName,
          const QJsonArray &sessionArray) noexcept; // load from session
