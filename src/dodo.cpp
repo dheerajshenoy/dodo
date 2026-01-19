@@ -1753,6 +1753,73 @@ dodo::OpenFile(const QString &filePath,
     return true;
 }
 
+bool
+dodo::OpenFileInNewWindow(const QString &filePath,
+                          const std::function<void()> &callback) noexcept
+{
+    if (filePath.isEmpty())
+    {
+        QStringList files;
+        files = QFileDialog::getOpenFileNames(
+            this, "Open File", "", "PDF Files (*.pdf);; All Files (*)");
+        if (files.empty())
+            return false;
+        else if (files.size() > 1)
+        {
+            OpenFiles(files);
+            return true;
+        }
+        else
+        {
+            return OpenFile(files.first(), callback);
+        }
+    }
+
+    QString fp = filePath;
+
+    // expand ~
+    if (fp == "~")
+        fp = QDir::homePath();
+    else if (fp.startsWith("~/"))
+        fp = QDir(QDir::homePath()).filePath(fp.mid(2));
+
+    // make absolute + clean
+    fp = QDir::cleanPath(QFileInfo(fp).absoluteFilePath());
+
+    // make absolute
+    if (QDir::isRelativePath(fp))
+        fp = QDir::current().absoluteFilePath(fp);
+
+    // Switch to already opened filepath, if it's open.
+    auto it = m_path_tab_map.find(fp);
+    if (it != m_path_tab_map.end())
+    {
+        int existingIndex = m_tab_widget->indexOf(it.value());
+        if (existingIndex != -1)
+        {
+            m_tab_widget->setCurrentIndex(existingIndex);
+            const int page = it.value()->pageNo() + 1;
+            insertFileToDB(fp, page > 0 ? page : 1);
+            return true;
+        }
+    }
+
+    if (!QFile::exists(fp))
+    {
+        QMessageBox::warning(this, "Open File",
+                             QString("Unable to find %1").arg(fp));
+        return false;
+    }
+
+    QStringList args;
+    args << fp;
+    bool started = QProcess::startDetached(
+        QCoreApplication::applicationFilePath(), args);
+    if (!started)
+        m_message_bar->showMessage("Failed to open file in new window");
+    return started;
+}
+
 // Opens the properties widget with properties for the
 // current file
 void
@@ -2392,15 +2459,19 @@ dodo::eventFilter(QObject *object, QEvent *event)
     // Drop Event
     if (event->type() == QEvent::Drop)
     {
-        QDropEvent *e          = static_cast<QDropEvent *>(event);
-        const QList<QUrl> urls = e->mimeData()->urls();
+        QDropEvent *e                    = static_cast<QDropEvent *>(event);
+        const QList<QUrl> urls           = e->mimeData()->urls();
+        const Qt::KeyboardModifiers mods = e->modifiers();
 
         for (const QUrl &url : urls)
         {
             if (url.isLocalFile())
             {
-                QString filepath = url.toLocalFile();
-                OpenFile(filepath);
+                const QString filepath = url.toLocalFile();
+                if (mods & Qt::ShiftModifier)
+                    OpenFileInNewWindow(filepath);
+                else
+                    OpenFile(filepath);
             }
         }
         return true;

@@ -12,6 +12,8 @@
     - Respect `behavior.cache_pages` config option for this
 - Add frame border around the overlay widgets
 - Replace `setdpr` command with `set_dpr`. This command now opens a popup input dialog asking for the new Device Pixel Ratio (DPR) value.
+- Drag-drop file handling
+    - Hold `Shift` while dropping a file onto the main view to open in a new window
 
 ### Config options
 - Page foreground and background color config option

@@ -91,6 +91,9 @@ public:
     void OpenFiles(const QList<QString> &files) noexcept;
     bool OpenFile(const QString &filename               = QString(),
                   const std::function<void()> &callback = {}) noexcept;
+    bool OpenFileInNewWindow(const QString &filename = QString(),
+                             const std::function<void()> &callback
+                             = {}) noexcept;
     void PrevPage() noexcept;
     void FirstPage() noexcept;
     void ToggleTextSelection() noexcept;
