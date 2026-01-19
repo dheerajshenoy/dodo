@@ -1,6 +1,6 @@
 # dodo
 
-## 0.6.0
+## 0.6.0 
 
 
 ### Features
@@ -35,6 +35,8 @@
 
 ### Bug Fixes
 
+- Fix command pallette showing only set keybound commands
+- Fix tab close commands not working as expected
 - Fix cursor not changing when hovering over link
 - Fix right click context menu on tabs
 - Command palette orderless matching consider underscore as literal when entered.

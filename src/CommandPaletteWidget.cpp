@@ -136,10 +136,13 @@ private:
 
 // ---- CommandPaletteWidget Implementation ----
 
-CommandPaletteWidget::CommandPaletteWidget(const Config &config,
-                                           QWidget *parent) noexcept
+CommandPaletteWidget::CommandPaletteWidget(
+    const Config &config,
+    const std::vector<std::pair<QString, QString>> &commands,
+    QWidget *parent) noexcept
     : QWidget(parent), m_config(config)
 {
+    m_command_model = new CommandModel(commands, this);
     initGui();
     initConnections();
     selectFirstItem();
@@ -151,8 +154,9 @@ CommandPaletteWidget::initGui() noexcept
     m_command_table = new QTableView(this);
     m_command_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_command_table->horizontalHeader()->setStretchLastSection(true);
-    m_command_model = new CommandModel(m_config.shortcuts, this);
-    m_proxy_model   = new CommandFilterProxy(this);
+    if (!m_command_model)
+        m_command_model = new CommandModel({}, this);
+    m_proxy_model = new CommandFilterProxy(this);
     m_proxy_model->setSourceModel(m_command_model);
     m_command_table->setModel(m_proxy_model);
     m_command_table->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -277,20 +281,14 @@ CommandPaletteWidget::initConnections() noexcept
 
 // ---- CommandModel Implementation ----
 
-CommandModel::CommandModel(const QHash<QString, QString> &commands,
-                           QObject *parent) noexcept
+CommandModel::CommandModel(
+    const std::vector<std::pair<QString, QString>> &commands,
+    QObject *parent) noexcept
     : QAbstractTableModel(parent)
 {
-    for (auto it = commands.constBegin(); it != commands.constEnd(); ++it)
-    {
-        m_commands.push_back(
-            {it.key(),
-             it.value()}); // Description and shortcut can be filled later
-    }
-
-    std::sort(m_commands.begin(), m_commands.end(),
-              [](const CommandEntry &a, const CommandEntry &b)
-    { return a.name.toLower() < b.name.toLower(); });
+    m_commands.reserve(commands.size());
+    for (const auto &entry : commands)
+        m_commands.push_back({entry.first, entry.second});
 }
 
 int
