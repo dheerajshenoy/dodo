@@ -649,6 +649,11 @@ dodo::initConfig() noexcept
     m_config.ui.tabs.elide_mode   = ui_tabs["elide_mode"].value_or("right");
     m_config.ui.tabs.bar_position = ui_tabs["bar_position"].value_or("top");
     m_config.ui.tabs.full_path    = ui_tabs["full_path"].value_or(false);
+    m_config.ui.tabs.lazy_load    = ui_tabs["lazy_load"].value_or(false);
+    m_config.ui.tabs.suspend_inactive
+        = ui_tabs["suspend_inactive"].value_or(false);
+    m_config.ui.tabs.suspend_after_seconds
+        = ui_tabs["suspend_after_seconds"].value_or(300);
 
     auto ui_outline             = ui["outline"];
     m_config.ui.outline.visible = ui_outline["visible"].value_or(false);
@@ -1583,16 +1588,22 @@ dodo::FitNone() noexcept
 void
 dodo::OpenFiles(const std::vector<std::string> &files) noexcept
 {
+    const bool was_batch_opening = m_batch_opening;
+    m_batch_opening              = true;
     for (const std::string &s : files)
         OpenFile(QString::fromStdString(s));
+    m_batch_opening = was_batch_opening;
 }
 
 // Opens multiple files given a list of file paths
 void
 dodo::OpenFiles(const QStringList &files) noexcept
 {
+    const bool was_batch_opening = m_batch_opening;
+    m_batch_opening              = true;
     for (const QString &file : files)
         OpenFile(file);
+    m_batch_opening = was_batch_opening;
 }
 
 // Opens a file given the DocumentView pointer
@@ -1660,15 +1671,18 @@ dodo::OpenFile(const QString &filePath,
         fp = QDir::current().absoluteFilePath(fp);
 
     // Switch to already opened filepath, if it's open.
-    auto it = m_path_tab_map.find(fp);
-    if (it != m_path_tab_map.end())
+    auto it = m_path_tab_hash.find(fp);
+    if (it != m_path_tab_hash.end())
     {
         int existingIndex = m_tab_widget->indexOf(it.value());
         if (existingIndex != -1)
         {
             m_tab_widget->setCurrentIndex(existingIndex);
-            const int page = it.value()->pageNo() + 1;
-            insertFileToDB(fp, page > 0 ? page : 1);
+            if (auto *doc = qobject_cast<DocumentView *>(it.value()))
+            {
+                const int page = doc->pageNo() + 1;
+                insertFileToDB(fp, page > 0 ? page : 1);
+            }
             return true;
         }
     }
@@ -1704,51 +1718,67 @@ dodo::OpenFile(const QString &filePath,
         }
     }
 
-    DocumentView *docwidget = new DocumentView(m_config, m_tab_widget);
-    const QString tabTitle  = m_config.ui.tabs.full_path
-                                  ? QFileInfo(fp).filePath()
-                                  : QFileInfo(fp).fileName();
-    int index               = m_tab_widget->addTab(docwidget, tabTitle);
+    const QString path = QFileInfo(fp).filePath();
+    const QString tabTitle
+        = m_config.ui.tabs.full_path ? path : QFileInfo(fp).fileName();
 
-    connect(docwidget, &DocumentView::openFileFinished, this,
-            [this, callback, index](DocumentView *doc)
+    if (m_config.ui.tabs.lazy_load)
     {
-        const QString filePath = doc->filePath();
-        doc->setDPR(m_dpr);
-        initTabConnections(doc);
-        auto outline = doc->model()->getOutline();
-        if (outline)
+        QWidget *placeholderWidget = new QWidget(this);
+        placeholderWidget->setProperty("tabRole", "lazy");
+        placeholderWidget->setProperty("filePath", path);
+        int index = m_tab_widget->addTab(placeholderWidget, tabTitle);
+        m_path_tab_hash[path] = placeholderWidget;
+        if (!m_batch_opening)
+            m_tab_widget->setCurrentIndex(index);
+    }
+    else
+    {
+        DocumentView *docwidget = new DocumentView(m_config, m_tab_widget);
+        int index               = m_tab_widget->addTab(docwidget, tabTitle);
+
+        connect(docwidget, &DocumentView::openFileFinished, this,
+                [this, callback, index](DocumentView *doc)
         {
-            m_outline_widget->setOutline(outline);
-            if (m_config.ui.outline.visible)
+            const QString filePath = doc->filePath();
+            doc->setDPR(m_dpr);
+            initTabConnections(doc);
+            auto outline = doc->model()->getOutline();
+            if (outline)
             {
-                m_outline_widget->show();
+                m_outline_widget->setOutline(outline);
+                if (m_config.ui.outline.visible)
+                {
+                    m_outline_widget->show();
+                }
             }
         }
 
-        m_path_tab_map[filePath] = doc;
+            m_path_tab_hash[filePath] = doc;
 
-        // Record in history
-        const int page = doc->pageNo() + 1;
-        insertFileToDB(filePath, page > 0 ? page : 1);
+            // Record in history
+            const int page = doc->pageNo() + 1;
+            insertFileToDB(filePath, page > 0 ? page : 1);
 
-        m_tab_widget->setCurrentIndex(index);
+            m_tab_widget->setCurrentIndex(index);
 
-        updatePanel();
-        if (callback)
-            callback();
-    });
+            updatePanel();
+            if (callback)
+                callback();
+        });
 
-    connect(docwidget, &DocumentView::openFileFailed, this,
-            [this](DocumentView *doc)
-    {
-        // Only use deleteLater() for async cleanup
-        doc->deleteLater();
-        QMessageBox::warning(this, "Open File",
-                             QString("Failed to open %1").arg(doc->filePath()));
-    });
+        connect(docwidget, &DocumentView::openFileFailed, this,
+                [this](DocumentView *doc)
+        {
+            // Only use deleteLater() for async cleanup
+            doc->deleteLater();
+            QMessageBox::warning(
+                this, "Open File",
+                QString("Failed to open %1").arg(doc->filePath()));
+        });
 
-    docwidget->openAsync(fp);
+        docwidget->openAsync(fp);
+    }
 
     return true;
 }
@@ -1791,15 +1821,18 @@ dodo::OpenFileInNewWindow(const QString &filePath,
         fp = QDir::current().absoluteFilePath(fp);
 
     // Switch to already opened filepath, if it's open.
-    auto it = m_path_tab_map.find(fp);
-    if (it != m_path_tab_map.end())
+    auto it = m_path_tab_hash.find(fp);
+    if (it != m_path_tab_hash.end())
     {
         int existingIndex = m_tab_widget->indexOf(it.value());
         if (existingIndex != -1)
         {
             m_tab_widget->setCurrentIndex(existingIndex);
-            const int page = it.value()->pageNo() + 1;
-            insertFileToDB(fp, page > 0 ? page : 1);
+            if (auto *doc = qobject_cast<DocumentView *>(it.value()))
+            {
+                const int page = doc->pageNo() + 1;
+                insertFileToDB(fp, page > 0 ? page : 1);
+            }
             return true;
         }
     }
@@ -2126,7 +2159,7 @@ dodo::initConnections() noexcept
 
             if (doc)
             {
-                m_path_tab_map.remove(doc->fileName());
+                m_path_tab_hash.remove(doc->filePath());
 
                 // Set the outline to nullptr if the closed tab was the
                 // current one
@@ -2134,6 +2167,12 @@ dodo::initConnections() noexcept
                     m_outline_widget->clearOutline();
                 doc->CloseFile();
             }
+        }
+        else if (tabRole == "lazy")
+        {
+            const QString filePath = widget->property("filePath").toString();
+            if (!filePath.isEmpty())
+                m_path_tab_hash.remove(filePath);
         }
         else if (tabRole == "startup")
         {
@@ -2206,9 +2245,71 @@ dodo::handleCurrentTabChanged(int index) noexcept
         return;
     }
 
-    QWidget *widget = m_tab_widget->widget(index);
+    QWidget *widget       = m_tab_widget->widget(index);
+    const QString tabRole = widget->property("tabRole").toString();
 
-    if (widget->property("tabRole") == "startup")
+    if (tabRole == "lazy")
+    {
+        const QString filePath = widget->property("filePath").toString();
+        if (filePath.isEmpty())
+            return;
+
+        DocumentView *docwidget = new DocumentView(m_config, m_tab_widget);
+        const QString tabTitle  = m_tab_widget->tabText(index);
+
+        m_tab_widget->blockSignals(true);
+        int newIndex = m_tab_widget->insertTab(index, docwidget, tabTitle);
+        const int placeholderIndex = m_tab_widget->indexOf(widget);
+        if (placeholderIndex != -1)
+            m_tab_widget->removeTab(placeholderIndex);
+        m_tab_widget->setCurrentIndex(newIndex);
+        m_tab_widget->blockSignals(false);
+        widget->deleteLater();
+
+        m_path_tab_hash[filePath] = docwidget;
+
+        connect(docwidget, &DocumentView::openFileFinished, this,
+                [this, newIndex](DocumentView *doc)
+        {
+            const QString loadedPath = doc->filePath();
+            doc->setDPR(m_dpr);
+            initTabConnections(doc);
+            auto outline = doc->model()->getOutline();
+            if (outline)
+            {
+                m_outline_widget->setOutline(outline);
+                if (m_config.ui.outline.visible)
+                {
+                    m_outline_widget->show();
+                }
+            }
+
+            m_path_tab_hash[loadedPath] = doc;
+
+            // Record in history
+            const int page = doc->pageNo() + 1;
+            insertFileToDB(loadedPath, page > 0 ? page : 1);
+
+            m_tab_widget->setCurrentIndex(newIndex);
+
+            updatePanel();
+        });
+
+        connect(docwidget, &DocumentView::openFileFailed, this,
+                [this](DocumentView *doc)
+        {
+            m_path_tab_hash.remove(doc->filePath());
+            doc->deleteLater();
+            QMessageBox::warning(
+                this, "Open File",
+                QString("Failed to open %1").arg(doc->filePath()));
+        });
+
+        docwidget->openAsync(filePath);
+        return;
+    }
+
+    if (tabRole == "startup")
     {
         m_doc = nullptr;
         updateActionsAndStuffForSystemTabs();
@@ -2220,7 +2321,7 @@ dodo::handleCurrentTabChanged(int index) noexcept
         return;
     }
 
-    if (widget->property("tabRole") == "empty")
+    if (tabRole == "empty")
     {
         m_doc = nullptr;
         updateActionsAndStuffForSystemTabs();

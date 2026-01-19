@@ -85,6 +85,9 @@ struct Config
             bool closable{true};
             bool movable{true};
             bool full_path{false};
+            bool lazy_load{false};
+            bool suspend_inactive{false};
+            int suspend_after_seconds{300};
             QString elide_mode{"right"};
             QString bar_position{"top"};
         } tabs{};

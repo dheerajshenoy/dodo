@@ -24,8 +24,10 @@
     - `tabs_close_left` - close all tabs to the left of the current tab
     - `tabs_close_right` - close all tabs to the right of the current tab
     - `tabs_close_others` - close all tabs except the current tab
-- File path in tab `[ui.tabs]`
-    - `full_path` - whether to show full path in the tab
+- New options for tabs `[ui.tabs]`
+    - Lazy loading `lazy_load` (bool) - loads only when switching to the tab (useful when loading lots of papers)
+    - File path in tab `[ui.tabs]`
+        - `full_path` - whether to show full path in the tab
 - Overlay frame config `[ui.overlays]`
     - `border` - show border around overlay frames
     - `shadow` table

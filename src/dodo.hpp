@@ -314,6 +314,7 @@ private:
                                  // like for marks etc.
     bool m_link_hint_mode{false}, m_focus_mode{false},
         m_load_default_keybinding{true};
+    bool m_batch_opening{false};
     StartupWidget *m_startup_widget{nullptr};
     LinkHintMode m_link_hint_current_mode{LinkHintMode::None};
     QMap<int, Model::LinkInfo> m_link_hint_map;
@@ -326,7 +327,7 @@ private:
     QString m_recent_files_path;
     QString m_session_name;
     QFileSystemWatcher *m_config_watcher{nullptr};
-    QMap<QString, DocumentView *> m_path_tab_map;
+    QHash<QString, QWidget *> m_path_tab_hash;
     MessageBar *m_message_bar{nullptr};
     SearchBar *m_search_bar{nullptr};
     HighlightSearchWidget *m_highlight_search_widget{nullptr};
