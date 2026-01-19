@@ -16,6 +16,9 @@
 <a href="LICENSE.md"><img alt="Static Badge" src="https://img.shields.io/badge/LICENSE-AGPL--3.0-darkgreen?style=for-the-badge"></a>
 </p>
 
+> [!NOTE]
+> **HELP WANTED**: I am going to be changing the name for this project since **dodo** is already [taken](https://github.com/akissinger/dodo), which at the time of starting this project I did not know. If you have any name suggestions, please open an issue or contact me. I need something that is short, easy to remember, and preferable looks good as a logo with the [**Outfit**](https://fonts.google.com/specimen/Outfit) font.
+
 > [!WARNING]
 > **dodo** is still in alpha, bugs and crashes expected.
 
