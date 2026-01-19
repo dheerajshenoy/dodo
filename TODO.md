@@ -33,3 +33,5 @@
 - [ ] smooth scrolling
 - [ ] beautify command palette
 - [ ] improved home page
+- [ ] Lazy load tabs
+- [ ] Suspend unused tabs when inactive for a given time
