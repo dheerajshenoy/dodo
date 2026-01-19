@@ -1564,31 +1564,30 @@ dodo::OpenFiles(const QStringList &files) noexcept
 }
 
 // Opens a file given the DocumentView pointer
-bool
-dodo::OpenFile(DocumentView *view) noexcept
-{
-    initTabConnections(view);
-    view->setDPR(m_dpr);
-    QString fileName = view->fileName();
-    QString path     = QFileInfo(fileName).fileName();
-    m_tab_widget->addTab(view, path);
+// bool
+// dodo::OpenFile(DocumentView *view) noexcept
+// {
+//     initTabConnections(view);
+//     view->setDPR(m_dpr);
 
-    m_tab_widget->addTab(view, path);
+//     const QString title
+//         = m_config.ui.tabs.full_path ? m_doc->filePath() : m_doc->fileName();
+//     m_tab_widget->addTab(view, title);
 
-    // Switch to already opened filepath, if it's open.
-    auto it = m_path_tab_map.find(fileName);
-    if (it != m_path_tab_map.end())
-    {
-        int existingIndex = m_tab_widget->indexOf(it.value());
-        if (existingIndex != -1)
-        {
-            m_tab_widget->setCurrentIndex(existingIndex);
-            return true;
-        }
-    }
+//     // Switch to already opened filepath, if it's open.
+//     auto it = m_path_tab_map.find(fileName);
+//     if (it != m_path_tab_map.end())
+//     {
+//         int existingIndex = m_tab_widget->indexOf(it.value());
+//         if (existingIndex != -1)
+//         {
+//             m_tab_widget->setCurrentIndex(existingIndex);
+//             return true;
+//         }
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
 // Opens a file given the file path
 bool

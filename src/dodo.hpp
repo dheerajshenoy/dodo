@@ -60,7 +60,7 @@ public:
     ~dodo() noexcept;
 
     void ReadArgsParser(argparse::ArgumentParser &argparser) noexcept;
-    bool OpenFile(DocumentView *view) noexcept;
+    // bool OpenFile(DocumentView *view) noexcept;
     void ToggleCommandPalette() noexcept;
     void Search() noexcept;
     void ShowHighlightSearch() noexcept;
