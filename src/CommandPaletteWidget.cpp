@@ -191,6 +191,27 @@ CommandPaletteWidget::initGui() noexcept
     layout->addWidget(m_command_table);
 
     this->setLayout(layout);
+
+    setStyleSheet("QLineEdit {"
+                  "  padding: 8px 10px;"
+                  "  border-radius: 8px;"
+                  "  border: 1px solid palette(midlight);"
+                  "  background: palette(base);"
+                  "}"
+                  "QTableView {"
+                  "  background: palette(base);"
+                  "  border: 1px solid palette(midlight);"
+                  "  border-radius: 10px;"
+                  "}"
+                  "QTableView::item {"
+                  "  padding: 6px;"
+                  "}"
+                  "QHeaderView::section {"
+                  "  background: palette(window);"
+                  "  padding: 6px 8px;"
+                  "  border: none;"
+                  "  font-weight: 600;"
+                  "}");
 }
 
 void
