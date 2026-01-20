@@ -75,7 +75,6 @@ public:
     void CloseFile() noexcept;
     void ZoomIn() noexcept;
     void ZoomOut() noexcept;
-    void FitNone() noexcept;
     void FitWidth() noexcept;
     void FitHeight() noexcept;
     void FitWindow() noexcept;
@@ -261,7 +260,6 @@ private:
     QAction *m_actionFitWidth{nullptr};
     QAction *m_actionFitHeight{nullptr};
     QAction *m_actionFitWindow{nullptr};
-    QAction *m_actionFitNone{nullptr};
     QAction *m_actionAutoresize{nullptr};
     QAction *m_actionToggleMenubar{nullptr};
     QAction *m_actionTogglePanel{nullptr};

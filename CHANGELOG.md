@@ -50,6 +50,8 @@
 **NOTE**: You might have to change few things in the config
 
 - Command `first_tab`, `last_tab` renamed to `tab_first`, `tab_last`
+- Remove `Fit None` from the fit menu
+- Moved `Auto Resize` checkbox to the view menu instead of fit menu
 
 ### Bug Fixes
 

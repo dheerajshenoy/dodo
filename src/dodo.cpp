@@ -198,10 +198,6 @@ dodo::initMenubar() noexcept
 
     m_fitMenu = m_viewMenu->addMenu("Fit");
 
-    m_actionFitNone = m_fitMenu->addAction(
-        QString("None\t%1").arg(m_config.shortcuts["fit_none"]), this,
-        &dodo::FitNone);
-
     m_actionFitWidth = m_fitMenu->addAction(
         QString("Width\t%1").arg(m_config.shortcuts["fit_width"]), this,
         &dodo::FitWidth);
@@ -217,7 +213,7 @@ dodo::initMenubar() noexcept
     m_fitMenu->addSeparator();
 
     // Auto Resize toggle (independent)
-    m_actionAutoresize = m_fitMenu->addAction(
+    m_actionAutoresize = m_viewMenu->addAction(
         QString("Auto Resize\t%1").arg(m_config.shortcuts["auto_resize"]), this,
         &dodo::ToggleAutoResize);
     m_actionAutoresize->setCheckable(true);
@@ -1575,13 +1571,6 @@ dodo::YankSelection() noexcept
 {
     if (m_doc)
         m_doc->YankSelection();
-}
-
-void
-dodo::FitNone() noexcept
-{
-    if (m_doc)
-        m_doc->setFitMode(DocumentView::FitMode::None);
 }
 
 // Opens multiple files given a list of file paths
