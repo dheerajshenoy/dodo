@@ -930,7 +930,10 @@ DocumentView::GotoPage(int pageno) noexcept
         return;
 
     m_pageno = pageno;
-    invalidateVisiblePagesCache();
+
+    if (!m_visible_pages_cache.contains(pageno))
+        invalidateVisiblePagesCache();
+
     emit currentPageChanged(pageno + 1);
 
     if (m_layout_mode == LayoutMode::SINGLE)
