@@ -48,17 +48,11 @@ HighlightSearchWidget::HighlightSearchWidget(QWidget *parent) : QWidget(parent)
     connect(m_filter_input, &QLineEdit::textChanged, this,
             [this]() { applyFilter(); });
 
-    connect(m_filter_input, &QLineEdit::returnPressed, this, [this]()
-    {
-        activateCurrentSelection();
-        this->hide();
-    });
+    connect(m_filter_input, &QLineEdit::returnPressed, this,
+            [this]() { activateCurrentSelection(); });
 
     connect(m_refresh_button, &QPushButton::clicked, this,
             [this]() { refresh(); });
-
-    // connect(m_close_button, &QPushButton::clicked, this,
-    //         [this]() { this->hide(); });
 
     QWidget::setTabOrder(m_filter_input, m_list);
     QWidget::setTabOrder(m_list, m_refresh_button);
@@ -94,7 +88,6 @@ HighlightSearchWidget::HighlightSearchWidget(QWidget *parent) : QWidget(parent)
         const int page    = item->data(Qt::UserRole).toInt();
         const QPointF pos = item->data(Qt::UserRole + 1).toPointF();
         emit gotoLocationRequested(page, pos);
-        this->setVisible(false);
     });
 
     connect(&m_watcher,
@@ -105,12 +98,6 @@ HighlightSearchWidget::HighlightSearchWidget(QWidget *parent) : QWidget(parent)
         setLoading(false);
         applyFilter();
     });
-}
-
-void
-HighlightSearchWidget::setModel(Model *model) noexcept
-{
-    m_model = model;
 }
 
 void
@@ -228,7 +215,6 @@ HighlightSearchWidget::activateCurrentSelection() noexcept
     const int page    = item->data(Qt::UserRole).toInt();
     const QPointF pos = item->data(Qt::UserRole + 1).toPointF();
     emit gotoLocationRequested(page, pos);
-    this->setVisible(false);
 }
 
 void

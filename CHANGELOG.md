@@ -73,6 +73,7 @@
 - Fix document not reloading even when `[behavior.auto_reload]` is set to true
 - Hide searchbar when the search term is empty
 - Fix loading default config when error is found in config
+- Fix highlights search overlay hiding after selecting entry
 
 ## 0.5.6
 

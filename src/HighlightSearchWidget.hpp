@@ -18,7 +18,11 @@ class HighlightSearchWidget : public QWidget
 
 public:
     explicit HighlightSearchWidget(QWidget *parent = nullptr);
-    void setModel(Model *model) noexcept;
+    inline void setModel(Model *model) noexcept
+    {
+        m_model = model;
+    }
+
     void refresh() noexcept;
     void focusFilterInput() noexcept;
 
