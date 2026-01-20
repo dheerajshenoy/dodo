@@ -32,3 +32,7 @@
 - [ ] Suspend unused tabs when inactive for a given time
 - [ ] Auto-find current position in the outline
 - [ ] Don't fix the page dimension from the first page only
+- [ ] Export highlight annotations
+- [ ] Separate dark and light mode colors ability
+- [ ] Copy text on highlight annotation problem
+- [ ] Highlight widget double click hide widget problem
