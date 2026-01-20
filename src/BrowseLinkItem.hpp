@@ -2,9 +2,7 @@
 
 // This class represents a clickable link area in the document view
 
-#include <QApplication>
 #include <QBrush>
-#include <QCursor>
 #include <QDesktopServices>
 #include <QGraphicsRectItem>
 #include <QGraphicsSceneHoverEvent>
@@ -149,14 +147,14 @@ protected:
     {
         QGraphicsRectItem::hoverEnterEvent(e);
         setBrush(QBrush(QColor(1.0, 1.0, 0.0, 125)));
-        QGuiApplication::setOverrideCursor(Qt::PointingHandCursor);
+        setCursor(Qt::PointingHandCursor);
     }
 
     void hoverLeaveEvent(QGraphicsSceneHoverEvent *e) override
     {
         QGraphicsRectItem::hoverLeaveEvent(e);
         setBrush(Qt::transparent);
-        QGuiApplication::restoreOverrideCursor();
+        unsetCursor();
     }
 
     void contextMenuEvent(QGraphicsSceneContextMenuEvent *e) override

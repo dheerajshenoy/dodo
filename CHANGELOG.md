@@ -51,6 +51,7 @@
 
 ### Bug Fixes
 
+- Fix link hover cursor change
 - Fix link navigation when target page is not yet rendered
 - Hide the command palette before executing the command
 - Fix command pallette showing only set keybound commands
