@@ -714,9 +714,7 @@ Model::getSelectedText(int pageno, const fz_point &a, const fz_point &b,
     }
 
     if (!formatted)
-    {
         clean_pdf_text(result);
-    }
 
     return result;
 }
