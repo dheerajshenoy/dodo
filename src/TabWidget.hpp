@@ -53,12 +53,12 @@ public:
                 &TabWidget::tabDetachedToNewWindow);
     }
 
-    DraggableTabBar *draggableTabBar() const
+    DraggableTabBar *draggableTabBar() const noexcept
     {
         return m_tab_bar;
     }
 
-    int addTab(QWidget *page, const QString &title)
+    inline int addTab(QWidget *page, const QString &title) noexcept
     {
         int result = QTabWidget::addTab(page, title);
         emit tabAdded(result);
@@ -70,7 +70,8 @@ public:
         return m_id;
     }
 
-    int insertTab(int index, QWidget *page, const QString &title)
+    inline int insertTab(const int index, QWidget *page,
+                         const QString &title) noexcept
     {
         int result = QTabWidget::insertTab(index, page, title);
         emit tabAdded(result);
