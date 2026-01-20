@@ -2303,7 +2303,7 @@ dodo::handleCurrentTabChanged(int index) noexcept
     {
         m_doc = nullptr;
         updateActionsAndStuffForSystemTabs();
-        this->setWindowTitle("Startup");
+        this->setWindowTitle("Start Page");
         if (m_highlight_overlay)
             m_highlight_overlay->hide();
         if (m_highlight_search_widget)
@@ -3202,7 +3202,7 @@ dodo::showStartupWidget() noexcept
     });
     int index = m_tab_widget->addTab(m_startup_widget, "Startup");
     m_tab_widget->setCurrentIndex(index);
-    m_statusbar->setFileName("Startup");
+    m_statusbar->setFileName("Start Page");
 }
 
 // Update actions and stuff for system tabs
@@ -3211,7 +3211,7 @@ dodo::updateActionsAndStuffForSystemTabs() noexcept
 {
     m_statusbar->hidePageInfo(true);
     updateUiEnabledState();
-    m_statusbar->setFileName("Startup");
+    m_statusbar->setFileName("Start Page");
 }
 
 // Undo operation

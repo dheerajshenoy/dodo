@@ -55,6 +55,7 @@
 
 ### Bug Fixes
 
+- Rename startup tab to `Startup Page`
 - Fix double free in document cleanup
 - Fix link hover cursor change
 - Fix link navigation when target page is not yet rendered
