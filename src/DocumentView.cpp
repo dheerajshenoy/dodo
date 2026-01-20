@@ -923,6 +923,11 @@ DocumentView::GotoLocation(const PageLocation &targetLocation) noexcept
 
 // Go to specific page number
 // Does not render page directly, just adjusts scrollbar
+
+/*
+ * NOTE: You have to handle history saving yourself and is not handled
+ * inside this function
+ */
 void
 DocumentView::GotoPage(int pageno) noexcept
 {
