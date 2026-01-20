@@ -33,3 +33,4 @@
 - [ ] Separate dark and light mode colors ability
 - [ ] Copy text on highlight annotation problem
 - [ ] Highlight widget double click hide widget problem
+- [ ] Don't refresh highlights search each time
