@@ -682,8 +682,8 @@ Model::computeTextSelectionQuad(int pageno, const QPointF &devStart,
 }
 
 std::string
-Model::getSelectedText(int pageno, const fz_point &a,
-                       const fz_point &b) noexcept
+Model::getSelectedText(int pageno, const fz_point &a, const fz_point &b,
+                       bool formatted) noexcept
 {
     std::string result;
     fz_page *page{nullptr};
@@ -711,6 +711,11 @@ Model::getSelectedText(int pageno, const fz_point &a,
     fz_catch(m_ctx)
     {
         qWarning() << "Failed to copy selection text";
+    }
+
+    if (!formatted)
+    {
+        clean_pdf_text(result);
     }
 
     return result;

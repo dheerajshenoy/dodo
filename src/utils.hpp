@@ -121,3 +121,18 @@ rgbaToQColor(uint32_t rgba) noexcept
     return QColor((rgba >> 24) & 0xFF, (rgba >> 16) & 0xFF, (rgba >> 8) & 0xFF,
                   rgba & 0xFF);
 }
+
+void
+normalize_whitespace(std::string &s);
+
+void
+collapse_spaces(std::string &s);
+
+void
+remove_utf8_junk(std::string &s);
+
+std::string
+clean_join_pdf_text(const std::string &input);
+
+void
+clean_pdf_text(std::string &s);

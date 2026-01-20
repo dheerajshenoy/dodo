@@ -234,7 +234,7 @@ public:
     void RotateAnticlock() noexcept;
     QMap<int, Model::LinkInfo> LinkKB() noexcept;
     void ClearTextSelection() noexcept;
-    void YankSelection() noexcept;
+    void YankSelection(bool formatted = true) noexcept;
     void FileProperties() noexcept;
     void SaveFile() noexcept;
     void SaveAsFile() noexcept;

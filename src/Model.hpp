@@ -352,7 +352,7 @@ public:
     std::vector<QPolygonF> selectParagraphAt(int pageno, fz_point pt) noexcept;
 
     std::string getSelectedText(int pageno, const fz_point &a,
-                                const fz_point &b) noexcept;
+                                const fz_point &b, bool formatted) noexcept;
     void highlightTextSelection(int pageno, const QPointF &start,
                                 const QPointF &end) noexcept;
     void invalidatePageCache(int pageno) noexcept;

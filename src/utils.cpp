@@ -330,3 +330,101 @@ parseHexColor(std::string_view s, uint32_t &out)
           | uint32_t(a);
     return true;
 }
+
+void
+normalize_whitespace(std::string &s)
+{
+    for (char &c : s)
+    {
+        if (c == '\n' || c == '\r' || c == '\t')
+            c = ' ';
+    }
+}
+
+void
+collapse_spaces(std::string &s)
+{
+    auto new_end = std::unique(s.begin(), s.end(), [](char a, char b)
+    { return a == ' ' && b == ' '; });
+    s.erase(new_end, s.end());
+}
+
+void
+remove_utf8_junk(std::string &s)
+{
+    static const std::vector<std::string> junk = {
+        "\xC2\xA0",    // NBSP
+        "\xC2\xAD",    // soft hyphen
+        "\xE2\x80\x8B" // zero-width space
+    };
+
+    for (const auto &j : junk)
+    {
+        size_t pos;
+        while ((pos = s.find(j)) != std::string::npos)
+            s.erase(pos, j.size());
+    }
+}
+
+std::string
+clean_join_pdf_text(const std::string &input)
+{
+    /*
+    1. If A ends with a hyphen and B starts with a letter → remove hyphen, no
+    space
+    2. Else if A ends with an alphanumeric and B starts with an alphanumeric →
+    insert one space
+    3. Else → just concatenate
+    */
+    std::string out;
+    out.reserve(input.size());
+
+    auto is_alnum = [](char c)
+    {
+        return std::isalnum(static_cast<unsigned char>(c));
+    };
+
+    for (size_t i = 0; i < input.size(); ++i)
+    {
+        char c = input[i];
+
+        if (c == '\n' || c == '\r')
+        {
+            // skip repeated newlines
+            while (i + 1 < input.size()
+                   && (input[i + 1] == '\n' || input[i + 1] == '\r'))
+                ++i;
+
+            if (!out.empty() && i + 1 < input.size())
+            {
+                char prev = out.back();
+                char next = input[i + 1];
+
+                // Case 1: hyphenated word break
+                if (prev == '-' && is_alnum(next))
+                {
+                    out.pop_back(); // remove '-'
+                }
+                // Case 2: word boundary → add space
+                else if (is_alnum(prev) && is_alnum(next))
+                {
+                    out.push_back(' ');
+                }
+            }
+            continue;
+        }
+
+        out.push_back(c);
+    }
+
+    return out;
+}
+
+void
+clean_pdf_text(std::string &s)
+{
+    remove_utf8_junk(s);
+    clean_join_pdf_text(s);
+    normalize_whitespace(s);
+    collapse_spaces(s);
+}

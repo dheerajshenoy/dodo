@@ -1619,16 +1619,16 @@ DocumentView::ClearTextSelection() noexcept
 
 // Yank the current text selection to clipboard
 void
-DocumentView::YankSelection() noexcept
+DocumentView::YankSelection(bool formatted) noexcept
 {
     if (m_selection_start.isNull())
         return;
 
-    const int pageIndex   = selectionPage();
-    QClipboard *clipboard = QGuiApplication::clipboard();
-    const auto range      = m_model->getTextSelectionRange();
-    const std::string text
-        = m_model->getSelectedText(pageIndex, range.first, range.second);
+    const int pageIndex    = selectionPage();
+    QClipboard *clipboard  = QGuiApplication::clipboard();
+    const auto range       = m_model->getTextSelectionRange();
+    const std::string text = m_model->getSelectedText(pageIndex, range.first,
+                                                      range.second, formatted);
     clipboard->setText(text.c_str());
 }
 
@@ -2136,7 +2136,9 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos) noexcept
                 || m_selection_path_item->path().isEmpty())
                 return;
 
-            addAction("Copy Text", &DocumentView::YankSelection);
+            addAction("Copy Text", [this]() { YankSelection(true); });
+            addAction("Copy Unformatted Text",
+                      [this]() { YankSelection(false); });
             addAction("Highlight Text",
                       &DocumentView::TextHighlightCurrentSelection);
         }
