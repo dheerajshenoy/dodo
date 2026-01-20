@@ -31,3 +31,4 @@
 - [ ] improved home page
 - [ ] Suspend unused tabs when inactive for a given time
 - [ ] Auto-find current position in the outline
+- [ ] Don't fix the page dimension from the first page only
