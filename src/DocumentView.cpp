@@ -895,6 +895,14 @@ DocumentView::GotoLocation(const PageLocation &targetLocation) noexcept
 
     // Continuous / LTR layouts
     GraphicsPixmapItem *pageItem = m_page_items_hash[targetLocation.pageno];
+    if (!pageItem)
+        return;
+    if (pageItem->data(0).toString() == "placeholder_page")
+    {
+        m_pending_jump = targetLocation;
+        GotoPage(targetLocation.pageno);
+        return;
+    }
 
     QPointF targetPixelPos = m_model->toPixelSpace(
         targetLocation.pageno, {targetLocation.x, targetLocation.y});
@@ -2352,7 +2360,7 @@ DocumentView::startNextRenderJob() noexcept
                     renderSearchHitsForPage(pageno);
                 }
 
-                if (m_pending_jump.pageno != -1)
+                if (m_pending_jump.pageno == pageno)
                 {
                     GotoLocation(m_pending_jump);
                 }
