@@ -104,12 +104,7 @@ StartupWidget::StartupWidget(RecentFilesStore *store, QWidget *parent)
     empty_layout->addWidget(empty_subtitle, 0, Qt::AlignHCenter);
     empty_layout->addStretch(1);
 
-    QStackedLayout *stack = new QStackedLayout();
-    stack->addWidget(table_container);
-    stack->addWidget(empty_state);
-
     layout->addWidget(line_edit);
-    layout->addLayout(stack, 1);
 
     setStyleSheet("QLineEdit#startupSearch {"
                   "  padding: 8px 10px;"
