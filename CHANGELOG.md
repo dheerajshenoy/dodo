@@ -17,6 +17,7 @@
 - Drag-drop file handling
     - Hold `Shift` while dropping a file onto the main view to open in a new window
 - Improved Startup Page
+- `goto_page` command now registers current location for history navigation back to the page from where the command was called.
 
 ### Config options
 - Page foreground and background color config option
@@ -55,6 +56,7 @@
 
 ### Bug Fixes
 
+- Fix orderless completion not working in the command palette
 - Rename startup tab to `Startup Page`
 - Fix double free in document cleanup
 - Fix link hover cursor change

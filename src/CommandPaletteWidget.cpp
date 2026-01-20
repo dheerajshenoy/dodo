@@ -117,12 +117,15 @@ protected:
         const QModelIndex index
             = sourceModel()->index(sourceRow, 0, sourceParent);
         const QString name = index.data(Qt::DisplayRole).toString().toLower();
-        const QString normalized
+        const QString normalized_name
             = QString(name).replace(QChar('_'), QChar(' '));
 
         for (const QString &token : m_tokens)
         {
-            if (!normalized.contains(token))
+            const QString normalized_token
+                = QString(token).replace(QChar('_'), QChar(' '));
+            if (!name.contains(token)
+                && !normalized_name.contains(normalized_token))
                 return false;
         }
 
