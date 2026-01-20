@@ -44,14 +44,14 @@ LLMWidget::initProvider() noexcept
                 this, "Error",
                 "Role error while instantiating LLM. Please contact support");
 
+#ifndef NDEBUG
             qDebug() << "LLMWidget::getSystemPrompt() role.txt not found! "
                         "Exiting";
+#endif
             return;
         }
 
         promptText = roleFile.readAll().toStdString();
-
-        qDebug().noquote() << promptText;
 
         m_provider->setModel(m_config.llm.model);
         m_provider->setSystemPrompt(promptText);
