@@ -10,22 +10,17 @@ StartupWidget::StartupWidget(RecentFilesStore *store, QWidget *parent)
     : QWidget(parent), m_store(store)
 {
     setAcceptDrops(false);
-    QVBoxLayout *layout  = new QVBoxLayout(this);
-    QLabel *recent_label = new QLabel("Recent Files");
+    setObjectName("startupRoot");
+    QVBoxLayout *layout = new QVBoxLayout(this);
+    layout->setSpacing(16);
+
     QLineEdit *line_edit = new QLineEdit(this);
-    line_edit->setPlaceholderText("Search for file");
+    line_edit->setObjectName("startupSearch");
+    line_edit->setPlaceholderText("Search recent files...");
+    line_edit->setClearButtonEnabled(true);
+
     m_table_view = new QTableView(this);
-
-    QFont font = recent_label->font();
-
-    font.setPixelSize(20);
-
-    recent_label->setFont(font);
-
-    layout->addWidget(recent_label);
-    layout->addWidget(line_edit);
-    layout->addWidget(m_table_view);
-    // layout->addStretch(1);
+    m_table_view->setObjectName("recentTable");
 
     setProperty("tabRole", "startup");
 
@@ -42,6 +37,7 @@ StartupWidget::StartupWidget(RecentFilesStore *store, QWidget *parent)
     proxy->setFilterKeyColumn(0); // Filter by title
     proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
     proxy->setSortCaseSensitivity(Qt::CaseInsensitive);
+    proxy->setSortRole(Qt::UserRole);
     proxy->sort(RecentFilesModel::LastAccessed, Qt::DescendingOrder);
 
     proxy->setFilterRegularExpression(
@@ -61,13 +57,19 @@ StartupWidget::StartupWidget(RecentFilesStore *store, QWidget *parent)
     m_table_view->setModel(proxy);
     m_table_view->horizontalHeader()->setSectionResizeMode(
         0, QHeaderView::Stretch);
+    m_table_view->horizontalHeader()->setSectionResizeMode(
+        RecentFilesModel::LastAccessed, QHeaderView::ResizeToContents);
     m_table_view->setSelectionBehavior(
         QAbstractItemView::SelectionBehavior::SelectRows);
+    m_table_view->setSelectionMode(
+        QAbstractItemView::SelectionMode::SingleSelection);
+    m_table_view->setSortingEnabled(true);
+    m_table_view->setAlternatingRowColors(true);
+    m_table_view->setShowGrid(false);
+    m_table_view->verticalHeader()->setVisible(false);
+    m_table_view->verticalHeader()->setDefaultSectionSize(32);
 
-    m_table_view->horizontalHeader()->setVisible(false);
-
-    m_table_view->setColumnHidden(1, true);
-    m_table_view->setColumnHidden(2, true);
+    m_table_view->horizontalHeader()->setVisible(true);
 
     connect(m_table_view, &QTableView::doubleClicked, this,
             [this, proxy](const QModelIndex &index)
@@ -78,7 +80,55 @@ StartupWidget::StartupWidget(RecentFilesStore *store, QWidget *parent)
         const QModelIndex sourceIndex = proxy->mapToSource(index);
         const RecentFileEntry entry   = m_model->entryAt(sourceIndex.row());
         const QString file_path       = entry.file_path;
-        const int page_number         = entry.page_number;
-        emit openFileRequested(file_path, page_number);
+        emit openFileRequested(file_path, entry.page_number);
     });
+
+    QWidget *table_container  = new QWidget(this);
+    QVBoxLayout *table_layout = new QVBoxLayout(table_container);
+    table_layout->setContentsMargins(0, 0, 0, 0);
+    table_layout->setSpacing(0);
+    table_layout->addWidget(m_table_view);
+
+    QWidget *empty_state      = new QWidget(this);
+    QVBoxLayout *empty_layout = new QVBoxLayout(empty_state);
+    empty_layout->setContentsMargins(16, 24, 16, 24);
+    empty_layout->setSpacing(8);
+    QLabel *empty_title = new QLabel("No recent files yet", empty_state);
+    empty_title->setObjectName("emptyTitle");
+    QLabel *empty_subtitle
+        = new QLabel("Open a PDF to see it listed here.", empty_state);
+    empty_subtitle->setObjectName("emptySubtitle");
+    empty_subtitle->setWordWrap(true);
+    empty_layout->addStretch(1);
+    empty_layout->addWidget(empty_title, 0, Qt::AlignHCenter);
+    empty_layout->addWidget(empty_subtitle, 0, Qt::AlignHCenter);
+    empty_layout->addStretch(1);
+
+    QStackedLayout *stack = new QStackedLayout();
+    stack->addWidget(table_container);
+    stack->addWidget(empty_state);
+
+    layout->addWidget(line_edit);
+    layout->addLayout(stack, 1);
+
+    setStyleSheet("QLineEdit#startupSearch {"
+                  "  padding: 8px 10px;"
+                  "  border-radius: 8px;"
+                  "  border: 1px solid palette(midlight);"
+                  "  background: palette(base);"
+                  "}"
+                  "QTableView#recentTable {"
+                  "  background: palette(base);"
+                  "  border: 1px solid palette(midlight);"
+                  "  border-radius: 10px;"
+                  "}"
+                  "QTableView#recentTable::item {"
+                  "  padding: 6px;"
+                  "}"
+                  "QHeaderView::section {"
+                  "  background: palette(window);"
+                  "  padding: 6px 8px;"
+                  "  border: none;"
+                  "  font-weight: 600;"
+                  "}");
 }

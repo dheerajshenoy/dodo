@@ -148,4 +148,6 @@ signals:
 
 private:
     DraggableTabBar *m_tab_bar{nullptr};
+    qint64 m_last_activity_ms{-1};
+    bool m_suspended{false};
 };

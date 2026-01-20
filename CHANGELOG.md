@@ -16,6 +16,7 @@
 - Replace `setdpr` command with `set_dpr`. This command now opens a popup input dialog asking for the new Device Pixel Ratio (DPR) value.
 - Drag-drop file handling
     - Hold `Shift` while dropping a file onto the main view to open in a new window
+- Improved Startup Page
 
 ### Config options
 - Page foreground and background color config option

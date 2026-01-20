@@ -9,12 +9,11 @@ class RecentFilesModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
-    enum Column
+    enum ColumnType
     {
         FilePath = 0,
-        PageNumber,
         LastAccessed,
-        ColumnCount
+        COUNT
     };
 
     explicit RecentFilesModel(QObject *parent = nullptr);

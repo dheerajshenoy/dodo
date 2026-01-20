@@ -19,9 +19,8 @@ RecentFilesModel::rowCount(const QModelIndex &parent) const
 int
 RecentFilesModel::columnCount(const QModelIndex &parent) const
 {
-    if (parent.isValid())
-        return 0;
-    return ColumnCount;
+    (void)parent;
+    return 2;
 }
 
 QVariant
@@ -39,12 +38,24 @@ RecentFilesModel::data(const QModelIndex &index, int role) const
     {
         switch (index.column())
         {
-            case FilePath:
+            case ColumnType::FilePath:
                 return displayPath(entry.file_path);
-            case PageNumber:
-                return entry.page_number;
-            case LastAccessed:
-                return entry.last_accessed.toString(Qt::ISODate);
+            case ColumnType::LastAccessed:
+                return QLocale().toString(entry.last_accessed,
+                                          QLocale::ShortFormat);
+            default:
+                return {};
+        }
+    }
+
+    if (role == Qt::UserRole)
+    {
+        switch (index.column())
+        {
+            case ColumnType::FilePath:
+                return entry.file_path;
+            case ColumnType::LastAccessed:
+                return entry.last_accessed;
             default:
                 return {};
         }
@@ -54,11 +65,9 @@ RecentFilesModel::data(const QModelIndex &index, int role) const
     {
         switch (index.column())
         {
-            case FilePath:
+            case ColumnType::FilePath:
                 return entry.file_path;
-            case PageNumber:
-                return entry.page_number;
-            case LastAccessed:
+            case ColumnType::LastAccessed:
                 return entry.last_accessed;
             default:
                 return {};
@@ -80,15 +89,7 @@ RecentFilesModel::setData(const QModelIndex &index, const QVariant &value,
 
     RecentFileEntry &entry = m_entries[index.row()];
 
-    if (index.column() == PageNumber)
-    {
-        bool ok              = false;
-        const int pageNumber = value.toInt(&ok);
-        if (!ok)
-            return false;
-        entry.page_number = pageNumber;
-    }
-    else if (index.column() == LastAccessed)
+    if (index.column() == LastAccessed)
     {
         QDateTime parsed;
         if (!parseDateTime(value, &parsed))
@@ -96,9 +97,7 @@ RecentFilesModel::setData(const QModelIndex &index, const QVariant &value,
         entry.last_accessed = parsed;
     }
     else
-    {
         return false;
-    }
 
     emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
     return true;
@@ -115,8 +114,6 @@ RecentFilesModel::headerData(int section, Qt::Orientation orientation,
     {
         case FilePath:
             return tr("File Path");
-        case PageNumber:
-            return tr("Page");
         case LastAccessed:
             return tr("Last Visited");
         default:
@@ -206,7 +203,7 @@ RecentFilesModel::displayPath(const QString &path) const
     if (path.startsWith(m_home_path))
     {
         QString display = path;
-        display.replace(m_home_path, "~");
+        display.replace(m_home_path, "~/");
         return display;
     }
 
