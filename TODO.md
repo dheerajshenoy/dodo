@@ -30,3 +30,4 @@
 - [ ] beautify command palette
 - [ ] improved home page
 - [ ] Suspend unused tabs when inactive for a given time
+- [ ] Auto-find current position in the outline
