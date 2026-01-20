@@ -83,7 +83,6 @@ Model::cleanup() noexcept
     fz_drop_outline(m_ctx, m_outline);
     m_outline = nullptr;
 
-    pdf_drop_document(m_ctx, m_pdf_doc);
     m_pdf_doc = nullptr;
 
     fz_drop_document(m_ctx, m_doc);

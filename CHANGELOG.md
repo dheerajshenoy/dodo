@@ -52,6 +52,7 @@
 
 ### Bug Fixes
 
+- Fix double free in document cleanup
 - Fix link hover cursor change
 - Fix link navigation when target page is not yet rendered
 - Hide the command palette before executing the command
