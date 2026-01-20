@@ -67,6 +67,7 @@ movable = true
 elide_mode = "middle" # "none", "start", "middle", "end"
 bar_position = "top" # "top", "bottom", "left", "right"
 full_path = false # show full file path in tab title
+lazy_load = true # load tab content only when activated
 
 [ui.outline]
 visible = false
