@@ -1433,7 +1433,10 @@ void
 dodo::gotoPage(int pageno) noexcept
 {
     if (m_doc)
+    {
+        m_doc->addToHistory(m_doc->CurrentLocation());
         m_doc->GotoPage(pageno - 1);
+    }
 }
 
 void
