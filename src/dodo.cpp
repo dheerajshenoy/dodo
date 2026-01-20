@@ -2291,7 +2291,9 @@ dodo::handleCurrentTabChanged(int index) noexcept
 
             m_tab_widget->setCurrentIndex(newIndex);
 
-            updatePanel();
+            handleCurrentTabChanged(
+                newIndex); // Otherwise when opening only one file, the
+                           // statusbar is not updated
         });
 
         connect(docwidget, &DocumentView::openFileFailed, this,

@@ -2137,7 +2137,28 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos) noexcept
             if (selectedAnnots.empty())
                 return;
 
-            addAction("Delete Annotations", []() { /* TODO */ });
+            // Delete selected annotations
+            addAction("Delete Annotations", [this, selectedAnnots]()
+            {
+                QHash<int, QSet<int>> objNumsByPage;
+                for (const auto &[pageno, annot] : selectedAnnots)
+                {
+                    if (!annot)
+                        continue;
+                    objNumsByPage[pageno].insert(annot->index());
+                }
+
+                for (auto it = objNumsByPage.cbegin();
+                     it != objNumsByPage.cend(); ++it)
+                {
+                    m_model->undoStack()->push(new DeleteAnnotationsCommand(
+                        m_model, it.key(), it.value()));
+                }
+                setModified(true);
+            });
+
+            // Change color of the selected annotations
+            // TODO: Put this under a undo command
             addAction("Change Color", [this]()
             {
                 auto newColor = QColorDialog::getColor(
@@ -2145,9 +2166,7 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos) noexcept
                     QColorDialog::ColorDialogOption::ShowAlphaChannel);
 
                 if (newColor.isValid())
-                {
                     changeColorOfSelectedAnnotations(newColor);
-                }
             });
         }
         break;

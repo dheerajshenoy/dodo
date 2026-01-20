@@ -1,8 +1,4 @@
 # TODO
-- [X] Implement LRU caching for pages and other resources
-- [X] close other tabs, tabs to the left, tabs to the right
-- [X] shift click drag drop open in new window
-
 - [ ] Undo/Redo operations
   - [X] Rect Annotation
   - [X] Text Highlight Annotation
@@ -33,5 +29,4 @@
 - [ ] smooth scrolling
 - [ ] beautify command palette
 - [ ] improved home page
-- [ ] Lazy load tabs
 - [ ] Suspend unused tabs when inactive for a given time

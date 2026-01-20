@@ -5,6 +5,7 @@
 
 ### Features
 
+- Add delete annotations implementation when in `annot_select_mode`
 - Increased rendering performance.
 - Add `tutorial_file` command to show a tutorial PDF file
 - Added `role.txt` system prompts for the LLM
