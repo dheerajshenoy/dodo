@@ -303,7 +303,8 @@ public slots:
     void handleOpenFileFinished() noexcept;
 
 protected:
-    void handleContextMenuRequested(const QPoint &globalPos) noexcept;
+    void handleContextMenuRequested(const QPoint &globalPos,
+                                    bool *handled) noexcept;
     void showEvent(QShowEvent *event) override;
 
 private:

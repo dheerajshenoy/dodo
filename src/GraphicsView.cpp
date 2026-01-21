@@ -473,8 +473,9 @@ GraphicsView::wheelEvent(QWheelEvent *event)
 void
 GraphicsView::contextMenuEvent(QContextMenuEvent *event)
 {
-    QGraphicsView::contextMenuEvent(event);
-    if (!event->isAccepted())
+    bool handled = false;
+    emit contextMenuRequested(event->globalPos(), &handled);
+    if (handled)
     {
         emit contextMenuRequested(event->globalPos());
         event->accept();

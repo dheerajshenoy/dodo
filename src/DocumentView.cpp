@@ -2178,16 +2178,18 @@ DocumentView::clearVisibleAnnotations() noexcept
 }
 
 void
-DocumentView::handleContextMenuRequested(const QPoint &globalPos) noexcept
+DocumentView::handleContextMenuRequested(const QPoint &globalPos,
+                                         bool *handled) noexcept
 {
 
 #ifndef NDEBUG
     qDebug() << "DocumentView::handleContextMenuRequested(): Context menu "
              << "requested at global position:" << globalPos;
 #endif
+    const QPoint viewPos   = m_gview->mapFromGlobal(globalPos);
+    const QPointF scenePos = m_gview->mapToScene(viewPos);
 
-    QMenu *menu = new QMenu(this);
-
+    QMenu *menu    = new QMenu(this);
     auto addAction = [this, &menu](const QString &text, const auto &slot)
     {
         QAction *action = new QAction(text, menu); // sets parent = menu
@@ -2195,65 +2197,69 @@ DocumentView::handleContextMenuRequested(const QPoint &globalPos) noexcept
         menu->addAction(action);
     };
 
-    switch (m_gview->mode())
+    const bool selectionActive
+        = m_selection_path_item && !m_selection_path_item->path().isEmpty();
+    const auto selectedAnnots = getSelectedAnnotations();
+    const bool hasAnnots      = !selectedAnnots.empty();
+    bool hasActions           = false;
+
+    // if (selectionActive && m_selection_path_item->path().contains(scenePos))
+    //     emit textSelectionRightClickRequested(globalPos, scenePos);
+
+    if (selectionActive)
     {
-        case GraphicsView::Mode::TextSelection:
-        {
-            if (!m_selection_path_item
-                || m_selection_path_item->path().isEmpty())
-                return;
-
-            addAction("Copy Text", [this]() { YankSelection(true); });
-            addAction("Copy Unformatted Text",
-                      [this]() { YankSelection(false); });
-            addAction("Highlight Text",
-                      &DocumentView::TextHighlightCurrentSelection);
-        }
-        break;
-
-        case GraphicsView::Mode::AnnotSelect:
-        {
-            const auto selectedAnnots = getSelectedAnnotations();
-            if (selectedAnnots.empty())
-                return;
-
-            // Delete selected annotations
-            addAction("Delete Annotations", [this, selectedAnnots]()
-            {
-                QHash<int, QSet<int>> objNumsByPage;
-                for (const auto &[pageno, annot] : selectedAnnots)
-                {
-                    if (!annot)
-                        continue;
-                    objNumsByPage[pageno].insert(annot->index());
-                }
-
-                for (auto it = objNumsByPage.cbegin();
-                     it != objNumsByPage.cend(); ++it)
-                {
-                    m_model->undoStack()->push(new DeleteAnnotationsCommand(
-                        m_model, it.key(), it.value()));
-                }
-                setModified(true);
-            });
-
-            // Change color of the selected annotations
-            // TODO: Put this under a undo command
-            addAction("Change Color", [this]()
-            {
-                auto newColor = QColorDialog::getColor(
-                    Qt::white, this, "Annotation Color",
-                    QColorDialog::ColorDialogOption::ShowAlphaChannel);
-
-                if (newColor.isValid())
-                    changeColorOfSelectedAnnotations(newColor);
-            });
-        }
-        break;
-
-        default:
-            break;
+        addAction("Copy Text", [this]() { YankSelection(true); });
+        addAction("Copy Unformatted Text", [this]() { YankSelection(false); });
+        addAction("Highlight Text",
+                  &DocumentView::TextHighlightCurrentSelection);
+        hasActions = true;
     }
+
+    if (hasAnnots)
+    {
+        if (hasActions)
+            menu->addSeparator();
+
+        // Delete selected annotations
+        addAction("Delete Annotations", [this, selectedAnnots]()
+        {
+            QHash<int, QSet<int>> objNumsByPage;
+            for (const auto &[pageno, annot] : selectedAnnots)
+            {
+                if (!annot)
+                    continue;
+                objNumsByPage[pageno].insert(annot->index());
+            }
+
+            for (auto it = objNumsByPage.cbegin(); it != objNumsByPage.cend();
+                 ++it)
+            {
+                m_model->undoStack()->push(new DeleteAnnotationsCommand(
+                    m_model, it.key(), it.value()));
+            }
+            setModified(true);
+        });
+
+        // Change color of the selected annotations
+        // TODO: Put this under a undo command
+        addAction("Change Color", [this]()
+        {
+            auto newColor = QColorDialog::getColor(
+                Qt::white, this, "Annotation Color",
+                QColorDialog::ColorDialogOption::ShowAlphaChannel);
+
+            if (newColor.isValid())
+                changeColorOfSelectedAnnotations(newColor);
+        });
+        hasActions = true;
+    }
+
+    if (!hasActions)
+        return;
+
+    if (handled)
+        *handled = true;
+
     menu->popup(globalPos);
 }
 

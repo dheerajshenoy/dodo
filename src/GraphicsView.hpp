@@ -117,7 +117,7 @@ signals:
     void annotSelectClearRequested();
     void zoomInRequested();
     void zoomOutRequested();
-    void contextMenuRequested(QPoint globalPos);
+    void contextMenuRequested(QPoint globalPos, bool *handled);
     void rightClickRequested(QPointF scenePos);
     void doubleClickRequested(QPointF scenePos);
     void tripleClickRequested(QPointF scenePos);

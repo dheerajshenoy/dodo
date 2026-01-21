@@ -13,6 +13,7 @@
 ### Bug Fixes
 - Disable access to annotation mode when not in PDF file (for other file formats)
 - Remove PDF word from the file properties window title 
+- Fix text selection context menu takes precedence over annotation highlights when both apply
 
 ### Breaking Changes
 
