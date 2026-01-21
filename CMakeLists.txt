@@ -32,6 +32,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "-fno-omit-frame-pointer -ggdb3 -O0 -Wall -Wextra")
 #Set flags for Release build
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -fno-omit-frame-pointer -DNDEBUG")
+
 find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Concurrent)
 #OpenGLWidgets )
 find_package(PkgConfig REQUIRED)
