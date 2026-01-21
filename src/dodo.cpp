@@ -484,8 +484,7 @@ dodo::initDefaults() noexcept
     m_config.rendering.dpi = 300.0f;
     m_config.rendering.dpr
         = m_screen_dpr_map.value(QApplication::primaryScreen()->name(), 1.0f);
-    m_config.behavior.cache_pages          = 20;
-    m_config.behavior.clear_inactive_cache = false;
+    m_config.behavior.cache_pages = 20;
 
     m_config.behavior.undo_limit            = 25;
     m_config.behavior.remember_last_visited = true;
@@ -536,6 +535,29 @@ dodo::initConfig() noexcept
 
     auto ui = toml["ui"];
 
+    /* ui.tabs */
+    auto ui_tabs                  = ui["tabs"];
+    m_config.ui.tabs.visible      = ui_tabs["visible"].value_or(true);
+    m_config.ui.tabs.auto_hide    = ui_tabs["auto_hide"].value_or(false);
+    m_config.ui.tabs.closable     = ui_tabs["closable"].value_or(true);
+    m_config.ui.tabs.movable      = ui_tabs["movable"].value_or(true);
+    m_config.ui.tabs.elide_mode   = ui_tabs["elide_mode"].value_or("right");
+    m_config.ui.tabs.bar_position = ui_tabs["bar_position"].value_or("top");
+    m_config.ui.tabs.full_path    = ui_tabs["full_path"].value_or(false);
+    m_config.ui.tabs.lazy_load    = ui_tabs["lazy_load"].value_or(true);
+    m_config.ui.tabs.suspend_inactive
+        = ui_tabs["suspend_inactive"].value_or(true);
+    m_config.ui.tabs.suspend_timeout = ui_tabs["suspend_timeout"].value_or(300);
+
+    if (m_config.ui.tabs.suspend_inactive)
+    {
+        m_idle_clock.start();
+        m_suspend_timer.setSingleShot(true);
+        connect(&m_suspend_timer, &QTimer::timeout, this,
+                &dodo::suspendExpiredTabs);
+    }
+
+    /* ui.window */
     auto ui_window                 = ui["window"];
     m_config.ui.window.startup_tab = ui_window["startup_tab"].value_or(true);
     m_config.ui.window.menubar     = ui_window["menubar"].value_or(true);
@@ -547,6 +569,7 @@ dodo::initConfig() noexcept
     window_title.replace("{}", "%1");
     m_config.ui.window.title_format = window_title;
 
+    /* ui.statusbar */
     auto ui_statusbar             = ui["statusbar"];
     m_config.ui.statusbar.visible = ui_statusbar["visible"].value_or(true);
     auto padding_array            = ui_statusbar["padding"].as_array();
@@ -571,20 +594,24 @@ dodo::initConfig() noexcept
     m_config.ui.statusbar.show_session_name
         = ui_statusbar["show_session_name"].value_or(false);
 
+    /* ui.layout */
     auto ui_layout          = ui["layout"];
     m_config.ui.layout.mode = ui_layout["mode"].value_or("top_to_bottom");
     m_config.ui.layout.initial_fit = ui_layout["initial_fit"].value_or("width");
     m_config.ui.layout.auto_resize = ui_layout["auto_resize"].value_or(false);
     m_config.ui.layout.spacing     = ui_layout["spacing"].value_or(10);
 
+    /* ui.zoom */
     auto ui_zoom            = ui["zoom"];
     m_config.ui.zoom.level  = ui_zoom["level"].value_or(1.0);
     m_config.ui.zoom.factor = ui_zoom["factor"].value_or(1.25);
 
+    /* ui.selection */
     auto ui_selection = ui["selection"];
     m_config.ui.selection.drag_threshold
         = ui_selection["drag_threshold"].value_or(50);
 
+    /* ui.scrollbars */
     auto ui_scrollbars              = ui["scrollbars"];
     m_config.ui.scrollbars.vertical = ui_scrollbars["vertical"].value_or(true);
     m_config.ui.scrollbars.horizontal
@@ -597,6 +624,7 @@ dodo::initConfig() noexcept
     m_config.ui.scrollbars.hide_timeout
         = ui_scrollbars["hide_timeout"].value_or(1500);
 
+    /* ui.command_palette */
     auto command_palette = ui["command_palette"];
     m_config.ui.command_palette.height
         = command_palette["height"].value_or(300);
@@ -611,6 +639,7 @@ dodo::initConfig() noexcept
     m_config.ui.command_palette.show_shortcuts
         = command_palette["show_shortcuts"].value_or(true);
 
+    /* ui.overlays */
     auto ui_overlays            = ui["overlays"];
     m_config.ui.overlays.border = ui_overlays["border"].value_or(true);
     auto overlay_shadow         = ui_overlays["shadow"];
@@ -625,9 +654,11 @@ dodo::initConfig() noexcept
     m_config.ui.overlays.shadow.opacity
         = overlay_shadow["opacity"].value_or(120);
 
+    /* ui.markers */
     auto ui_markers                 = ui["markers"];
     m_config.ui.markers.jump_marker = ui_markers["jump_marker"].value_or(true);
 
+    /* ui.links */
     auto ui_links                 = ui["links"];
     auto ui_link_hints            = ui["link_hints"];
     m_config.ui.links.boundary    = ui_links["boundary"].value_or(false);
@@ -637,20 +668,7 @@ dodo::initConfig() noexcept
             std::string(R"((https?://|www\.)[^\s<>()\"']+)")));
     m_config.ui.link_hints.size = ui_link_hints["size"].value_or(0.5f);
 
-    auto ui_tabs                  = ui["tabs"];
-    m_config.ui.tabs.visible      = ui_tabs["visible"].value_or(true);
-    m_config.ui.tabs.auto_hide    = ui_tabs["auto_hide"].value_or(false);
-    m_config.ui.tabs.closable     = ui_tabs["closable"].value_or(true);
-    m_config.ui.tabs.movable      = ui_tabs["movable"].value_or(true);
-    m_config.ui.tabs.elide_mode   = ui_tabs["elide_mode"].value_or("right");
-    m_config.ui.tabs.bar_position = ui_tabs["bar_position"].value_or("top");
-    m_config.ui.tabs.full_path    = ui_tabs["full_path"].value_or(false);
-    m_config.ui.tabs.lazy_load    = ui_tabs["lazy_load"].value_or(false);
-    m_config.ui.tabs.suspend_inactive
-        = ui_tabs["suspend_inactive"].value_or(false);
-    m_config.ui.tabs.suspend_after_seconds
-        = ui_tabs["suspend_after_seconds"].value_or(300);
-
+    /* ui.outline */
     auto ui_outline             = ui["outline"];
     m_config.ui.outline.visible = ui_outline["visible"].value_or(false);
     m_config.ui.outline.type    = "overlay";
@@ -658,6 +676,7 @@ dodo::initConfig() noexcept
         = ui_outline["panel_position"].value_or("left");
     m_config.ui.outline.panel_width = ui_outline["panel_width"].value_or(300);
 
+    /* ui.highlight_search */
     auto ui_highlight_search = ui["highlight_search"];
     m_config.ui.highlight_search.visible
         = ui_highlight_search["visible"].value_or(false);
@@ -669,12 +688,13 @@ dodo::initConfig() noexcept
         = ui_highlight_search["panel_width"].value_or(300);
 
 #ifdef ENABLE_LLM_SUPPORT
+    auto llm_widget = ui["llm_widget"];
+
     m_config.ui.llm_widget.panel_position
-        = ui["llm_widget"]["panel_position"].value_or("right");
+        = llm_widget["panel_position"].value_or("right");
     m_config.ui.llm_widget.panel_width
-        = ui["llm_widget"]["panel_width"].value_or(400);
-    m_config.ui.llm_widget.visible
-        = ui["llm_widget"]["visible"].value_or(false);
+        = llm_widget["panel_width"].value_or(400);
+    m_config.ui.llm_widget.visible = llm_widget["visible"].value_or(false);
 
     auto llm = toml["llm"];
 
