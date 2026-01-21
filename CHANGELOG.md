@@ -3,6 +3,8 @@
 ## 0.6.1
 
 ### Features
+- Add support for other MuPDF compatible file types: EPUB, XPS, CBZ, MOBI, FB2, SVG
+
 ### Bug Fixes
 
 ## 0.6.0 

@@ -1651,7 +1651,10 @@ dodo::OpenFile(const QString &filePath,
     {
         QStringList files;
         files = QFileDialog::getOpenFileNames(
-            this, "Open File", "", "PDF Files (*.pdf);; All Files (*)");
+            this, "Open File", "",
+            "PDF Files (*.pdf);; EPUB Files (*.epub);; XPS Files (*.xps);; CBZ "
+            "Files (*.cbz);; MOBI Files (*.mobi);; FB2 Files (*.fb2);; SVG "
+            "Files (*.svg);; All Files (*)");
         if (files.empty())
             return false;
         else if (files.size() > 1)
