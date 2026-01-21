@@ -4,6 +4,8 @@
 
 ### Features
 - Add support for other MuPDF compatible file types: EPUB, XPS, CBZ, MOBI, FB2, SVG
+- New Commands
+    - `tab_move_left`, `tab_move_right` - move tabs in the tabBar left/right
 
 ### Bug Fixes
 - Disable access to annotation mode when not in PDF file (for other file formats)

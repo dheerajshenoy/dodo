@@ -61,9 +61,10 @@ public:
 
     void ReadArgsParser(argparse::ArgumentParser &argparser) noexcept;
     // bool OpenFile(DocumentView *view) noexcept;
-    void ToggleCommandPalette() noexcept;
     void Search() noexcept;
     void ShowHighlightSearch() noexcept;
+    void ToggleAutoResize() noexcept;
+    void ToggleCommandPalette() noexcept;
     void ToggleFocusMode() noexcept;
     void ToggleMenubar() noexcept;
     void ToggleTabBar() noexcept;
@@ -121,12 +122,15 @@ public:
     void LoadSession(QString name = QString()) noexcept;
     void SaveSession() noexcept;
     void SaveAsSession(const QString &name = QString()) noexcept;
-    void GotoTab(int tabno) noexcept;
-    void LastTab() noexcept;
-    void FirstTab() noexcept;
-    void CloseTab(int tabno = -1) noexcept;
-    void NextTab() noexcept;
-    void PrevTab() noexcept;
+    void TabGoto(int tabno) noexcept;
+    void TabLast() noexcept;
+    void TabFirst() noexcept;
+    void TabClose(int tabno = -1) noexcept;
+    void TabNext() noexcept;
+    void TabPrev() noexcept;
+    void TabMoveRight() noexcept;
+    void TabMoveLeft() noexcept;
+
     void ReselectLastTextSelection() noexcept;
     void SetLayoutMode(DocumentView::LayoutMode mode) noexcept;
     void SetMark() noexcept;

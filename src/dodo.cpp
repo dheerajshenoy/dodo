@@ -3374,11 +3374,18 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("save_as_session", SaveAsSession),
         ACTION_NO_ARGS("load_session", LoadSession),
         ACTION_NO_ARGS("show_startup", showStartupWidget),
-        ACTION_NO_ARGS("tab_first", FirstTab),
-        ACTION_NO_ARGS("tab_last", LastTab),
-        ACTION_NO_ARGS("tab_next", NextTab),
-        ACTION_NO_ARGS("tab_prev", PrevTab),
-        ACTION_NO_ARGS("tab_close", CloseTab),
+
+        ACTION_NO_ARGS("tabs_close_left", TabsCloseLeft),
+        ACTION_NO_ARGS("tabs_close_right", TabsCloseRight),
+        ACTION_NO_ARGS("tabs_close_others", TabsCloseOthers),
+        ACTION_NO_ARGS("tab_move_right", TabMoveRight),
+        ACTION_NO_ARGS("tab_move_left", TabMoveLeft),
+        ACTION_NO_ARGS("tab_first", TabFirst),
+        ACTION_NO_ARGS("tab_last", TabLast),
+        ACTION_NO_ARGS("tab_next", TabNext),
+        ACTION_NO_ARGS("tab_prev", TabPrev),
+        ACTION_NO_ARGS("tab_close", TabClose),
+
         ACTION_NO_ARGS("tutorial_file", showTutorialFile),
         ACTION_NO_ARGS("reselect_last_selection", ReselectLastTextSelection),
         ACTION_NO_ARGS("search", Search),
@@ -3446,7 +3453,7 @@ dodo::reloadDocument() noexcept
 
 // Go to the first tab
 void
-dodo::FirstTab() noexcept
+dodo::TabFirst() noexcept
 {
     if (m_tab_widget->count() != 0)
     {
@@ -3456,7 +3463,7 @@ dodo::FirstTab() noexcept
 
 // Go to the last tab
 void
-dodo::LastTab() noexcept
+dodo::TabLast() noexcept
 {
     int count = m_tab_widget->count();
     if (count != 0)
@@ -3467,7 +3474,7 @@ dodo::LastTab() noexcept
 
 // Go to the next tab
 void
-dodo::NextTab() noexcept
+dodo::TabNext() noexcept
 {
     int count        = m_tab_widget->count();
     int currentIndex = m_tab_widget->currentIndex();
@@ -3479,7 +3486,7 @@ dodo::NextTab() noexcept
 
 // Go to the previous tab
 void
-dodo::PrevTab() noexcept
+dodo::TabPrev() noexcept
 {
     int count        = m_tab_widget->count();
     int currentIndex = m_tab_widget->currentIndex();
@@ -3491,7 +3498,7 @@ dodo::PrevTab() noexcept
 
 // Go to the tab at nth position specified by `tabno`
 void
-dodo::GotoTab(int tabno) noexcept
+dodo::TabGoto(int tabno) noexcept
 {
     if (tabno > 0 && tabno <= m_tab_widget->count())
     {
@@ -3505,7 +3512,7 @@ dodo::GotoTab(int tabno) noexcept
 
 // Close the current tab
 void
-dodo::CloseTab(int tabno) noexcept
+dodo::TabClose(int tabno) noexcept
 {
     if (m_tab_widget->count() == 0)
         return;
@@ -3522,6 +3529,36 @@ dodo::CloseTab(int tabno) noexcept
         else
             m_message_bar->showMessage("Invalid tab index");
     }
+}
+
+void
+dodo::TabMoveRight() noexcept
+{
+    QTabBar *bar = m_tab_widget->tabBar();
+    const int n  = bar->count();
+    if (n <= 1)
+        return;
+
+    const int i = bar->currentIndex();
+    if (i < 0 || i == n - 1)
+        return;
+
+    bar->moveTab(i, i + 1);
+}
+
+void
+dodo::TabMoveLeft() noexcept
+{
+    QTabBar *bar = m_tab_widget->tabBar();
+    const int n  = bar->count();
+    if (n <= 1)
+        return;
+
+    const int i = bar->currentIndex();
+    if (i == 0)
+        return;
+
+    bar->moveTab(i, i - 1);
 }
 
 // Useful for updating the Navigation QMenu
