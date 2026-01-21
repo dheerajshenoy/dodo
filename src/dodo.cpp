@@ -549,13 +549,13 @@ dodo::initConfig() noexcept
         = ui_tabs["suspend_inactive"].value_or(true);
     m_config.ui.tabs.suspend_timeout = ui_tabs["suspend_timeout"].value_or(300);
 
-    if (m_config.ui.tabs.suspend_inactive)
-    {
-        m_idle_clock.start();
-        m_suspend_timer.setSingleShot(true);
-        connect(&m_suspend_timer, &QTimer::timeout, this,
-                &dodo::suspendExpiredTabs);
-    }
+    // if (m_config.ui.tabs.suspend_inactive)
+    // {
+    //     m_idle_clock.start();
+    //     m_suspend_timer.setSingleShot(true);
+    //     connect(&m_suspend_timer, &QTimer::timeout, this,
+    //             &dodo::suspendExpiredTabs);
+    // }
 
     /* ui.window */
     auto ui_window                 = ui["window"];
