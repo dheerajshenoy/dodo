@@ -290,12 +290,13 @@ public:
         return m_page_height_pts;
     }
 
-    inline float DPI() const noexcept
+    [[nodiscard]] inline float DPI() const noexcept
     {
         return m_dpi;
     }
 
-    inline std::pair<fz_point, fz_point> getTextSelectionRange() const noexcept
+    [[nodiscard]] inline std::pair<fz_point, fz_point>
+    getTextSelectionRange() const noexcept
     {
         return {m_selection_start, m_selection_end};
     }
@@ -309,7 +310,7 @@ public:
     //     m_stext_page_cache.clear();
     // }
 
-    inline const float *annotRectColor() const noexcept
+    [[nodiscard]] inline const float *annotRectColor() const noexcept
     {
         return m_annot_rect_color;
     }
@@ -371,6 +372,12 @@ signals:
     searchResultsReady(const QMap<int, std::vector<Model::SearchHit>> &results);
 
 private:
+    inline void waitForRenders() noexcept
+    {
+        if (m_render_future.isRunning())
+            m_render_future.waitForFinished();
+    }
+
     std::string getTextInArea(const int pageno, const QPointF &start,
                               const QPointF &end) noexcept;
     struct CachedLink
