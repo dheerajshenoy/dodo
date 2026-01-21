@@ -36,7 +36,16 @@ find_package(Qt6 REQUIRED COMPONENTS Gui Widgets Core Concurrent)
 #OpenGLWidgets )
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(synctex QUIET synctex)
+# --- SyncTeX (simple, no pkg-config) ---
+find_path(SYNCTEX_INCLUDE_DIR
+    NAMES synctex_parser.h synctex/synctex_parser.h
+    PATH_SUFFIXES synctex
+)
+
+find_library(SYNCTEX_LIBRARY
+    NAMES synctex synctex_parser
+)
+
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
@@ -123,12 +132,13 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_sources(${PROJECT_NAME} PRIVATE ${RESOURCES})
 
-if(synctex_FOUND)
+if(NOT SYNCTEX_INCLUDE_DIR OR NOT SYNCTEX_LIBRARY)
+    message(STATUS "SyncTeX not found.")
+else()
     message(STATUS "Found SyncTex: ${synctex_VERSION}. Compiling with SyncTeX support.")
+    target_include_directories(your_target PRIVATE "${SYNCTEX_INCLUDE_DIR}")
     target_compile_definitions(${PROJECT_NAME} PUBLIC HAS_SYNCTEX=1)
     target_link_libraries(${PROJECT_NAME} PRIVATE synctex)
-else()
-    message(STATUS "SyncTex not found")
 endif()
 
 
@@ -154,5 +164,5 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/tutorial.pdf
     DESTINATION share/doc/${PROJECT_NAME})
 
 if(ENABLE_LLM_SUPPORT)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/llm/role.txt DESTINATION share/${PROJECT_NAME}/)
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/llm/role.txt DESTINATION share/${PROJECT_NAME}/)
 endif()
