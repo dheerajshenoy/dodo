@@ -9,6 +9,10 @@
 - Disable access to annotation mode when not in PDF file (for other file formats)
 - Remove PDF word from the file properties window title 
 
+### Breaking Changes
+
+- Remove `close_file` command as it was redundant with `tab_close` (which does the same thing)
+
 ## 0.6.0 
 
 ### Features

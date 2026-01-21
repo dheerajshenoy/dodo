@@ -1890,13 +1890,6 @@ dodo::SaveAsFile() noexcept
         m_doc->SaveAsFile();
 }
 
-// Closes the current file
-void
-dodo::CloseFile() noexcept
-{
-    m_tab_widget->tabCloseRequested(m_tab_widget->currentIndex());
-}
-
 // Fit the document to the width of the window
 void
 dodo::FitWidth() noexcept
@@ -3370,7 +3363,6 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("fullscreen", ToggleFullscreen),
         ACTION_NO_ARGS("file_properties", FileProperties),
         ACTION_NO_ARGS("open_file", OpenFile),
-        ACTION_NO_ARGS("close_file", CloseFile),
         ACTION_NO_ARGS("fit_width", FitWidth),
         ACTION_NO_ARGS("fit_height", FitHeight),
         ACTION_NO_ARGS("fit_window", FitWindow),
