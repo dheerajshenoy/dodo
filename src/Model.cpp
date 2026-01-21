@@ -17,8 +17,9 @@
 
 /**
  * @brief Clean up image data when the last copy of the QImage is destoryed.
+
+ This is called by Qt when the last copy of the QImage is destroyed
  */
-// This is called by Qt when the last copy of the QImage is destroyed
 static void
 imageCleanupHandler(void *info) noexcept
 {
@@ -126,7 +127,6 @@ Model::openAsync(const QString &filePath, const QString &password) noexcept
         }
 
         const char *extension = extensions[0];
-        qDebug() << "EXTENSION: " << extension;
 
         if (strcmp(extension, "pdf"))
         {
@@ -500,8 +500,7 @@ Model::reloadDocument() noexcept
     if (filepath.isEmpty())
         return false;
 
-    if (m_render_future.isRunning())
-        m_render_future.waitForFinished();
+    waitForRenders();
 
     // Lock to prevent concurrent access
     std::lock_guard<std::mutex> lock(m_doc_mutex);
