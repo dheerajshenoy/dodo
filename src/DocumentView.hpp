@@ -219,6 +219,8 @@ public:
     void setFitMode(FitMode mode) noexcept;
     void GotoPage(int pageno) noexcept;
     void GotoLocation(const PageLocation &targetlocation) noexcept;
+    void GotoPageWithHistory(int pageno) noexcept;
+    void GotoLocationWithHistory(const PageLocation &targetlocation) noexcept;
     void GotoNextPage() noexcept;
     void GotoPrevPage() noexcept;
     void GotoFirstPage() noexcept;
@@ -252,6 +254,7 @@ public:
     void ToggleAnnotPopup() noexcept;
     void ToggleTextSelection() noexcept;
     void GoBackHistory() noexcept;
+    void GoForwardHistory() noexcept;
     void TextHighlightCurrentSelection() noexcept;
     void ClearKBHintsOverlay() noexcept;
     void UpdateKBHintsOverlay(const QString &input) noexcept;
@@ -416,6 +419,7 @@ private:
     QGraphicsPathItem *m_selection_path_item{nullptr};
     QTimer *m_hq_render_timer{nullptr};
     std::vector<PageLocation> m_loc_history;
+    int m_loc_history_index{-1};
     bool m_is_modified{false};
     // fz_pixmap *m_hit_pixmap{nullptr};
     LayoutMode m_layout_mode{LayoutMode::TOP_TO_BOTTOM};

@@ -921,6 +921,41 @@ DocumentView::GotoLocation(const PageLocation &targetLocation) noexcept
     m_pending_jump = {-1, 0, 0};
 }
 
+namespace
+{
+bool
+locationsEqual(const DocumentView::PageLocation &a,
+               const DocumentView::PageLocation &b) noexcept
+{
+    return a.pageno == b.pageno && a.x == b.x && a.y == b.y;
+}
+} // namespace
+
+void
+DocumentView::GotoLocationWithHistory(
+    const PageLocation &targetLocation) noexcept
+{
+    const PageLocation current = CurrentLocation();
+    if (current.pageno != -1)
+        addToHistory(current);
+
+    addToHistory(targetLocation);
+    GotoLocation(targetLocation);
+}
+
+void
+DocumentView::GotoPageWithHistory(int pageno) noexcept
+{
+    const PageLocation current = CurrentLocation();
+    if (current.pageno != -1)
+        addToHistory(current);
+
+    GotoPage(pageno);
+    const PageLocation target = CurrentLocation();
+    if (target.pageno != -1)
+        addToHistory(target);
+}
+
 // Go to specific page number
 // Does not render page directly, just adjusts scrollbar
 
@@ -1365,10 +1400,16 @@ DocumentView::FollowLink(const Model::LinkInfo &info) noexcept
         case BrowseLinkItem::LinkType::FitH:
             if (info.target_page >= 0)
             {
+                PageLocation target{info.target_page, info.target_loc.x,
+                                    info.target_loc.y};
+                if (std::isnan(target.x))
+                    target.x = 0;
+                if (std::isnan(target.y))
+                    target.y = 0;
                 addToHistory(
                     {info.source_page, info.source_loc.x, info.source_loc.y});
-                GotoLocation(
-                    {info.target_page, info.target_loc.x, info.target_loc.y});
+                addToHistory(target);
+                GotoLocation(target);
                 setFitMode(FitMode::Width);
             }
             break;
@@ -1376,10 +1417,16 @@ DocumentView::FollowLink(const Model::LinkInfo &info) noexcept
         case BrowseLinkItem::LinkType::FitV:
             if (info.target_page >= 0)
             {
+                PageLocation target{info.target_page, info.target_loc.x,
+                                    info.target_loc.y};
+                if (std::isnan(target.x))
+                    target.x = 0;
+                if (std::isnan(target.y))
+                    target.y = 0;
                 addToHistory(
                     {info.source_page, info.source_loc.x, info.source_loc.y});
-                GotoLocation(
-                    {info.target_page, info.target_loc.x, info.target_loc.y});
+                addToHistory(target);
+                GotoLocation(target);
                 setFitMode(FitMode::Height);
             }
             break;
@@ -1387,9 +1434,11 @@ DocumentView::FollowLink(const Model::LinkInfo &info) noexcept
         case BrowseLinkItem::LinkType::Page:
             if (info.target_page >= 0)
             {
+                PageLocation target{info.target_page, 0, 0};
                 addToHistory(
                     {info.source_page, info.source_loc.x, info.source_loc.y});
-                GotoLocation({info.target_page, 0, 0});
+                addToHistory(target);
+                GotoLocation(target);
             }
             break;
 
@@ -1397,10 +1446,16 @@ DocumentView::FollowLink(const Model::LinkInfo &info) noexcept
         case BrowseLinkItem::LinkType::Location:
             if (info.target_page >= 0)
             {
+                PageLocation target{info.target_page, info.target_loc.x,
+                                    info.target_loc.y};
+                if (std::isnan(target.x))
+                    target.x = 0;
+                if (std::isnan(target.y))
+                    target.y = 0;
                 addToHistory(
                     {info.source_page, info.source_loc.x, info.source_loc.y});
-                GotoLocation(
-                    {info.target_page, info.target_loc.x, info.target_loc.y});
+                addToHistory(target);
+                GotoLocation(target);
             }
             break;
     }
@@ -1641,40 +1696,47 @@ DocumentView::YankSelection(bool formatted) noexcept
 void
 DocumentView::GotoFirstPage() noexcept
 {
-    addToHistory({m_pageno, 0, 0});
-    GotoPage(0);
+    GotoPageWithHistory(0);
 }
 // Go to the last page
 void
 DocumentView::GotoLastPage() noexcept
 {
-    addToHistory({m_pageno, 0, 0});
-    GotoPage(m_model->numPages() - 1);
+    GotoPageWithHistory(m_model->numPages() - 1);
 }
 
 // Go back in history
 void
 DocumentView::GoBackHistory() noexcept
 {
-    if (m_loc_history.empty())
+    if (m_loc_history_index <= 0
+        || m_loc_history_index >= (int)m_loc_history.size())
         return;
 
 #ifndef NDEBUG
     qDebug() << "DocumentView::GoBackHistory(): Going back in history";
 #endif
 
-    const PageLocation loc = m_loc_history.back();
+    m_loc_history_index -= 1;
+    const PageLocation target = m_loc_history[m_loc_history_index];
+    GotoLocation(target);
+}
 
-    if (loc.pageno == m_pageno)
-    {
-        // Same page, just go back one more
-        m_loc_history.pop_back();
-        if (m_loc_history.empty())
-            return;
-    }
+// Go forward in history
+void
+DocumentView::GoForwardHistory() noexcept
+{
+    if (m_loc_history_index < 0
+        || m_loc_history_index + 1 >= (int)m_loc_history.size())
+        return;
 
-    m_loc_history.pop_back();
-    GotoLocation(loc);
+#ifndef NDEBUG
+    qDebug() << "DocumentView::GoForwardHistory(): Going forward in history";
+#endif
+
+    m_loc_history_index += 1;
+    const PageLocation target = m_loc_history[m_loc_history_index];
+    GotoLocation(target);
 }
 
 // Get the list of currently visible pages
@@ -2515,7 +2577,16 @@ DocumentView::renderLinks(int pageno,
                     item, &BrowseLinkItem::horizontalFitRequested, this,
                     [this](int pageno, const BrowseLinkItem::PageLocation &loc)
                 {
-                    GotoLocation({pageno, loc.x, loc.y});
+                    const PageLocation sourceLocation = CurrentLocation();
+                    if (sourceLocation.pageno != -1)
+                        addToHistory(sourceLocation);
+                    PageLocation target{pageno, loc.x, loc.y};
+                    if (std::isnan(target.x))
+                        target.x = 0;
+                    if (std::isnan(target.y))
+                        target.y = 0;
+                    addToHistory(target);
+                    GotoLocation(target);
                     setFitMode(FitMode::Width);
                 });
             }
@@ -2527,7 +2598,16 @@ DocumentView::renderLinks(int pageno,
                     item, &BrowseLinkItem::verticalFitRequested, this,
                     [this](int pageno, const BrowseLinkItem::PageLocation &loc)
                 {
-                    GotoLocation({pageno, loc.x, loc.y});
+                    const PageLocation sourceLocation = CurrentLocation();
+                    if (sourceLocation.pageno != -1)
+                        addToHistory(sourceLocation);
+                    PageLocation target{pageno, loc.x, loc.y};
+                    if (std::isnan(target.x))
+                        target.x = 0;
+                    if (std::isnan(target.y))
+                        target.y = 0;
+                    addToHistory(target);
+                    GotoLocation(target);
                     setFitMode(FitMode::Height);
                 });
             }
@@ -2545,6 +2625,7 @@ DocumentView::renderLinks(int pageno,
                     const DocumentView::PageLocation sourceLocation{
                         pageno, sourceLocationOfLink.x, sourceLocationOfLink.y};
                     addToHistory(sourceLocation);
+                    addToHistory(targetLocation);
                     GotoLocation(targetLocation);
                 });
             }
@@ -2566,9 +2647,14 @@ DocumentView::renderLinks(int pageno,
 
                     const DocumentView::PageLocation sourceLocation{
                         pageno, sourceLocationOfLink.x, sourceLocationOfLink.y};
-
+                    PageLocation target = targetLocation;
+                    if (std::isnan(target.x))
+                        target.x = 0;
+                    if (std::isnan(target.y))
+                        target.y = 0;
                     addToHistory(sourceLocation);
-                    GotoLocation(targetLocation);
+                    addToHistory(target);
+                    GotoLocation(target);
                 });
             }
             break;
@@ -2922,7 +3008,24 @@ DocumentView::addToHistory(const PageLocation &location) noexcept
              << "history: Page =" << location.pageno << ", x =" << location.x
              << ", y =" << location.y;
 #endif
+    if (location.pageno < 0)
+        return;
+
+    if (m_loc_history_index + 1 < (int)m_loc_history.size())
+    {
+        m_loc_history.erase(m_loc_history.begin() + m_loc_history_index + 1,
+                            m_loc_history.end());
+    }
+
+    if (!m_loc_history.empty()
+        && locationsEqual(m_loc_history.back(), location))
+    {
+        m_loc_history_index = (int)m_loc_history.size() - 1;
+        return;
+    }
+
     m_loc_history.push_back(location);
+    m_loc_history_index = (int)m_loc_history.size() - 1;
 }
 
 void

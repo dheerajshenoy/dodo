@@ -1095,9 +1095,7 @@ Model::renderPageWithExtrasAsync(const RenderJob &job) noexcept
             {
                 renderLink.target_page = link.target_page;
                 renderLink.target_loc  = BrowseLinkItem::PageLocation{
-                    std::isnan(link.target_loc.x) ? 0 : link.target_loc.x,
-                    std::isnan(link.target_loc.y) ? 0 : link.target_loc.y,
-                    link.zoom};
+                    link.target_loc.x, link.target_loc.y, link.zoom};
             }
 
             result.links.push_back(std::move(renderLink));
