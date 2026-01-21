@@ -464,8 +464,8 @@ private:
     void buildTextCacheForPage(int pageno) noexcept;
     void LRUEvictFunction(PageCacheEntry &entry) noexcept;
 
-    std::optional<std::wstring>
-    get_paper_name_at_position(const int pageno, const fz_point) noexcept;
+    // std::optional<std::wstring>
+    // get_paper_name_at_position(const int pageno, const fz_point) noexcept;
 
     fz_context *m_ctx{nullptr};
     fz_document *m_doc{nullptr};

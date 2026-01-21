@@ -73,7 +73,7 @@ public:
     inline int insertTab(const int index, QWidget *page,
                          const QString &title) noexcept
     {
-        int result = QTabWidget::insertTab(index, page, title);
+        const int result = QTabWidget::insertTab(index, page, title);
         emit tabAdded(result);
         return result;
     }
@@ -149,6 +149,4 @@ signals:
 
 private:
     DraggableTabBar *m_tab_bar{nullptr};
-    qint64 m_last_activity_ms{-1};
-    bool m_suspended{false};
 };

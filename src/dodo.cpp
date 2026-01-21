@@ -846,8 +846,6 @@ dodo::initConfig() noexcept
     m_config.behavior.num_recent_files
         = behavior["num_recent_files"].value_or(10);
     m_config.behavior.cache_pages = behavior["cache_pages"].value_or(20);
-    m_config.behavior.clear_inactive_cache
-        = behavior["clear_inactive_cache"].value_or(false);
 
     if (toml.contains("keybindings"))
     {
