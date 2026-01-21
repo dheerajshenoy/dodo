@@ -56,6 +56,7 @@
 
 ### Bug Fixes
 
+- Fix startup page layout
 - Fix orderless completion not working in the command palette
 - Rename startup tab to `Startup Page`
 - Fix double free in document cleanup

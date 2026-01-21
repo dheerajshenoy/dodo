@@ -83,12 +83,6 @@ StartupWidget::StartupWidget(RecentFilesStore *store, QWidget *parent)
         emit openFileRequested(file_path, entry.page_number);
     });
 
-    QWidget *table_container  = new QWidget(this);
-    QVBoxLayout *table_layout = new QVBoxLayout(table_container);
-    table_layout->setContentsMargins(0, 0, 0, 0);
-    table_layout->setSpacing(0);
-    table_layout->addWidget(m_table_view);
-
     QWidget *empty_state      = new QWidget(this);
     QVBoxLayout *empty_layout = new QVBoxLayout(empty_state);
     empty_layout->setContentsMargins(16, 24, 16, 24);
@@ -105,6 +99,7 @@ StartupWidget::StartupWidget(RecentFilesStore *store, QWidget *parent)
     empty_layout->addStretch(1);
 
     layout->addWidget(line_edit);
+    layout->addWidget(m_table_view);
 
     setStyleSheet("QLineEdit#startupSearch {"
                   "  padding: 8px 10px;"
