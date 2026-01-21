@@ -109,10 +109,50 @@ Model::openAsync(const QString &filePath, const QString &password) noexcept
     {
         if (!m_ctx)
         {
-            emit openFileFailed();
             m_success = false;
+            emit openFileFailed();
             return;
         }
+
+        const fz_document_handler *handler
+            = fz_recognize_document_content(m_ctx, CSTR(filePath));
+        const char **extensions = handler->extensions;
+
+        if (!extensions)
+        {
+            m_success = false;
+            emit openFileFailed();
+            return;
+        }
+
+        const char *extension = extensions[0];
+        qDebug() << "EXTENSION: " << extension;
+
+        if (strcmp(extension, "pdf"))
+        {
+            m_filetype = FileType::PDF;
+        }
+        else if (strcmp(extension, "cbt"))
+        {
+            m_filetype = FileType::CBZ;
+        }
+        else if (strcmp(extension, "mobi"))
+        {
+            m_filetype = FileType::MOBI;
+        }
+        else if (strcmp(extension, "fb2"))
+        {
+            m_filetype = FileType::FB2;
+        }
+        else if (strcmp(extension, "svg"))
+        {
+            m_filetype = FileType::SVG;
+        }
+        else if (strcmp(extension, "epub"))
+        {
+            m_filetype = FileType::EPUB;
+        }
+
         m_doc = fz_open_document(m_ctx, CSTR(filePath));
 
         if (!m_doc)
@@ -121,6 +161,7 @@ Model::openAsync(const QString &filePath, const QString &password) noexcept
             m_success = false;
             return;
         }
+
         fz_try(m_ctx)
         {
             m_pdf_doc    = pdf_specifics(m_ctx, m_doc);
@@ -394,7 +435,8 @@ Model::decrypt() noexcept
         pdf_write_options opts = m_pdf_write_options;
         opts.do_encrypt        = PDF_ENCRYPT_NONE;
 
-        pdf_save_document(m_ctx, m_pdf_doc, CSTR(m_filepath), &opts);
+        if (m_pdf_doc)
+            pdf_save_document(m_ctx, m_pdf_doc, CSTR(m_filepath), &opts);
     }
     fz_catch(m_ctx)
     {
@@ -727,14 +769,25 @@ Model::properties() noexcept
     if (!m_ctx || !m_doc)
         return props;
 
-    pdf_document *pdfdoc = pdf_specifics(m_ctx, m_doc);
+    props.push_back(qMakePair("File Path", m_filepath));
+    props.push_back(
+        qMakePair("Encrypted", fz_needs_password(m_ctx, m_doc) ? "Yes" : "No"));
+    props.push_back(
+        qMakePair("Page Count", QString::number(fz_count_pages(m_ctx, m_doc))));
 
-    if (!pdfdoc)
-        return props;
+    if (m_pdf_doc)
+        populatePDFProperties(props);
 
+    return props;
+}
+
+void
+Model::populatePDFProperties(
+    std::vector<std::pair<QString, QString>> &props) noexcept
+{
     // ========== Info Dictionary ==========
     pdf_obj *info
-        = pdf_dict_get(m_ctx, pdf_trailer(m_ctx, pdfdoc), PDF_NAME(Info));
+        = pdf_dict_get(m_ctx, pdf_trailer(m_ctx, m_pdf_doc), PDF_NAME(Info));
     if (info && pdf_is_dict(m_ctx, info))
     {
         int len = pdf_dict_len(m_ctx, info);
@@ -778,16 +831,10 @@ Model::properties() noexcept
     }
 
     // ========== Add Derived Properties ==========
-    props.push_back(qMakePair("Page Count",
-                              QString::number(pdf_count_pages(m_ctx, pdfdoc))));
-    props.push_back(qMakePair(
-        "Encrypted", pdf_needs_password(m_ctx, pdfdoc) ? "Yes" : "No"));
-    props.push_back(qMakePair(
-        "PDF Version",
-        QString("%1.%2").arg(pdfdoc->version / 10).arg(pdfdoc->version % 10)));
-    props.push_back(qMakePair("File Path", m_filepath));
-
-    return props;
+    props.push_back(
+        qMakePair("PDF Version", QString("%1.%2")
+                                     .arg(m_pdf_doc->version / 10)
+                                     .arg(m_pdf_doc->version % 10)));
 }
 
 fz_point

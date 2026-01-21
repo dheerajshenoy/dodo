@@ -127,6 +127,11 @@ public:
         return m_model->numPages();
     }
 
+    inline Model::FileType fileType() const noexcept
+    {
+        return m_model->m_filetype;
+    }
+
     inline void setDPR(float dpr) noexcept
     {
         m_model->setDPR(dpr);

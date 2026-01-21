@@ -2,7 +2,7 @@
 
 PropertiesWidget::PropertiesWidget(QWidget *parent) : QDialog(parent)
 {
-    setWindowTitle("PDF Document Properties");
+    setWindowTitle("Document Properties");
     setModal(true);
     // setMinimumSize(400, 300);
     m_formLayout = new QFormLayout(this);

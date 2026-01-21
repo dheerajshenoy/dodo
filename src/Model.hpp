@@ -37,6 +37,18 @@ public:
     Model(QObject *parent = nullptr) noexcept;
     ~Model() noexcept;
 
+    enum class FileType
+    {
+        NONE = 0,
+        PDF,
+        CBZ,
+        MOBI,
+        SVG,
+        XPS,
+        EPUB,
+        FB2
+    };
+
     struct LinkInfo
     {
         QString uri;
@@ -378,6 +390,11 @@ private:
             m_render_future.waitForFinished();
     }
 
+    inline FileType fileType() const noexcept
+    {
+        return m_filetype;
+    }
+
     std::string getTextInArea(const int pageno, const QPointF &start,
                               const QPointF &end) noexcept;
     struct CachedLink
@@ -471,6 +488,9 @@ private:
     void buildTextCacheForPage(int pageno) noexcept;
     void LRUEvictFunction(PageCacheEntry &entry) noexcept;
 
+    void populatePDFProperties(
+        std::vector<std::pair<QString, QString>> &props) noexcept;
+
     // std::optional<std::wstring>
     // get_paper_name_at_position(const int pageno, const fz_point) noexcept;
 
@@ -503,6 +523,7 @@ private:
     bool m_link_show_boundary{false};
     bool m_detect_url_links{false};
     QRegularExpression m_url_link_re;
+    FileType m_filetype{FileType::NONE};
 
     friend class TextHighlightAnnotationCommand; // for highlight annotation
     friend class RectAnnotationCommand;          // for rectangle annotation

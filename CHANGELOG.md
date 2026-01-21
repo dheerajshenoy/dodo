@@ -6,6 +6,8 @@
 - Add support for other MuPDF compatible file types: EPUB, XPS, CBZ, MOBI, FB2, SVG
 
 ### Bug Fixes
+- Disable access to annotation mode when not in PDF file (for other file formats)
+- Remove PDF word from the file properties window title 
 
 ## 0.6.0 
 

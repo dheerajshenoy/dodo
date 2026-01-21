@@ -2004,7 +2004,13 @@ void
 dodo::ToggleTextHighlight() noexcept
 {
     if (m_doc)
-        m_doc->ToggleTextHighlight();
+    {
+        if (m_doc->fileType() == Model::FileType::PDF)
+            m_doc->ToggleTextHighlight();
+        else
+            QMessageBox::information(this, "Toggle Text Highlight",
+                                     "Not a PDF file to annotate");
+    }
 }
 
 // Toggle text selection mode
@@ -2020,7 +2026,13 @@ void
 dodo::ToggleAnnotRect() noexcept
 {
     if (m_doc)
-        m_doc->ToggleAnnotRect();
+    {
+        if (m_doc->fileType() == Model::FileType::PDF)
+            m_doc->ToggleAnnotRect();
+        else
+            QMessageBox::information(this, "Toggle Annot Rect",
+                                     "Not a PDF file to annotate");
+    }
 }
 
 // Toggle annotation select mode
@@ -2028,7 +2040,13 @@ void
 dodo::ToggleAnnotSelect() noexcept
 {
     if (m_doc)
-        m_doc->ToggleAnnotSelect();
+    {
+        if (m_doc->fileType() == Model::FileType::PDF)
+            m_doc->ToggleAnnotSelect();
+        else
+            QMessageBox::information(this, "Toggle Annot Select",
+                                     "Not a PDF file to annotate");
+    }
 }
 
 // Toggle popup annotation mode
@@ -2036,7 +2054,13 @@ void
 dodo::ToggleAnnotPopup() noexcept
 {
     if (m_doc)
-        m_doc->ToggleAnnotPopup();
+    {
+        if (m_doc->fileType() == Model::FileType::PDF)
+            m_doc->ToggleAnnotPopup();
+        else
+            QMessageBox::information(this, "Toggle Annot Popup",
+                                     "Not a PDF file to annotate");
+    }
 }
 
 // Toggle region select mode
