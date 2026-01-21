@@ -2234,11 +2234,14 @@ dodo::handleFileNameChanged(const QString &name) noexcept
 void
 dodo::handleCurrentTabChanged(int index) noexcept
 {
-    // Clear page cache for the previously active tab if configured
-    if (m_config.behavior.clear_inactive_cache && m_doc)
-    {
-        m_doc->model()->clearPageCache();
-    }
+    // const qint64 now = m_idle_clock.elapsed();
+
+    // if (m_previous_tab && m_previous_tab != m_tab_widget->currentWidget())
+    // {
+    //     auto &s = m_tab_idle_hash[m_previous_tab];
+    //     if (!s.suspended)
+    //         s.hidden_ms = now;
+    // }
 
     if (index == -1)
     {
