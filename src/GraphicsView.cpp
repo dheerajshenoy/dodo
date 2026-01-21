@@ -477,9 +477,10 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *event)
     emit contextMenuRequested(event->globalPos(), &handled);
     if (handled)
     {
-        emit contextMenuRequested(event->globalPos());
         event->accept();
     }
+
+    QGraphicsView::contextMenuEvent(event);
 }
 
 // bool
