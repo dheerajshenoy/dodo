@@ -70,8 +70,8 @@ Maintainer: Dheeraj Vittal Shenoy <dheerajshenoy22@gmail.com>
 Homepage: https://github.com/dheerajshenoy/dodo
 Installed-Size: ${INSTALLED_SIZE:-0}
 Build-Depends: cmake ninja-build
-Depends: qt6-base-dev, curl
-Suggests: libsynctex-dev, qt6-style-kvantum
+Depends: qt6-base-dev, curl, libsynctex-dev
+Suggests: qt6-style-kvantum
 Description: A fast, keyboard-based, configurable PDF reader
 EOF
 
