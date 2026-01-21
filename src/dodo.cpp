@@ -2657,7 +2657,7 @@ dodo::handleLinkHintEvent(QEvent *event) noexcept
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
                     m_lockedInputBuffer.removeLast();
 #else
-                    if (!m_lockerInputBuffer.isEmpty())
+                    if (!m_lockedInputBuffer.isEmpty())
                         m_lockedInputBuffer.chop(1);
 #endif
                     if (m_doc)
