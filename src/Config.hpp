@@ -172,7 +172,6 @@ struct Config
     {
         int undo_limit{25};
         int cache_pages{20};
-        bool clear_inactive_cache{false}; // Clear page cache for inactive tabs
         bool auto_reload{true};
         bool config_auto_reload{true};
         bool invert_mode{false};
