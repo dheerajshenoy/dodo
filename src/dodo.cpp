@@ -2654,8 +2654,8 @@ dodo::handleLinkHintEvent(QEvent *event) noexcept
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
                     m_lockedInputBuffer.removeLast();
 #else
-                    if (!m_currentHintInput.isEmpty())
-                        m_currentHintInput.chop(1);
+                    if (!m_lockerInputBuffer.isEmpty())
+                        m_lockedInputBuffer.chop(1);
 #endif
                     if (m_doc)
                         m_doc->UpdateKBHintsOverlay(m_lockedInputBuffer);
