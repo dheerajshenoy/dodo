@@ -160,7 +160,7 @@ dodo::initMenubar() noexcept
 
     m_actionCloseFile = fileMenu->addAction(
         QString("Close File\t%1").arg(m_config.shortcuts["close_file"]), this,
-        &dodo::CloseFile);
+        [this]() { TabClose(); });
 
     fileMenu->addSeparator();
     fileMenu->addAction("Quit", this, &QMainWindow::close);
@@ -419,6 +419,9 @@ dodo::initMenubar() noexcept
         = m_navMenu->addAction(QString("Previous Location\t%1")
                                    .arg(m_config.shortcuts["prev_location"]),
                                this, &dodo::GoBackHistory);
+    m_actionNextLocation = m_navMenu->addAction(
+        QString("Next Location\t%1").arg(m_config.shortcuts["next_location"]),
+        this, &dodo::GoForwardHistory);
 
     // QMenu *markMenu = m_navMenu->addMenu("Marks");
 
@@ -895,6 +898,7 @@ dodo::initDefaultKeybinds() noexcept
         {"outline", "t"},
         {"highlight_annot_search", "Alt+Shift+H"},
         {"prev_location", "Ctrl+o"},
+        {"next_location", "Ctrl+i"},
         {"text_select_mode", "1"},
         {"text_highlight_mode", "2"},
         {"annot_rect_mode", "3"},
@@ -1171,6 +1175,7 @@ dodo::updateUiEnabledState() noexcept
     m_actionSaveFile->setEnabled(hasOpenedFile);
     m_actionSaveAsFile->setEnabled(hasOpenedFile);
     m_actionPrevLocation->setEnabled(hasOpenedFile);
+    m_actionNextLocation->setEnabled(hasOpenedFile);
     m_actionEncrypt->setEnabled(hasOpenedFile);
     m_actionDecrypt->setEnabled(hasOpenedFile);
     m_actionSessionSave->setEnabled(hasOpenedFile);
@@ -1452,8 +1457,7 @@ dodo::gotoPage(int pageno) noexcept
 {
     if (m_doc)
     {
-        m_doc->addToHistory(m_doc->CurrentLocation());
-        m_doc->GotoPage(pageno - 1);
+        m_doc->GotoPageWithHistory(pageno - 1);
     }
 }
 
@@ -2109,6 +2113,14 @@ dodo::GoBackHistory() noexcept
         m_doc->GoBackHistory();
 }
 
+// Go forward in the page history
+void
+dodo::GoForwardHistory() noexcept
+{
+    if (m_doc)
+        m_doc->GoForwardHistory();
+}
+
 // Highlight text annotation for the current selection
 void
 dodo::TextHighlightCurrentSelection() noexcept
@@ -2228,8 +2240,8 @@ dodo::initConnections() noexcept
     connect(m_outline_widget, &OutlineWidget::jumpToLocationRequested, this,
             [this](int page, const QPointF &pos) // page returned is 1-based
     {
-        m_doc->addToHistory(m_doc->CurrentLocation());
-        m_doc->GotoLocation({page - 1, (float)pos.x(), (float)pos.y()});
+        m_doc->GotoLocationWithHistory(
+            {page - 1, (float)pos.x(), (float)pos.y()});
         m_outline_overlay->hide();
     });
 
@@ -2237,8 +2249,7 @@ dodo::initConnections() noexcept
             &HighlightSearchWidget::gotoLocationRequested, this,
             [this](int page, const QPointF &pos) // page returned is 0-based
     {
-        m_doc->addToHistory(m_doc->CurrentLocation());
-        GotoLocation({page, (float)pos.x(), (float)pos.y()});
+        m_doc->GotoLocationWithHistory({page, (float)pos.x(), (float)pos.y()});
     });
 }
 
@@ -3302,7 +3313,7 @@ dodo::initActionMap() noexcept
         bool ok;
         int index = args.at(0).toInt(&ok);
         if (ok)
-            GotoTab(index);
+            TabGoto(index);
         else
             m_message_bar->showMessage(QStringLiteral("Invalid tab index"));
     }},
@@ -3313,9 +3324,6 @@ dodo::initActionMap() noexcept
 #endif
 
         ACTION_NO_ARGS("set_dpr", SetDPR),
-        ACTION_NO_ARGS("tabs_close_left", TabsCloseLeft),
-        ACTION_NO_ARGS("tabs_close_right", TabsCloseRight),
-        ACTION_NO_ARGS("tabs_close_others", TabsCloseOthers),
         ACTION_NO_ARGS("command_palette", ToggleCommandPalette),
         ACTION_NO_ARGS("open_containing_folder", OpenContainingFolder),
         ACTION_NO_ARGS("encrypt", EncryptDocument),
@@ -3337,6 +3345,7 @@ dodo::initActionMap() noexcept
         ACTION_NO_ARGS("rotate_clock", RotateClock),
         ACTION_NO_ARGS("rotate_anticlock", RotateAnticlock),
         ACTION_NO_ARGS("prev_location", GoBackHistory),
+        ACTION_NO_ARGS("next_location", GoForwardHistory),
         ACTION_NO_ARGS("scroll_down", ScrollDown),
         ACTION_NO_ARGS("scroll_up", ScrollUp),
         ACTION_NO_ARGS("scroll_left", ScrollLeft),

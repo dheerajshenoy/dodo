@@ -79,11 +79,11 @@ public:
     void FitWidth() noexcept;
     void FitHeight() noexcept;
     void FitWindow() noexcept;
-    void ToggleAutoResize() noexcept;
     void ShowOutline() noexcept;
     void InvertColor() noexcept;
     void TextSelectionMode() noexcept;
     void GoBackHistory() noexcept;
+    void GoForwardHistory() noexcept;
     void LastPage() noexcept;
     void NextPage() noexcept;
     void OpenContainingFolder() noexcept;
@@ -293,6 +293,7 @@ private:
     QAction *m_actionNextPage{nullptr};
     QAction *m_actionLastPage{nullptr};
     QAction *m_actionPrevLocation{nullptr};
+    QAction *m_actionNextLocation{nullptr};
     QAction *m_actionAbout{nullptr};
     QAction *m_actionTextHighlight{nullptr};
     QAction *m_actionAnnotRect{nullptr};
