@@ -16,7 +16,7 @@ public:
     StartupWidget(RecentFilesStore *store, QWidget *parent = nullptr);
 
 signals:
-    void openFileRequested(const QString &filename, int pageno);
+    void openFileRequested(const QString &filename);
 
 private:
     QTableView *m_table_view{nullptr};

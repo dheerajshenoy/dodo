@@ -27,6 +27,7 @@ class RecentFilesStore
 public:
     explicit RecentFilesStore(const QString &filePath = QString());
 
+    int pageNumber(const QString &filePath) const noexcept;
     void setFilePath(const QString &filePath) noexcept;
     bool load() noexcept;
     bool save() const noexcept;

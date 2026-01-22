@@ -24,6 +24,20 @@ parseTimestamp(const QJsonValue &value)
     }
     return {};
 }
+
+QString
+normalizePath(const QString &path)
+{
+    QFileInfo info(path);
+    if (info.exists())
+    {
+        const QString can = info.canonicalFilePath();
+        if (!can.isEmpty())
+            return QDir::cleanPath(can);
+        return QDir::cleanPath(info.absoluteFilePath());
+    }
+    return QDir::cleanPath(info.absoluteFilePath());
+}
 } // namespace
 
 RecentFilesStore::RecentFilesStore(const QString &filePath)
@@ -123,41 +137,13 @@ RecentFilesStore::upsert(const QString &filePath, int pageNumber,
     // Normalize incoming path: prefer canonical path when available,
     // otherwise fallback to cleaned absolute path. This helps detect
     // duplicates (symlinks, relative paths, etc).
-    QFileInfo inInfo(filePath);
-    QString normPath;
-    if (inInfo.exists())
-    {
-        const QString can = inInfo.canonicalFilePath();
-        if (!can.isEmpty())
-            normPath = QDir::cleanPath(can);
-        else
-            normPath = QDir::cleanPath(inInfo.absoluteFilePath());
-    }
-    else
-    {
-        // If the file does not (yet) exist (e.g., moved/removed),
-        // still normalize to an absolute cleaned path so duplicates
-        // with different representations are matched.
-        normPath = QDir::cleanPath(inInfo.absoluteFilePath());
-    }
+    const QString normPath = normalizePath(filePath);
 
     // Update existing entry if a normalized path match is found.
     // We compare normalized stored paths to the normalized incoming path.
     for (RecentFileEntry &entry : m_entries)
     {
-        QFileInfo storedInfo(entry.file_path);
-        QString storedNorm;
-        if (storedInfo.exists())
-        {
-            const QString storedCan = storedInfo.canonicalFilePath();
-            storedNorm              = !storedCan.isEmpty()
-                                          ? QDir::cleanPath(storedCan)
-                                          : QDir::cleanPath(storedInfo.absoluteFilePath());
-        }
-        else
-        {
-            storedNorm = QDir::cleanPath(storedInfo.absoluteFilePath());
-        }
+        const QString storedNorm = normalizePath(entry.file_path);
 
         // Match either by exact original string (fallback) or by normalized
         // canonical/absolute cleaned path.
@@ -219,4 +205,17 @@ RecentFilesStore::serializeEntry(const RecentFileEntry &entry)
     obj.insert("page_number", entry.page_number);
     obj.insert("last_accessed", entry.last_accessed.toString(Qt::ISODate));
     return obj;
+}
+
+int
+RecentFilesStore::pageNumber(const QString &filePath) const noexcept
+{
+    const QString normPath = normalizePath(filePath);
+    for (const RecentFileEntry &entry : m_entries)
+    {
+        if (normalizePath(entry.file_path) == normPath
+            || entry.file_path == filePath)
+            return entry.page_number;
+    }
+    return 0;
 }

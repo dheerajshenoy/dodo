@@ -1695,11 +1695,6 @@ dodo::OpenFile(const QString &filePath,
         if (existingIndex != -1)
         {
             m_tab_widget->setCurrentIndex(existingIndex);
-            if (auto *doc = qobject_cast<DocumentView *>(it.value()))
-            {
-                const int page = doc->pageNo() + 1;
-                insertFileToDB(fp, page > 0 ? page : 1);
-            }
             return true;
         }
     }
@@ -1773,14 +1768,18 @@ dodo::OpenFile(const QString &filePath,
             m_path_tab_hash[filePath] = doc;
 
             // Record in history
-            const int page = doc->pageNo() + 1;
-            insertFileToDB(filePath, page > 0 ? page : 1);
+            // const int page = doc->pageNo() + 1;
+            // insertFileToDB(filePath, page > 0 ? page : 1);
 
             m_tab_widget->setCurrentIndex(index);
 
             updatePanel();
             if (callback)
                 callback();
+
+            const int pageno = m_recent_files_store.pageNumber(doc->filePath());
+            if (pageno > 0)
+                gotoPage(pageno);
         });
 
         connect(docwidget, &DocumentView::openFileFailed, this,
@@ -1844,11 +1843,11 @@ dodo::OpenFileInNewWindow(const QString &filePath,
         if (existingIndex != -1)
         {
             m_tab_widget->setCurrentIndex(existingIndex);
-            if (auto *doc = qobject_cast<DocumentView *>(it.value()))
-            {
-                const int page = doc->pageNo() + 1;
-                insertFileToDB(fp, page > 0 ? page : 1);
-            }
+            // if (auto *doc = qobject_cast<DocumentView *>(it.value()))
+            // {
+            //     const int page = doc->pageNo() + 1;
+            // insertFileToDB(fp, page > 0 ? page : 1);
+            // }
             return true;
         }
     }
@@ -2330,14 +2329,18 @@ dodo::handleCurrentTabChanged(int index) noexcept
             m_path_tab_hash[loadedPath] = doc;
 
             // Record in history
-            const int page = doc->pageNo() + 1;
-            insertFileToDB(loadedPath, page > 0 ? page : 1);
+            // const int page = doc->pageNo() + 1;
+            // insertFileToDB(loadedPath, page > 0 ? page : 1);
 
             m_tab_widget->setCurrentIndex(newIndex);
 
             handleCurrentTabChanged(
                 newIndex); // Otherwise when opening only one file, the
                            // statusbar is not updated
+
+            const int pageno = m_recent_files_store.pageNumber(loadedPath);
+            if (pageno > 0)
+                gotoPage(pageno);
         });
 
         connect(docwidget, &DocumentView::openFileFailed, this,
@@ -2531,6 +2534,12 @@ dodo::closeEvent(QCloseEvent *e)
             = qobject_cast<DocumentView *>(m_tab_widget->widget(i));
         if (doc)
         {
+            if (m_config.behavior.remember_last_visited)
+            {
+                const int page = doc->pageNo() + 1;
+                insertFileToDB(doc->filePath(), page > 0 ? page : 1);
+            }
+
             // Unsaved Changes
             if (doc->isModified())
             {
@@ -2911,6 +2920,10 @@ dodo::initTabConnections(DocumentView *docwidget) noexcept
 void
 dodo::insertFileToDB(const QString &fname, int pageno) noexcept
 {
+#ifndef NDEBUG
+    qDebug() << "Inserting file to recent files store:" << fname
+             << "Page number:" << pageno;
+#endif
     const QDateTime now = QDateTime::currentDateTime();
     m_recent_files_store.upsert(fname, pageno, now);
     if (!m_recent_files_store.save())
@@ -3245,11 +3258,10 @@ dodo::showStartupWidget() noexcept
 
     m_startup_widget = new StartupWidget(&m_recent_files_store, m_tab_widget);
     connect(m_startup_widget, &StartupWidget::openFileRequested, this,
-            [this](const QString &path, int page)
+            [this](const QString &path)
     {
-        OpenFile(path, [this, page]()
+        OpenFile(path, [this]()
         {
-            gotoPage(page);
             int index = m_tab_widget->indexOf(m_startup_widget);
             if (index != -1)
                 m_tab_widget->tabCloseRequested(index);

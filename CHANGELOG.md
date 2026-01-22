@@ -15,6 +15,7 @@
 - Remove PDF word from the file properties window title 
 - Fix text selection context menu takes precedence over annotation highlights when both apply
 - Fix scrollbar auto-hide timer ignoring configured hide timeout after mouse leave
+- Fix recent files page restore to open the stored page without adding history entries
 
 ### Breaking Changes
 

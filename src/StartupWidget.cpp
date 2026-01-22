@@ -80,7 +80,7 @@ StartupWidget::StartupWidget(RecentFilesStore *store, QWidget *parent)
         const QModelIndex sourceIndex = proxy->mapToSource(index);
         const RecentFileEntry entry   = m_model->entryAt(sourceIndex.row());
         const QString file_path       = entry.file_path;
-        emit openFileRequested(file_path, entry.page_number);
+        emit openFileRequested(file_path);
     });
 
     QWidget *empty_state      = new QWidget(this);
