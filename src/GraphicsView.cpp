@@ -478,6 +478,7 @@ GraphicsView::contextMenuEvent(QContextMenuEvent *event)
     if (handled)
     {
         event->accept();
+        return;
     }
 
     QGraphicsView::contextMenuEvent(event);
@@ -676,8 +677,8 @@ GraphicsView::enterEvent(QEnterEvent *event)
 void
 GraphicsView::leaveEvent(QEvent *event)
 {
-    if (m_autoHide && !m_activeScrollbar)
-        m_scrollbar_hide_timer.start(250);
+    if (m_autoHide)
+        restartHideTimer();
     QGraphicsView::leaveEvent(event);
 }
 

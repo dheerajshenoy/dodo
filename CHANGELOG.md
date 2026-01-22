@@ -14,6 +14,7 @@
 - Disable access to annotation mode when not in PDF file (for other file formats)
 - Remove PDF word from the file properties window title 
 - Fix text selection context menu takes precedence over annotation highlights when both apply
+- Fix scrollbar auto-hide timer ignoring configured hide timeout after mouse leave
 
 ### Breaking Changes
 
