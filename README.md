@@ -1,5 +1,7 @@
-> [!NOTE]
-> **Lektra** (previously known as **dodo**) will continue it's development over on [codeburg](https://www.codeberg.org/lektra/lektra) instead of here on GitHub.
+[!WARNING]
+> **Lektra** (previously known as **dodo**) will continue it's development over
+> on [codeburg](https://www.codeberg.org/lektra/lektra) instead of GitHub.
+> **DO NOT USE THIS REPOSITORY**. I am slowly transferring things from GitHub to Codeberg.
 
 <p align="center">
     <!-- <img src="./resources/dodo.png" height="200px" width="200px"/><br><br> -->
