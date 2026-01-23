@@ -1,3 +1,5 @@
+[!NOTE]
+**Lektra** (previously known as **dodo**) will continue it's development over on [codeburg](https://www.codeberg.org/lektra/lektra) instead of here on GitHub.
 <p align="center">
     <!-- <img src="./resources/dodo.png" height="200px" width="200px"/><br><br> -->
     <b>lektra</b> is a high-performance PDF reader that prioritizes screen space and control.
