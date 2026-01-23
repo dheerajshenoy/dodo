@@ -3418,15 +3418,15 @@ dodo::initActionMap() noexcept
         {"layout_top_to_bottom", [this](const QStringList &)
     { SetLayoutMode(DocumentView::LayoutMode::TOP_TO_BOTTOM); }},
 
-        {"tab1", [this](const QStringList &) { GotoTab(1); }},
-        {"tab2", [this](const QStringList &) { GotoTab(2); }},
-        {"tab3", [this](const QStringList &) { GotoTab(3); }},
-        {"tab4", [this](const QStringList &) { GotoTab(4); }},
-        {"tab5", [this](const QStringList &) { GotoTab(5); }},
-        {"tab6", [this](const QStringList &) { GotoTab(6); }},
-        {"tab7", [this](const QStringList &) { GotoTab(7); }},
-        {"tab8", [this](const QStringList &) { GotoTab(8); }},
-        {"tab9", [this](const QStringList &) { GotoTab(9); }},
+        {"tab1", [this](const QStringList &) { TabGoto(1); }},
+        {"tab2", [this](const QStringList &) { TabGoto(2); }},
+        {"tab3", [this](const QStringList &) { TabGoto(3); }},
+        {"tab4", [this](const QStringList &) { TabGoto(4); }},
+        {"tab5", [this](const QStringList &) { TabGoto(5); }},
+        {"tab6", [this](const QStringList &) { TabGoto(6); }},
+        {"tab7", [this](const QStringList &) { TabGoto(7); }},
+        {"tab8", [this](const QStringList &) { TabGoto(8); }},
+        {"tab9", [this](const QStringList &) { TabGoto(9); }},
     };
 }
 
