@@ -33,7 +33,7 @@ LLMWidget::initProvider() noexcept
 
 #if defined(__linux__)
         const QString rolePath
-            = QDir(APP_INSTALL_PREFIX).filePath("share/dodo/role.txt");
+            = QDir(APP_INSTALL_PREFIX).filePath("share/lektra/role.txt");
 #endif
 
         QFile roleFile(rolePath);

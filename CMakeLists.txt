@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(dodo VERSION 0.6.1 LANGUAGES CXX)
+project(lektra VERSION 0.6.1 LANGUAGES CXX)
 
 option(ENABLE_LLM_SUPPORT "Enable LLM support for advanced features" OFF)
 
@@ -51,7 +51,7 @@ find_library(SYNCTEX_LIBRARY
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
-    src/dodo.cpp
+    src/lektra.cpp
     src/Statusbar.cpp
     src/Model.cpp
     src/PropertiesWidget.cpp
@@ -155,9 +155,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 #Install icons to correct freedesktop - compliant locations
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dodo-template.desktop.in
-    ${CMAKE_CURRENT_BINARY_DIR}/dodo.desktop @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dodo.desktop DESTINATION share/applications)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/lektra-template.desktop.in
+    ${CMAKE_CURRENT_BINARY_DIR}/lektra.desktop @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/lektra.desktop DESTINATION share/applications)
 
 install(DIRECTORY resources/hicolor DESTINATION share/icons FILES_MATCHING PATTERN "*.png")
 

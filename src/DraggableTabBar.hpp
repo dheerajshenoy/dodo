@@ -17,7 +17,7 @@ class DraggableTabBar : public QTabBar
     Q_OBJECT
 
 public:
-    static constexpr const char *MIME_TYPE = "application/x-dodo-tab";
+    static constexpr const char *MIME_TYPE = "application/lektra-tab";
 
     explicit DraggableTabBar(QWidget *parent = nullptr) : QTabBar(parent)
     {

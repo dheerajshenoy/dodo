@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=lektra
+Exec=@CMAKE_INSTALL_PREFIX@/bin/lektra %f
+Icon=lektra
+Type=Application
+Categories=Office;Viewer;
+Keywords=pdf;viewer;research;
+MimeType=application/pdf;application/x-pdf;
+Terminal=false
+StartupNotify=false

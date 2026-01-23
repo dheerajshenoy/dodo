@@ -89,7 +89,7 @@ protected:
             painter.fillRect(rect(), palette().color(QPalette::Window));
             painter.setPen(palette().color(QPalette::Disabled, QPalette::Text));
 
-            QString logoText = "dodo";
+            QString logoText = "lektra";
             QString info     = "File → Open to open PDF file(s).\n"
                                "Or\n"
                                "Drag and drop a PDF file(s).";

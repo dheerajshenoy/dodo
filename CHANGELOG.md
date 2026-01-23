@@ -1,6 +1,7 @@
 # dodo
 
-## 0.6.1
+## 0.6.1 [Lektra Update]
+#### Renamed project name from `dodo` to `lektra`
 
 ### Features
 - Add support for other MuPDF compatible file types: EPUB, XPS, CBZ, MOBI, FB2, SVG
@@ -20,6 +21,7 @@
 ### Breaking Changes
 
 - Remove `close_file` command as it was redundant with `tab_close` (which does the same thing)
+- Rename `bar_position` to `location` in `[ui.tabs]`
 
 ## 0.6.0 
 

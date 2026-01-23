@@ -1,5 +1,5 @@
 #include "argparse.hpp"
-#include "dodo.hpp"
+#include "lektra.hpp"
 
 #include <QApplication>
 #include <fcntl.h>
@@ -137,8 +137,8 @@ main(int argc, char *argv[])
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QApplication app(argc, argv);
-    app.setWindowIcon(QIcon(":/resources/dodo2.png"));
-    dodo d;
+    app.setWindowIcon(QIcon(":/resources/lektra.png"));
+    lektra d;
     d.ReadArgsParser(program);
     app.exec();
 }

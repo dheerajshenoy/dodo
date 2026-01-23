@@ -28,17 +28,30 @@ AboutDialog::AboutDialog(QWidget *parent)
 
     QImage *icon = new QImage();
 
-    icon->load(":/resources/dodo.png");
-    QLabel *iconLabel = new QLabel();
-    iconLabel->setPixmap(QPixmap::fromImage(*icon).scaled(
-        128, 128, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    QLabel *logoText = new QLabel("lektra");
+
+
+    // Setup logo font - load from resources
+    int fontId = QFontDatabase::addApplicationFont(
+        ":/resources/fonts/Outfit-Bold.ttf");
+    QString fontFamily
+        = QFontDatabase::applicationFontFamilies(fontId).value(
+            0, QString());
+    QFont logoFont;
+    if (!fontFamily.isEmpty())
+        logoFont.setFamily(fontFamily);
+    logoFont.setPointSize(50);
+    logoFont.setBold(true);
+
+    logoText->setFont(logoFont);
+
     infoLabel->setWordWrap(true);
 
     m_tabWidget = new QTabWidget(this);
 
     QHBoxLayout *otherLayout = new QHBoxLayout();
 
-    otherLayout->addWidget(iconLabel);
+    otherLayout->addWidget(logoText);
     otherLayout->addWidget(infoLabel);
 
     QTextEdit *licenseTextEdit = new QTextEdit();
@@ -83,7 +96,7 @@ AboutDialog::setAppInfo(const QString &version,
                         const QString &description) noexcept
 {
     const char *link
-        = "<a href='https://github.com/dheerajshenoy/dodo'>github</a>";
+        = "<a href='https://github.com/dheerajshenoy/lektra'>github</a>";
     infoLabel->setText(
         QString("%1<br>Build Type: %2<br>Version: %3<br>Project homepage: %4")
             .arg(description, APP_BUILD_TYPE, version, link));

@@ -3,7 +3,7 @@
 fullscreen = false
 menubar = false
 startup_tab = false
-window_title = "{} - dodo" # '{}' replaced with base file name
+window_title = "{} - lektra" # '{}' replaced with base file name
 
 [ui.statusbar]
 visible = true

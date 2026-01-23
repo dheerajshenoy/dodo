@@ -17,7 +17,7 @@ struct Config
             bool fullscreen{false};
             bool menubar{true};
             bool startup_tab{true};
-            QString title_format{"{} - dodo"};
+            QString title_format{"{} - lektra"};
         } window{};
 
         struct layout
