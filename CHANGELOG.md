@@ -7,6 +7,8 @@
 ### New Features
 
 - Update MuPDF to 1.28.2 (from 1.27.2) [release history](https://mupdf.com/releases/history)
+- **EXIF metadata in File Properties:** Image files now show EXIF tags (camera, lens, ISO, shutter, aperture, date, GPS, etc.) in the existing File Properties dialog. Uses a runtime probe of `libexif.so.12` (Linux/macOS) or `libexif-12.dll` (Windows) — no build-time dependency, and silently skips if libexif isn't installed. Thumbnail IFD is filtered out to avoid duplicate entries; values are truncated at 200 characters.
+- **Donate / Support dialog:** A new "Donate / Support" entry in the Help menu (also available via the `donate` command) opens a dialog with links to Ko-fi, Liberapay, and GitHub Sponsors. The dialog is shown once on first run (tracked via a sentinel file in the app data directory).
 
 ### New Features
 
