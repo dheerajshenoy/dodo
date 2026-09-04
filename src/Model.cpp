@@ -335,6 +335,132 @@ private:
     }
 }; // namespace
 
+// ---- libexif dynamic-loader support -------------------------------------
+// ExifEntry / ExifContent struct layouts have been stable since libexif
+// 0.6.0 (2004); we mirror the first fields so we can access `tag` and pass
+// entries back to libexif calls without linking against the library.
+
+struct ExifEntryC
+{
+    int tag;    // ExifTag
+    int format; // ExifFormat
+    unsigned long components;
+    unsigned char *data;
+    unsigned int size;
+    void *parent; // ExifContent *
+    void *priv;
+};
+
+using PFN_exif_new     = void *(*)(const char *);
+using PFN_exif_unref   = void (*)(void *);
+using PFN_exif_data_fe = void (*)(void *, void (*)(void *, void *), void *);
+using PFN_exif_cont_fe = void (*)(void *, void (*)(void *, void *), void *);
+using PFN_exif_get_ifd = int (*)(void *);
+using PFN_exif_tagname = const char *(*)(int, int);
+using PFN_exif_entval  = const char *(*)(void *, char *, unsigned int);
+
+struct ExifLib
+{
+    PFN_exif_new new_from_file   = nullptr;
+    PFN_exif_unref data_unref    = nullptr;
+    PFN_exif_data_fe data_foreach = nullptr;
+    PFN_exif_cont_fe cont_foreach = nullptr;
+    PFN_exif_get_ifd get_ifd     = nullptr;
+    PFN_exif_tagname tag_name    = nullptr;
+    PFN_exif_entval entry_value  = nullptr;
+    bool ok                      = false;
+
+    static ExifLib &get() noexcept
+    {
+        static ExifLib s;
+        return s;
+    }
+
+private:
+#if defined(Q_OS_WIN)
+    QLibrary lib{"libexif-12"};
+#else
+    QLibrary lib{"exif", 12};
+#endif
+
+    ExifLib() noexcept
+    {
+        if (!lib.load())
+            return;
+
+#define LOADSYM(field, sym)                                                    \
+    field = reinterpret_cast<decltype(field)>(lib.resolve(sym));               \
+    if (!field)                                                                \
+        return;
+        LOADSYM(new_from_file, "exif_data_new_from_file")
+        LOADSYM(data_unref, "exif_data_unref")
+        LOADSYM(data_foreach, "exif_data_foreach_content")
+        LOADSYM(cont_foreach, "exif_content_foreach_entry")
+        LOADSYM(get_ifd, "exif_content_get_ifd")
+        LOADSYM(tag_name, "exif_tag_get_name_in_ifd")
+        LOADSYM(entry_value, "exif_entry_get_value")
+#undef LOADSYM
+        ok = true;
+    }
+};
+
+struct ExifCollectCtx
+{
+    Model::Properties *out;
+    int ifd;
+};
+
+static void
+exif_entry_cb(void *entry_v, void *user)
+{
+    auto *ent = static_cast<ExifEntryC *>(entry_v);
+    auto *ctx = static_cast<ExifCollectCtx *>(user);
+    auto &el  = ExifLib::get();
+
+    const char *name = el.tag_name(ent->tag, ctx->ifd);
+    if (!name || !*name)
+        return;
+
+    char buf[512] = {0};
+    const char *val = el.entry_value(ent, buf, sizeof(buf));
+    if (!val || !*val)
+        return;
+
+    QString value = QString::fromUtf8(val).trimmed();
+    if (value.isEmpty())
+        return;
+    if (value.length() > 200)
+        value = value.left(200) + QStringLiteral("…");
+
+    ctx->out->emplace_back(QString::fromLatin1(name), value);
+}
+
+static void
+exif_content_cb(void *content_v, void *user)
+{
+    auto &el      = ExifLib::get();
+    const int ifd = el.get_ifd(content_v);
+    if (ifd == 1) // skip thumbnail IFD to avoid duplicates
+        return;
+    auto *outer = static_cast<Model::Properties *>(user);
+    ExifCollectCtx inner{outer, ifd};
+    el.cont_foreach(content_v, exif_entry_cb, &inner);
+}
+
+static void
+populateExifProperties(const QString &path,
+                       Model::Properties &props) noexcept
+{
+    auto &el = ExifLib::get();
+    if (!el.ok)
+        return;
+    void *data = el.new_from_file(path.toUtf8().constData());
+    if (!data)
+        return;
+    el.data_foreach(data, exif_content_cb, &props);
+    el.data_unref(data);
+}
+
 } // namespace
 
 static bool
@@ -2741,6 +2867,7 @@ Model::properties() noexcept
         props.emplace_back("Format", reader.format().constData());
         props.emplace_back("Animated",
                            reader.supportsAnimation() ? "Yes" : "No");
+        populateExifProperties(m_filepath, props);
     }
 
     else

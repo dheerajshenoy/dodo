@@ -158,6 +158,7 @@ if (WITH_LUA)
 endif()
 
 message(STATUS "librsvg support: runtime probe (uses librsvg-2.so.2 + libcairo.so.2 if installed)")
+message(STATUS "libexif support: runtime probe (uses libexif.so.12 if installed)")
 
 
 # ---------------------------------------------------------------------------
