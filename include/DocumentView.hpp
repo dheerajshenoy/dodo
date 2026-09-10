@@ -740,6 +740,13 @@ private:
     QMap<int, std::vector<Model::SearchHit>> m_search_hits;
     std::vector<HitRef> m_search_hit_flat_refs;
     QHash<int, QGraphicsPathItem *> m_search_items;
+    // Bumped by clearSearchHits() / SearchCancel(). Snapshotted into
+    // m_search_dispatched_gen right before m_model->search(); the result
+    // handlers drop batches whose dispatched-gen no longer matches, so
+    // late partials from a superseded search cannot repopulate m_search_hits
+    // and stale "No matches" popups from cancelled searches never fire.
+    qint64 m_search_gen            = 0;
+    qint64 m_search_dispatched_gen = 0;
     QPointF m_selection_start, m_selection_end;
     QPointF m_last_selection_start, m_last_selection_end;
     std::vector<PageLocation> m_loc_history;

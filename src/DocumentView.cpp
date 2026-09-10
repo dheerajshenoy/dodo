@@ -315,11 +315,16 @@ DocumentView::openAsync(const QString &filePath) noexcept
     m_spinner->start();
     m_spinner->show();
 
-    QFuture<void> future = m_model->openAsync(QDir::cleanPath(filePath));
-    m_open_future_watcher.setFuture(future);
+    // Order matters: disconnect any previous watcher connection FIRST, then
+    // establish the new one, THEN attach the future. If setFuture ran
+    // before we reconnected, a rapid consecutive openAsync could see the
+    // previous watcher's `finished` race the new connect and either fire
+    // handleOpenFileFinished twice or against stale model state.
     m_open_future_watcher.disconnect(this);
     connect(&m_open_future_watcher, &QFutureWatcher<void>::finished, this,
             &DocumentView::handleOpenFileFinished, Qt::SingleShotConnection);
+    QFuture<void> future = m_model->openAsync(QDir::cleanPath(filePath));
+    m_open_future_watcher.setFuture(future);
 }
 
 void
@@ -738,8 +743,16 @@ DocumentView::handleSearchResults(
              << results.size() << "pages with search hits.";
 #endif
 
+    // Drop results from a superseded search — no stale spinner-hide, no
+    // stale "No matches" modal seconds after the user cancelled or moved on.
+    if (m_search_dispatched_gen != m_search_gen)
+        return;
+
     emit searchBarSpinnerShow(false);
     clearSearchHits();
+    // clearSearchHits bumped m_search_gen; re-align so buildFlatSearchHitIndex
+    // below is not itself considered stale.
+    m_search_dispatched_gen = m_search_gen;
 
     QMap<int, std::vector<Model::SearchHit>> filtered = results;
     filterHitsToNarrow(filtered);
@@ -779,6 +792,11 @@ void
 DocumentView::handlePartialSearchResults(
     const QMap<int, std::vector<Model::SearchHit>> &results) noexcept
 {
+    // Late partials from a superseded search would repopulate m_search_hits
+    // after the user cancelled or launched a new query — drop them.
+    if (m_search_dispatched_gen != m_search_gen)
+        return;
+
     QMap<int, std::vector<Model::SearchHit>> filtered = results;
     filterHitsToNarrow(filtered);
 
@@ -1920,6 +1938,9 @@ DocumentView::clearSearchHits() noexcept
     qDebug()
         << "DocumentView::clearSearchHits(): Clearing previous search hits";
 #endif
+    // Supersede any in-flight search: results whose dispatched-gen does not
+    // match this new value will be dropped by the handlers below.
+    ++m_search_gen;
     for (auto *item : m_search_items)
     {
         if (item && item->scene() == m_gscene)
@@ -2049,6 +2070,9 @@ DocumentView::Search(const QString &term, bool useRegex) noexcept
     {
         pageTo = m_pageno;
     }
+    // Snapshot the search generation just before dispatching so result
+    // handlers can distinguish this search from any that supersedes it.
+    m_search_dispatched_gen = m_search_gen;
     m_model->search(term, caseSensitive, pageFrom, useRegex, pageTo);
 
     // One-shot: revert to full-document scope after the search is dispatched.
@@ -2082,6 +2106,7 @@ DocumentView::SearchInPage(const int pageno, const QString &term) noexcept
                                      [](QChar c) { return c.isUpper(); });
 
     // m_search_hits = m_model->search(term);
+    m_search_dispatched_gen = m_search_gen;
     m_model->searchInPage(pageno, term, caseSensitive);
 #ifdef WITH_LUA
     dispatchLuaEvent(DispatchType::OnSearchStarted);

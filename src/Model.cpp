@@ -2939,10 +2939,24 @@ Model::properties() noexcept
 
         /* Fetch document-wide annotations.
            compat=1 also searches the shared annotation chunk
-           so metadata is found in older files too. */
+           so metadata is found in older files too.
+           This runs on the UI thread (File Properties dialog), so cap the
+           spin: a silently-erroring annotation job used to freeze the UI
+           forever waiting for the dummy sentinel to clear. */
         djvu_miniexp_t anno;
+        constexpr int MAX_ANNO_WAIT_ITERS = 500;
+        int anno_wait_iters               = 0;
         while ((anno = djvu.doc_anno(m_ddjvu_doc, 1)) == djvu.dummy())
+        {
             handle_djvu_messages(m_ddjvu_ctx, 1);
+            if (++anno_wait_iters >= MAX_ANNO_WAIT_ITERS)
+            {
+                qWarning() << "populateDjVuProperties(): giving up on "
+                              "annotation fetch after"
+                           << anno_wait_iters << "iterations";
+                return props;
+            }
+        }
 
         if (anno == DJVU_MINIEXP_NIL || anno == djvu.mexp_symbol("failed")
             || anno == djvu.mexp_symbol("stopped"))

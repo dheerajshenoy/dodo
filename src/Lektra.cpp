@@ -2092,21 +2092,26 @@ Lektra::Read_args_parser(const argparse::ArgumentParser &argparser) noexcept
                 OpenFilesInVSplit(qtFiles);
             else
             {
-                if (qtFiles.size() == 1)
+                // Open the first file with a callback so runCliCommands
+                // fires only after that document has actually loaded;
+                // previously the multi-file branch ran runCliCommands
+                // synchronously before any file had parsed, so e.g.
+                // `lektra a.pdf b.pdf --command "goto 5"` executed against
+                // whatever tab was current before (usually nothing).
+                OpenFileInNewTab(
+                    qtFiles[0], [pageOverride, this, runCliCommands](void *)
                 {
-                    OpenFileInNewTab(
-                        qtFiles[0], [pageOverride, this, runCliCommands](void *)
-                    {
-                        if (pageOverride > 0)
-                            gotoPage(pageOverride);
-                        runCliCommands();
-                    });
-                }
-                else
-                {
-                    OpenFiles(qtFiles);
+                    if (pageOverride > 0)
+                        gotoPage(pageOverride);
                     runCliCommands();
-                }
+                });
+                // Remaining files each open in their own tab; setting the
+                // current index back to 0 keeps the user on the first file
+                // so runCliCommands (which acts on m_doc) targets it.
+                for (int i = 1; i < qtFiles.size(); ++i)
+                    OpenFileInNewTab(qtFiles[i]);
+                if (qtFiles.size() > 1)
+                    m_tab_widget->setCurrentIndex(0);
             }
         }
         else if (m_config.behavior.open_last_visited)
@@ -4372,16 +4377,22 @@ Lektra::handleLinkHintEvent(QEvent *event) noexcept
 void
 Lektra::openInExplorerForIndex(int index) noexcept
 {
-    DocumentView *doc
-        = qobject_cast<DocumentView *>(m_tab_widget->widget(index));
-    if (doc)
-    {
-        const QString filePath = doc->filePath();
-        if (QFile::exists(filePath))
-        {
-            QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
-        }
-    }
+    // Tabs hold a DocumentContainer, not a DocumentView, so a direct
+    // qobject_cast of widget(index) is always null and this function used
+    // to silently do nothing. Go via rootContainer to reach the view.
+    if (!validTabIndex(index))
+        return;
+    DocumentContainer *container = m_tab_widget->rootContainer(index);
+    if (!container)
+        return;
+    DocumentView *doc = container->view();
+    if (!doc)
+        return;
+    const QString filePath = doc->filePath();
+    if (filePath.isEmpty() || !QFile::exists(filePath))
+        return;
+    QDesktopServices::openUrl(
+        QUrl::fromLocalFile(QFileInfo(filePath).absolutePath()));
 }
 
 // Initialize connections on each tab addition
