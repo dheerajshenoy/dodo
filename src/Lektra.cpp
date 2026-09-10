@@ -2687,14 +2687,14 @@ Lektra::OpenFilesInVSplit(const QStringList &files) noexcept
     if (qfiles.isEmpty())
         return;
 
-    // Copy the first path out before moving the list into the lambda: the
-    // order of evaluation of call arguments is unspecified, so reading
-    // qfiles[0] in the same expression as `qfiles = std::move(qfiles)` can
-    // index a moved-from (empty) list and fire QList's bounds assert.
+    // Split the current tab with the first file (falls back to a new tab
+    // when no tab is open). Reading qfiles[0] into a local before moving
+    // qfiles into the lambda: the order of evaluation of call arguments is
+    // unspecified, so reading qfiles[0] in the same expression as
+    // `qfiles = std::move(qfiles)` can index a moved-from list.
     const QString first = qfiles[0];
-    OpenFileInNewTab(first, [this, qfiles = std::move(qfiles)](void *)
+    OpenFileVSplit(first, [this, qfiles = std::move(qfiles)](void *)
     {
-        // Subsequent files split into that tab
         for (int i = 1; i < qfiles.size(); ++i)
             OpenFileVSplit(qfiles[i]);
     });
@@ -2723,11 +2723,11 @@ Lektra::OpenFilesInHSplit(const QStringList &files) noexcept
     if (qfiles.isEmpty())
         return;
 
-    // See OpenFilesInVSplit for why qfiles[0] must be read before the move.
+    // See OpenFilesInVSplit for the split-vs-new-tab rationale and why
+    // qfiles[0] must be read before the move.
     const QString first = qfiles[0];
-    OpenFileInNewTab(first, [this, qfiles = std::move(qfiles)](void *)
+    OpenFileHSplit(first, [this, qfiles = std::move(qfiles)](void *)
     {
-        // Subsequent files split into that tab
         for (int i = 1; i < qfiles.size(); ++i)
             OpenFileHSplit(qfiles[i]);
     });
@@ -2866,17 +2866,20 @@ Lektra::OpenFileInNewTab(const QString &filename,
     // Open the file asynchronously
     view->openAsync(filename);
 
-    // Add the container as a tab
+    // Add the container as a tab. Block signals so QTabBar's insertTab does
+    // not fire currentChanged reentrantly — handleCurrentTabChanged would
+    // otherwise run on a half-initialised view (model still loading async,
+    // m_doc still pointing at the previous view) and crash inside
+    // updateStatusbar / m_doc->fileNameChanged.
     QString tabTitle = QFileInfo(filename).fileName();
-    int tabIndex     = m_tab_widget->addTab(container, tabTitle);
-
+    m_tab_widget->blockSignals(true);
+    int tabIndex = m_tab_widget->addTab(container, tabTitle);
     m_tab_widget->tabBar()->set_split_count(tabIndex,
                                             container->getViewCount());
-
-    // Set as current tab
     m_tab_widget->setCurrentIndex(tabIndex);
+    m_tab_widget->blockSignals(false);
 
-    // Update current view reference
+    // Wire up m_doc now that the tab is in place.
     setCurrentDocumentView(view);
 
     // Restore saved page number after file loads (if remember_last_visited

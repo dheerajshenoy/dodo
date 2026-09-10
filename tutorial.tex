@@ -14,18 +14,12 @@
 
 \onehalfspacing
 
-% For the specific font family
-\newfontfamily\majormono{Major Mono Display}[
-    Path = ./fonts/,
-    Extension = .ttf
-]
+% Fonts are looked up via the system font database (fontconfig on Linux).
+% Install: "Major Mono Display" (ttf-major-mono-display) and "Outfit"
+% (ttf-outfit-font) — both freely available and packaged on most distros.
+\newfontfamily\majormono{Major Mono Display}
 
-\setmainfont[
-    Path = ./fonts/,
-    Extension = .ttf,
-    UprightFont = *-Regular,
-    BoldFont = *-Bold,
-]{Outfit}
+\setmainfont{Outfit}
 
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0.5em}
@@ -70,11 +64,19 @@ High-performance Document and Image viewer that prioritizes screen space and con
 
 \section*{Important Links}
 
-\begin{description}[labelwidth=2.2cm, labelsep=0.8em, align=right, leftmargin=0pt]
-    \item[\textbf{Homepage}]       \url{https://dheerajshenoy.github.io/lektra}
-    \item[\textbf{Configuration}]  \url{https://dheerajshenoy.github.io/lektra/configuration.html}
-    \item[\textbf{Commands}]       \url{https://dheerajshenoy.github.io/lektra/commands.html}
-    \item[\textbf{Code}]           \url{https://codeberg.org/lektra/lektra}
+\begin{description}[
+    style=nextline,
+    font=\bfseries,
+    leftmargin=1.2em,
+    labelindent=0pt,
+    itemsep=0.2em,
+    parsep=0pt
+]
+    \item[Homepage] \url{https://dheerajshenoy.github.io/lektra}
+    \item[Configuration reference] \url{https://dheerajshenoy.github.io/lektra/configuration.html}
+    \item[Commands reference] \url{https://dheerajshenoy.github.io/lektra/commands.html}
+    \item[Source (Codeberg)] \url{https://codeberg.org/lektra/lektra}
+    \item[Source (GitHub mirror)] \url{https://github.com/dheerajshenoy/lektra}
 \end{description}
 
 \begin{ghnote}
@@ -97,7 +99,21 @@ You can open a document in multiple ways:
     \item \textbf{From within lektra:} Press \keys{o} to open the file picker
 \end{itemize}
 
-Supported formats include PDF, EPUB, XPS, CBZ, and common image formats. DjVu support is detected at runtime if \texttt{djvulibre} is installed.
+Supported formats include PDF, EPUB, XPS, CBZ, MOBI, FB2, and common image formats (JPG, PNG, APNG, WEBP, TIFF, GIF, BMP, ICO, SVG, PPM, PGM, PBM). DjVu, high-quality SVG rendering (via librsvg), and EXIF metadata are detected at runtime — install \texttt{libdjvulibre21}, \texttt{librsvg2}, and \texttt{libexif12} respectively for those features; LEKTRA continues to work without them.
+
+You can also:
+\begin{itemize}[leftmargin=*]
+    \item Open multiple files at once — each opens in its own tab
+    \item Open a file in a new window with \keys{:open\_file\_new\_window}
+    \item Drag and drop files from your file manager onto the LEKTRA window
+    \item Use \keys{:open\_recent} (or the \textit{File $\to$ Recent Files} menu) to reopen a previously viewed document at the last page you were on
+\end{itemize}
+
+Documents on disk are watched for changes: if you re-export a PDF from LaTeX or another tool, the view refreshes automatically without losing your zoom or page position.
+
+\begin{ghnote}
+    \textbf{First run:} On the first launch LEKTRA shows a support dialog with donation links (Ko-fi, Liberapay, GitHub Sponsors). You can reopen it any time from \textit{Help $\to$ Donate / Support} or via \keys{:donate}. LEKTRA is free forever — the dialog is entirely optional.
+\end{ghnote}
 
 \subsection{Tabs and Splits}
 
@@ -110,6 +126,10 @@ LEKTRA supports tabs and splits for viewing multiple documents simultaneously.
     \item \keys{Ctrl+\textbackslash} splits the view vertically
     \item \keys{Ctrl+-} splits the view horizontally
 \end{itemize}
+
+Splits are independent views — each remembers its own zoom, page position, and fit mode. Focus moves between splits with keyboard shortcuts (Vim-style \keys{Ctrl+w} + \keys{h/j/k/l}) or, if enabled in the config, by hovering the mouse over a pane.
+
+\textbf{Tabs across windows:} You can drag a tab out of the tabbar to detach it into its own window, or drop it onto another LEKTRA window to move it there.
 
 \subsection{Keyboard Navigation and Keybindings}
 
@@ -137,7 +157,22 @@ The core philosophy of \textbf{LEKTRA} is keyboard-driven navigation (mouse supp
     \item \keys{/} opens or focuses the search bar
     \item \keys{n} jumps to the next search result
     \item \keys{Shift+n} jumps to the previous search result
+    \item \keys{:search\_regex} opens search with regex mode primed
+    \item \keys{:search\_below \textit{term}} / \keys{:search\_above \textit{term}} search only pages after / before the current page (one-shot; the next plain search reverts to whole-document scope)
+    \item \keys{:show\_annot\_comment\_search} finds text inside annotation comments and popups
 \end{itemize}
+
+\subsubsection{Narrow (Focused Reading)}
+
+You can restrict the viewport, search, and scrolling to a subset of the document:
+\begin{itemize}[leftmargin=*]
+    \item \keys{:narrow\_to\_region} — rubber-band a rectangle on the current page; only that region stays visible, the rest dims
+    \item \keys{:narrow\_to\_pages 5 10} — restrict to a page range (also accepts \texttt{5-10})
+    \item \keys{:narrow\_to\_section} — restrict to a section by outline title (fuzzy match, picker if no argument)
+    \item \keys{:widen\_region} — exit narrow mode
+\end{itemize}
+
+While narrowed, an orange \textbf{N} badge appears in the statusbar; hover it for a reminder of how to exit. Search stays inside the narrowed range and rotation/flip remap the region correctly.
 
 \subsubsection{Zoom and View Control}
 \begin{itemize}[leftmargin=*]
@@ -152,11 +187,42 @@ Fit modes:
     \item \keys{Ctrl+Shift+R} toggle auto-resize
 \end{itemize}
 
+\subsubsection{Layout Modes}
+
+For multi-page documents you can pick how pages are arranged:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Single} — one page at a time
+    \item \textbf{Continuous vertical} — pages stacked vertically (default for PDFs)
+    \item \textbf{Continuous horizontal} — pages side by side
+    \item \textbf{Book} — two-page facing spread with a cover offset (for magazines, novels, etc.)
+\end{itemize}
+
+Cycle through the layout with \keys{:next\_layout\_mode}, or set one directly via the \textit{View $\to$ Layout} menu. The default at startup is controlled by \texttt{layout.mode} in \texttt{config.toml}.
+
+\subsubsection{Reading Modes}
+\begin{itemize}[leftmargin=*]
+    \item \keys{F11} — toggle full-screen
+    \item \keys{:toggle\_presentation\_mode} — presentation mode (hides all chrome, one page at a time)
+    \item \keys{:toggle\_focus\_mode} — focus mode (hides menubar/tabbar/statusbar while keeping the split UI)
+    \item \keys{:toggle\_menubar}, \keys{:toggle\_tabbar}, \keys{:toggle\_statusbar} — toggle individual UI bars
+\end{itemize}
+
 \subsubsection{Outline and History}
 \begin{itemize}[leftmargin=*]
     \item \keys{t} opens the document outline (table of contents) overlay
     \item \keys{Alt+Shift+H} opens the highlight annotation search overlay
     \item \keys{Ctrl+o} goes back to the previous location in history
+    \item \keys{Ctrl+i} goes forward in the location history
+\end{itemize}
+
+If the PDF has no embedded outline, LEKTRA can build one from the document text by scanning font sizes: run \keys{:generate\_outline} and the result appears in the outline picker. Outlines can also be exported to (\keys{:export\_outline}) and loaded from (\keys{:load\_outline}) a portable JSON file, so you can share a hand-crafted TOC between machines.
+
+\subsubsection{Bookmarks and Marks}
+
+Two independent mechanisms for jumping around:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Bookmarks} are persistent, named per-document markers. Add one with \keys{:add\_bookmark}, open the picker with \keys{:show\_bookmark\_picker}, or manage them from the \textit{Bookmarks} menu. Bookmarks survive between sessions.
+    \item \textbf{Marks} are single-letter jump points inside the current document, Vim-style. Press \keys{:set\_mark} then a letter to set, \keys{:goto\_mark} then a letter to jump back. \keys{:delete\_mark} clears one. Marks live only for the current session.
 \end{itemize}
 
 \subsubsection{Annotations and Interaction Modes}
@@ -187,16 +253,68 @@ Fit modes:
     \item \keys{:} open command palette
 \end{itemize}
 
-\subsubsection{Rotation}
+\subsubsection{Rotation and Flip}
 \begin{itemize}[leftmargin=*]
     \item \keys{<} rotate counter-clockwise, \quad \keys{>} rotate clockwise
+    \item \keys{:flip\_horizontal} / \keys{:flip\_vertical} — mirror the page
+\end{itemize}
+
+\subsection{Sessions}
+
+A session is a snapshot of your open tabs, splits, and per-view state (page, zoom, layout, rotation). Sessions let you switch between reading projects without losing your place.
+
+\begin{itemize}[leftmargin=*]
+    \item \keys{:save\_session} — save the current layout to the named session (or the active one)
+    \item \keys{:save\_session\_as} — save under a new name
+    \item \keys{:load\_session} — pick a session from the list and restore it
+\end{itemize}
+
+Sessions live under \keys{\$HOME/.local/share/lektra/sessions/} (Linux/macOS) as JSON files, one per session.
+
+\subsection{Portal Mode}
+
+Portal mode links two views to the same document so that scrolling one drives the other — useful for cross-referencing figures with body text, or keeping a table of contents pane in sync with the main view. Trigger with \keys{:create\_or\_focus\_portal}.
+
+\subsection{File Properties}
+
+\keys{:file\_properties} (or \textit{File $\to$ File Properties}) opens the properties dialog. For PDFs it shows the info dictionary (title, author, producer, creation date, PDF version, encryption status, page count). For images it shows width, height, format, animation status, and — when \texttt{libexif} is installed — full EXIF metadata (camera model, lens, ISO, shutter, aperture, GPS, date taken).
+
+\subsection{Copying and Exporting}
+
+\begin{itemize}[leftmargin=*]
+    \item \keys{:selection\_copy} — copy the current text selection to the clipboard
+    \item \keys{:copy\_page\_image} — copy the current page as an image (context menu also has ``Copy Region as Image'' when a region is selected, with an optional custom DPI for vector documents)
+    \item \keys{:export\_outline} — write the document outline (real or generated) to JSON
+    \item \keys{:save\_as\_file} — save the current PDF to a new location (including a copy of any annotations you have added)
+\end{itemize}
+
+\subsection{Encrypted PDFs}
+
+Password-protected PDFs prompt for a password on open. You can also encrypt or decrypt a PDF from within LEKTRA:
+\begin{itemize}[leftmargin=*]
+    \item \keys{:encrypt\_document} — add a password to the current document
+    \item \keys{:decrypt\_document} — remove the password (requires the current one)
+\end{itemize}
+
+\subsection{Command Palette and Pickers}
+
+Press \keys{:} to open the command palette — a fuzzy-matching prompt that runs any LEKTRA command by name. Beyond commands, several dedicated pickers exist:
+\begin{itemize}[leftmargin=*]
+    \item \keys{:show\_command\_picker} — list every command with its description
+    \item \keys{:show\_file\_picker} — open a file
+    \item \keys{:show\_recent\_files\_picker} — jump to a recently opened file, restored to its last page
+    \item \keys{:show\_outline\_picker} — outline / TOC
+    \item \keys{:show\_bookmark\_picker} — bookmarks
+    \item \keys{:show\_highlight\_search\_picker} — search across highlight annotations
 \end{itemize}
 
 % ---------------------------------------------------------------------------
 \section{Configuration}
 % ---------------------------------------------------------------------------
 
-LEKTRA can be configured using \textbf{TOML} or \textbf{Lua}. Let us look at how to configure using TOML first. The configuration file should be at \keys{\$HOME/.config/lektra/config.toml}.
+LEKTRA can be configured using \textbf{TOML} or \textbf{Lua}. Both files are optional and both can be present; the TOML file is applied first, and the Lua file (\keys{\$HOME/.config/lektra/init.lua}) is sourced afterwards so it can override any TOML setting or add runtime behaviour.
+
+Let us look at how to configure using TOML first. The configuration file should be at \keys{\$HOME/.config/lektra/config.toml}. \keys{:open\_config} opens whichever config file(s) exist — a chooser appears if both are present.
 
 \subsection{Key sections}
 
@@ -318,6 +436,57 @@ LSP-friendly type stubs for the Lua API are installed at
 \end{tcolorbox}
 
 % For the complete API reference with all methods, types, and event names, see the \href{https://dheerajshenoy.github.io/lektra/lua-api.html}{Lua API} page on the homepage.
+
+% ---------------------------------------------------------------------------
+\section{LaTeX \& SyncTeX}
+% ---------------------------------------------------------------------------
+
+LEKTRA builds with SyncTeX support enabled by default. If your PDF was compiled with SyncTeX information (\texttt{-synctex=1} with \texttt{pdflatex}/\texttt{xelatex}/\texttt{lualatex}, or the equivalent flag in \texttt{latexmk}), you can:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Forward-search} from your editor into LEKTRA — jump from a source line to the corresponding location in the PDF. Editor integration snippets for Neovim, VS Code, Emacs, and TeXstudio are on the homepage.
+    \item \textbf{Reverse-search} from LEKTRA back to your editor — click while holding the SyncTeX modifier (Ctrl by default) and LEKTRA runs your configured editor command with the source file and line.
+\end{itemize}
+
+Because LEKTRA watches files on disk, re-running \texttt{latexmk} on a source change reloads the PDF automatically without losing your page position or zoom — you don't need to click ``reload''.
+
+% ---------------------------------------------------------------------------
+\section{Troubleshooting}
+% ---------------------------------------------------------------------------
+
+\subsection{DjVu files don't open}
+LEKTRA loads \texttt{libdjvulibre.so.21} at runtime. On Debian/Ubuntu install \texttt{libdjvulibre21}; on Arch install \texttt{djvulibre}; on Fedora \texttt{djvulibre}. No rebuild is needed — restart LEKTRA and DjVu will work.
+
+\subsection{SVGs look blurry or don't render vector graphics correctly}
+LEKTRA prefers \texttt{librsvg} + \texttt{libcairo} for SVG rendering; if either is missing it falls back to Qt's own SVG renderer, which handles a smaller subset of the spec. Install \texttt{librsvg2} (SONAME \texttt{.so.2}) for full quality.
+
+\subsection{No EXIF metadata in File Properties for images}
+Install \texttt{libexif} (SONAME \texttt{.so.12}). LEKTRA discovers it at runtime — no rebuild required.
+
+\subsection{Where LEKTRA keeps its files}
+\begin{description}[leftmargin=0pt]
+    \item[\texttt{\$HOME/.config/lektra/}] \texttt{config.toml}, \texttt{init.lua}
+    \item[\texttt{\$HOME/.local/share/lektra/}] recent files DB, sessions, bookmarks
+    \item[\texttt{\$HOME/.local/share/lektra/crashes/}] crash logs (\texttt{crash\_latest.log})
+    \item[\texttt{\$HOME/.local/share/lektra/sessions/}] JSON session files
+\end{description}
+
+\subsection{LEKTRA crashed}
+A crash dialog appears with the log and a one-click ``Report on GitHub'' button that pre-fills an issue. You can also copy the log to the clipboard from that dialog, or find it later at \texttt{crash\_latest.log} in the crashes directory. Debug and \texttt{RelWithDebInfo} builds include function names and file/line numbers in the trace; release builds show addresses only — running \texttt{addr2line -e /usr/bin/lektra} on those addresses resolves them if the binary keeps symbols.
+
+% ---------------------------------------------------------------------------
+\section{Support}
+% ---------------------------------------------------------------------------
+
+LEKTRA is developed by Dheeraj Vittal Shenoy and contributors, and is free and open-source software that will stay free forever. If it has been useful to you, consider supporting continued development through one of:
+
+\begin{itemize}[leftmargin=*]
+    \item Ko-fi — \url{https://ko-fi.com/dheerajshenoy}
+    \item Liberapay — \url{https://liberapay.com/dheerajshenoy}
+    \item GitHub Sponsors — \url{https://github.com/sponsors/dheerajshenoy}
+\end{itemize}
+
+Bug reports and feature ideas are welcome at the issue tracker on Codeberg (\url{https://codeberg.org/lektra/lektra}) or on GitHub (\url{https://github.com/dheerajshenoy/lektra}). \keys{:donate} inside LEKTRA reopens the support dialog at any time.
 
 \end{document}
 
