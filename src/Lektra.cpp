@@ -2687,8 +2687,12 @@ Lektra::OpenFilesInVSplit(const QStringList &files) noexcept
     if (qfiles.isEmpty())
         return;
 
-    // First file always opens in a new tab
-    OpenFileInNewTab(qfiles[0], [this, qfiles = std::move(qfiles)](void *)
+    // Copy the first path out before moving the list into the lambda: the
+    // order of evaluation of call arguments is unspecified, so reading
+    // qfiles[0] in the same expression as `qfiles = std::move(qfiles)` can
+    // index a moved-from (empty) list and fire QList's bounds assert.
+    const QString first = qfiles[0];
+    OpenFileInNewTab(first, [this, qfiles = std::move(qfiles)](void *)
     {
         // Subsequent files split into that tab
         for (int i = 1; i < qfiles.size(); ++i)
@@ -2719,8 +2723,9 @@ Lektra::OpenFilesInHSplit(const QStringList &files) noexcept
     if (qfiles.isEmpty())
         return;
 
-    // First file always opens in a new tab
-    OpenFileInNewTab(qfiles[0], [this, qfiles = std::move(qfiles)](void *)
+    // See OpenFilesInVSplit for why qfiles[0] must be read before the move.
+    const QString first = qfiles[0];
+    OpenFileInNewTab(first, [this, qfiles = std::move(qfiles)](void *)
     {
         // Subsequent files split into that tab
         for (int i = 1; i < qfiles.size(); ++i)
