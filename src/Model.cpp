@@ -242,6 +242,11 @@ struct DjVuLib
     PFN_djvu_ctx_create ctx_create     = nullptr;
     PFN_djvu_ctx_release ctx_release   = nullptr;
     PFN_djvu_doc_create doc_create     = nullptr;
+    // True if doc_create points at ddjvu_document_create_by_filename_utf8
+    // (available since libdjvulibre 3.5.24). Otherwise the plain
+    // ddjvu_document_create_by_filename is loaded, which takes a path in
+    // the OS locale encoding — ANSI on Windows, UTF-8 on modern Linux.
+    bool doc_create_is_utf8            = false;
     PFN_djvu_job_release job_release   = nullptr;
     PFN_djvu_doc_job doc_job           = nullptr;
     PFN_djvu_doc_pagenum doc_pagenum   = nullptr;
@@ -303,7 +308,20 @@ private:
 
         DJLOADSYM(ctx_create, "ddjvu_context_create")
         DJLOADSYM(ctx_release, "ddjvu_context_release")
-        DJLOADSYM(doc_create, "ddjvu_document_create_by_filename")
+        // Prefer the UTF-8 variant so non-ASCII paths work on Windows too.
+        // Fall back to the plain (locale-encoded) entry point for very old
+        // libdjvulibre (< 3.5.24, ~2011); if only the plain one is
+        // available the call site must encode the path in the OS locale.
+        doc_create = reinterpret_cast<PFN_djvu_doc_create>(
+            lib.resolve("ddjvu_document_create_by_filename_utf8"));
+        if (doc_create)
+        {
+            doc_create_is_utf8 = true;
+        }
+        else
+        {
+            DJLOADSYM(doc_create, "ddjvu_document_create_by_filename")
+        }
         DJLOADSYM(job_release, "ddjvu_job_release")
         DJLOADSYM(doc_job, "ddjvu_document_job")
         DJLOADSYM(doc_pagenum, "ddjvu_document_get_pagenum")
@@ -1628,9 +1646,15 @@ Model::openAsync_djvu(const QString &canonPath) noexcept
 
     return QtConcurrent::run([this, canonPath]
     {
-        auto &djvu                 = DjVuLib::get();
-        void *ctx                  = djvu.ctx_create("LEKTRA");
-        const QByteArray pathBytes = canonPath.toUtf8();
+        auto &djvu = DjVuLib::get();
+        void *ctx  = djvu.ctx_create("LEKTRA");
+        // Match the encoding to the loaded doc_create variant: the _utf8
+        // entry point takes UTF-8, the plain one takes the OS locale
+        // encoding (ANSI on Windows, UTF-8 on modern Linux). Getting this
+        // wrong breaks non-ASCII paths on Windows.
+        const QByteArray pathBytes = djvu.doc_create_is_utf8
+                                         ? canonPath.toUtf8()
+                                         : canonPath.toLocal8Bit();
         const std::string pathStr(pathBytes.constData(), pathBytes.size());
         void *doc = djvu.doc_create(ctx, pathStr.c_str(), true);
         if (!doc)
