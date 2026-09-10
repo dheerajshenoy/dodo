@@ -6,6 +6,7 @@
 
 ## MEDIUM PRIORITY
 
+- [ ] fit to current page width/height
 - [ ] Add support for directory local config files
 - [ ] Tab detach drag and drop to new window spawns new useless window
 - [ ] Allow for command arguments
