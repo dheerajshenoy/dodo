@@ -1,6 +1,10 @@
 # LEKTRA CHANGELOG
 
-## 0.7.7.1
+## 0.7.8
+
+### New Features
+
+- Updated tutorial PDF file
 
 ### Bug Fixes
 
