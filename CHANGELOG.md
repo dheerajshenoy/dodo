@@ -1,5 +1,13 @@
 # LEKTRA CHANGELOG
 
+## 0.7.7.1
+
+### Bug Fixes
+
+- **Fix "Open File in VSplit / HSplit" always opening the first file in a new tab (fit-to-width) instead of splitting the current view.** The menu action routed the first file through `OpenFileInNewTab`, which forced the new view into `initial_fit` (Width by default) and clobbered the current view's zoom/fit. The first file now goes through `OpenFileVSplit` / `OpenFileHSplit`, which split the current view when a tab is open and only fall back to a new tab when nothing is open.
+- **Fix optional runtime libraries not loading on Debian/Ubuntu when the corresponding `-dev` package is not installed.** `QLibrary("djvulibre")` (and similarly `"rsvg-2"`, `"cairo"`) resolved to the unversioned `libdjvulibre.so` symlink, which only ships with `libdjvulibre-dev` — runtime users only have `libdjvulibre.so.21`. The workaround users hit on MX-25 was manually symlinking `libdjvulibre.so → libdjvulibre.so.21`. Now `QLibrary` is passed the SONAME version explicitly (`QLibrary("djvulibre", 21)`, `QLibrary("rsvg-2", 2)`, `QLibrary("cairo", 2)`), so the loader picks up the versioned SONAME directly on all Debian derivatives.
+- **Fix SIGSEGV when opening a file via "Open File in VSplit / HSplit" (reentrant `currentChanged`).** `m_tab_widget->addTab(container, tabTitle)` in `OpenFileInNewTab` fired `QTabBar::currentChanged` synchronously, which called `handleCurrentTabChanged` → `setCurrentDocumentView` → `updateStatusbar` on a half-initialised view: `view->openAsync()` had just been kicked off, so the model was still mid-initialisation and `m_doc` still pointed at the previous view. Fixed by wrapping `addTab` + `setCurrentIndex` in `blockSignals(true/false)` and calling `setCurrentDocumentView(view)` explicitly after the tab is fully wired up (same pattern already used by the lazy-load path in `handleCurrentTabChanged`).
+
 ---
 
 ## 0.7.7
