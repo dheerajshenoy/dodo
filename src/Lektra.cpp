@@ -3913,18 +3913,40 @@ Lektra::handleTabDropReceived(const TabBar::TabData &data) noexcept
         if (!m_doc)
             return;
 
-        // Restore document state
-        m_doc->GotoPage(data.currentPage - 1);
+        // TabData arrives from another Lektra process (possibly a different
+        // version) and cannot be trusted — clamp page, snap rotation to a
+        // valid 90° step, and skip the rotation loop entirely if a bogus
+        // value would make it never terminate.
+        Model *model         = m_doc->model();
+        const int pageCount  = model ? model->numPages() : 0;
+        int page             = data.currentPage - 1;
+        if (page < 0)
+            page = 0;
+        if (pageCount > 0 && page >= pageCount)
+            page = pageCount - 1;
+        m_doc->GotoPage(page);
         m_doc->setZoom(data.zoom);
         m_doc->setInvertColor(data.invertColor);
 
-        // Restore rotation
-        int currentRotation = m_doc->model()->rotation();
-        int targetRotation  = data.rotation;
-        while (currentRotation != targetRotation)
+        // Restore rotation. Normalise `data.rotation` to a multiple of 90
+        // in [0, 360); anything else means the payload was corrupt and we
+        // leave rotation untouched rather than spinning forever.
+        if (model)
         {
-            m_doc->RotateClock();
-            currentRotation = (currentRotation + 90) % 360;
+            const int raw    = data.rotation;
+            const int wrapped = ((raw % 360) + 360) % 360;
+            if (wrapped % 90 == 0)
+            {
+                int currentRotation = model->rotation();
+                const int target    = wrapped;
+                // At most 4 iterations — any more means our own state was
+                // off a 90° boundary too; bail rather than loop forever.
+                for (int i = 0; i < 4 && currentRotation != target; ++i)
+                {
+                    m_doc->RotateClock();
+                    currentRotation = (currentRotation + 90) % 360;
+                }
+            }
         }
 
         // Restore fit mode
@@ -6469,22 +6491,30 @@ Lektra::handleLinkPreviewRequested(DocumentView *view,
     m_preview_overlay->raise();
     m_preview_overlay->show();
 
-    auto navigateTo = [this, target]()
+    auto navigateTo = [this, target](float zoom)
     {
-        m_preview_view->setZoom(m_doc->zoom());
+        m_preview_view->setZoom(zoom);
         m_preview_view->GotoLocation(target);
     };
 
     if (m_preview_view->filePath() != view->filePath())
     {
+        // Capture the zoom by value at connect time — m_doc can change tab
+        // (and therefore zoom) between open kick-off and openFileFinished.
+        // Also give the inner singleShot `this` as its receiver so a Lektra
+        // destroyed before the timer fires cancels the call instead of
+        // dereferencing a dead pointer.
+        const float zoom = m_doc ? m_doc->zoom() : 1.0f;
         connect(m_preview_view, &DocumentView::openFileFinished, this,
-                [navigateTo](DocumentView *, Model::FileType)
-        { QTimer::singleShot(0, navigateTo); }, Qt::SingleShotConnection);
+                [this, navigateTo, zoom](DocumentView *, Model::FileType)
+        {
+            QTimer::singleShot(0, this, [navigateTo, zoom]() { navigateTo(zoom); });
+        }, Qt::SingleShotConnection);
         m_preview_view->openAsync(view->filePath());
     }
     else
     {
-        navigateTo();
+        navigateTo(m_doc ? m_doc->zoom() : 1.0f);
     }
 }
 
@@ -7046,8 +7076,12 @@ Lektra::RemoveBookmark() noexcept
 void
 Lektra::onNewIPCConnection()
 {
-    QLocalServer *server       = qobject_cast<QLocalServer *>(sender());
+    QLocalServer *server = qobject_cast<QLocalServer *>(sender());
+    if (!server)
+        return;
     QLocalSocket *clientSocket = server->nextPendingConnection();
+    if (!clientSocket)
+        return;
     connect(clientSocket, &QLocalSocket::readyRead, this,
             &Lektra::onIPCDataReady);
     connect(clientSocket, &QLocalSocket::disconnected, clientSocket,

@@ -171,6 +171,10 @@ static constexpr int DJVU_ROTATE_180    = 2;
 static constexpr int DJVU_ROTATE_270    = 3;
 static constexpr int DJVU_FMT_RGBMASK32 = 3; // DDJVU_FORMAT_RGBMASK32
 static constexpr int DJVU_RENDER_COLOR  = 0;
+// ddjvu_status_t: NOTSTARTED=0, STARTED=1, OK=2, FAILED=3, STOPPED=4.
+// Anything >= OK means the job has terminated; only OK is success.
+static constexpr int DJVU_JOB_OK        = 2;
+static constexpr int DJVU_JOB_FAILED    = 3;
 
 struct DjVuPageInfo
 {
@@ -1364,22 +1368,36 @@ Model::cleanup_mupdf() noexcept
 void
 Model::cleanup_image() noexcept
 {
-    m_image_cache = QImage();
     m_is_image    = false;
     m_is_animated = false;
     if (m_movie)
     {
+        // QMovie is a QObject with frameChanged/updated signals wired to
+        // view code; an immediate delete during a signal chain crashes.
+        // Disconnect first, then queue the delete for after the current
+        // event returns.
         m_movie->stop();
-        delete m_movie;
+        m_movie->disconnect();
+        m_movie->deleteLater();
         m_movie = nullptr;
     }
-    m_page_dim_cache.reset(0);
-    m_default_page_dim = {};
+    {
+        std::lock_guard<std::mutex> lock(m_page_dim_mutex);
+        m_image_cache = QImage();
+        m_page_dim_cache.reset(0);
+        m_default_page_dim = {};
+    }
 }
 
 void
 Model::cleanup_djvu() noexcept
 {
+    // NOTE on the render barrier: callers on the open/reload paths call
+    // waitForPendingRenders() themselves and then reset m_render_cancelled
+    // to false. cleanup_djvu therefore does NOT call waitForPendingRenders
+    // itself — doing so would leave m_render_cancelled=true across the
+    // caller's reset and every subsequent render would bail on the flag.
+    // Any direct caller (e.g. Model::close) must run the barrier itself.
     auto &djvu = DjVuLib::get();
     if (djvu.ok)
     {
@@ -1516,6 +1534,9 @@ Model::openAsync_image(const QString &canonPath) noexcept
             QMetaObject::invokeMethod(
                 this, [this, img = std::move(img), fw, fh]() mutable
             {
+                // Prevent a previous doc's render worker from touching
+                // state we are about to swap out.
+                waitForPendingRenders();
                 cleanup_image();
                 m_is_image         = true;
                 m_is_animated      = false;
@@ -1559,6 +1580,7 @@ Model::openAsync_image(const QString &canonPath) noexcept
             QMetaObject::invokeMethod(
                 this, [this, first = std::move(first), w, h]() mutable
             {
+                waitForPendingRenders();
                 cleanup_image();
                 m_is_image         = true;
                 m_is_animated      = false;
@@ -1577,6 +1599,7 @@ Model::openAsync_image(const QString &canonPath) noexcept
         // keeping memory at O(1 frame) instead of O(all frames).
         QMetaObject::invokeMethod(this, [this, canonPath, w, h]()
         {
+            waitForPendingRenders();
             cleanup_image();
             m_is_image         = true;
             m_is_animated      = true;
@@ -1618,11 +1641,12 @@ Model::openAsync_djvu(const QString &canonPath) noexcept
             return;
         }
 
-        // Pump until decoded (DDJVU_JOB_OK = 2)
-        while (djvu.job_status(djvu.doc_job(doc)) < 2)
+        // Pump until the decode job terminates (status >= OK). Any status
+        // above OK (FAILED, STOPPED) is a decode failure, not success.
+        while (djvu.job_status(djvu.doc_job(doc)) < DJVU_JOB_OK)
         {
             DjVuMsg *msg = djvu.msg_wait(ctx);
-            if (msg->m_any.tag == DJVU_MSG_ERROR)
+            if (!msg || msg->m_any.tag == DJVU_MSG_ERROR)
             {
                 djvu.job_release(doc);
                 djvu.ctx_release(ctx);
@@ -1633,10 +1657,27 @@ Model::openAsync_djvu(const QString &canonPath) noexcept
             djvu.msg_pop(ctx);
         }
 
+        if (djvu.job_status(djvu.doc_job(doc)) != DJVU_JOB_OK)
+        {
+            djvu.job_release(doc);
+            djvu.ctx_release(ctx);
+            QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                      Qt::QueuedConnection);
+            return;
+        }
+
         const int page_count = djvu.doc_pagenum(doc);
 
         DjVuPageInfo info{};
-        djvu.doc_pageinfo(doc, 0, &info);
+        if (djvu.doc_pageinfo(doc, 0, &info) != DJVU_JOB_OK
+            || info.dpi <= 0 || info.width <= 0 || info.height <= 0)
+        {
+            djvu.job_release(doc);
+            djvu.ctx_release(ctx);
+            QMetaObject::invokeMethod(this, &Model::openFileFailed,
+                                      Qt::QueuedConnection);
+            return;
+        }
         const float w = static_cast<float>(info.width) / info.dpi * 72.0f;
         const float h = static_cast<float>(info.height) / info.dpi * 72.0f;
 
@@ -1853,6 +1894,13 @@ void
 Model::close() noexcept
 {
     m_filepath.clear();
+
+    // Barrier: cancel and drain in-flight renders before we free the
+    // backing document. Reset the cancelled flag after so a future open
+    // on the same Model isn't stuck in cancelled state.
+    waitForPendingRenders();
+    m_render_cancelled.store(false, std::memory_order_release);
+
     if (m_filetype == FileType::DJVU)
     {
         cleanup_djvu();
@@ -1910,15 +1958,21 @@ Model::buildPageCache_djvu(int pageno) noexcept
 
     // Pump until page is ready (DDJVU_JOB_OK = 2)
     DjVuMsg *msg;
-    while (djvu.job_status(djvu.page_job(page)) < 2)
+    while (djvu.job_status(djvu.page_job(page)) < DJVU_JOB_OK)
     {
         msg = djvu.msg_wait(m_ddjvu_ctx);
-        if (msg->m_any.tag == DJVU_MSG_ERROR)
+        if (!msg || msg->m_any.tag == DJVU_MSG_ERROR)
         {
             djvu.job_release(page);
             return;
         }
         djvu.msg_pop(m_ddjvu_ctx);
+    }
+
+    if (djvu.job_status(djvu.page_job(page)) != DJVU_JOB_OK)
+    {
+        djvu.job_release(page);
+        return;
     }
 
     const int djvu_rot = [&]() -> int
@@ -1942,6 +1996,12 @@ Model::buildPageCache_djvu(int pageno) noexcept
     const int orig_pw_px = djvu.page_width(page);
     const int orig_ph_px = djvu.page_height(page);
 
+    if (native_dpi <= 0 || orig_pw_px <= 0 || orig_ph_px <= 0)
+    {
+        djvu.job_release(page);
+        return;
+    }
+
     const float w_pts = static_cast<float>(orig_pw_px) / native_dpi * 72.0f;
     const float h_pts = static_cast<float>(orig_ph_px) / native_dpi * 72.0f;
 
@@ -1956,18 +2016,47 @@ Model::buildPageCache_djvu(int pageno) noexcept
     const int pw_px = djvu.page_width(page);
     const int ph_px = djvu.page_height(page);
 
+    if (pw_px <= 0 || ph_px <= 0)
+    {
+        djvu.job_release(page);
+        return;
+    }
+
     // Render at m_zoom * m_dpi — same scale logic as the MuPDF path
     const float render_dpi = m_zoom * m_dpi * m_dpr;
     const float scale      = render_dpi / native_dpi;
-    const int rw           = static_cast<int>(pw_px * scale);
-    const int rh           = static_cast<int>(ph_px * scale);
+
+    // Clamp pixel dimensions to keep the render buffer bounded. 32k×32k×4B
+    // is ~4 GiB — well past any sane viewport; a bogus DPI or scale here
+    // could otherwise overflow int and produce an undersized or negative
+    // buffer that page_render happily writes past.
+    static constexpr int MAX_RENDER_PX = 32768;
+    const int rw_raw = static_cast<int>(pw_px * scale);
+    const int rh_raw = static_cast<int>(ph_px * scale);
+    if (rw_raw <= 0 || rh_raw <= 0 || rw_raw > MAX_RENDER_PX
+        || rh_raw > MAX_RENDER_PX)
+    {
+        djvu.job_release(page);
+        return;
+    }
+    const int rw = rw_raw;
+    const int rh = rh_raw;
 
     DjVuRect prect{0, 0, static_cast<unsigned>(rw), static_cast<unsigned>(rh)};
     DjVuRect rrect = prect;
 
-    // BGRA format maps cleanly to QImage::Format_RGB32
-    const int stride = rw * 4;
-    QByteArray buf(stride * rh, 0);
+    // BGRA format maps cleanly to QImage::Format_RGB32.
+    // Use 64-bit arithmetic for the buffer size so a large page cannot
+    // overflow int (e.g. 25000 * 4 * 25000 = 2.5e9 wraps int).
+    const int stride            = rw * 4;
+    const qint64 buf_bytes64    = static_cast<qint64>(stride) * rh;
+    if (buf_bytes64 <= 0
+        || buf_bytes64 > static_cast<qint64>(std::numeric_limits<int>::max()))
+    {
+        djvu.job_release(page);
+        return;
+    }
+    QByteArray buf(static_cast<int>(buf_bytes64), 0);
 
     void *fmt                   = nullptr;
     // DjVuLibre RGBMASK32: specify R/G/B masks and white background
