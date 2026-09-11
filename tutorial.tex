@@ -11,6 +11,11 @@
 \usepackage{longtable}
 \usepackage{booktabs}
 \usepackage{minted}
+\usepackage{seqsplit}
+% \pathtt renders a monospace path that is allowed to break at any
+% character — plain \texttt{} treats the whole path as one unbreakable
+% word and would push long paths past the right margin.
+\newcommand{\pathtt}[1]{{\ttfamily\seqsplit{#1}}}
 
 \onehalfspacing
 
@@ -106,10 +111,10 @@ You can also:
     \item Open multiple files at once — each opens in its own tab
     \item Open a file in a new window with \keys{:open\_file\_new\_window}
     \item Drag and drop files from your file manager onto the LEKTRA window
-    \item Use \keys{:open\_recent} (or the \textit{File $\to$ Recent Files} menu) to reopen a previously viewed document at the last page you were on
+    \item Use \keys{:files\_recent} (or the \textit{File $\to$ Recent Files} menu) to reopen a previously viewed document at the last page you were on
 \end{itemize}
 
-Documents on disk are watched for changes: if you re-export a PDF from LaTeX or another tool, the view refreshes automatically without losing your zoom or page position.
+When \texttt{behavior.auto\_reload} is enabled in \texttt{config.toml}, LEKTRA watches the open documents on disk and reloads them automatically when they change — useful for \texttt{latexmk} workflows or any tool that re-exports the PDF. With auto-reload disabled, use \keys{:file\_reload} to reload manually.
 
 \begin{ghnote}
     \textbf{First run:} On the first launch LEKTRA shows a support dialog with donation links (Ko-fi, Liberapay, GitHub Sponsors). You can reopen it any time from \textit{Help $\to$ Donate / Support} or via \keys{:donate}. LEKTRA is free forever — the dialog is entirely optional.
@@ -120,14 +125,20 @@ Documents on disk are watched for changes: if you re-export a PDF from LaTeX or 
 LEKTRA supports tabs and splits for viewing multiple documents simultaneously.
 
 \begin{itemize}[leftmargin=*]
-    \item \keys{Ctrl+t} opens a new tab
-    \item \keys{Ctrl+w} closes the current tab
-    \item \keys{gt} / \keys{gT} cycles to the next / previous tab
-    \item \keys{Ctrl+\textbackslash} splits the view vertically
-    \item \keys{Ctrl+-} splits the view horizontally
+    \item \keys{o} opens a file in a new tab
+    \item \keys{Alt+1} \ldots\ \keys{Alt+9} jumps directly to tab 1 through 9
+    \item Cycling and closing tabs have no default keybinding — bind \texttt{tab\_next}, \texttt{tab\_prev}, \texttt{tab\_close} in your config, or invoke them from the \keys{:} command palette
 \end{itemize}
 
-Splits are independent views — each remembers its own zoom, page position, and fit mode. Focus moves between splits with keyboard shortcuts (Vim-style \keys{Ctrl+w} + \keys{h/j/k/l}) or, if enabled in the config, by hovering the mouse over a pane.
+Splits use Vim-style \keys{Ctrl+W} chords:
+\begin{itemize}[leftmargin=*]
+    \item \keys{Ctrl+W,s} splits horizontally (\texttt{split\_horizontal})
+    \item \keys{Ctrl+W,v} splits vertically (\texttt{split\_vertical})
+    \item \keys{Ctrl+W,h} / \keys{Ctrl+W,j} / \keys{Ctrl+W,k} / \keys{Ctrl+W,l} moves focus left / down / up / right
+    \item \keys{Ctrl+W,c} closes the current split
+\end{itemize}
+
+Splits are independent views — each remembers its own zoom, page position, and fit mode. When \texttt{split.focus\_follows\_mouse} is enabled in the config, hovering over a pane also gives it focus.
 
 \textbf{Tabs across windows:} You can drag a tab out of the tabbar to detach it into its own window, or drop it onto another LEKTRA window to move it there.
 
@@ -140,6 +151,7 @@ The core philosophy of \textbf{LEKTRA} is keyboard-driven navigation (mouse supp
 \begin{itemize}[leftmargin=*]
     \item \textbf{Vertical:} \keys{j} scrolls down,\; \keys{k} scrolls up
     \item \textbf{Horizontal:} \keys{h} scrolls left,\; \keys{l} scrolls right
+    \item \keys{Ctrl+d} / \keys{Ctrl+u} — scroll down / up half a page
 \end{itemize}
 
 \subsubsection{Page Navigation}
@@ -147,9 +159,9 @@ The core philosophy of \textbf{LEKTRA} is keyboard-driven navigation (mouse supp
 \begin{itemize}[leftmargin=*]
     \item \keys{Shift+j} moves to the next page
     \item \keys{Shift+k} moves to the previous page
-    \item \keys{g,g} jumps to the first page
+    \item \keys{g,g} (chord) jumps to the first page
     \item \keys{Shift+g} jumps to the last page
-    \item \keys{Ctrl+g} go to a specific page (prompts for page number)
+    \item \keys{Ctrl+g} prompts for a page number and jumps to it
 \end{itemize}
 
 \subsubsection{Search}
@@ -159,14 +171,14 @@ The core philosophy of \textbf{LEKTRA} is keyboard-driven navigation (mouse supp
     \item \keys{Shift+n} jumps to the previous search result
     \item \keys{:search\_regex} opens search with regex mode primed
     \item \keys{:search\_below \textit{term}} / \keys{:search\_above \textit{term}} search only pages after / before the current page (one-shot; the next plain search reverts to whole-document scope)
-    \item \keys{:show\_annot\_comment\_search} finds text inside annotation comments and popups
+    \item \keys{:picker\_annot\_comment\_search} finds text inside annotation comments and popups
 \end{itemize}
 
 \subsubsection{Narrow (Focused Reading)}
 
 You can restrict the viewport, search, and scrolling to a subset of the document:
 \begin{itemize}[leftmargin=*]
-    \item \keys{:narrow\_to\_region} — rubber-band a rectangle on the current page; only that region stays visible, the rest dims
+    \item \keys{:narrow\_to\_region} — first enter region-selection mode (\keys{4}) and drag out a rectangle, then run this command; only that region stays visible, the rest dims
     \item \keys{:narrow\_to\_pages 5 10} — restrict to a page range (also accepts \texttt{5-10})
     \item \keys{:narrow\_to\_section} — restrict to a section by outline title (fuzzy match, picker if no argument)
     \item \keys{:widen\_region} — exit narrow mode
@@ -197,14 +209,15 @@ For multi-page documents you can pick how pages are arranged:
     \item \textbf{Book} — two-page facing spread with a cover offset (for magazines, novels, etc.)
 \end{itemize}
 
-Cycle through the layout with \keys{:next\_layout\_mode}, or set one directly via the \textit{View $\to$ Layout} menu. The default at startup is controlled by \texttt{layout.mode} in \texttt{config.toml}.
+Set a layout directly with one of \keys{:layout\_single}, \keys{:layout\_vertical}, \keys{:layout\_horizontal}, \keys{:layout\_book}, or use the \textit{View $\to$ Layout} menu. The default at startup is controlled by \texttt{layout.mode} in \texttt{config.toml}.
 
 \subsubsection{Reading Modes}
 \begin{itemize}[leftmargin=*]
-    \item \keys{F11} — toggle full-screen
-    \item \keys{:toggle\_presentation\_mode} — presentation mode (hides all chrome, one page at a time)
-    \item \keys{:toggle\_focus\_mode} — focus mode (hides menubar/tabbar/statusbar while keeping the split UI)
-    \item \keys{:toggle\_menubar}, \keys{:toggle\_tabbar}, \keys{:toggle\_statusbar} — toggle individual UI bars
+    \item \keys{Ctrl+Shift+M} — toggle the menubar (\texttt{menubar})
+    \item \keys{:fullscreen} — toggle full-screen (no default keybinding)
+    \item \keys{:presentation\_mode} — presentation mode (hides all chrome, one page at a time)
+    \item \keys{:focus\_mode} — focus mode (hides menubar/tabbar/statusbar while keeping the split UI)
+    \item \keys{:tabs}, \keys{:statusbar} — toggle the tabbar and statusbar
 \end{itemize}
 
 \subsubsection{Outline and History}
@@ -221,8 +234,8 @@ If the PDF has no embedded outline, LEKTRA can build one from the document text 
 
 Two independent mechanisms for jumping around:
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Bookmarks} are persistent, named per-document markers. Add one with \keys{:add\_bookmark}, open the picker with \keys{:show\_bookmark\_picker}, or manage them from the \textit{Bookmarks} menu. Bookmarks survive between sessions.
-    \item \textbf{Marks} are single-letter jump points inside the current document, Vim-style. Press \keys{:set\_mark} then a letter to set, \keys{:goto\_mark} then a letter to jump back. \keys{:delete\_mark} clears one. Marks live only for the current session.
+    \item \textbf{Bookmarks} are persistent, named per-document markers. Add one with \keys{:bookmark\_add}, open the picker with \keys{:bookmarks}, or manage them from the \textit{Bookmarks} menu. Bookmarks survive between sessions.
+    \item \textbf{Marks} are single-letter jump points inside the current document, Vim-style. Press \keys{:mark\_set} then a letter to set, \keys{:mark\_goto} then a letter to jump back. \keys{:mark\_delete} clears one. Marks live only for the current session.
 \end{itemize}
 
 \subsubsection{Annotations and Interaction Modes}
@@ -231,32 +244,35 @@ Two independent mechanisms for jumping around:
 \end{ghnote}
 
 \begin{itemize}[leftmargin=*]
-    \item \keys{1} toggle text selection mode
-    \item \keys{2} toggle text highlight mode
-    \item \keys{3} toggle rectangle annotation mode
-    \item \keys{4} toggle region selection mode
-    \item \keys{5} toggle annotation popups
+    \item \keys{1} text-selection mode
+    \item \keys{2} highlight-annotation mode
+    \item \keys{3} rectangle-annotation mode
+    \item \keys{4} region-selection mode
+    \item \keys{5} popup-annotation mode
 \end{itemize}
 
 \subsubsection{Links and Actions}
 \begin{itemize}[leftmargin=*]
     \item \keys{f} link-hint visit (keyboard link navigation)
-    \item \keys{o} open file
-    \item \keys{Ctrl+s} save current document
+    \item \keys{o} open file in a new tab
+    \item \keys{Ctrl+Shift+O} open file picker (\texttt{file\_picker})
+    \item \keys{Alt+Shift+O} recent files picker (\texttt{files\_recent})
+    \item \keys{Ctrl+S} save current document
 \end{itemize}
 
 \subsubsection{Editing and UI}
 \begin{itemize}[leftmargin=*]
-    \item \keys{u} undo, \quad \keys{Ctrl+r} redo
+    \item \keys{u} undo, \quad \keys{Ctrl+R} redo
+    \item \keys{v} visual-line mode
     \item \keys{i} invert colors
-    \item \keys{Ctrl+Shift+m} toggle menubar
+    \item \keys{Ctrl+Shift+M} toggle menubar
     \item \keys{:} open command palette
 \end{itemize}
 
 \subsubsection{Rotation and Flip}
 \begin{itemize}[leftmargin=*]
     \item \keys{<} rotate counter-clockwise, \quad \keys{>} rotate clockwise
-    \item \keys{:flip\_horizontal} / \keys{:flip\_vertical} — mirror the page
+    \item \keys{|} flip horizontal, \quad \keys{\_} flip vertical
 \end{itemize}
 
 \subsection{Sessions}
@@ -264,16 +280,16 @@ Two independent mechanisms for jumping around:
 A session is a snapshot of your open tabs, splits, and per-view state (page, zoom, layout, rotation). Sessions let you switch between reading projects without losing your place.
 
 \begin{itemize}[leftmargin=*]
-    \item \keys{:save\_session} — save the current layout to the named session (or the active one)
-    \item \keys{:save\_session\_as} — save under a new name
-    \item \keys{:load\_session} — pick a session from the list and restore it
+    \item \keys{:session\_save} — save the current layout to the named session (or the active one)
+    \item \keys{:session\_save\_as} — save under a new name
+    \item \keys{:session\_load} — pick a session from the list and restore it
 \end{itemize}
 
-Sessions live under \keys{\$HOME/.local/share/lektra/sessions/} (Linux/macOS) as JSON files, one per session.
+Sessions live under \pathtt{\$HOME/.local/share/lektra/sessions/} (Linux/macOS) as JSON files, one per session.
 
 \subsection{Portal Mode}
 
-Portal mode links two views to the same document so that scrolling one drives the other — useful for cross-referencing figures with body text, or keeping a table of contents pane in sync with the main view. Trigger with \keys{:create\_or\_focus\_portal}.
+Portal mode links two views to the same document so that scrolling one drives the other — useful for cross-referencing figures with body text, or keeping a table of contents pane in sync with the main view. Trigger with \keys{:portal}.
 
 \subsection{File Properties}
 
@@ -285,49 +301,56 @@ Portal mode links two views to the same document so that scrolling one drives th
     \item \keys{:selection\_copy} — copy the current text selection to the clipboard
     \item \keys{:copy\_page\_image} — copy the current page as an image (context menu also has ``Copy Region as Image'' when a region is selected, with an optional custom DPI for vector documents)
     \item \keys{:export\_outline} — write the document outline (real or generated) to JSON
-    \item \keys{:save\_as\_file} — save the current PDF to a new location (including a copy of any annotations you have added)
+    \item \keys{:file\_save\_as} — save the current PDF to a new location (including a copy of any annotations you have added)
 \end{itemize}
 
 \subsection{Encrypted PDFs}
 
 Password-protected PDFs prompt for a password on open. You can also encrypt or decrypt a PDF from within LEKTRA:
 \begin{itemize}[leftmargin=*]
-    \item \keys{:encrypt\_document} — add a password to the current document
-    \item \keys{:decrypt\_document} — remove the password (requires the current one)
+    \item \keys{:file\_encrypt} — add a password to the current document
+    \item \keys{:file\_decrypt} — remove the password (requires the current one)
 \end{itemize}
 
 \subsection{Command Palette and Pickers}
 
 Press \keys{:} to open the command palette — a fuzzy-matching prompt that runs any LEKTRA command by name. Beyond commands, several dedicated pickers exist:
 \begin{itemize}[leftmargin=*]
-    \item \keys{:show\_command\_picker} — list every command with its description
-    \item \keys{:show\_file\_picker} — open a file
-    \item \keys{:show\_recent\_files\_picker} — jump to a recently opened file, restored to its last page
-    \item \keys{:show\_outline\_picker} — outline / TOC
-    \item \keys{:show\_bookmark\_picker} — bookmarks
-    \item \keys{:show\_highlight\_search\_picker} — search across highlight annotations
+    \item \keys{:command\_palette} — list every command with its description
+    \item \keys{:file\_picker} — open a file
+    \item \keys{:files\_recent} — jump to a recently opened file, restored to its last page
+    \item \keys{:picker\_outline} — outline / TOC
+    \item \keys{:bookmarks} — bookmarks
+    \item \keys{:picker\_highlight\_search} — search across highlight annotations
 \end{itemize}
 
 % ---------------------------------------------------------------------------
 \section{Configuration}
 % ---------------------------------------------------------------------------
 
-LEKTRA can be configured using \textbf{TOML} or \textbf{Lua}. Both files are optional and both can be present; the TOML file is applied first, and the Lua file (\keys{\$HOME/.config/lektra/init.lua}) is sourced afterwards so it can override any TOML setting or add runtime behaviour.
+LEKTRA can be configured using \textbf{TOML} or \textbf{Lua}. Both files are optional and both can be present; the TOML file is applied first, and the Lua file (\pathtt{\$HOME/.config/lektra/init.lua}) is sourced afterwards so it can override any TOML setting or add runtime behaviour.
 
-Let us look at how to configure using TOML first. The configuration file should be at \keys{\$HOME/.config/lektra/config.toml}. \keys{:open\_config} opens whichever config file(s) exist — a chooser appears if both are present.
+Let us look at how to configure using TOML first. The configuration file should be at \pathtt{\$HOME/.config/lektra/config.toml}. Run \keys{:open\_config} to open whichever config file(s) exist — a chooser appears if both are present.
 
 \subsection{Key sections}
 
-\begin{description}[leftmargin=0pt]
-    \item[\texttt{[window]}] Window size, fullscreen, menubar visibility, title format, accent color.
-    \item[\texttt{[page]}] Page foreground and background colors.
-    \item[\texttt{[statusbar]}] Visibility and which fields to display (page number, progress, file info, etc.).
-    \item[\texttt{[split]}] Split behavior — focus follows mouse, dim inactive panes, etc.
-    \item[\texttt{[portal]}] Picture-in-picture portal overlay settings.
-    \item[\texttt{[annotations.*]}] Highlight, rectangle, and popup annotation appearance.
-    \item[\texttt{[thumbnail\_panel]}] Thumbnail strip width, page numbers, and scrollbar visibility.
-    \item[\texttt{[keymap]}] Override any keybinding by specifying \texttt{action = "Key"}.
-    \item[\texttt{[mousemap]}] Mouse button bindings, similar to keymap.
+\begin{description}[
+    style=nextline,
+    font=\ttfamily,
+    leftmargin=1.2em,
+    labelindent=0pt,
+    itemsep=0.3em,
+    parsep=0pt
+]
+    \item[{[window]}] Window size, fullscreen, menubar visibility, title format, accent color.
+    \item[{[page]}] Page foreground and background colors.
+    \item[{[statusbar]}] Visibility and which fields to display (page number, progress, file info, etc.).
+    \item[{[split]}] Split behaviour — focus follows mouse, dim inactive panes, etc.
+    \item[{[portal]}] Picture-in-picture portal overlay settings.
+    \item[{[annotations.highlight] / [annotations.rect] / [annotations.popup]}] Per-annotation-type appearance (colours, hover glow, comment marker size).
+    \item[{[thumbnail\_panel]}] Thumbnail strip width, page numbers, and scrollbar visibility.
+    \item[{[keybindings]}] Override any keybinding by specifying \texttt{action = "Key"} or \texttt{action = [ "Key1", "Key2" ]}.
+    \item[{[mousebindings]}] Mouse button bindings, similar to keybindings.
 \end{description}
 
 \subsection{Example snippet}
@@ -368,34 +391,38 @@ LEKTRA embeds a Lua 5.x interpreter (build with \texttt{-DWITH\_LUA=ON}). All AP
 
 \subsection{Configuration file}
 
-Place your Lua init file at \keys{\$HOME/.config/lektra/init.lua}. It is sourced at startup after the TOML config is applied.
+Place your Lua init file at \pathtt{\$HOME/.config/lektra/init.lua}. It is sourced at startup after the TOML config is applied.
 
 \subsection{Namespaces}
 
 \begin{description}[leftmargin=0pt]
-    \item[\texttt{lektra.view}] Document view helpers — navigation, zoom, rotation, layout, search, text extraction, outline, and per-view event listeners.
+    \item[\texttt{lektra.view}] Access the current view, get one by id, or list all views; the view object exposes navigation, zoom, rotation, layout, search, text extraction, outline, and per-view event listeners (\texttt{register}, \texttt{register\_once}, \texttt{unregister}, \texttt{clear\_listeners}, \texttt{register\_context\_menu}).
     \item[\texttt{lektra.opt}]  Read/write runtime options (fit mode, layout mode, DPR, statusbar fields, …).
-    \item[\texttt{lektra.cmd}]  Execute any lektra command by name from Lua.
-    \item[\texttt{lektra.keymap}] Bind keys to Lua functions at runtime.
-    \item[\texttt{lektra.mousemap}] Bind mouse buttons to Lua functions.
-    \item[\texttt{lektra.event}] Register global event listeners (document open/close, page change, …).
-    \item[\texttt{lektra.ui}]   Show message bars, input prompts, and pickers from Lua.
-    \item[\texttt{lektra.bookmark}] Programmatic bookmark management.
-    \item[\texttt{lektra.tabs}] Tab management — open, close, focus, list tabs.
-    \item[\texttt{lektra.utils}] Utility helpers (shell execute, clipboard, path helpers).
+    \item[\texttt{lektra.cmd}]  \texttt{register}, \texttt{unregister}, \texttt{execute}, \texttt{list}, \texttt{alias} — expose or invoke lektra commands from Lua.
+    \item[\texttt{lektra.keymap}] \texttt{set}, \texttt{get} — bind keys to Lua functions at runtime.
+    \item[\texttt{lektra.mousemap}] \texttt{set} — bind mouse buttons to Lua functions.
+    \item[\texttt{lektra.event}] \texttt{register}, \texttt{unregister}, \texttt{once}, \texttt{count}, and the \texttt{EventType} enum — global event listeners (file open/close, page change, zoom change, tab added/removed, …).
+    \item[\texttt{lektra.ui}]   \texttt{message}, \texttt{messagebox}, \texttt{input}, \texttt{menu}, \texttt{picker}, \texttt{file\_dialog}, \texttt{color\_dialog}.
+    \item[\texttt{lektra.bookmarks}] \texttt{list} and per-bookmark helpers — programmatic bookmark management.
+    \item[\texttt{lektra.tabs}] \texttt{list}, \texttt{count}, \texttt{current}, \texttt{close}, \texttt{goto}, \texttt{first}, \texttt{last}, \texttt{next}, \texttt{prev}, \texttt{move\_left}, \texttt{move\_right}, \texttt{get\_id}.
+    \item[\texttt{lektra.timer}] \texttt{new} — create one-shot / repeating timers driven by the Qt event loop.
+    \item[\texttt{lektra.utils}] \texttt{print}, \texttt{open\_url}, \texttt{platform}.
+    \item[\texttt{lektra.version}] \texttt{major}, \texttt{minor}, \texttt{patch}, \texttt{full} — LEKTRA's version at runtime.
 \end{description}
 
 \subsection{Quick examples}
 
-\textbf{Bind a key to a Lua function:}
+\textbf{Bind a key to a Lua function.} First register a lektra command whose implementation is your Lua callback, then bind keys to that command:
 
 \begin{tcolorbox}[colback=gray!5, colframe=gray!40, boxrule=0.4pt, arc=4pt,
     fontupper=\ttfamily\small]
 \begin{minted}{lua}
-lektra.keymap.map("n", "<C-e>", function()
-local v = lektra.view.current()
-lektra.ui.message("Page: " .. v:pageno())
-end)
+lektra.cmd.register("say_page", function()
+    local v = lektra.view.current()
+    lektra.ui.message("Page: " .. v:pageno())
+end, "Print current page in the message bar")
+
+lektra.keymap.set("say_page", { "<C-e>" })
 \end{minted}
 \end{tcolorbox}
 
@@ -404,26 +431,27 @@ end)
 \begin{tcolorbox}[colback=gray!5, colframe=gray!40, boxrule=0.4pt, arc=4pt,
     fontupper=\ttfamily\small]
 \begin{minted}{lua}
-local v = lektra.view.current()
-v:register("page_changed", function()
-print("Now on page", v:pageno())
+lektra.event.register(lektra.event.EventType.OnPageChanged, function()
+    local v = lektra.view.current()
+    print("Now on page", v:pageno())
 end)
 \end{minted}
 \end{tcolorbox}
 
-\textbf{Open a file in a new tab:}
+\textbf{Open a file in the current view:}
 
 \begin{tcolorbox}[colback=gray!5, colframe=gray!40, boxrule=0.4pt, arc=4pt,
     fontupper=\ttfamily\small]
 \begin{minted}{lua}
-lektra.tabs.open("/path/to/document.pdf")
+local v = lektra.view.current()
+v:open("/path/to/document.pdf")
 \end{minted}
 \end{tcolorbox}
 
 \subsection{Type stubs}
 
 LSP-friendly type stubs for the Lua API are installed at
-\keys{\$prefix/share/lektra/lua/} (Linux/macOS). Point your Lua language server at this directory for autocompletion.
+\pathtt{\$prefix/share/lektra/lua/} (Linux/macOS). Point your Lua language server at this directory for autocompletion.
 
 \begin{tcolorbox}[colback=gray!5, colframe=gray!40, boxrule=0.4pt, arc=4pt,
     fontupper=\ttfamily\small]
@@ -448,7 +476,7 @@ LEKTRA builds with SyncTeX support enabled by default. If your PDF was compiled 
     \item \textbf{Reverse-search} from LEKTRA back to your editor — click while holding the SyncTeX modifier (Ctrl by default) and LEKTRA runs your configured editor command with the source file and line.
 \end{itemize}
 
-Because LEKTRA watches files on disk, re-running \texttt{latexmk} on a source change reloads the PDF automatically without losing your page position or zoom — you don't need to click ``reload''.
+Enable \texttt{behavior.auto\_reload} in \texttt{config.toml} and re-running \texttt{latexmk} on a source change reloads the PDF automatically without losing your page position or zoom. Otherwise use \keys{:file\_reload} to reload manually.
 
 % ---------------------------------------------------------------------------
 \section{Troubleshooting}
