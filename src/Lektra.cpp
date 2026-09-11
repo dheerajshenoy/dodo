@@ -5093,6 +5093,22 @@ Lektra::initCommands() noexcept
     m_command_manager->reg("file_open_dwim", tr("Open file (do what I mean)"),
                            [this](const QStringList &args)
     { OpenFileDWIM(args.isEmpty() ? "" : args.at(0)); });
+    // Registered under both names: file_open_window matches the existing
+    // file_open_{tab,vsplit,hsplit,dwim} family; open_file_new_window is
+    // the name used by the tutorial and prior user documentation.
+    {
+        auto handler = [this](const QStringList &args)
+        {
+            if (args.isEmpty())
+                OpenFileInNewWindow();
+            else
+                OpenFileInNewWindow(args.at(0));
+        };
+        m_command_manager->reg("file_open_window",
+                               tr("Open file in a new window"), handler);
+        m_command_manager->reg("open_file_new_window",
+                               tr("Open file in a new window"), handler);
+    }
     m_command_manager->reg("file_close", tr("Close current file"),
                            [this](const QStringList &args)
     { CloseFile(args.isEmpty() ? "" : args.at(0)); });
